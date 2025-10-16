@@ -1,26 +1,44 @@
-// Venda.php
-public function cliente() {
-    return $this->belongsTo(Cliente::class);
-}
+<?php
 
-public function itens() {
-    return $this->hasMany(ItemVenda::class);
-}
+namespace App\Models;
 
-// Entrega.php
-public function venda() {
-    return $this->belongsTo(Venda::class);
-}
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-public function frota() {
-    return $this->belongsTo(Frota::class);
-}
+class Venda extends Model
+{
+    use HasFactory;
 
-public function motorista() {
-    return $this->belongsTo(Motorista::class);
-}
+    protected $fillable = [
+        'cliente_id',
+        'funcionario_id',
+        'data_venda',
+        'total',
+        'status',
+    ];
 
-// Usuario.php
-public function funcionario() {
-    return $this->belongsTo(Funcionario::class);
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class);
+    }
+
+    public function funcionario()
+    {
+        return $this->belongsTo(Funcionario::class);
+    }
+
+    public function itensVenda()
+    {
+        return $this->hasMany(ItensVenda::class);
+    }
+
+    public function entregas()
+    {
+        return $this->hasMany(Entrega::class);
+    }
+
+    public function posVendas()
+    {
+        return $this->hasMany(PosVenda::class);
+    }
 }

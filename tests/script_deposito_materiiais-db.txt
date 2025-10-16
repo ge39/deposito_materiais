@@ -1,0 +1,148 @@
+-- ========================================
+-- TABELA: fornecedores
+-- ========================================
+CREATE TABLE IF NOT EXISTS fornecedores (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    telefone VARCHAR(50),
+    email VARCHAR(100),
+    endereco VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ========================================
+-- TABELA: clientes
+-- ========================================
+CREATE TABLE IF NOT EXISTS clientes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    telefone VARCHAR(50),
+    email VARCHAR(100),
+    endereco VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ========================================
+-- TABELA: funcionarios
+-- ========================================
+CREATE TABLE IF NOT EXISTS funcionarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    funcao ENUM('vendedor','administrativo','motorista','outro') DEFAULT 'vendedor',
+    telefone VARCHAR(50),
+    email VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ========================================
+-- TABELA: usuarios (login)
+-- ========================================
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    funcionario_id INT NOT NULL,
+    nome_usuario VARCHAR(50) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    nivel ENUM('admin','gerente','vendedor') DEFAULT 'vendedor',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (funcionario_id) REFERENCES funcionarios(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- ========================================
+-- TABELA: produtos
+-- ========================================
+CREATE TABLE IF NOT EXISTS produtos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    preco DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    quantidade INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ========================================
+-- TABELA: vendas
+-- ========================================
+CREATE TABLE IF NOT EXISTS vendas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    cliente_id INT NOT NULL,
+    funcionario_id INT NOT NULL,
+    data_venda DATE NOT NULL,
+    total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    status ENUM('pendente','concluida','cancelada') DEFAULT 'pendente',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (funcionario_id) REFERENCES funcionarios(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- ========================================
+-- TABELA: itens_venda
+-- ========================================
+CREATE TABLE IF NOT EXISTS itens_venda (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    venda_id INT NOT NULL,
+    produto_id INT NOT NULL,
+    quantidade INT NOT NULL,
+    preco DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (venda_id) REFERENCES vendas(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (produto_id) REFERENCES produtos(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- ========================================
+-- TABELA: frotas
+-- ========================================
+CREATE TABLE IF NOT EXISTS frotas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    veiculo VARCHAR(100) NOT NULL,
+    placa VARCHAR(20),
+    capacidade INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ========================================
+-- TABELA: entregas
+-- ========================================
+CREATE TABLE IF NOT EXISTS entregas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    venda_id INT NOT NULL,
+    frota_id INT NOT NULL,
+    funcionario_id INT NOT NULL, -- motorista é agora apenas um funcionário
+    data_entrega DATE,
+    endereco_entrega VARCHAR(255),
+    status ENUM('pendente','em_transito','entregue','cancelada') DEFAULT 'pendente',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (venda_id) REFERENCES vendas(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (frota_id) REFERENCES frotas(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (funcionario_id) REFERENCES funcionarios(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- ========================================
+-- TABELA: pos_venda
+-- ========================================
+CREATE TABLE IF NOT EXISTS pos_venda (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    venda_id INT NOT NULL,
+    descricao TEXT,
+    status ENUM('aberto','concluido') DEFAULT 'aberto',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (venda_id) REFERENCES vendas(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
