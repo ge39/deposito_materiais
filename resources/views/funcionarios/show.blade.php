@@ -9,6 +9,8 @@
             <p><strong>Função:</strong> {{ ucfirst($funcionario->funcao) }}</p>
             <p><strong>Telefone:</strong> {{ $funcionario->telefone }}</p>
             <p><strong>Email:</strong> {{ $funcionario->email }}</p>
+            <p><strong>Endereco:</strong> {{ $funcionario->endereco }}</p>
+            <p><strong>Cidade:</strong> {{ $funcionario->cidade }}</p>
             <p><strong>Salário:</strong> R$ {{ number_format($funcionario->salario, 2, ',', '.') }}</p>
             <p><strong>Data de Admissão:</strong> {{ $funcionario->data_admissao ? \Carbon\Carbon::parse($funcionario->data_admissao)->format('d/m/Y') : '—' }}</p>
             <p><strong>Observações:</strong> {{ $funcionario->observacoes ?: '—' }}</p>

@@ -15,7 +15,7 @@
 <li class="nav-item"><a class="nav-link" href="{{ route('clientes.index') }}">Clientes</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('fornecedores.index') }}">Fornecedores</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('funcionarios.index') }}">Funcionários</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('usuarios.index') }}">Usuários</a></li>
+<li class="nav-item"><a class="nav-link" href="{{ route('users.index') }}">Usuários</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('produtos.index') }}">Produtos</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('vendas.index') }}">Vendas</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('itens_venda.index') }}">Itens Venda</a></li>

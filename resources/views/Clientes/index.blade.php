@@ -20,6 +20,7 @@
                 <th>Email</th>
                 <th>Limite de Crédito</th>
                 <th>Observações</th>
+                <th>Ação</th>
             </tr>
         </thead>
         <tbody>

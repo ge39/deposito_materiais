@@ -2,47 +2,63 @@
 
 @section('content')
 <div class="container">
-    <h2 class="mb-3">Lista de Funcionários</h2>
-    <a href="{{ route('funcionarios.create') }}" class="btn btn-primary mb-3">Novo Funcionário</a>
+    <h2>Lista de Funcionários</h2>
 
+    <!-- Alertas -->
     @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
+        <div class="alert alert-success" id="alerta">{{ session('success') }}</div>
     @endif
 
-    <table class="table table-bordered table-striped">
-        <thead class="table-dark">
+    <!-- Botão Novo -->
+    <a href="{{ route('funcionarios.create') }}" class="btn btn-success mb-3">Novo Funcionário</a>
+
+    <!-- Tabela -->
+    <table class="table table-striped table-bordered">
+        <thead>
             <tr>
-                <th>ID</th>
+                <th>CPF</th>
                 <th>Nome</th>
                 <th>Função</th>
                 <th>Telefone</th>
-                <th>Email</th>
-                <th>Salário (R$)</th>
+                <th>E-mail</th>
+                <th>Ativo</th>
                 <th>Ações</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($funcionarios as $funcionario)
-                <tr>
-                    <td>{{ $funcionario->id }}</td>
-                    <td>{{ $funcionario->nome }}</td>
-                    <td>{{ ucfirst($funcionario->funcao) }}</td>
-                    <td>{{ $funcionario->telefone }}</td>
-                    <td>{{ $funcionario->email }}</td>
-                    <td>R$ {{ number_format($funcionario->salario, 2, ',', '.') }}</td>
-                    <td>
-                        <a href="{{ route('funcionarios.show', $funcionario->id) }}" class="btn btn-sm btn-info">Ver</a>
-                        <a href="{{ route('funcionarios.edit', $funcionario->id) }}" class="btn btn-sm btn-warning">Editar</a>
-                        <form action="{{ route('funcionarios.destroy', $funcionario->id) }}" method="POST" style="display:inline;">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Excluir este funcionário?')">Excluir</button>
-                        </form>
-                    </td>
-                </tr>
-            @empty
-                <tr><td colspan="7" class="text-center">Nenhum funcionário cadastrado</td></tr>
-            @endforelse
+            @foreach($funcionarios as $funcionario)
+            <tr>
+                <td>{{ $funcionario->cpf }}</td>
+                <td>{{ $funcionario->nome }}</td>
+                <td>{{ $funcionario->funcao }}</td>
+                <td>{{ $funcionario->telefone }}</td>
+                <td>{{ $funcionario->email }}</td>
+                <td>{{ $funcionario->ativo ? 'Sim' : 'Não' }}</td>
+                <td>
+                    <a href="{{ route('funcionarios.edit', $funcionario->id) }}" class="btn btn-primary btn-sm">Editar</a>
+
+                    <form action="{{ route('funcionarios.desativa', $funcionario->id) }}" method="POST" style="display:inline-block;">
+                        @csrf
+                        @method('PUT')
+                        <button type="submit" class="btn btn-sm btn-danger"
+                            onclick="return confirm('Tem certeza que deseja desativar este funcionário?');">
+                            Desativar
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            @endforeach
         </tbody>
     </table>
 </div>
+
+<script>
+    // Alerta automático desaparecendo após 5 segundos
+    const alerta = document.getElementById('alerta');
+    if (alerta) {
+        setTimeout(() => {
+            alerta.style.display = 'none';
+        }, 5000);
+    }
+</script>
 @endsection

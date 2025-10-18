@@ -43,7 +43,7 @@
             <label class="form-label">Observações</label>
             <textarea name="observacoes" rows="3" class="form-control">{{ $cliente->observacoes }}</textarea>
         </div>
-
+        
         <button type="submit" class="btn btn-primary">Atualizar</button>
         <a href="{{ route('clientes.index') }}" class="btn btn-secondary">Voltar</a>
     </form>
