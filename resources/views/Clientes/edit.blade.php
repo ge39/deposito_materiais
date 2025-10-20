@@ -68,8 +68,8 @@
                 <input type="text" name="cep" class="form-control" value="{{ $cliente->cep }}">
             </div>
             <div class="col-md-4">
-                <label class="form-label">Rua</label>
-                <input type="text" name="rua" class="form-control" value="{{ $cliente->rua }}">
+                <label class="form-label">Endereço</label>
+                <input type="text" name="endereco" class="form-control" value="{{ $cliente->endereco }}">
             </div>
             <div class="col-md-4">
                 <label class="form-label">Número</label>

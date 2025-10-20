@@ -11,9 +11,12 @@ class UserController extends Controller
     // Lista todos os usuários ativos
     public function index()
     {
-        $users = User::ativos()->get();
+        // $users = User::ativos()->get();
+        // return view('users.index', compact('users'));
+        $users = user::where('ativo', 1)->paginate(15);
         return view('users.index', compact('users'));
     }
+    
 
     // Mostra o formulário de criação
     public function create()

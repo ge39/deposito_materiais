@@ -36,8 +36,20 @@ Route::resource('unidades', UnidadeMedidaController::class);
 Route::get('/buscar-funcionario/{cpf}', [UserController::class, 'buscarFuncionario']);
 Route::put('/users/desativa/{user}', [UserController::class, 'desativa'])->name('users.desativa');
 
+// Clientes
+Route::put('/clientes/ativar/{cliente}', [ClienteController::class, 'ativar'])->name('cliente.ativar');
+Route::put('/clientes/desativar/{cliente}', [ClienteController::class, 'desativar'])->name('cliente.desativar');
+
 // Funcionários
-Route::put('funcionarios/desativa/{funcionario}', [FuncionarioController::class, 'desativa'])->name('funcionarios.desativa');
+Route::put('funcionarios/desativar/{funcionario}', [FuncionarioController::class, 'desativa'])->name('funcionarios.desativar');
+Route::put('funcionarios/ativar/{funcionario}', [FuncionarioController::class, 'desativa'])->name('funcionarios.ativar');
+
+// Fornecedores
+Route::put('fornecedor/desativar/{fornecedor}', [FornecedorController::class, 'desativar'])->name('fornecedores.desativar');
+Route::put('fornecedor/ativar/{fornecedor}', [FornecedorController::class, 'ativar'])->name('fornecedores.ativar');
+
+// Rota para buscar CEP
+Route::get('/buscar-cep', [App\Http\Controllers\CepController::class, 'buscar'])->name('buscar.cep');
 
 // Produtos
 Route::get('produtos/inativos', [ProdutoController::class, 'inativos'])->name('produtos.inativos');
@@ -68,6 +80,7 @@ Route::prefix('produtos/{produto_id}/lotes')->group(function () {
     Route::get('/', [LoteController::class, 'index'])->name('lotes.index');
     Route::get('/create', [LoteController::class, 'create'])->name('lotes.create');
     Route::post('/', [LoteController::class, 'store'])->name('lotes.store');
+
 
     
 });

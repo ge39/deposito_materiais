@@ -52,6 +52,7 @@
         </div>
 
         <button type="submit" class="btn btn-success">Salvar</button>
+         <a href="{{ route('users.index') }}" class="btn btn-secondary">Voltar</a>
     </form>
 </div>
 

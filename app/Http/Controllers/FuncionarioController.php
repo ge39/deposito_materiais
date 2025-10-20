@@ -11,6 +11,9 @@ class FuncionarioController extends Controller
     public function index()
     {
         $funcionarios = Funcionario::where('ativo', 1)->get();
+        // return view('funcionarios.index', compact('funcionarios'));
+
+         $funcionarios = Funcionario::where('ativo', 1)->paginate(9); // 9 cards por página
         return view('funcionarios.index', compact('funcionarios'));
     }
 
@@ -29,8 +32,12 @@ class FuncionarioController extends Controller
             'funcao' => 'required|string|max:50',
             'telefone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
-            'endereco' => 'nullable|string|max:255',
-            'cidade' => 'nullable|string|max:100',
+            'cep' => 'nullable|string|size:9',
+            'endereco' => 'nullable|string',
+            'numero' => 'nullable|string',
+            'bairro' => 'required|string|max:255',
+            'cidade' => 'nullable|string',
+            'estado' => 'nullable|string|size:2',
             'observacoes' => 'nullable|string',
             'data_admissao' => 'nullable|date',
             'ativo' => 'nullable|boolean',
@@ -57,8 +64,12 @@ class FuncionarioController extends Controller
             'funcao' => 'required|string|max:50',
             'telefone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
-            'endereco' => 'nullable|string|max:255',
-            'cidade' => 'nullable|string|max:100',
+            'cep' => 'nullable|string|size:9',
+            'endereco' => 'required|string|max:255',
+            'numero' => 'required|string|max:10',
+             'bairro' => 'required|string|max:255',
+            'cidade' => 'required|string|max:255',
+            'estado' => 'required|string|max:2',
             'observacoes' => 'nullable|string',
             'data_admissao' => 'nullable|date',
             'ativo' => 'nullable|boolean',
@@ -79,4 +90,6 @@ class FuncionarioController extends Controller
         return redirect()->route('funcionarios.index')
             ->with('success', 'Funcionário desativado com sucesso!');
     }
+
+    
 }

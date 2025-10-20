@@ -22,21 +22,22 @@ class Cliente extends Model
         'telefone',
         'email',
         'cep',
-        'rua',
+        'endereco',
         'numero',
         'bairro',
         'cidade',
         'estado',
         'limite_credito',
         'observacoes',
-        'ativo'
+        'ativo',
     ];
 
     protected $casts = [
         'data_nascimento' => 'date',
         'data_emissao' => 'date',
-        'ativo' => 'boolean'
+        'limite_credito' => 'decimal:2',
     ];
+
 
      public function vendas()
     {

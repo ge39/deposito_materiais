@@ -19,8 +19,12 @@ class Funcionario extends Model
         'telefone',
         'email',
         'cpf',
+        'cep',
         'endereco',
+        'numero',
+        'bairro',
         'cidade',
+        'estado',
         'observacoes',
         'data_admissao'
     ];
@@ -30,6 +34,9 @@ class Funcionario extends Model
     ];
     protected $casts = [
     'data_admissao' => 'date', // Laravel vai converter para Carbon
+     'cpf','nome','funcao','telefone','email',
+    'cep','endereco','cidade','estado','numero','bairro',
+    'observacoes','data_admissao','ativo'
     ];
 
 }

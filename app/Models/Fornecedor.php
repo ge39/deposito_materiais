@@ -16,9 +16,14 @@ class Fornecedor extends Model
         'cnpj',
         'telefone',
         'email',
-        'endereco',
+        'cep',
+        'rua',
+        'numero',
+        'bairro',
         'cidade',
+        'estado',
         'observacoes',
+        'ativo',
     ];
 
     protected $dates = [

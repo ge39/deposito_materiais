@@ -82,12 +82,14 @@
             <!-- Endereço -->
             <div class="col-md-4">
                 <label class="form-label">CEP</label>
-                <input type="text" name="cep" class="form-control" value="{{ old('cep') }}">
+                <input type="text" name="cep" id="cep"
+                    onblur="buscarCep(this, '#endereco', '#bairro', '#cidade', '#uf')"
+                    class="form-control" value="{{ old('cep') }}" maxlength="9">
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Rua</label>
-                <input type="text" name="rua" class="form-control" value="{{ old('rua') }}">
+                <label class="form-label">Endereço</label>
+                <input type="text" name="endereco" id="endereco" class="form-control" value="{{ old('endereco') }}">
             </div>
 
             <div class="col-md-4">
@@ -97,17 +99,17 @@
 
             <div class="col-md-4">
                 <label class="form-label">Bairro</label>
-                <input type="text" name="bairro" class="form-control" value="{{ old('bairro') }}">
+                <input type="text" name="bairro" id="bairro" class="form-control" value="{{ old('bairro') }}">
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Cidade</label>
-                <input type="text" name="cidade" class="form-control" value="{{ old('cidade') }}">
+                <input type="text" name="cidade" id="cidade" class="form-control" value="{{ old('cidade') }}">
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Estado</label>
-                <input type="text" name="estado" class="form-control" value="{{ old('estado') }}">
+                <input type="text" name="estado" id="uf" class="form-control" value="{{ old('estado') }}" maxlength="2">
             </div>
 
             <!-- Financeiro -->
@@ -125,8 +127,6 @@
                 <input type="checkbox" name="ativo" id="ativo" class="form-check-input" value="1" {{ old('ativo', 1) ? 'checked' : '' }}>
                 <label for="ativo" class="form-check-label">Ativo</label>
             </div>
-
-
         </div>
 
         <div class="mt-3">
@@ -136,7 +136,7 @@
     </form>
 </div>
 
-<script>
+<!-- <script>
     // Máscara simples para CPF/CNPJ
     const cpfCnpj = document.querySelector('[name="cpf_cnpj"]');
     cpfCnpj?.addEventListener('input', function() {
@@ -152,5 +152,8 @@
     if (alerta) {
         setTimeout(() => alerta.style.display='none', 5000);
     }
-</script>
+</script> -->
+<script src="{{ asset('js/form-masks.js') }}"></script>
+<script src="{{ asset('js/cep.js') }}"></script>
+
 @endsection
