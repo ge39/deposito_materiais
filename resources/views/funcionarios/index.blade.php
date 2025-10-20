@@ -33,7 +33,9 @@
                 <td>{{ $funcionario->funcao }}</td>
                 <td>{{ $funcionario->telefone }}</td>
                 <td>{{ $funcionario->email }}</td>
-                <td>{{ $funcionario->ativo ? 'Sim' : 'Não' }}</td>
+                 <td>
+                    <span class="badge bg-success">Ativo</span>
+                </td>
                 <td>
                     <a href="{{ route('funcionarios.edit', $funcionario->id) }}" class="btn btn-primary btn-sm">Editar</a>
 

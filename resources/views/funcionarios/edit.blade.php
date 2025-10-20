@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container">
-    <h2>Editar Funcionário</h2>
+    <h2 class="mb-4">Editar Funcionário: {{ $funcionario->nome }}</h2>
 
     @if(session('success'))
         <div class="alert alert-success" id="alerta">{{ session('success') }}</div>
@@ -21,65 +21,57 @@
         @csrf
         @method('PUT')
 
-        <!-- CPF -->
-        <div class="mb-3">
-            <label for="cpf">CPF:</label>
-            <input type="text" name="cpf" id="cpf" class="form-control" value="{{ $funcionario->cpf }}" required>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="cpf" class="form-label">CPF</label>
+                <input type="text" name="cpf" id="cpf" class="form-control" value="{{ $funcionario->cpf }}" required>
+            </div>
+            <div class="col-md-4">
+                <label for="nome" class="form-label">Nome</label>
+                <input type="text" name="nome" id="nome" class="form-control" value="{{ $funcionario->nome }}" required>
+            </div>
+            <div class="col-md-4">
+                <label for="funcao" class="form-label">Função</label>
+                <input type="text" name="funcao" id="funcao" class="form-control" value="{{ $funcionario->funcao }}" required>
+            </div>
         </div>
 
-        <!-- Nome -->
-        <div class="mb-3">
-            <label for="nome">Nome:</label>
-            <input type="text" name="nome" id="nome" class="form-control" value="{{ $funcionario->nome }}" required>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="telefone" class="form-label">Telefone</label>
+                <input type="text" name="telefone" id="telefone" class="form-control" value="{{ $funcionario->telefone }}">
+            </div>
+            <div class="col-md-4">
+                <label for="email" class="form-label">E-mail</label>
+                <input type="email" name="email" id="email" class="form-control" value="{{ $funcionario->email }}">
+            </div>
+            <div class="col-md-4">
+                <label for="data_admissao" class="form-label">Data de Admissão</label>
+                <input type="date" name="data_admissao" id="data_admissao" class="form-control"
+                       value="{{ $funcionario->data_admissao ? $funcionario->data_admissao->format('Y-m-d') : '' }}">
+            </div>
         </div>
 
-        <!-- Função -->
-        <div class="mb-3">
-            <label for="funcao">Função:</label>
-            <input type="text" name="funcao" id="funcao" class="form-control" value="{{ $funcionario->funcao }}" required>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="endereco" class="form-label">Endereço</label>
+                <input type="text" name="endereco" id="endereco" class="form-control" value="{{ $funcionario->endereco }}">
+            </div>
+            <div class="col-md-4">
+                <label for="cidade" class="form-label">Cidade</label>
+                <input type="text" name="cidade" id="cidade" class="form-control" value="{{ $funcionario->cidade }}">
+            </div>
+            <div class="col-md-4 d-flex align-items-center">
+                <div class="form-check mt-2">
+                    <input type="checkbox" name="ativo" id="ativo" class="form-check-input" value="1" {{ $funcionario->ativo ? 'checked' : '' }}>
+                    <label for="ativo" class="form-check-label">Ativo</label>
+                </div>
+            </div>
         </div>
 
-        <!-- Telefone -->
         <div class="mb-3">
-            <label for="telefone">Telefone:</label>
-            <input type="text" name="telefone" id="telefone" class="form-control" value="{{ $funcionario->telefone }}">
-        </div>
-
-        <!-- E-mail -->
-        <div class="mb-3">
-            <label for="email">E-mail:</label>
-            <input type="email" name="email" id="email" class="form-control" value="{{ $funcionario->email }}">
-        </div>
-
-        <!-- Endereço -->
-        <div class="mb-3">
-            <label for="endereco">Endereço:</label>
-            <input type="text" name="endereco" id="endereco" class="form-control" value="{{ $funcionario->endereco }}">
-        </div>
-
-        <!-- Cidade -->
-        <div class="mb-3">
-            <label for="cidade">Cidade:</label>
-            <input type="text" name="cidade" id="cidade" class="form-control" value="{{ $funcionario->cidade }}">
-        </div>
-
-        <!-- Observações -->
-        <div class="mb-3">
-            <label for="observacoes">Observações:</label>
+            <label for="observacoes" class="form-label">Observações</label>
             <textarea name="observacoes" id="observacoes" class="form-control" rows="3">{{ $funcionario->observacoes }}</textarea>
-        </div>
-
-        <!-- Data de Admissão -->
-        <div class="mb-3">
-            <label for="data_admissao">Data de Admissão:</label>
-            <input type="date" name="data_admissao" id="data_admissao" class="form-control"
-                   value="{{ $funcionario->data_admissao ? $funcionario->data_admissao->format('Y-m-d') : '' }}">
-        </div>
-
-        <!-- Ativo -->
-        <div class="mb-3 form-check">
-            <input type="checkbox" name="ativo" id="ativo" class="form-check-input" value="1" {{ $funcionario->ativo ? 'checked' : '' }}>
-            <label for="ativo" class="form-check-label">Ativo</label>
         </div>
 
         <button type="submit" class="btn btn-success">Atualizar</button>

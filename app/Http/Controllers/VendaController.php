@@ -2,69 +2,108 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Venda;
-use App\Models\Cliente;
-use App\Models\Funcionario;
 use Illuminate\Http\Request;
+use App\Models\Produto;
+use App\Models\Venda;
+use App\Models\VendaItem;
 
 class VendaController extends Controller
 {
     public function index()
     {
-        $vendas = Venda::with(['cliente', 'funcionario'])->get();
-        return view('vendas.index', compact('vendas'));
+        $itens = session()->get('pdv', []);
+        $total = array_sum(array_column($itens, 'subtotal'));
+        return view('pdv.index', compact('itens', 'total'));
     }
 
-    public function create()
+    public function buscarProduto(Request $request)
     {
-        $clientes = Cliente::all();
-        $funcionarios = Funcionario::all();
-        return view('vendas.create', compact('clientes', 'funcionarios'));
+        $term = $request->term;
+        $produtos = Produto::where('ativo',1)
+                    ->where('nome','like',"%{$term}%")
+                    ->orWhere('codigo','like',"%{$term}%")
+                    ->get();
+        return response()->json($produtos);
     }
 
-    public function store(Request $request)
+    public function adicionarProduto(Request $request)
     {
-        $data = $request->validate([
-            'cliente_id' => 'required|exists:clientes,id',
-            'funcionario_id' => 'required|exists:funcionarios,id',
-            'data_venda' => 'required|date',
-            'total' => 'required|numeric',
-            'status' => 'required|in:pendente,concluida,cancelada',
+        $produto = Produto::findOrFail($request->produto_id);
+        $quantidade = $request->quantidade ?? 1;
+
+        $itens = session()->get('pdv', []);
+
+        if(isset($itens[$produto->id])){
+            $itens[$produto->id]['quantidade'] += $quantidade;
+            $itens[$produto->id]['subtotal'] = $itens[$produto->id]['quantidade'] * $produto->preco;
+        } else {
+            $itens[$produto->id] = [
+                'nome' => $produto->nome,
+                'preco' => $produto->preco,
+                'quantidade' => $quantidade,
+                'subtotal' => $produto->preco * $quantidade
+            ];
+        }
+
+        session()->put('pdv', $itens);
+
+        return response()->json([
+            'success'=>true,
+            'itens'=>$itens,
+            'total'=>array_sum(array_column($itens,'subtotal'))
+        ]);
+    }
+
+    public function gerarCupom(Venda $venda)
+        {
+            $itens = $venda->itens; // relação com VendaItem
+            $total = $venda->total;
+            $valor_pago = $venda->valor_pago;
+            $troco = $venda->troco;
+            $forma_pagamento = $venda->forma_pagamento;
+
+            return view('pdv.cupom', compact('venda','itens','total','valor_pago','troco','forma_pagamento'));
+        }
+        
+    public function removerProduto(Request $request)
+    {
+        $itens = session()->get('pdv', []);
+        unset($itens[$request->produto_id]);
+        session()->put('pdv', $itens);
+
+        return response()->json([
+            'success'=>true,
+            'itens'=>$itens,
+            'total'=>array_sum(array_column($itens,'subtotal'))
+        ]);
+    }
+
+    public function finalizarVenda(Request $request)
+    {
+        $itens = session()->get('pdv', []);
+        if(!$itens) return response()->json(['error'=>'Nenhum produto adicionado.'],400);
+
+        $venda = Venda::create([
+            'total'=>array_sum(array_column($itens,'subtotal')),
+            'user_id'=>auth()->id() ?? null,
+            'forma_pagamento'=>$request->forma_pagamento,
+            'valor_pago'=>$request->valor_pago,
+            'troco'=>($request->valor_pago ?? 0) - array_sum(array_column($itens,'subtotal'))
         ]);
 
-        Venda::create($data);
-        return redirect()->route('vendas.index')->with('success', 'Venda criada com sucesso.');
-    }
+        foreach($itens as $produtoId=>$item){
+            VendaItem::create([
+                'venda_id'=>$venda->id,
+                'produto_id'=>$produtoId,
+                'quantidade'=>$item['quantidade'],
+                'preco'=>$item['preco'],
+                'subtotal'=>$item['subtotal']
+            ]);
+        }
 
-    public function show(Venda $venda)
-    {
-        return view('vendas.show', compact('venda'));
-    }
 
-    public function edit(Venda $venda)
-    {
-        $clientes = Cliente::all();
-        $funcionarios = Funcionario::all();
-        return view('vendas.edit', compact('venda','clientes','funcionarios'));
-    }
+        session()->forget('pdv');
 
-    public function update(Request $request, Venda $venda)
-    {
-        $data = $request->validate([
-            'cliente_id' => 'required|exists:clientes,id',
-            'funcionario_id' => 'required|exists:funcionarios,id',
-            'data_venda' => 'required|date',
-            'total' => 'required|numeric',
-            'status' => 'required|in:pendente,concluida,cancelada',
-        ]);
-
-        $venda->update($data);
-        return redirect()->route('vendas.index')->with('success', 'Venda atualizada com sucesso.');
-    }
-
-    public function destroy(Venda $venda)
-    {
-        $venda->delete();
-        return redirect()->route('vendas.index')->with('success', 'Venda removida com sucesso.');
+        return response()->json(['success'=>true,'message'=>'Venda finalizada com sucesso!','troco'=>($request->valor_pago ?? 0) - array_sum(array_column($itens,'subtotal'))]);
     }
 }
