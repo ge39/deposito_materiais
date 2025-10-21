@@ -23,6 +23,20 @@ class ProdutoController extends Controller
     return view('produtos.index', compact('produtos'));
     }
 
+    public function search(Request $request)
+{
+    $q = $request->input('q');
+
+    $produtos = Produto::query()
+        ->where('nome', 'like', "%{$q}%")
+        ->orWhereHas('categoria', fn($c) => $c->where('nome', 'like', "%{$q}%"))
+        ->orWhereHas('fornecedor', fn($f) => $f->where('nome', 'like', "%{$q}%"))
+        ->paginate(15)
+        ->withQueryString();
+
+    return view('produtos.index', compact('produtos'));
+}
+
 
     // Formulário de criação
     public function create()

@@ -16,6 +16,25 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
         </div>
     @endif
+    <form action="{{ route('funcionarios.search') }}" method="GET" class="mb-3 row g-2 align-items-end">
+    
+        <div class="col-md-8">
+            <input type="text" name="q" class="form-control" placeholder="Buscar por nome, CPF ou e-mail..." value="{{ request('q') }}">
+        </div>
+
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Buscar</button>
+            <a href="{{ route('funcionarios.index') }}" class="btn btn-secondary flex-grow-1">Limpar</a>
+        </div>
+
+    </form>
+
+
+@if(isset($mensagem))
+    <div class="alert alert-warning text-center">
+        {{ $mensagem }}
+    </div>
+@endif
 
     @if($funcionarios->count() > 0)
         <div class="row g-4">

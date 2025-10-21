@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mt-5">
+<div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">Fornecedores Ativos</h2>
         <a href="{{ route('fornecedores.create') }}" class="btn btn-success">
@@ -14,6 +14,19 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
+    <!-- Formulário de busca -->
+    <form action="{{ route('fornecedores.search') }}" method="GET" class="mb-3 row g-2 align-items-end">
+        <div class="col-md-8">
+            <input type="text" name="q" class="form-control" placeholder="Buscar por nome ou CNPJ" value="{{ request('q') }}">
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Buscar</button>
+            <a href="{{ route('fornecedores.index') }}" class="btn btn-secondary flex-grow-1">Limpar</a>
+        </div>
+
+    </form>
+
+    <!-- Cards de fornecedores -->
     @if($fornecedores->count() > 0)
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
             @foreach($fornecedores as $fornecedor)

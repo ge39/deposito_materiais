@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mt-4">
+<div class="container pt-4">
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">Produtos Ativos</h2>
         <div>
@@ -22,6 +23,17 @@
         </div>
     @endif
 
+    <!-- Formulário de busca -->
+    <form action="{{ route('produtos.search') }}" method="GET" class="mb-3 row g-2 align-items-end">
+        <div class="col-md-8">
+            <input type="text" name="q" class="form-control" placeholder="Buscar por nome, categoria ou fornecedor..." value="{{ request('q') }}">
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Buscar</button>
+            <a href="{{ route('produtos.index') }}" class="btn btn-secondary flex-grow-1">Limpar</a>
+        </div>
+    </form>
+
     @if($produtos->count() > 0)
         <div class="row g-4">
             @foreach($produtos as $produto)
@@ -38,7 +50,16 @@
                             <p class="card-text mb-1"><strong>Compra:</strong> {{ \Carbon\Carbon::parse($produto->data_compra)->format('d/m/Y') }}</p>
                             <p class="card-text mb-1"><strong>Validade:</strong> {{ \Carbon\Carbon::parse($produto->validade)->format('d/m/Y') }}</p>
                             <p class="card-text mb-1"><strong>Preço:</strong> R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}</p>
-
+                             <!-- Coluna direita: Imagem -->
+                            <div class="d-flex flex-wrap gap-1 mt-3">
+                                <div>
+                                    @if($produto->imagem)
+                                        <img id="imagemPreview" src="{{ asset('storage/' . $produto->imagem) }}" alt="Imagem Atual" style="max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
+                                    @else
+                                        <img id="imagemPreview" src="#" alt="Prévia da Imagem" style="display:none; max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
+                                    @endif
+                                </div>
+                            </div>
                             <div class="d-flex flex-wrap gap-1 mt-3">
                                 <a href="{{ route('produtos.show', $produto->id) }}" class="btn btn-sm btn-info">Ver</a>
                                 <a href="{{ route('produtos.edit', $produto->id) }}" class="btn btn-sm btn-warning">Editar</a>
@@ -59,7 +80,7 @@
         </div>
 
         <!-- Paginação -->
-        <div class="card-flex justify-content-center mt-4">
+        <div class="d-flex justify-content-center mt-4">
             {{ $produtos->links('pagination::bootstrap-5') }}
         </div>
     @else

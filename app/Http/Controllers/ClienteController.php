@@ -7,10 +7,21 @@ use Illuminate\Http\Request;
 
 class ClienteController extends Controller
 {
-    // Listar clientes ativos
-    public function index()
+    // Listar clientes ativos com busca inteligente
+    public function index(Request $request)
     {
-        $clientes = Cliente::where('ativo', 1)->paginate(15);
+        $clientes = Cliente::query()
+            ->where('ativo', 1)
+            ->when($request->busca, function($query, $busca) {
+                $query->where('nome', 'like', "%{$busca}%")
+                      ->orWhere('cpf_cnpj', 'like', "%{$busca}%");
+            })
+            ->when($request->tipo, function($query, $tipo) {
+                $query->where('tipo', $tipo);
+            })
+            ->orderBy('nome')
+            ->paginate(9);
+
         return view('clientes.index', compact('clientes'));
     }
 
@@ -79,12 +90,12 @@ class ClienteController extends Controller
             'sexo' => 'nullable|in:masculino,feminino,outro',
             'telefone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
-            'cep' => 'nullable|string|max:20',
+            'cep' => 'nullable|string|max:10',
             'endereco' => 'nullable|string|max:255',
-            'numero' => 'nullable|string|max:20',
-            'bairro' => 'nullable|string|max:100',
-            'cidade' => 'nullable|string|max:100',
-            'estado' => 'nullable|string|max:50',
+            'numero' => 'nullable|string|max:10',
+            'bairro' => 'nullable|string|max:255',
+            'cidade' => 'nullable|string|max:255',
+            'estado' => 'nullable|string|max:2',
             'limite_credito' => 'nullable|numeric',
             'observacoes' => 'nullable|string',
             'ativo' => 'nullable|boolean',
@@ -96,15 +107,12 @@ class ClienteController extends Controller
 
         return redirect()->route('clientes.index')->with('success', 'Cliente atualizado com sucesso.');
     }
-    public function show($id)
-    {
-        // Buscar cliente pelo ID, ou falhar
-        $cliente = Cliente::findOrFail($id);
 
-        // Retorna a view com os dados do cliente
+    // Visualizar cliente
+    public function show(Cliente $cliente)
+    {
         return view('clientes.show', compact('cliente'));
     }
-
 
     // Ativar cliente
     public function ativar(Cliente $cliente)

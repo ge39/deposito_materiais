@@ -11,8 +11,7 @@ class FornecedorController extends Controller
     public function index()
     {
         // Busca apenas fornecedores ativos
-        //$fornecedores = Fornecedor::where('ativo', 1)->get();
-        
+                
         // Se quiser paginar (opcional)
         $fornecedores = Fornecedor::where('ativo', 1)->paginate(15);
         return view('fornecedores.index', compact('fornecedores'));
@@ -96,6 +95,8 @@ class FornecedorController extends Controller
         return redirect()->route('fornecedores.index')->with('success', 'Fornecedor deletado com sucesso!');
     }
 
+    // Listar fornecedores inativos
+    
     // Ativar Fornecedor
     public function ativar(Fornecedor $fornecedore)
     {
@@ -122,5 +123,21 @@ class FornecedorController extends Controller
         return redirect()->route('fornecedores.index')
             ->with('success', 'Fornecedor desativado com sucesso.');
     }
+    //   Busca fornecedores por nome ou CNPJ.
+     
+    public function search(Request $request)
+    {
+        $q = $request->input('q');
 
+        $fornecedores = Fornecedor::query()
+            ->where(function($query) use ($q) {
+                $query->where('nome', 'like', "%{$q}%")
+                    ->orWhere('cnpj', 'like', "%{$q}%");
+            })
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('fornecedores.index', compact('fornecedores'));
+    }
 }
+

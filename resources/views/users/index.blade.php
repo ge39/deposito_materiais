@@ -39,7 +39,7 @@
                                     <i class="bi bi-pencil-square"></i> Editar
                                 </a>
 
-                                <form action="{{ route('users.desativa', $user->id) }}" method="POST" class="d-inline">
+                                <form action="{{ route('users.desativar', $user->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('PUT')
                                     <button type="submit" class="btn btn-sm btn-danger"

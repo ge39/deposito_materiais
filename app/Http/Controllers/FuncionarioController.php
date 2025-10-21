@@ -13,7 +13,26 @@ class FuncionarioController extends Controller
         $funcionarios = Funcionario::where('ativo', 1)->get();
         // return view('funcionarios.index', compact('funcionarios'));
 
-         $funcionarios = Funcionario::where('ativo', 1)->paginate(9); // 9 cards por página
+         $funcionarios = Funcionario::where('ativo', 1)->paginate(15); // 15 cards por página
+        return view('funcionarios.index', compact('funcionarios'));
+    }
+    // Pesquisa funcionários por nome, CPF ou email
+    public function search(Request $request)
+    {
+        $query = $request->input('q');
+
+        $funcionarios = \App\Models\Funcionario::where('nome', 'like', "%{$query}%")
+            ->orWhere('cpf', 'like', "%{$query}%")
+            ->orWhere('email', 'like', "%{$query}%")
+            ->paginate(15);
+
+        if ($funcionarios->isEmpty()) {
+            return view('funcionarios.index', [
+                'funcionarios' => $funcionarios,
+                'mensagem' => 'Nenhum funcionário encontrado para o termo pesquisado.'
+            ]);
+        }
+
         return view('funcionarios.index', compact('funcionarios'));
     }
 
@@ -91,5 +110,10 @@ class FuncionarioController extends Controller
             ->with('success', 'Funcionário desativado com sucesso!');
     }
 
-    
+    public function show($id)
+    {
+        $funcionario = Funcionario::findOrFail($id);
+        return view('funcionarios.show', compact('funcionario'));
+    }
+
 }
