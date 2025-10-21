@@ -62,7 +62,7 @@
             <!-- Endereço com CEP -->
             <div class="col-md-3">
                 <label for="cep" class="form-label">CEP</label>
-                <input type="text" name="cep" id="cep" onblur="buscarCep(this, '#endereco', '#cidade', '#uf')" class="form-control" value="{{ old('cep') }}">
+                <input type="text" name="cep" id="cep" class="form-control" value="{{ old('cep') }}" onblur="buscarCep()">
             </div>
 
             <div class="col-md-5">
@@ -74,7 +74,11 @@
                 <label for="numero" class="form-label">Número</label>
                 <input type="text" name="numero" id="numero" class="form-control" value="{{ old('numero') }}">
             </div>
+            <div class="col-md-4">
+                <label for="bairro" class="form-label">Bairro</label>
+                <input type="text" name="bairro" id="bairro" class="form-control" value="{{ old('bairro') }}">
 
+            </div>
             <div class="col-md-4">
                 <label for="cidade" class="form-label">Cidade</label>
                 <input type="text" name="cidade" id="cidade" class="form-control" value="{{ old('cidade') }}">

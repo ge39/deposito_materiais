@@ -4,85 +4,110 @@ namespace App\Http\Controllers;
 
 use App\Models\Devolucao;
 use App\Models\Venda;
+use App\Models\VendaItem;
+use App\Models\Cliente;
 use App\Models\Produto;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DevolucaoController extends Controller
 {
-    public function index()
+    /**
+     * Lista todas as devoluções com filtros opcionais.
+     */
+    public function index(Request $request)
     {
-        $devolucoes = Devolucao::with('venda','produto','produtoTroca')->get();
-        return view('devolucoes.index', compact('devolucoes'));
+        $clientes = Cliente::orderBy('nome')->get();
+
+        $query = Devolucao::with(['cliente', 'produto', 'venda'])
+            ->when($request->cliente_id, fn($q) => $q->where('cliente_id', $request->cliente_id))
+            ->when($request->venda_id, fn($q) => $q->where('venda_id', $request->venda_id))
+            ->when($request->produto_codigo, function ($q) use ($request) {
+                $q->whereHas('produto', fn($p) => $p->where('codigo', 'like', "%{$request->produto_codigo}%"));
+            })
+            ->when($request->data, fn($q) => $q->whereDate('created_at', $request->data))
+            ->orderByDesc('created_at');
+
+        $devolucoes = $query->paginate(15);
+
+        return view('devolucoes.index', compact('clientes', 'devolucoes'));
     }
 
-    public function create()
+    /**
+     * Exibe o formulário de nova devolução.
+     */
+    public function create($item_id)
     {
-        $vendas = Venda::with('itens')->get();
-        $produtos = Produto::all();
-        return view('devolucoes.create', compact('vendas','produtos'));
+        $item = VendaItem::with('venda.cliente', 'produto')->findOrFail($item_id);
+
+        return view('devolucoes.create', compact('item'));
     }
 
+    /**
+     * Registra uma nova devolução.
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'venda_id' => 'required|exists:vendas,id',
-            'produto_id' => 'required|exists:produtos,id',
+            'venda_item_id' => 'required|exists:venda_itens,id',
             'quantidade' => 'required|integer|min:1',
-            'tipo' => 'required|in:devolucao,troca',
+            'motivo' => 'required|string|max:255',
         ]);
 
-        $venda = Venda::findOrFail($request->venda_id);
-        $produto = Produto::findOrFail($request->produto_id);
-        $quantidade = $request->quantidade;
+        $item = VendaItem::with('venda.cliente', 'produto')->findOrFail($request->venda_item_id);
 
-        // Valor unitário do item original
-        $valor_unitario = $produto->preco;
-
-        $diferenca = 0;
-        if($request->tipo === 'troca' && $request->produto_troca_id) {
-            $produto_troca = Produto::findOrFail($request->produto_troca_id);
-            $diferenca = ($produto_troca->preco - $valor_unitario) * $quantidade;
-
-            // Atualiza estoque do produto de troca
-            $produto_troca->estoque -= $quantidade;
-            $produto_troca->save();
+        if ($request->quantidade > $item->quantidade) {
+            return back()->withErrors(['quantidade' => 'A quantidade devolvida não pode ser maior que a vendida.']);
         }
 
-        // Atualiza estoque do produto devolvido
-        $produto->estoque += $quantidade;
-        $produto->save();
-
-        // Cria registro da devolução
-        Devolucao::create([
-            'venda_id' => $venda->id,
-            'produto_id' => $produto->id,
-            'quantidade' => $quantidade,
-            'valor_unitario' => $valor_unitario,
-            'tipo' => $request->tipo,
-            'produto_troca_id' => $request->produto_troca_id ?? null,
-            'diferenca' => $diferenca,
-            'observacoes' => $request->observacoes,
+        $devolucao = Devolucao::create([
+            'cliente_id' => $item->venda->cliente_id,
+            'venda_id' => $item->venda_id,
+            'venda_item_id' => $item->id,
+            'produto_id' => $item->produto_id,
+            'quantidade' => $request->quantidade,
+            'motivo' => $request->motivo,
+            'tipo' => $request->tipo ?? 'defeito',
+            'status' => 'pendente',
+            'observacao' => $request->observacao,
+            'criado_por' => Auth::id(),
         ]);
 
-        // Atualiza total da venda
-        $itens = $venda->itens;
-        $total = 0;
-        foreach($itens as $item) {
-            $total += $item->quantidade * $item->preco;
-        }
-
-        // Subtrai valor da devolução e adiciona diferença se houver
-        $total -= $quantidade * $valor_unitario;
-        $total += $diferenca;
-        $venda->total = $total;
-        $venda->save();
-
-        return redirect()->route('devolucoes.index')->with('success','Devolução registrada com sucesso!');
+        return redirect()->route('devolucoes.show', $devolucao)
+            ->with('success', 'Devolução registrada com sucesso!');
     }
 
-    public function show($id)
+    /**
+     * Exibe os detalhes de uma devolução específica.
+     */
+    public function show(Devolucao $devolucao)
     {
-        $devolucao = Devolucao::with('venda','produto','produtoTroca')->findOrFail($id);
+        $devolucao->load(['cliente', 'produto', 'venda']);
+
         return view('devolucoes.show', compact('devolucao'));
+    }
+
+    /**
+     * Atualiza o status da devolução (ex: aprovada, rejeitada, concluída).
+     */
+    public function updateStatus(Request $request, Devolucao $devolucao)
+    {
+        $request->validate([
+            'status' => 'required|in:pendente,aprovada,rejeitada,concluida',
+        ]);
+
+        $devolucao->update(['status' => $request->status]);
+
+        return back()->with('success', 'Status atualizado com sucesso!');
+    }
+
+    /**
+     * Remove uma devolução (apenas administradores).
+     */
+    public function destroy(Devolucao $devolucao)
+    {
+        $devolucao->delete();
+
+        return redirect()->route('devolucoes.index')->with('success', 'Devolução removida com sucesso!');
     }
 }

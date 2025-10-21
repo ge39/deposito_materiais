@@ -16,11 +16,21 @@ use App\Http\Controllers\MarcaController;
 use App\Http\Controllers\UnidadeMedidaController;
 use App\Http\Controllers\LoteController;
 use App\Http\Controllers\CepController;
-use App\Http\Controllers\DevolucaoTrocaController;
+use App\Http\Controllers\DevolucaoController;
+use App\Http\Controllers\RastreioVendaController;
 
 // Dashboard
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+// Página inicial do rastreio (formulário)
+Route::get('/rastreio', [RastreioVendaController::class, 'index'])->name('rastreio.index');
+Route::get('/rastreio/buscar', [RastreioVendaController::class, 'buscar'])->name('rastreio.buscar');
+
+// Buscar vendas com filtros
+Route::get('/rastreio/buscar', [RastreioVendaController::class, 'buscar'])->name('rastreio.buscar');
+
+// Registrar devolução de um item específico
+Route::post('/rastreio/devolucao/{item_id}', [RastreioVendaController::class, 'registrarDevolucao'])->name('rastreio.devolucao');
 // Usuários
 Route::put('/users/desativar/{user}', [UserController::class, 'desativar'])->name('users.desativar');
 
@@ -30,6 +40,8 @@ Route::put('/clientes/desativar/{cliente}', [ClienteController::class, 'desativa
 
 // Funcionários
 Route::get('/funcionarios/buscar', [FuncionarioController::class, 'search'])->name('funcionarios.search');
+// Buscar funcionário por CPF ajax
+Route::get('/buscar-funcionario/{cpf}', [FuncionarioController::class, 'buscarPorCPF']);
 Route::put('/funcionarios/desativar/{funcionario}', [FuncionarioController::class, 'desativar'])->name('funcionarios.desativar');
 Route::put('/funcionarios/ativar/{funcionario}', [FuncionarioController::class, 'ativar'])->name('funcionarios.ativar');
 
@@ -83,9 +95,9 @@ Route::prefix('pdv')->group(function () {
 });
 
 // Devoluções e Trocas
-Route::resource('devolucoes', DevolucaoTrocaController::class);
-Route::put('devolucoes/{devolucao}/aprovar', [DevolucaoTrocaController::class, 'aprovar'])->name('devolucoes.aprovar');
-Route::put('devolucoes/{devolucao}/rejeitar', [DevolucaoTrocaController::class, 'rejeitar'])->name('devolucoes.rejeitar');
+Route::resource('devolucoes', DevolucaoController::class);
+Route::put('devolucoes/{devolucao}/aprovar', [DevolucaoController::class, 'aprovar'])->name('devolucoes.aprovar');
+Route::put('devolucoes/{devolucao}/rejeitar', [DevolucaoController::class, 'rejeitar'])->name('devolucoes.rejeitar');
 
 // Lotes
 Route::prefix('produtos/{produto_id}/lotes')->group(function () {

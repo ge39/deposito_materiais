@@ -40,7 +40,7 @@
                 <div class="col-md-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
-                            <h5 class="card-title">{{ $produto->nome }}</h5>
+                            <h5 class="card-title">{{ $produto->nome }} - {{ $produto->id }}</h5>
                             <p class="card-text mb-1"><strong>Categoria:</strong> {{ $produto->categoria->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Fornecedor:</strong> {{ $produto->fornecedor->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Marca:</strong> {{ $produto->marca->nome ?? '-' }}</p>
@@ -54,6 +54,7 @@
                             <div class="d-flex flex-wrap gap-1 mt-3">
                                 <div>
                                     @if($produto->imagem)
+                                    <label for="imagem" class="form-label">Imagem do Produto</label>
                                         <img id="imagemPreview" src="{{ asset('storage/' . $produto->imagem) }}" alt="Imagem Atual" style="max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
                                     @else
                                         <img id="imagemPreview" src="#" alt="Prévia da Imagem" style="display:none; max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">

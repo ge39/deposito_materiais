@@ -2,30 +2,51 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Devolucao extends Model
 {
+    use HasFactory;
+    // Força o nome correto da tabela
+    protected $table = 'devolucoes';
+    
     protected $fillable = [
+        'cliente_id',
         'venda_id',
+        'venda_item_id',
         'produto_id',
         'quantidade',
-        'valor_unitario',
+        'motivo',
         'tipo',
-        'produto_troca_id',
-        'diferenca',
-        'observacoes'
+        'status',
+        'observacao',
+        'criado_por',
     ];
 
-    public function venda() {
+    // 🔗 Relacionamentos
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class);
+    }
+
+    public function venda()
+    {
         return $this->belongsTo(Venda::class);
     }
 
-    public function produto() {
-        return $this->belongsTo(Produto::class, 'produto_id');
+    public function item()
+    {
+        return $this->belongsTo(VendaItem::class, 'venda_item_id');
     }
 
-    public function produtoTroca() {
-        return $this->belongsTo(Produto::class, 'produto_troca_id');
+    public function produto()
+    {
+        return $this->belongsTo(Produto::class);
+    }
+
+    public function usuario()
+    {
+        return $this->belongsTo(Funcionario::class, 'criado_por');
     }
 }

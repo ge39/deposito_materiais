@@ -86,7 +86,7 @@ class FuncionarioController extends Controller
             'cep' => 'nullable|string|size:9',
             'endereco' => 'required|string|max:255',
             'numero' => 'required|string|max:10',
-             'bairro' => 'required|string|max:255',
+            'bairro' => 'required|string|max:255',
             'cidade' => 'required|string|max:255',
             'estado' => 'required|string|max:2',
             'observacoes' => 'nullable|string',
@@ -114,6 +114,24 @@ class FuncionarioController extends Controller
     {
         $funcionario = Funcionario::findOrFail($id);
         return view('funcionarios.show', compact('funcionario'));
+    }
+    public function buscarPorCPF($cpf)
+    {
+        $cpf = preg_replace('/\D/', '', $cpf); // remove tudo que não é número
+
+        $funcionario = Funcionario::whereRaw("REPLACE(REPLACE(REPLACE(cpf,'.',''),'-',''),' ','') = ?", [$cpf])->first();
+
+        if ($funcionario) {
+            return response()->json([
+                'success' => true,
+                'data' => $funcionario
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Funcionário não encontrado.'
+            ]);
+        }
     }
 
 }

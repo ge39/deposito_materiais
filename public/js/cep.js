@@ -1,52 +1,74 @@
-function buscarCep(inputCep, enderecoId, cidadeId, ufId) {
-    let cep = inputCep.value.replace(/\D/g, '');
+// Mascara simples para CPF ou CEP
+function mascaraCEP(cep) {
+    cep = cep.replace(/\D/g, '');
+    if (cep.length > 5) {
+        cep = cep.replace(/^(\d{5})(\d)/, "$1-$2");
+    }
+    return cep;
+}
 
-    // Limpa campos se estiver vazio
-    if (cep === "") {
-        document.querySelector(enderecoId).value = "";
-        document.querySelector(cidadeId).value = "";
-        document.querySelector(ufId).value = "";
+// Busca CEP via ViaCEP
+function buscarCep() {
+    const inputCep = document.getElementById('cep');
+    const cep = inputCep.value.replace(/\D/g, '');
+
+    // Limpa campos se CEP inválido
+    if (cep.length !== 8) {
+        limparCampos();
         return;
     }
 
     fetch(`https://viacep.com.br/ws/${cep}/json/`)
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => {
+            limparAlerta();
+
             if (data.erro) {
-                // CEP não encontrado
                 mostrarMensagemCep("CEP não encontrado!");
-                
-                // Limpa os campos
-                inputCep.value = "";
-                document.querySelector(enderecoId).value = "";
-                document.querySelector(cidadeId).value = "";
-                document.querySelector(ufId).value = "";
+                limparCampos();
             } else {
-                // Preenche campos automaticamente
-                document.querySelector(enderecoId).value = data.logradouro || '';
-                document.querySelector(cidadeId).value = data.localidade || '';
-                document.querySelector(ufId).value = data.uf || '';
+                document.getElementById('endereco').value = data.logradouro || '';
+                document.getElementById('bairro').value = data.bairro || '';
+                document.getElementById('cidade').value = data.localidade || '';
+                document.getElementById('uf').value = data.uf || '';
             }
         })
-        .catch(error => {
-            console.error("Erro ao consultar CEP:", error);
+        .catch(() => {
             mostrarMensagemCep("Erro ao consultar CEP!");
         });
 }
 
-// Função para exibir mensagem de CEP
+// Limpa campos de endereço
+function limparCampos() {
+    document.getElementById('endereco').value = '';
+    document.getElementById('bairro').value = '';
+    document.getElementById('cidade').value = '';
+    document.getElementById('uf').value = '';
+}
+
+// Mensagem de alerta
 function mostrarMensagemCep(msg) {
     let alerta = document.getElementById('alerta-cep');
     if (!alerta) {
         alerta = document.createElement('div');
         alerta.id = 'alerta-cep';
         alerta.className = 'alert alert-danger mt-2';
-        document.querySelector('#cep').parentNode.appendChild(alerta);
+        document.getElementById('cep').parentNode.appendChild(alerta);
     }
     alerta.textContent = msg;
-
-    // Desaparece após 5 segundos
-    setTimeout(() => {
-        alerta.remove();
-    }, 5000);
+    setTimeout(() => alerta.remove(), 5000);
 }
+
+// Remove alerta antigo
+function limparAlerta() {
+    const alerta = document.getElementById('alerta-cep');
+    if (alerta) alerta.remove();
+}
+
+// Adiciona máscara ao digitar
+document.addEventListener('DOMContentLoaded', function() {
+    const inputCep = document.getElementById('cep');
+    inputCep.addEventListener('input', function() {
+        this.value = mascaraCEP(this.value);
+    });
+});

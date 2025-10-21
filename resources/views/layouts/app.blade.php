@@ -25,6 +25,9 @@
 <li class="nav-item"><a class="nav-link" href="{{ route('frotas.index') }}">Frotas</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('entregas.index') }}">Entregas</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('pos_venda.index') }}">Pós-Venda</a></li>
+<li class="nav-item"><a class="nav-link" href="{{ route('rastreio.index') }}">Devoluções/Trocas</a>
+</li>
+
 </ul>
 </div>
 </div>
