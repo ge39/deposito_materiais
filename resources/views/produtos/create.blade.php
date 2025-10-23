@@ -118,11 +118,11 @@
                 <div class="row mt-3">
                     <div class="col-md-6">
                         <label for="preco_custo" class="form-label">Preço de Custo</label>
-                        <input type="number" step="0.01" class="form-control" id="preco_custo" name="preco_custo" value="{{ old('preco_custo', 0.00) }}" required>
+                        <input type="number" step="0.01" class="form-control" id="preco_custo" required name="preco_custo" value="{{ old('preco_custo', 0.00) }}" required>
                     </div>
                     <div class="col-md-6">
                         <label for="preco_venda" class="form-label">Preço de Venda</label>
-                        <input type="number" step="0.01" class="form-control" id="preco_venda" name="preco_venda" value="{{ old('preco_venda', 0.00) }}" required>
+                        <input type="number" step="0.01" class="form-control" id="preco_venda" required name="preco_venda" value="{{ old('preco_venda', 0.00) }}" required>
                     </div>
                 </div>
             </div>

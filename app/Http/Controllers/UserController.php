@@ -64,6 +64,13 @@ class UserController extends Controller
         $user->save();
 
         return redirect()->route('users.index')->with('success', 'Usuário criado com sucesso!');
+
+    }
+
+    // Mostrar detalhes de um usuário
+    public function show(User $user)
+    {
+        return view('users.show', compact('user'));
     }
 
     // Mostra o formulário de edição (opcional)
@@ -75,16 +82,25 @@ class UserController extends Controller
     // Atualiza usuário (opcional)
     public function update(Request $request, User $user)
     {
-        $request->validate([
-            'name' => 'required',
-            // 'email' => 'required|email|unique:users,email,'.$user->id,
-            'password' => 'nullable|min:4|confirmed',
+       // Validação
+        $validated = $request->validate([
+            'nivel_acesso' => 'required|in:admin,vendedor,gerente',
+            'ativo' => 'required|boolean',
+            'password' => 'nullable|min:4|same:password_confirmation',
+        ], [
+            'nivel_acesso.required' => 'O nível de acesso é obrigatório.',
+            'ativo.required' => 'O status do usuário é obrigatório.',
+            'password.min' => 'A senha deve conter pelo menos 4 caracteres.',
+            'password.same' => 'As senhas não são iguais.',
         ]);
 
-        $user->name = $request->name;
-        $user->email = $request->email;
-        if($request->password){
-            $user->password = $request->password; // criptografado automaticamente
+        // Atualiza apenas o nível de acesso e status
+        $user->nivel_acesso = $request->nivel_acesso;
+        $user->ativo = $request->ativo;
+
+        // Atualiza a senha apenas se o campo for preenchido
+        if (!empty($request->password)) {
+            $user->password = bcrypt($request->password);// criptografado automaticamente
         }
         $user->save();
 

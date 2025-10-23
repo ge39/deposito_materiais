@@ -6,6 +6,7 @@
     <p>Bem-vindo ao sistema! Use o menu para navegar entre clientes, fornecedores, produtos, vendas, pós-venda, etc.</p>
 
     <div class="row mt-4">
+        
         <div class="col-md-3">
             <a href="{{ route('clientes.index') }}" class="btn btn-primary w-100">Clientes</a>
         </div>

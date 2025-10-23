@@ -16,6 +16,7 @@
 <div class="collapse navbar-collapse">
 <ul class="navbar-nav">
 <li class="nav-item"><a class="nav-link" href="{{ route('clientes.index') }}">Clientes</a></li>
+<li class="nav-item"><a class="nav-link" href="{{ route('empresa.index') }}">Empresa</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('fornecedores.index') }}">Fornecedores</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('funcionarios.index') }}">Funcionários</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('users.index') }}">Usuários</a></li>
@@ -25,7 +26,7 @@
 <li class="nav-item"><a class="nav-link" href="{{ route('frotas.index') }}">Frotas</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('entregas.index') }}">Entregas</a></li>
 <li class="nav-item"><a class="nav-link" href="{{ route('pos_venda.index') }}">Pós-Venda</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('rastreio.index') }}">Devoluções/Trocas</a>
+<li class="nav-item"><a class="nav-link" href="{{ route('devolucoes.index') }}">Devoluções/Trocas</a>
 </li>
 
 </ul>

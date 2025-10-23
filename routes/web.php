@@ -17,20 +17,66 @@ use App\Http\Controllers\UnidadeMedidaController;
 use App\Http\Controllers\LoteController;
 use App\Http\Controllers\CepController;
 use App\Http\Controllers\DevolucaoController;
-use App\Http\Controllers\RastreioVendaController;
+use App\Http\Controllers\EmpresaController;
+
 
 // Dashboard
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+//Empresas e Filiais
+// EMPRESAS E FILIAIS
+Route::prefix('empresa')->name('empresa.')->group(function () {
+    Route::get('/', [EmpresaController::class, 'index'])->name('index');
+    Route::get('/create', [EmpresaController::class, 'create'])->name('create');
+    Route::post('/', [EmpresaController::class, 'store'])->name('store');
+    Route::get('/{empresa}/edit', [EmpresaController::class, 'edit'])->name('edit');
+    Route::put('/{empresa}', [EmpresaController::class, 'update'])->name('update');
+    Route::put('/{empresa}/desativar', [EmpresaController::class, 'desativar'])->name('desativar');
+    Route::put('/{empresa}/ativar', [EmpresaController::class, 'ativar'])->name('ativar');
+});
 
-// Página inicial do rastreio (formulário)
-Route::get('/rastreio', [RastreioVendaController::class, 'index'])->name('rastreio.index');
-Route::get('/rastreio/buscar', [RastreioVendaController::class, 'buscar'])->name('rastreio.buscar');
+// ✅ Rota personalizada para listar desativadas — FORA do prefixo e ANTES do resource
+Route::get('/empresa/desativadas', [EmpresaController::class, 'desativadas'])
+    ->name('empresa.desativadas');
 
-// Buscar vendas com filtros
-Route::get('/rastreio/buscar', [RastreioVendaController::class, 'buscar'])->name('rastreio.buscar');
+// ✅ Resource no final
+Route::resource('empresa', EmpresaController::class);
 
-// Registrar devolução de um item específico
-Route::post('/rastreio/devolucao/{item_id}', [RastreioVendaController::class, 'registrarDevolucao'])->name('rastreio.devolucao');
+
+
+Route::resource('empresa', EmpresaController::class);
+// ROTAS DE DEVOLUÇÃO
+ Route::prefix('devolucoes')->group(function () {
+
+    // Página inicial de devoluções (busca e filtragem)
+    Route::get('/', [DevolucaoController::class, 'index'])->name('devolucoes.index');
+
+    // Buscar vendas para devolução
+    Route::get('/buscar', [DevolucaoController::class, 'buscar'])->name('devolucoes.buscar');
+
+    // Listar devoluções pendentes
+    Route::get('/pendentes', [DevolucaoController::class, 'pendentes'])->name('devolucoes.pendentes');
+
+    // Listar todas as devoluções
+    Route::get('/todas', [DevolucaoController::class, 'todas'])->name('devolucoes.todas');
+
+    // Registrar devolução de um item específico
+    Route::get('/registrar/{item_id}', [DevolucaoController::class, 'registrar'])
+        ->name('devolucoes.registrar');
+
+        // Gerar cupom de troca
+        Route::get('devolucoes/{devolucao}/cupom', [DevolucaoController::class, 'gerarCupom'])
+    ->name('devolucoes.cupom');
+
+    // Salvar a devolução
+    Route::post('/salvar', [DevolucaoController::class, 'salvar'])->name('devolucoes.salvar');
+
+    // Aprovar ou rejeitar devoluções existentes
+    Route::put('/{devolucao}/aprovar', [DevolucaoController::class, 'aprovar'])->name('devolucoes.aprovar');
+    Route::put('/{devolucao}/rejeitar', [DevolucaoController::class, 'rejeitar'])->name('devolucoes.rejeitar');
+
+});
+
+
 // Usuários
 Route::put('/users/desativar/{user}', [UserController::class, 'desativar'])->name('users.desativar');
 

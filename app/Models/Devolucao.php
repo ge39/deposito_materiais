@@ -22,6 +22,11 @@ class Devolucao extends Model
         'status',
         'observacao',
         'criado_por',
+        'imagem1',
+        'imagem2',
+        'imagem3',
+        'imagem4',
+        'motivo_rejeicao',
     ];
 
     // 🔗 Relacionamentos
@@ -29,17 +34,18 @@ class Devolucao extends Model
     {
         return $this->belongsTo(Cliente::class);
     }
-
     public function venda()
     {
         return $this->belongsTo(Venda::class);
     }
-
     public function item()
     {
         return $this->belongsTo(VendaItem::class, 'venda_item_id');
     }
-
+    public function vendaItem()
+    {
+        return $this->belongsTo(VendaItem::class, 'venda_item_id');
+    }
     public function produto()
     {
         return $this->belongsTo(Produto::class);

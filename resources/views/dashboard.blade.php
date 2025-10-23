@@ -5,13 +5,23 @@
     <h2 class="mb-4">Dashboard</h2>
 
     <div class="row g-3">
-        <!-- Clientes -->
+         Clientes
         <div class="col-md-3">
             <div class="card text-white bg-primary">
                 <div class="card-body">
-                    <h5 class="card-title">Clientes</h5>
-                    <p class="card-text">Gerencie seus clientes</p>
+                    <h5 class="card-title">Gerencie seus clientes</h5>
+                    <p class="card-text">Clientes</p>
                     <a href="{{ route('clientes.index') }}" class="btn btn-light btn-sm">Acessar</a>
+                </div>
+            </div>
+        </div>
+        <!-- Nossa Empresa -->
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Nossa Empresa</h5>
+                    <p class="card-text">Gerencie seus clientes</p>
+                    <a href="{{ route('empresa.index') }}" class="btn btn-light btn-sm">Acessar</a>
                 </div>
             </div>
         </div>

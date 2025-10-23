@@ -2,21 +2,25 @@
 
 @section('content')
 <div class="container">
-    <h2>Devoluções / Trocas</h2>
+    <h2>Rastrear Venda</h2>
 
-    {{-- Mensagens de sucesso --}}
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    {{-- Formulário de Filtro --}}
-    <form method="GET" action="{{ route('devolucoes.index') }}" class="mb-4">
-        <div class="row g-3">
-
-            {{-- Cliente --}}
+    <form action="{{ route('devolucoes.buscar') }}" method="GET" class="mb-4">
+        <div class="row g-4">
             <div class="col-md-3">
-                <label for="cliente_id" class="form-label">Cliente</label>
-                <select name="cliente_id" id="cliente_id" class="form-select">
+                <label>Venda</label>
+                <select name="venda_id" class="form-control">
+                    <option value="">Todas</option>
+                    @foreach($vendas as $venda)
+                        <option value="{{ $venda->id }}" {{ request('venda_id') == $venda->id ? 'selected' : '' }}>
+                            Venda #{{ $venda->id }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label>Cliente</label>
+                <select name="cliente_id" class="form-control">
                     <option value="">Todos</option>
                     @foreach($clientes as $cliente)
                         <option value="{{ $cliente->id }}" {{ request('cliente_id') == $cliente->id ? 'selected' : '' }}>
@@ -26,80 +30,83 @@
                 </select>
             </div>
 
-            {{-- Venda --}}
-            <div class="col-md-2">
-                <label for="venda_id" class="form-label">Venda #</label>
-                <input type="number" name="venda_id" id="venda_id" class="form-control" value="{{ request('venda_id') }}">
-            </div>
-
-            {{-- Lote --}}
-            <div class="col-md-2">
-                <label for="lote_id" class="form-label">Lote</label>
-                <input type="text" name="lote_id" id="lote_id" class="form-control" value="{{ request('lote_id') }}">
-            </div>
-
-            {{-- Código Produto --}}
-            <div class="col-md-2">
-                <label for="produto_codigo" class="form-label">Código Produto</label>
-                <input type="text" name="produto_codigo" id="produto_codigo" class="form-control" value="{{ request('produto_codigo') }}">
-            </div>
-
-            {{-- Data --}}
             <div class="col-md-3">
-                <label for="data" class="form-label">Data</label>
-                <input type="date" name="data" id="data" class="form-control" value="{{ request('data') }}">
+                <label>Produto</label>
+                <select name="produto_id" class="form-control">
+                    <option value="">Todos</option>
+                    @foreach($produtos as $produto)
+                        <option value="{{ $produto->id }}" {{ request('produto_id') == $produto->id ? 'selected' : '' }}>
+                            {{ $produto->nome }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
-        </div>
 
-        <div class="mt-3">
-            <button type="submit" class="btn btn-primary">Filtrar</button>
-            <a href="{{ route('devolucoes.index') }}" class="btn btn-secondary">Limpar</a>
+            <div class="col-md-3">
+                <label>Lote</label>
+                <select name="lote_id" class="form-control">
+                    <option value="">Todos</option>
+                    @foreach($lotes as $lote)
+                        <option value="{{ $lote->id }}" {{ request('lote_id') == $lote->id ? 'selected' : '' }}>
+                            Lote #{{ $lote->id }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+                <a href="{{ route('devolucoes.index') }}" class="btn btn-secondary">Limpar</a>
+                <a href="{{ route('devolucoes.pendentes') }}" class="btn btn-warning">DevoluçõesPendente</a>
+            </div>
         </div>
     </form>
 
-    {{-- Tabela de Devoluções --}}
-    <div class="table-responsive">
-        <table class="table table-striped table-bordered">
-            <thead class="table-dark">
+    @if($itens->isNotEmpty())
+        <table class="table table-bordered">
+            <thead>
                 <tr>
-                    <th>#</th>
+                    <th>Venda</th>
                     <th>Cliente</th>
                     <th>Produto</th>
-                    <th>Venda</th>
                     <th>Lote</th>
-                    <th>Motivo</th>
-                    <th>Status</th>
-                    <th>Data</th>
-                    <th>Ações</th>
+                    <th>QTD</th>
+                    <th>Vl.Unit</th>
+                    <th>Desconto</th>
+                    <th>VL.Total</th>
+                    <th>Data da Venda</th>
+                    <th>Ação</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($devolucoes as $devolucao)
+                @foreach($itens as $item)
                     <tr>
-                        <td>{{ $devolucao->id }}</td>
-                        <td>{{ $devolucao->cliente ? $devolucao->cliente->nome : 'Não informado' }}</td>
-                        <td>{{ $devolucao->item ? $devolucao->item->produto->nome : '-' }}</td>
-                        <td>{{ $devolucao->venda_id ?? '-' }}</td>
-                        <td>{{ $devolucao->item && $devolucao->item->lote ? $devolucao->item->lote->codigo : '-' }}</td>
-                        <td>{{ $devolucao->motivo }}</td>
-                        <td>{{ ucfirst($devolucao->status) }}</td>
-                        <td>{{ $devolucao->created_at->format('d/m/Y H:i') }}</td>
+                        <td>{{ $item->venda->id }}</td>
+                        <td>{{ $item->venda->cliente->nome }}</td>
+                        <td>{{ $item->produto->nome }}</td>
+                        <td>Lote #{{ $item->lote->id ?? '-' }}</td>
+                        <td>{{ $item->quantidade }}</td>
+                        <td>R${{ number_format($item->preco_unitario, 2, ',', '.') }}</td>
+                        <td>R${{ number_format($item->desconto, 2, ',', '.') }}</td>
+                        <td>R${{ number_format($item->subtotal, 2, ',', '.') }}</td>
+                        <td>{{ $item->venda->created_at->format('d/m/Y') }}</td>
                         <td>
-                            <a href="{{ route('devolucoes.show', $devolucao) }}" class="btn btn-sm btn-info">Ver</a>
+                            <a href="{{ route('devolucoes.registrar', ['item_id' => $item->id]) }}" 
+                               class="btn btn-sm btn-danger">
+                                <i class="bi bi-x-circle"></i> Devolução
+                            </a>
+                            <a href="{{ route('devolucoes.index') }}" class="btn btn-secondary btn-sm">Voltar</a>
                         </td>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="9" class="text-center">Nenhuma devolução encontrada.</td>
-                    </tr>
-                @endforelse
+                @endforeach
             </tbody>
         </table>
-    </div>
-
-    {{-- Paginação --}}
-    <div class="mt-3">
-        {{ $devolucoes->appends(request()->query())->links() }}
-    </div>
+    @else
+        <div class="card mt-4 alert alert-warning text-center py-3" style="background-color: #f0d791;">
+            <div class="card-body">
+                <h5 class="card-title mb-0 text-muted">Nenhum item encontrado</h5>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection

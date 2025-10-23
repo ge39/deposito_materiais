@@ -13,6 +13,12 @@ class VendaItem extends Model
         return $this->belongsTo(Venda::class);
     }
 
+    // App/Models/VendaItem.php
+    public function devolucoes()
+    {
+        return $this->hasMany(Devolucao::class, 'venda_item_id');
+    }
+
     public function produto()
     {
         return $this->belongsTo(Produto::class);

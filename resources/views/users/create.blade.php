@@ -57,82 +57,124 @@
 </div>
 
 <script>
-function mostrarAlerta(mensagem) {
-    const alerta = document.getElementById('alerta');
-    alerta.style.display = 'block';
-    alerta.textContent = mensagem;
-    setTimeout(() => { alerta.style.display = 'none'; }, 5000);
-}
-
-function mascaraCPF(cpf) {
-    cpf = cpf.replace(/\D/g, "");
-    cpf = cpf.replace(/(\d{3})(\d)/, "$1.$2");
-    cpf = cpf.replace(/(\d{3})(\d)/, "$1.$2");
-    cpf = cpf.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-    return cpf;
-}
-document.getElementById('cpf').addEventListener('input', function() {
-    this.value = mascaraCPF(this.value);
-});
-
-document.getElementById('buscarFuncionario').addEventListener('click', function() {
-    let cpf = document.getElementById('cpf').value.replace(/\D/g, "");
-    fetch('{{ url("/buscar-funcionario") }}/' + cpf)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('funcionario_nome').value = data.data.nome;
-                document.getElementById('funcionario_id').value = data.data.id;
-                document.getElementById('funcionario_telefone').value = data.data.telefone || '';
-                document.getElementById('funcionario_email').value = data.data.email || '';
-            } else {
-                document.getElementById('funcionario_nome').value = '';
-                document.getElementById('funcionario_id').value = '';
-                document.getElementById('funcionario_telefone').value = '';
-                document.getElementById('funcionario_email').value = '';
-                mostrarAlerta(data.message);
-            }
-        })
-        .catch(() => mostrarAlerta('Erro ao buscar funcionário.'));
-});
-
-// Validação de senha em tempo real
-const senha = document.getElementById('password');
-const confirmar = document.getElementById('password_confirmation');
-
-let feedbackSenha = document.getElementById('feedbackSenha');
-if(!feedbackSenha){
-    feedbackSenha = document.createElement('div');
-    feedbackSenha.id = 'feedbackSenha';
-    feedbackSenha.style.marginTop = '5px';
-    confirmar.parentNode.appendChild(feedbackSenha);
-}
-
-function validarSenha() {
-    if (senha.value.length < 4 || confirmar.value.length < 4) {
-        feedbackSenha.textContent = 'A senha deve ter no mínimo 4 caracteres!';
-        feedbackSenha.style.color = 'red';
-        return false;
+    function mostrarAlerta(mensagem) {
+        const alerta = document.getElementById('alerta');
+        alerta.style.display = 'block';
+        alerta.textContent = mensagem;
+        setTimeout(() => { alerta.style.display = 'none'; }, 5000);
     }
-    if (senha.value === confirmar.value) {
+
+    function mascaraCPF(cpf) {
+        cpf = cpf.replace(/\D/g, "");
+        cpf = cpf.replace(/(\d{3})(\d)/, "$1.$2");
+        cpf = cpf.replace(/(\d{3})(\d)/, "$1.$2");
+        cpf = cpf.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+        return cpf;
+    }
+    document.getElementById('cpf').addEventListener('input', function() {
+        this.value = mascaraCPF(this.value);
+    });
+
+    document.getElementById('buscarFuncionario').addEventListener('click', function() {
+        let cpf = document.getElementById('cpf').value.replace(/\D/g, "");
+        fetch('{{ url("/buscar-funcionario") }}/' + cpf)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('funcionario_nome').value = data.data.nome;
+                    document.getElementById('funcionario_id').value = data.data.id;
+                    document.getElementById('funcionario_telefone').value = data.data.telefone || '';
+                    document.getElementById('funcionario_email').value = data.data.email || '';
+                } else {
+                    document.getElementById('funcionario_nome').value = '';
+                    document.getElementById('funcionario_id').value = '';
+                    document.getElementById('funcionario_telefone').value = '';
+                    document.getElementById('funcionario_email').value = '';
+                    mostrarAlerta(data.message);
+                }
+            })
+            .catch(() => mostrarAlerta('Erro ao buscar funcionário.'));
+    });
+
+    // Validação de senha em tempo real
+    const senha = document.getElementById('password');
+    const confirmar = document.getElementById('password_confirmation');
+
+    let feedbackSenha = document.getElementById('feedbackSenha');
+    if(!feedbackSenha){
+        feedbackSenha = document.createElement('div');
+        feedbackSenha.id = 'feedbackSenha';
+        feedbackSenha.style.marginTop = '5px';
+        confirmar.parentNode.appendChild(feedbackSenha);
+    }
+
+    // function validarSenha() {
+    //     const senhaVal = senha.value.trim();
+    //     const confirmarVal = confirmar.value.trim();
+
+    //     // --- Etapa 1: mínimo de caracteres ---
+    //     if (senhaVal.length === 0 && confirmarVal.length === 0) {
+    //         feedbackSenha.textContent = '';
+    //         return false;
+    //     }
+
+    //     if (senhaVal.length < 4) {
+    //         feedbackSenha.textContent = 'A senha deve ter no mínimo 4 caracteres!';
+    //         feedbackSenha.style.color = 'red';
+    //         return false;
+    //     } else if (senhaVal.length >= 4 && confirmarVal.length === 0) {
+    //         // mostra mensagem assim que senha atinge o mínimo
+    //         feedbackSenha.textContent = 'Padrão mínimo atendido.';
+    //         feedbackSenha.style.color = 'green';
+    //         return true;
+    //     }
+
+    //     // --- Etapa 2: comparar senhas ---
+    //     if (senhaVal !== confirmarVal) {
+    //         feedbackSenha.textContent = 'As senhas não conferem!';
+    //         feedbackSenha.style.color = 'red';
+    //         return false;
+    //     } else {
+    //         feedbackSenha.textContent = 'As senhas conferem!';
+    //         feedbackSenha.style.color = 'green';
+    //         return true;
+    //     }
+    // }
+     function validarSenha() {
+        const senhaVal = senha.value.trim();
+        const confirmarVal = confirmar.value.trim();
+
+        if (senhaVal.length < 4) {
+            feedbackSenha.textContent = 'A senha deve ter no mínimo 4 caracteres!';
+            feedbackSenha.style.color = 'red';
+            return false;
+        }
+
+        if (senhaVal.length >= 4 && confirmarVal.length < 4) {
+            feedbackSenha.textContent = 'Padrão mínimo atendido.';
+            feedbackSenha.style.color = 'green';
+            return false;
+        }
+
+        if (senhaVal !== confirmarVal) {
+            feedbackSenha.textContent = 'As senhas não conferem!';
+            feedbackSenha.style.color = 'red';
+            return false;
+        }
+
         feedbackSenha.textContent = 'As senhas conferem!';
         feedbackSenha.style.color = 'green';
         return true;
-    } else {
-        feedbackSenha.textContent = 'As senhas não conferem!';
-        feedbackSenha.style.color = 'red';
-        return false;
     }
-}
 
-senha.addEventListener('input', validarSenha);
-confirmar.addEventListener('input', validarSenha);
+    senha.addEventListener('input', validarSenha);
+    confirmar.addEventListener('input', validarSenha);
 
-document.getElementById('formUsuario').addEventListener('submit', function(e) {
-    if (!validarSenha()) {
-        e.preventDefault();
-        mostrarAlerta('Corrija a senha antes de enviar o formulário.');
-    }
+    document.getElementById('formUsuario').addEventListener('submit', function(e) {
+        if (!validarSenha()) {
+            e.preventDefault();
+            mostrarAlerta('Corrija a senha antes de enviar o formulário.');
+        }
 });
 </script>
 @endsection

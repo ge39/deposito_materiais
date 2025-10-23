@@ -79,7 +79,7 @@
                 <input type="email" name="email" class="form-control" value="{{ old('email') }}">
             </div>
 
-            <!-- Endereço -->
+            <!-- Cep -->
             <div class="col-md-4">
                 <label class="form-label">CEP</label>
                 <input type="text" name="cep" id="cep"
@@ -150,7 +150,7 @@
     // Alerta automático desaparecendo
     const alerta = document.getElementById('alerta');
     if (alerta) {
-        setTimeout(() => alerta.style.display='none', 5000);
+        setTimeout(() => alerta.style.display='none', 3000);
     }
 </script> -->
 <script src="{{ asset('js/form-masks.js') }}"></script>

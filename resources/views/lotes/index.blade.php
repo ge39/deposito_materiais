@@ -21,6 +21,7 @@
                             <h5 class="card-title text-success fw-bold">
                                 <i class="bi bi-box-seam"></i> Lote #{{ $lote->id }}
                             </h5>
+                            <p class="card-text mb-1"><strong>Codigo:</strong> 000{{ $lote->produto_id }}</p>
                             <p class="card-text mb-1"><strong>Quantidade:</strong> {{ $lote->quantidade }}</p>
                             <p class="card-text mb-1"><strong>Preço de Compra:</strong> R$ {{ number_format($lote->preco_compra, 2, ',', '.') }}</p>
                             <p class="card-text mb-1"><strong>Data da Compra:</strong> {{ \Carbon\Carbon::parse($lote->data_compra)->format('d/m/Y') }}</p>
