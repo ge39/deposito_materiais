@@ -53,6 +53,11 @@ class Produto extends Model
     {
         return $this->belongsTo(UnidadeMedida::class, 'unidade_medida_id');
     }
+    
+    public function unidade()
+    {
+        return $this->belongsTo(UnidadeMedida::class, 'unidade_id');
+    }
 
     // Quantidade total automática
     public function getEstoqueTotalAttribute()

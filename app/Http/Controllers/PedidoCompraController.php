@@ -4,23 +4,24 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\PedidoCompra;
-use App\Models\ItemPedidoCompra;
+use App\Models\PedidoItem;
 use App\Models\Fornecedor;
 use App\Models\Produto;
+use Illuminate\Support\Facades\DB;
 
 class PedidoCompraController extends Controller
 {
     public function index()
     {
-        $pedidos = PedidoCompra::with('fornecedor')->get();
-        return view('pedidos_compras.index', compact('pedidos'));
+        $pedidos = PedidoCompra::with('fornecedor', 'user', 'itens')->orderBy('data_pedido', 'desc')->get();
+        return view('pedidos.index', compact('pedidos'));
     }
 
     public function create()
     {
         $fornecedores = Fornecedor::all();
         $produtos = Produto::all();
-        return view('pedidos_compras.create', compact('fornecedores','produtos'));
+        return view('pedidos.create', compact('fornecedores', 'produtos'));
     }
 
     public function store(Request $request)
@@ -28,79 +29,102 @@ class PedidoCompraController extends Controller
         $request->validate([
             'fornecedor_id' => 'required|exists:fornecedores,id',
             'data_pedido' => 'required|date',
+            'itens' => 'required|array|min:1',
             'itens.*.produto_id' => 'required|exists:produtos,id',
-            'itens.*.quantidade' => 'required|integer|min:1',
-            'itens.*.preco_unitario' => 'required|numeric|min:0',
+            'itens.*.quantidade' => 'required|numeric|min:1',
+            'itens.*.valor_unitario' => 'required|numeric|min:0',
         ]);
 
-        // Cria o pedido
-        $pedido = PedidoCompra::create([
-            'fornecedor_id' => $request->fornecedor_id,
-            'data_pedido' => $request->data_pedido,
-            'status' => 'pendente',
-            'total' => 0,
-            'observacoes' => $request->observacoes,
-        ]);
+        DB::beginTransaction();
 
-        $totalPedido = 0;
-
-        foreach ($request->itens as $item) {
-            $totalItem = $item['quantidade'] * $item['preco_unitario'];
-            ItemPedidoCompra::create([
-                'pedido_id' => $pedido->id,
-                'produto_id' => $item['produto_id'],
-                'quantidade' => $item['quantidade'],
-                'preco_unitario' => $item['preco_unitario'],
-                'total' => $totalItem,
+        try {
+            $pedido = PedidoCompra::create([
+                'user_id' => 1, // valor fixo
+                'fornecedor_id' => $request->fornecedor_id,
+                'data_pedido' => $request->data_pedido,
+                'status' => 'pendente',
+                'total' => 0,
             ]);
-            $totalPedido += $totalItem;
+
+            $total = 0;
+
+            foreach ($request->itens as $item) {
+                $subtotal = $item['quantidade'] * $item['valor_unitario'];
+                PedidoItem::create([
+                    'pedido_id' => $pedido->id,
+                    'produto_id' => $item['produto_id'],
+                    'quantidade' => $item['quantidade'],
+                    'valor_unitario' => $item['valor_unitario'],
+                    'subtotal' => $subtotal,
+                ]);
+                $total += $subtotal;
+            }
+
+            $pedido->update(['total' => $total]);
+
+            DB::commit();
+
+            return redirect()->route('pedidos.index')->with('success', 'Pedido salvo com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors('Erro ao salvar o pedido: ' . $e->getMessage());
         }
-
-        $pedido->total = $totalPedido;
-        $pedido->save();
-
-        return redirect()->route('pedidos_compras.index')->with('success','Pedido de compra cadastrado com sucesso!');
     }
-
-    public function show($id)
+    public function edit(PedidoCompra $pedido)
     {
-        $pedido = PedidoCompra::with('itens.produto','fornecedor')->findOrFail($id);
-        return view('pedidos_compras.show', compact('pedido'));
-    }
-
-    public function edit($id)
-    {
-        $pedido = PedidoCompra::with('itens')->findOrFail($id);
         $fornecedores = Fornecedor::all();
         $produtos = Produto::all();
-        return view('pedidos_compras.edit', compact('pedido','fornecedores','produtos'));
-    }
+        $pedido->load('itens'); // carrega itens do pedido
+        return view('pedidos.edit', compact('pedido', 'fornecedores', 'produtos'));
+}
 
-    public function update(Request $request, $id)
+    public function update(Request $request, PedidoCompra $pedido)
     {
-        $pedido = PedidoCompra::findOrFail($id);
-
         $request->validate([
             'fornecedor_id' => 'required|exists:fornecedores,id',
             'data_pedido' => 'required|date',
-            'status' => 'required|in:pendente,recebido,cancelado',
+            'itens' => 'required|array|min:1',
+            'itens.*.produto_id' => 'required|exists:produtos,id',
+            'itens.*.quantidade' => 'required|numeric|min:1',
+            'itens.*.valor_unitario' => 'required|numeric|min:0',
         ]);
 
-        $pedido->fornecedor_id = $request->fornecedor_id;
-        $pedido->data_pedido = $request->data_pedido;
-        $pedido->status = $request->status;
-        $pedido->observacoes = $request->observacoes;
-        $pedido->save();
+        DB::beginTransaction();
+        try {
+            $pedido->update([
+                'fornecedor_id' => $request->fornecedor_id,
+                'data_pedido' => $request->data_pedido,
+            ]);
 
-        // Atualizar estoque se o status for recebido
-        if($pedido->status == 'recebido'){
-            foreach($pedido->itens as $item){
-                $produto = $item->produto;
-                $produto->estoque += $item->quantidade;
-                $produto->save();
+            // Remove itens antigos
+            $pedido->itens()->delete();
+
+            $total = 0;
+            foreach ($request->itens as $item) {
+                $subtotal = $item['quantidade'] * $item['valor_unitario'];
+                $pedido->itens()->create([
+                    'produto_id' => $item['produto_id'],
+                    'quantidade' => $item['quantidade'],
+                    'valor_unitario' => $item['valor_unitario'],
+                    'subtotal' => $subtotal,
+                ]);
+                $total += $subtotal;
             }
-        }
 
-        return redirect()->route('pedidos_compras.index')->with('success','Pedido atualizado com sucesso!');
+            $pedido->update(['total' => $total]);
+
+            DB::commit();
+            return redirect()->route('pedidos.index')->with('success', 'Pedido atualizado com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors('Erro ao atualizar o pedido: ' . $e->getMessage());
+        }
+    }
+    public function show(PedidoCompra $pedido)
+    {
+        // Carrega os itens com os produtos e a unidade de medida de cada produto
+        $pedido->load('itens.produto.unidade', 'fornecedor','user', 'itens.produto');
+
+        return view('pedidos.show', compact('pedido'));
     }
 }

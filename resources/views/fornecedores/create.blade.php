@@ -95,7 +95,7 @@
 
         <div class="mt-3">
             <button type="submit" class="btn btn-success">Salvar</button>
-            <a href="{{ route('fornecedores.index') }}" class="btn btn-secondary">Voltar</a>
+            <a href="{{ route('pedidos.index') }}" class="btn btn-secondary">Voltar</a>
         </div>
     </form>
 </div>

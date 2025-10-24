@@ -18,12 +18,16 @@ use App\Http\Controllers\LoteController;
 use App\Http\Controllers\CepController;
 use App\Http\Controllers\DevolucaoController;
 use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\PedidoCompraController;
 
 
 // Dashboard
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+// Pedidos de Compra
+Route::resource('pedidos', PedidoCompraController::class);
+Route::patch('pedidos/{pedido}/status', [PedidoCompraController::class, 'updateStatus'])->name('pedidos.updateStatus');
+
 //Empresas e Filiais
-// EMPRESAS E FILIAIS
 Route::prefix('empresa')->name('empresa.')->group(function () {
     Route::get('/', [EmpresaController::class, 'index'])->name('index');
     Route::get('/create', [EmpresaController::class, 'create'])->name('create');

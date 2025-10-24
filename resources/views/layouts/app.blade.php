@@ -10,29 +10,28 @@
 
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-<div class="container-fluid">
-<a class="navbar-brand" href="{{ url('/') }}">🏗️ Depósito</a>
-<div class="collapse navbar-collapse">
-<ul class="navbar-nav">
-<li class="nav-item"><a class="nav-link" href="{{ route('clientes.index') }}">Clientes</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('empresa.index') }}">Empresa</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('fornecedores.index') }}">Fornecedores</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('funcionarios.index') }}">Funcionários</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('users.index') }}">Usuários</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('produtos.index') }}">Produtos</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('vendas.index') }}">Vendas</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('itens_venda.index') }}">Itens Venda</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('frotas.index') }}">Frotas</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('entregas.index') }}">Entregas</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('pos_venda.index') }}">Pós-Venda</a></li>
-<li class="nav-item"><a class="nav-link" href="{{ route('devolucoes.index') }}">Devoluções/Trocas</a>
-</li>
-
-</ul>
-</div>
-</div>
-</nav>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url('/') }}">🏗️ Depósito</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="{{ route('clientes.index') }}">Clientes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('empresa.index') }}">Empresa</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('fornecedores.index') }}">Fornecedores</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('funcionarios.index') }}">Funcionários</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('users.index') }}">Usuários</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('produtos.index') }}">Produtos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('vendas.index') }}">Vendas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('itens_venda.index') }}">Itens Venda</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('frotas.index') }}">Frotas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('entregas.index') }}">Entregas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('pos_venda.index') }}">Pós-Venda</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('devolucoes.index') }}">Devoluções/Trocas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('pedidos.index') }}">Compras</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 <div class="container">
 @yield('content')
 </
