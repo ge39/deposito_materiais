@@ -11,6 +11,7 @@ use App\Models\Venda;
 use App\Models\VendaItem;
 use App\Models\Devolucao;
 use App\Models\DevolucaoLog;
+use App\Models\PedidoCompra;
 use Illuminate\Support\Facades\DB;
 
 
@@ -20,6 +21,7 @@ class DevolucaoController extends Controller
     {
         $clientes = Cliente::orderBy('nome')->get();
         $produtos = Produto::orderBy('nome')->get();
+        $produtos = Produto::with('unidade')->get();
         $lotes = Lote::orderBy('id')->get();
         $vendas = Venda::with('cliente')->orderBy('id')->get();
         $itens = collect();
@@ -31,6 +33,7 @@ class DevolucaoController extends Controller
     {
         $clientes = Cliente::orderBy('nome')->get();
         $produtos = Produto::orderBy('nome')->get();
+        $produtos = Produto::with('unidade')->get();
         $lotes = Lote::orderBy('id')->get();
         $vendas = Venda::with('cliente')->orderBy('id')->get();
 
@@ -132,6 +135,13 @@ class DevolucaoController extends Controller
             DB::rollBack();
             return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
         }
+    }
+    public function show(PedidoCompra $pedido)
+    {
+        // Carrega os itens, os produtos e a unidade de medida de cada produto
+        $pedido->load('fornecedor', 'user', 'itens.produto.unidade');
+
+        return view('pedidos.show', compact('pedido'));
     }
 
    public function aprovar(Devolucao $devolucao)

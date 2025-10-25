@@ -4,9 +4,9 @@
 <div class="container mt-4">
     <h2 class="mb-4">Lotes do Produto: {{ $produto->nome }}</h2>
 
-    <a href="{{ route('lotes.create', $produto->id) }}" class="btn btn-success mb-3">
+    <!-- <a href="{{ route('lotes.create', $produto->id) }}" class="btn btn-success mb-3">
         <i class="bi bi-plus-circle"></i> Novo Lote
-    </a>
+    </a> -->
 
     @if($produto->lotes->isEmpty())
         <div class="alert alert-warning text-center py-3">
@@ -19,7 +19,7 @@
                     <div class="card border shadow-sm h-100">
                         <div class="card-body">
                             <h5 class="card-title text-success fw-bold">
-                                <i class="bi bi-box-seam"></i> Lote #{{ $lote->id }}
+                                <i class="bi bi-box-seam"></i> Lote #{{ $lote->numero_lote }}
                             </h5>
                             <p class="card-text mb-1"><strong>Codigo:</strong> 000{{ $lote->produto_id }}</p>
                             <p class="card-text mb-1"><strong>Quantidade:</strong> {{ $lote->quantidade }}</p>

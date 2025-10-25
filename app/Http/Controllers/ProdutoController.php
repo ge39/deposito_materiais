@@ -16,27 +16,27 @@ class ProdutoController extends Controller
     // Listar produtos ativos
     public function index()
     {
-       $produtos = Produto::with(['categoria', 'fornecedor', 'marca', 'unidadeMedida'])
-        ->where('ativo', 1)
-        ->paginate(15);
+        $produtos = Produto::with(['categoria', 'fornecedor', 'marca', 'unidadeMedida'])
+            ->where('ativo', 1)
+            ->paginate(15);
 
-    return view('produtos.index', compact('produtos'));
+        return view('produtos.index', compact('produtos'));
     }
 
+    // Buscar produtos
     public function search(Request $request)
-{
-    $q = $request->input('q');
+    {
+        $q = $request->input('q');
 
-    $produtos = Produto::query()
-        ->where('nome', 'like', "%{$q}%")
-        ->orWhereHas('categoria', fn($c) => $c->where('nome', 'like', "%{$q}%"))
-        ->orWhereHas('fornecedor', fn($f) => $f->where('nome', 'like', "%{$q}%"))
-        ->paginate(15)
-        ->withQueryString();
+        $produtos = Produto::query()
+            ->where('nome', 'like', "%{$q}%")
+            ->orWhereHas('categoria', fn($c) => $c->where('nome', 'like', "%{$q}%"))
+            ->orWhereHas('fornecedor', fn($f) => $f->where('nome', 'like', "%{$q}%"))
+            ->paginate(15)
+            ->withQueryString();
 
-    return view('produtos.index', compact('produtos'));
-}
-
+        return view('produtos.index', compact('produtos'));
+    }
 
     // Formulário de criação
     public function create()
@@ -75,26 +75,12 @@ class ProdutoController extends Controller
             'imagem' => 'nullable|image|max:2048',
         ]);
 
-        $produto = new Produto();
-        $produto->nome = $request->nome;
-        $produto->codigo_barras = $request->codigo_barras;
-        $produto->sku = $request->sku;
-        $produto->descricao = $request->descricao;
-        $produto->categoria_id = $request->categoria_id;
-        $produto->fornecedor_id = $request->fornecedor_id;
-        $produto->unidade_medida_id = $request->unidade_medida_id;
-        $produto->marca_id = $request->marca_id;
-        $produto->quantidade_estoque = $request->quantidade_estoque;
-        $produto->estoque_minimo = $request->estoque_minimo;
-        $produto->preco_custo = $request->preco_custo;
-        $produto->data_compra = Carbon::parse($request->data_compra);
-        $produto->validade = $request->validade ? Carbon::parse($request->validade) : null;
-        $produto->preco_venda = $request->preco_venda;
-        $produto->peso = $request->peso;
-        $produto->largura = $request->largura;
-        $produto->altura = $request->altura;
-        $produto->profundidade = $request->profundidade;
-        $produto->localizacao_estoque = $request->localizacao_estoque;
+        $produto = new Produto($request->only([
+            'nome','codigo_barras','sku','descricao','categoria_id','fornecedor_id',
+            'unidade_medida_id','marca_id','quantidade_estoque','estoque_minimo',
+            'preco_custo','data_compra','validade','preco_venda','peso','largura',
+            'altura','profundidade','localizacao_estoque'
+        ]));
 
         // Upload de imagem
         if ($request->hasFile('imagem')) {
@@ -102,7 +88,20 @@ class ProdutoController extends Controller
         }
 
         $produto->ativo = 1;
-        $produto->save(); // **Observer cria o lote automaticamente aqui**
+        $produto->save();
+
+        // Criar lote automático
+        if ($produto->quantidade_estoque > 0) {
+            \App\Models\Lote::create([
+                'produto_id'   => $produto->id,
+                'fornecedor_id'=> $produto->fornecedor_id,
+                'quantidade'   => $produto->quantidade_estoque,
+                'preco_compra' => $produto->preco_custo,
+                'data_compra'  => $produto->data_compra,
+                'validade'     => $produto->validade,
+                'numero_lote'  => date('Ymd') . $produto->id,
+            ]);
+        }
 
         return redirect()->route('produtos.index')->with('success', 'Produto cadastrado com sucesso!');
     }
@@ -150,25 +149,12 @@ class ProdutoController extends Controller
             'imagem' => 'nullable|image|max:2048',
         ]);
 
-        $produto->nome = $request->nome;
-        $produto->codigo_barras = $request->codigo_barras;
-        $produto->sku = $request->sku;
-        $produto->descricao = $request->descricao;
-        $produto->categoria_id = $request->categoria_id;
-        $produto->fornecedor_id = $request->fornecedor_id;
-        $produto->unidade_medida_id = $request->unidade_medida_id;
-        $produto->marca_id = $request->marca_id;
-        $produto->quantidade_estoque = $request->quantidade_estoque;
-        $produto->estoque_minimo = $request->estoque_minimo;
-        $produto->preco_custo = $request->preco_custo;
-        $produto->data_compra = Carbon::parse($request->data_compra);
-        $produto->validade = $request->validade ? Carbon::parse($request->validade) : null;
-        $produto->preco_venda = $request->preco_venda;
-        $produto->peso = $request->peso;
-        $produto->largura = $request->largura;
-        $produto->altura = $request->altura;
-        $produto->profundidade = $request->profundidade;
-        $produto->localizacao_estoque = $request->localizacao_estoque;
+        $produto->fill($request->only([
+            'nome','codigo_barras','sku','descricao','categoria_id','fornecedor_id',
+            'unidade_medida_id','marca_id','quantidade_estoque','estoque_minimo',
+            'preco_custo','data_compra','validade','preco_venda','peso','largura',
+            'altura','profundidade','localizacao_estoque'
+        ]));
 
         // Upload de imagem
         if ($request->hasFile('imagem')) {
@@ -180,18 +166,45 @@ class ProdutoController extends Controller
 
         $produto->save();
 
+        // Lógica de lote
+        if ($produto->quantidade_estoque > 0) {
+            // Criar novo lote se quantidade positiva
+            \App\Models\Lote::create([
+                'produto_id'   => $produto->id,
+                'fornecedor_id'=> $produto->fornecedor_id,
+                'quantidade'   => $produto->quantidade_estoque,
+                'preco_compra' => $produto->preco_custo,
+                'data_compra'  => $produto->data_compra,
+                'validade'     => $produto->validade,
+                'numero_lote'  => date('Ymd') . $produto->id,
+            ]);
+        } else {
+            // Atualiza lote existente se estoque <= 0
+            \App\Models\Lote::updateOrCreate(
+                [
+                    'produto_id'  => $produto->id,
+                    'numero_lote' => 'SEM_LOTE',
+                ],
+                [
+                    'quantidade'   => $produto->quantidade_estoque,
+                    'fornecedor_id'=> $produto->fornecedor_id,
+                    'preco_compra' => $produto->preco_custo,
+                    'data_compra'  => $produto->data_compra,
+                    'validade'     => $produto->validade,
+                ]
+            );
+        }
+
         return redirect()->route('produtos.index')->with('success', 'Produto atualizado com sucesso!');
     }
 
-    // ProdutoController.php
-
+    // Listar produtos inativos
     public function inativos()
     {
-        // Pega todos os produtos com ativo = 0
         $produtos = Produto::where('ativo', 0)->paginate(10);
-
         return view('produtos.inativos', compact('produtos'));
     }
+
     // Desativar produto
     public function desativar($id)
     {
@@ -210,7 +223,5 @@ class ProdutoController extends Controller
         $produto->save();
 
         return redirect()->route('produtos.inativos')->with('success', 'Produto ativado com sucesso!');
-        
     }
-
 }

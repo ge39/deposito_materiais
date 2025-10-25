@@ -35,18 +35,18 @@ class Produto extends Model
     ];
     
     protected $casts = [
-    'data_compra' => 'date',
-    'validade' => 'date',
-    'preco_custo' => 'decimal:2',
-    'preco_venda' => 'decimal:2',
-];
+        'data_compra' => 'date',
+        'validade' => 'date',
+        'preco_custo' => 'decimal:2',
+        'preco_venda' => 'decimal:2',
+    ];
 
     // -------------------------------
     // RELACIONAMENTOS
     // -------------------------------
     public function lotes()
     {
-        return $this->hasMany(Lote::class);
+        return $this->hasMany(Lote::class, 'produto_id');
     }
 
     public function unidadeMedida()
@@ -57,12 +57,6 @@ class Produto extends Model
     public function unidade()
     {
         return $this->belongsTo(UnidadeMedida::class, 'unidade_id');
-    }
-
-    // Quantidade total automática
-    public function getEstoqueTotalAttribute()
-    {
-        return $this->lotes->sum('quantidade');
     }
 
     public function categoria()
@@ -80,8 +74,30 @@ class Produto extends Model
         return $this->belongsTo(Marca::class);
     }
 
-    // public function unidadeMedida()
-    // {
-    //     return $this->belongsTo(UnidadeMedida::class);
-    // }
+    // Quantidade total automática
+    public function getEstoqueTotalAttribute()
+    {
+        return $this->lotes->sum('quantidade');
+    }
+
+    // -------------------------------
+    // EVENTOS ELOQUENT
+    // -------------------------------
+    protected static function booted()
+    {
+        static::created(function ($produto) {
+            // Gera número do lote: data + id do produto
+            $numero_lote = now()->format('Ymd') . $produto->id;
+
+            // Cria lote inicial automaticamente
+            \App\Models\Lote::create([
+                'produto_id'   => $produto->id,
+                'numero_lote'  => $numero_lote,
+                'fornecedor_id'=> $produto->fornecedor_id ?? null,
+                'data_compra'  => $produto->data_compra ?? now(),
+                'validade'     => $produto->validade ?? null,
+                'quantidade'   => $produto->quantidade_estoque ?? 0,
+            ]);
+        });
+    }
 }

@@ -40,6 +40,7 @@
                 </table>
             </div>
             <button type="button" class="btn btn-secondary mt-2" id="addItem">Adicionar Item</button>
+            <button type="submit" class="btn btn-success mt-2">Salvar Pedido</button>
         </div>
 
         <button type="submit" class="btn btn-success mt-2">Salvar Pedido</button>

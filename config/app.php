@@ -1,5 +1,6 @@
 <?php
 
+
 return [
 
     /*
@@ -65,7 +66,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'America/Sao_Paulo',
 
     /*
     |--------------------------------------------------------------------------
@@ -117,7 +118,7 @@ return [
     | Supported drivers: "file", "cache"
     |
     */
-
+    'PDF' => Barryvdh\DomPDF\Facade\Pdf::class,
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),

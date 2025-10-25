@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class Lote extends Model
 {
     use HasFactory;
+
+    protected $table = 'lotes';
 
     protected $fillable = [
         'produto_id',
@@ -17,25 +18,41 @@ class Lote extends Model
         'preco_compra',
         'data_compra',
         'validade',
+        'numero_lote',   // novo campo
+        'created_at',
+        'updated_at',
     ];
 
-    protected static function boot()
-    {
-        parent::boot();
+    protected $casts = [
+        'data_compra' => 'date',
+        'validade'    => 'date',
+        'preco_compra'=> 'decimal:2',
+        'quantidade'  => 'decimal:2',
+    ];
 
-        static::creating(function ($lote) {
-            // Se não tiver data_compra, usa a data atual
-            $lote->data_compra = $lote->data_compra ?? now();
-
-            // Se não tiver validade, define +3 meses
-            if (!$lote->validade) {
-                $lote->validade = Carbon::parse($lote->data_compra)->addMonths(3);
-            }
-        });
-    }
-
+    // -------------------------------
+    // RELACIONAMENTOS
+    // -------------------------------
     public function produto()
     {
-        return $this->belongsTo(Produto::class);
+        return $this->belongsTo(Produto::class, 'produto_id');
+    }
+
+    public function fornecedor()
+    {
+        return $this->belongsTo(Fornecedor::class, 'fornecedor_id');
+    }
+
+    // -------------------------------
+    // EVENTOS ELOQUENT
+    // -------------------------------
+    protected static function booted()
+    {
+        static::creating(function ($lote) {
+            // Gera número do lote automaticamente se não informado
+            if (empty($lote->numero_lote)) {
+                $lote->numero_lote = now()->format('Ymd') . $lote->produto_id;
+            }
+        });
     }
 }

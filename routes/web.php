@@ -27,6 +27,17 @@ Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 Route::resource('pedidos', PedidoCompraController::class);
 Route::patch('pedidos/{pedido}/status', [PedidoCompraController::class, 'updateStatus'])->name('pedidos.updateStatus');
 
+// Para lista de pedidos
+Route::get('/pedidos/pdf/{id}', [PedidoCompraController::class, 'gerarPdf'])->name('pedidos.pdf');
+
+//Statuas pedido de compra
+Route::prefix('pedidos')->group(function() {
+    Route::get('aprovar/{id}', [PedidoCompraController::class, 'aprovar'])->name('pedidos.aprovar');
+    Route::get('receber/{id}', [PedidoCompraController::class, 'receber'])->name('pedidos.receber');
+    Route::get('cancelar/{id}', [PedidoCompraController::class, 'cancelar'])->name('pedidos.cancelar');
+});
+
+
 //Empresas e Filiais
 Route::prefix('empresa')->name('empresa.')->group(function () {
     Route::get('/', [EmpresaController::class, 'index'])->name('index');

@@ -35,7 +35,7 @@
                 </div>
                 <div class="col-md-6">
                     <label>Data do Pedido</label>
-                    <input type="date" name="data_pedido" class="form-control" value="{{ date('Y-m-d') }}" required>
+                    <input type="dateTime" name="data_pedido" class="form-control" value="{{ now()->format('Y-m-d H:i:s') }}" readOnly>
                 </div>
             </div>
         </div>
@@ -48,6 +48,7 @@
                     <tr>
                         <th>#</th>
                         <th>Produto</th>
+                        <th>Unidade</th>
                         <th>Quantidade</th>
                         <th>Valor Unitário (R$)</th>
                         <th>Subtotal (R$)</th>
@@ -56,18 +57,17 @@
                 </thead>
                 <tbody></tbody>
             </table>
-            <button type="button" class="btn btn-secondary" id="addItem">Adicionar Item</button>
-        </div>
-
-        <div class="text-end">
-            <button type="submit" class="btn btn-success">Salvar Pedido</button>
-            <a href="{{ route('pedidos.index') }}" class="btn btn-secondary">Cancelar</a>
+            <div class="text-end mt-2">
+                <button type="button" class="btn btn-warning" id="addItem">Adicionar Item</button>
+                <button type="submit" class="btn btn-success">Salvar Pedido</button>
+                <a href="{{ route('pedidos.index') }}" class="btn btn-secondary">Voltar</a> 
+            </div>
         </div>
     </form>
 </div>
 
 <script>
-    const produtos = @json($produtos);
+    const produtos = @json($produtos->load('unidadeMedida'));
     const table = document.querySelector('#itensTable tbody');
     const fornecedorSelect = document.getElementById('fornecedorSelect');
     const scrollContainer = document.getElementById('scrollTableContainer');
@@ -80,25 +80,39 @@
         });
     }
 
+    function atualizarTotalGeral() {
+        let total = 0;
+        document.querySelectorAll('.subtotal').forEach(sub => {
+            total += parseFloat(sub.value || 0);
+        });
+    }
+
     function atualizarValores(row) {
         const selectProduto = row.querySelector('.produto-select');
         const quantidade = row.querySelector('.quantidade');
         const valor = row.querySelector('.valor_unitario');
         const subtotal = row.querySelector('.subtotal');
+        const unidadeInput = row.querySelector('.unidade_medida');
 
         selectProduto.addEventListener('change', () => {
-            const valorUnit = parseFloat(selectProduto.selectedOptions[0].dataset.precoCusto || 0);
+            const selectedOption = selectProduto.selectedOptions[0];
+            const produto = produtos.find(p => p.id == selectProduto.value);
+            const valorUnit = parseFloat(produto?.preco_custo || 0);
             valor.value = valorUnit.toFixed(2);
+            unidadeInput.value = produto?.unidade_medida?.nome || '';
             subtotal.value = (valorUnit * parseFloat(quantidade.value || 0)).toFixed(2);
+            atualizarTotalGeral();
         });
 
         quantidade.addEventListener('input', () => {
             subtotal.value = (parseFloat(valor.value || 0) * parseFloat(quantidade.value || 0)).toFixed(2);
+            atualizarTotalGeral();
         });
 
         row.querySelector('.removeItem').addEventListener('click', () => {
             row.remove();
             atualizarIndices();
+            atualizarTotalGeral();
             if (!table.querySelectorAll('tr').length) {
                 fornecedorSelecionado = null;
                 fornecedorSelect.disabled = false;
@@ -130,12 +144,11 @@
 
         if (!fornecedorSelecionado) {
             fornecedorSelecionado = fornecedorAtual;
-            // fornecedorSelect.disabled = true;
             fornecedorSelect.setAttribute('data-locked', 'true');
-
         }
 
         const row = document.createElement('tr');
+        itemIndex++;
         let options = '<option value="">Selecione</option>';
         produtos.forEach(p => options += `<option value="${p.id}" data-preco-custo="${p.preco_custo}">${p.nome}</option>`);
 
@@ -146,6 +159,7 @@
                     ${options}
                 </select>
             </td>
+            <td><input type="text" name="itens[${itemIndex}][unidade_medida]" class="form-control unidade_medida" readonly></td>
             <td><input type="number" name="itens[${itemIndex}][quantidade]" class="form-control quantidade" min="1" value="1" required></td>
             <td><input type="text" name="itens[${itemIndex}][valor_unitario]" class="form-control valor_unitario" readonly></td>
             <td><input type="text" name="itens[${itemIndex}][subtotal]" class="form-control subtotal" readonly></td>
@@ -157,8 +171,9 @@
         atualizarIndices();
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
 
-        // Evitar produtos duplicados
         const produtoSelect = row.querySelector('.produto-select');
+        const unidadeInput = row.querySelector('.unidade_medida');
+
         produtoSelect.addEventListener('change', () => {
             const selectedValue = produtoSelect.value;
             const duplicado = Array.from(table.querySelectorAll('.produto-select'))
@@ -167,10 +182,9 @@
             if (duplicado) {
                 alert('Este produto já foi adicionado para este fornecedor.');
                 produtoSelect.value = '';
+                unidadeInput.value = '';
             }
         });
-
-        itemIndex++;
     });
 </script>
 @endsection

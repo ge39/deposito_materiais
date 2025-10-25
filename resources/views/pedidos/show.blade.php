@@ -2,70 +2,89 @@
 
 @section('content')
 <div class="container">
-    <h2 class="mb-4">Detalhes do Pedido #{{ $pedido->id }}</h2>
+    <h2 class="mb-4">Visualizar Pedido de Compra #{{ $pedido->id }}</h2>
 
-    <div class="card p-3 mb-4">
-        <div class="row">
-            <div class="col-md-4">
-                <strong>Fornecedor:</strong> {{ $pedido->fornecedor->nome ?? '-' }}
-            </div>
-            <div class="col-md-4">
-                <strong>Data do Pedido:</strong> {{ \Carbon\Carbon::parse($pedido->data_pedido)->format('d/m/Y') }}
-            </div>
-            <div class="col-md-4">
-                <strong>Status:</strong> {{ ucfirst($pedido->status) }}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm mb-2 border-0">
+                <div class="card-body p-2 text-center">
+                    <h6 class="card-title mb-1">Código</h6>
+                    <p class="card-text fw-bold">{{ $pedido->id }}</p>
+                </div>
             </div>
         </div>
-        <div class="row mt-2">
-            <div class="col-md-4">
-                <strong>Criado por:</strong> {{ $pedido->user->name ?? '-' }}
-            </div>
-            <div class="col-md-8">
-                <strong>Total do Pedido:</strong> R$ {{ number_format($pedido->total, 2, ',', '.') }}
-            </div>
-        </div>
-        @if(!empty($pedido->observacoes))
-        <div class="row mt-2">
-            <div class="col-md-12">
-                <strong>Observações:</strong> {{ $pedido->observacoes }}
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-2 border-0">
+                <div class="card-body p-2 text-center">
+                    <h6 class="card-title mb-1">Fornecedor</h6>
+                    <p class="card-text fw-bold">
+                        {{ $pedido->fornecedor->nome ?? $pedido->fornecedor->nome_fantasia ?? $pedido->fornecedor->razao_social }}
+                    </p>
+                </div>
             </div>
         </div>
-        @endif
+        <div class="col-md-3">
+            <div class="card shadow-sm mb-2 border-0">
+                <div class="card-body p-2 text-center">
+                    <h6 class="card-title mb-1">Data do Pedido</h6>
+                    <p class="card-text fw-bold">{{ $pedido->data_pedido->format('d/m/Y h:i:s') }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm mb-2 border-0">
+                <div class="card-body p-2 text-center">
+                    <h6 class="card-title mb-1">Status</h6>
+                    @php
+                        $statusClasses = [
+                            'pendente' => 'badge bg-warning text-dark',
+                            'aprovado' => 'badge bg-primary',
+                            'recebido' => 'badge bg-success',
+                            'cancelado' => 'badge bg-danger'
+                        ];
+                    @endphp
+                    <span class="{{ $statusClasses[$pedido->status] ?? 'badge bg-secondary' }}">
+                        {{ ucfirst($pedido->status) }}
+                    </span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="card p-3">
-        <h4>Itens do Pedido</h4>
-        <table class="table table-bordered table-striped">
-            <thead>
+    <hr>
+
+    <h5 class="mt-4 mb-3">Itens do Pedido</h5>
+
+    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+        <table class="table table-borderless align-middle text-center">
+            <thead class="table-light">
                 <tr>
-                    <th>Produto</th>
-                    <th>Quantidade</th>
-                    <th>Unidade</th>
-                    <th>Preço Unitário (R$)</th>
-                    <th>Total (R$)</th>
+                    <th style="width: 40px;">#</th>
+                    <th style="width: 250px;">Produto</th>
+                    <th style="width: 100px;">Unidade</th>
+                    <th style="width: 100px;">Quantidade</th>
+                    <th style="width: 120px;">Valor Unitário (R$)</th>
+                    <th style="width: 120px;">Subtotal (R$)</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($pedido->itens as $item)
+                @foreach($pedido->itens as $index => $item)
                     <tr>
-                        <td>{{ $item->produto->nome ?? '-' }}</td>
-                        <td>{{ $item->quantidade }}</td>
-                        <td>{{ $item->produto->unidade->nome ?? '-' }}</td>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $item->produto->nome }}</td>
+                        <td>{{ $item->produto->unidadeMedida->nome ?? '-' }}</td>
+                        <td>{{ number_format($item->quantidade, 2, ',', '.') }}</td>
                         <td>{{ number_format($item->valor_unitario, 2, ',', '.') }}</td>
                         <td>{{ number_format($item->subtotal, 2, ',', '.') }}</td>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="4" class="text-center">Nenhum item cadastrado neste pedido.</td>
-                    </tr>
-                @endforelse
+                @endforeach
             </tbody>
         </table>
     </div>
 
-    <div class="mt-3">
+    <div class="d-flex justify-content-between align-items-end mb-3 mt-3">
         <a href="{{ route('pedidos.index') }}" class="btn btn-secondary">Voltar</a>
-        <a href="{{ route('pedidos.edit', $pedido->id) }}" class="btn btn-warning">Editar Pedido</a>
+        <h5 class="mb-0">Total: R$ <span id="totalGeral">{{ number_format($pedido->total, 2, ',', '.') }}</span></h5>
     </div>
 </div>
 @endsection
