@@ -37,6 +37,8 @@ Route::prefix('pedidos')->group(function() {
     Route::get('cancelar/{id}', [PedidoCompraController::class, 'cancelar'])->name('pedidos.cancelar');
 });
 
+//orcamento pdf
+Route::get('/orcamentos/{id}/pdf', [App\Http\Controllers\OrcamentoController::class, 'gerarPdf'])->name('orcamentos.pdf');
 
 //Empresas e Filiais
 Route::prefix('empresa')->name('empresa.')->group(function () {
