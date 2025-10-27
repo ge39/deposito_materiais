@@ -4,8 +4,6 @@ namespace App\Observers;
 
 use App\Models\Produto;
 use App\Models\Lote;
-use Carbon\Carbon;
-
 
 class ProdutoObserver
 {
@@ -14,14 +12,7 @@ class ProdutoObserver
      */
     public function created(Produto $produto): void
     {
-        // Cria automaticamente o lote
-        Lote::create([
-            'produto_id' => $produto->id,
-            'fornecedor_id' => $produto->fornecedor_id,  // pegue do produto
-            'quantidade' => $produto->quantidade_estoque,
-            'preco_compra' => $produto->preco_custo,
-            'validade' => $produto->validade,
-        ]);
+        $this->gerarLote($produto);
     }
 
     /**
@@ -29,30 +20,39 @@ class ProdutoObserver
      */
     public function updated(Produto $produto): void
     {
-        //
+        $this->gerarLote($produto);
     }
 
     /**
-     * Handle the Produto "deleted" event.
+     * Gera ou atualiza lote do produto
      */
-    public function deleted(Produto $produto): void
+    protected function gerarLote(Produto $produto): void
     {
-        //
-    }
+        if ($produto->quantidade_estoque > 0) {
+            // Número de lote único: YYYYMMDD + id + random
+            $numeroLote = date('Ymd') . $produto->id . rand(10, 99);
 
-    /**
-     * Handle the Produto "restored" event.
-     */
-    public function restored(Produto $produto): void
-    {
-        //
-    }
-
-    /**
-     * Handle the Produto "force deleted" event.
-     */
-    public function forceDeleted(Produto $produto): void
-    {
-        //
+            Lote::create([
+                'produto_id' => $produto->id,
+                'fornecedor_id' => $produto->fornecedor_id,
+                'quantidade' => $produto->quantidade_estoque,
+                'preco_compra' => $produto->preco_custo,
+                'data_compra' => $produto->data_compra,
+                'validade' => $produto->validade,
+                'numero_lote' => $numeroLote,
+            ]);
+        } else {
+            // Estoque zero -> lote "SEM_LOTE"
+            Lote::updateOrCreate(
+                ['produto_id' => $produto->id, 'numero_lote' => 'SEM_LOTE'],
+                [
+                    'quantidade' => $produto->quantidade_estoque,
+                    'fornecedor_id' => $produto->fornecedor_id,
+                    'preco_compra' => $produto->preco_custo,
+                    'data_compra' => $produto->data_compra,
+                    'validade' => $produto->validade,
+                ]
+            );
+        }
     }
 }

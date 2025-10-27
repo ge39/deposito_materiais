@@ -19,14 +19,29 @@
 
         <!-- Linha 1 -->
         <div class="row mb-3">
-            <div class="col-md-4">
-                <label for="nome" class="form-label">Nome</label>
-                <input type="text" class="form-control" id="nome" name="nome" value="{{ old('nome') }}" required>
-            </div>
+           <div class="col-md-4">
+            <label for="nome" class="form-label">Nome do Produto</label>
+            <input list="listaProdutos" 
+                class="form-control" 
+                id="nome" 
+                name="nome" 
+                value="{{ old('nome') }}" 
+                placeholder="Digite ou selecione um produto" 
+                required>
+
+            <datalist id="listaProdutos">
+                @foreach($produtosExistentes as $produtoExistente)
+                    <option value="{{ $produtoExistente->nome }}">
+                @endforeach
+            </datalist>
+        </div>
+
+
             <div class="col-md-4">
                 <label for="codigo_barras" class="form-label">Código de Barras</label>
                 <input type="text" class="form-control" id="codigo_barras" name="codigo_barras" value="{{ old('codigo_barras') }}">
             </div>
+
             <div class="col-md-4">
                 <label for="sku" class="form-label">SKU</label>
                 <input type="text" class="form-control" id="sku" name="sku" value="{{ old('sku') }}">
@@ -41,7 +56,7 @@
             </div>
         </div>
 
-        <!-- Linha 3 -->
+        <!-- Linha 3: Categoria, Fornecedor, Unidade, Marca -->
         <div class="row mb-3">
             <div class="col-md-3">
                 <label for="categoria_id" class="form-label">Categoria</label>
@@ -89,9 +104,8 @@
             </div>
         </div>
 
-        <!-- Linha 4: Estoque, datas e imagem lado a lado -->
+        <!-- Linha 4: Estoque, datas e preços -->
         <div class="row mb-4 align-items-center">
-            <!-- Coluna esquerda -->
             <div class="col-md-8">
                 <div class="row">
                     <div class="col-md-6">
@@ -107,7 +121,7 @@
                 <div class="row mt-3">
                     <div class="col-md-6">
                         <label for="data_compra" class="form-label">Data da Compra</label>
-                        <input type="date" class="form-control" id="data_compra" name="data_compra" value="{{ old('data_compra') }}">
+                        <input type="date" class="form-control" id="data_compra" name="data_compra" value="{{ old('data_compra', date('Y-m-d')) }}"">
                     </div>
                     <div class="col-md-6">
                         <label for="validade" class="form-label">Validade</label>
@@ -118,16 +132,15 @@
                 <div class="row mt-3">
                     <div class="col-md-6">
                         <label for="preco_custo" class="form-label">Preço de Custo</label>
-                        <input type="number" step="0.01" class="form-control" id="preco_custo" required name="preco_custo" value="{{ old('preco_custo', 0.00) }}" required>
+                        <input type="number" step="0.01" class="form-control" id="preco_custo" name="preco_custo" value="{{ old('preco_custo', 0.00) }}">
                     </div>
                     <div class="col-md-6">
                         <label for="preco_venda" class="form-label">Preço de Venda</label>
-                        <input type="number" step="0.01" class="form-control" id="preco_venda" required name="preco_venda" value="{{ old('preco_venda', 0.00) }}" required>
+                        <input type="number" step="0.01" class="form-control" id="preco_venda" name="preco_venda" value="{{ old('preco_venda', 0.00) }}">
                     </div>
                 </div>
             </div>
 
-            <!-- Coluna direita: imagem -->
             <div class="col-md-4 d-flex flex-column align-items-center justify-content-center text-center">
                 <label for="imagem" class="form-label">Imagem do Produto</label>
                 <input type="file" class="form-control mb-2" id="imagem" name="imagem" accept="image/*" onchange="previewImage(event)">
@@ -138,7 +151,7 @@
             </div>
         </div>
 
-        <!-- Linha 5 -->
+        <!-- Linha 5: dimensões e peso -->
         <div class="row mb-3">
             <div class="col-md-3">
                 <label for="peso" class="form-label">Peso (kg)</label>
@@ -158,7 +171,7 @@
             </div>
         </div>
 
-        <!-- Linha 6 -->
+        <!-- Linha 6: localização -->
         <div class="row mb-3">
             <div class="col-md-6">
                 <label for="localizacao_estoque" class="form-label">Localização no Estoque</label>
@@ -166,7 +179,7 @@
             </div>
         </div>
 
-        <!-- Linha 7 -->
+        <!-- Linha 7: ativo -->
         <div class="row mb-3">
             <div class="col-md-12">
                 <div class="form-check">

@@ -19,15 +19,16 @@ use App\Http\Controllers\CepController;
 use App\Http\Controllers\DevolucaoController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\PedidoCompraController;
-
+use App\Http\Controllers\OrcamentoController;
 
 // Dashboard
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
 // Pedidos de Compra
-Route::resource('pedidos', PedidoCompraController::class);
 Route::patch('pedidos/{pedido}/status', [PedidoCompraController::class, 'updateStatus'])->name('pedidos.updateStatus');
 
 // Para lista de pedidos
+Route::resource('pedidos', PedidoCompraController::class);
 Route::get('/pedidos/pdf/{id}', [PedidoCompraController::class, 'gerarPdf'])->name('pedidos.pdf');
 
 //Statuas pedido de compra
@@ -37,6 +38,15 @@ Route::prefix('pedidos')->group(function() {
     Route::get('cancelar/{id}', [PedidoCompraController::class, 'cancelar'])->name('pedidos.cancelar');
 });
 
+Route::prefix('orcamentos')->name('orcamentos.')->group(function () {
+    Route::get('/', [OrcamentoController::class, 'index'])->name('index');
+    Route::get('/create', [OrcamentoController::class, 'create'])->name('create');
+    Route::post('/', [OrcamentoController::class, 'store'])->name('store');
+    Route::get('/{orcamento}', [OrcamentoController::class, 'show'])->name('show');
+    Route::get('/{orcamento}/edit', [OrcamentoController::class, 'edit'])->name('edit');
+    Route::put('/{orcamento}', [OrcamentoController::class, 'update'])->name('update');
+    Route::delete('/{orcamento}', [OrcamentoController::class, 'destroy'])->name('destroy');
+});
 //orcamento pdf
 Route::get('/orcamentos/{id}/pdf', [App\Http\Controllers\OrcamentoController::class, 'gerarPdf'])->name('orcamentos.pdf');
 

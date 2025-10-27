@@ -22,6 +22,7 @@ class Produto extends Model
         'estoque_total',
         'estoque_minimo',
         'preco_custo',
+        'preco_venda',
         'data_compra',
         'validade',
         'preco_venda',

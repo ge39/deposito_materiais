@@ -3,36 +3,49 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf; // no topo do controller
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Orcamento;
 use App\Models\ItemOrcamento;
 use App\Models\Cliente;
 use App\Models\Produto;
+use App\Models\Fornecedor;
 use Illuminate\Http\Request;
-
 
 class OrcamentoController extends Controller
 {
+    /** LISTAGEM */
     public function index()
     {
         $orcamentos = Orcamento::with('cliente')->orderBy('id', 'desc')->get();
         return view('orcamentos.index', compact('orcamentos'));
     }
 
+    /** FORMULÁRIO DE CRIAÇÃO */
     public function create()
     {
-        $clientes = Cliente::all();
-        $produtos = Produto::all();
-        return view('orcamentos.create', compact('clientes', 'produtos'));
-    }
+        $clientes = Cliente::orderBy('nome')->get();
+        $fornecedores = Fornecedor::orderBy('nome')->get();
+        $produtos = Produto::with('fornecedor')->orderBy('descricao')->get();
 
+        return view('orcamentos.create', compact('clientes', 'fornecedores', 'produtos'));
+    }
+    
+    /** ARMAZENA NOVO ORÇAMENTO */
     public function store(Request $request)
     {
         $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
+            'fornecedor_id' => 'required|exists:fornecedores,id',
             'data_orcamento' => 'required|date',
-            'validade' => 'required|date',
-            'produtos' => 'required|array',
+            'validade' => 'required|date|after_or_equal:data_orcamento',
+            'produtos' => 'required|array|min:1',
+            'produtos.*.id' => 'required|exists:produtos,id',
+            'produtos.*.quantidade' => 'required|numeric|min:0.01',
+            'produtos.*.preco_unitario' => 'required|numeric|min:0.01',
+        ], [
+            'cliente_id.required' => 'Selecione um cliente antes de adicionar itens.',
+            'fornecedor_id.required' => 'Selecione o fornecedor.',
+            'produtos.required' => 'Adicione pelo menos um item ao orçamento.',
         ]);
 
         DB::beginTransaction();
@@ -40,17 +53,25 @@ class OrcamentoController extends Controller
         try {
             $orcamento = Orcamento::create([
                 'cliente_id' => $request->cliente_id,
+                'fornecedor_id' => $request->fornecedor_id,
                 'data_orcamento' => $request->data_orcamento,
                 'validade' => $request->validade,
                 'status' => 'Aberto',
-                'observacoes' => $request->observacoes ?? null,
+                'observacoes' => $request->observacoes,
                 'total' => 0,
             ]);
 
             $total = 0;
+            $produtoIds = [];
 
             foreach ($request->produtos as $produto) {
+                if (in_array($produto['id'], $produtoIds)) {
+                    throw new \Exception('Produto duplicado: ' . $produto['id']);
+                }
+                $produtoIds[] = $produto['id'];
+
                 $subtotal = $produto['quantidade'] * $produto['preco_unitario'];
+
                 ItemOrcamento::create([
                     'orcamento_id' => $orcamento->id,
                     'produto_id' => $produto['id'],
@@ -58,34 +79,42 @@ class OrcamentoController extends Controller
                     'preco_unitario' => $produto['preco_unitario'],
                     'subtotal' => $subtotal,
                 ]);
+
                 $total += $subtotal;
             }
 
             $orcamento->update(['total' => $total]);
-
             DB::commit();
 
-            return redirect()->route('orcamentos.index')->with('success', 'Orçamento criado com sucesso!');
+            return redirect()->route('orcamentos.index')
+                ->with('success', 'Orçamento criado com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Erro ao criar orçamento: ' . $e->getMessage());
+            return back()
+                ->withInput()
+                ->with('error', 'Erro ao criar orçamento: ' . $e->getMessage());
         }
     }
 
+    /** EXIBE DETALHES */
     public function show($id)
     {
-        $orcamento = Orcamento::with(['cliente', 'itens.produto'])->findOrFail($id);
+        $orcamento = Orcamento::with(['cliente', 'fornecedor', 'itens.produto'])->findOrFail($id);
         return view('orcamentos.show', compact('orcamento'));
     }
 
+    /** FORMULÁRIO DE EDIÇÃO */
     public function edit($id)
     {
-        $orcamento = Orcamento::with('itens')->findOrFail($id);
-        $clientes = Cliente::all();
-        $produtos = Produto::all();
-        return view('orcamentos.edit', compact('orcamento', 'clientes', 'produtos'));
+        $orcamento = Orcamento::with('itens.produto')->findOrFail($id);
+        $clientes = Cliente::orderBy('nome')->get();
+        $fornecedores = Fornecedor::orderBy('nome')->get();
+        $produtos = Produto::with('fornecedor')->orderBy('descricao')->get();
+
+        return view('orcamentos.edit', compact('orcamento', 'clientes', 'fornecedores', 'produtos'));
     }
 
+    /** ATUALIZA ORÇAMENTO */
     public function update(Request $request, $id)
     {
         $orcamento = Orcamento::findOrFail($id);
@@ -96,9 +125,10 @@ class OrcamentoController extends Controller
 
         $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
+            'fornecedor_id' => 'required|exists:fornecedores,id',
             'data_orcamento' => 'required|date',
-            'validade' => 'required|date',
-            'produtos' => 'required|array',
+            'validade' => 'required|date|after_or_equal:data_orcamento',
+            'produtos' => 'required|array|min:1',
         ]);
 
         DB::beginTransaction();
@@ -106,16 +136,24 @@ class OrcamentoController extends Controller
         try {
             $orcamento->update([
                 'cliente_id' => $request->cliente_id,
+                'fornecedor_id' => $request->fornecedor_id,
                 'data_orcamento' => $request->data_orcamento,
                 'validade' => $request->validade,
-                'observacoes' => $request->observacoes ?? null,
+                'observacoes' => $request->observacoes,
             ]);
 
             $orcamento->itens()->delete();
             $total = 0;
+            $produtoIds = [];
 
             foreach ($request->produtos as $produto) {
+                if (in_array($produto['id'], $produtoIds)) {
+                    throw new \Exception('Produto duplicado: ' . $produto['id']);
+                }
+                $produtoIds[] = $produto['id'];
+
                 $subtotal = $produto['quantidade'] * $produto['preco_unitario'];
+
                 ItemOrcamento::create([
                     'orcamento_id' => $orcamento->id,
                     'produto_id' => $produto['id'],
@@ -123,20 +161,21 @@ class OrcamentoController extends Controller
                     'preco_unitario' => $produto['preco_unitario'],
                     'subtotal' => $subtotal,
                 ]);
+
                 $total += $subtotal;
             }
 
             $orcamento->update(['total' => $total]);
-
             DB::commit();
 
             return redirect()->route('orcamentos.index')->with('success', 'Orçamento atualizado com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Erro ao atualizar orçamento: ' . $e->getMessage());
+            return back()->with('error', 'Erro ao atualizar: ' . $e->getMessage());
         }
     }
 
+    /** EXCLUSÃO */
     public function destroy($id)
     {
         $orcamento = Orcamento::findOrFail($id);
@@ -149,6 +188,7 @@ class OrcamentoController extends Controller
         return redirect()->route('orcamentos.index')->with('success', 'Orçamento excluído com sucesso.');
     }
 
+    /** APROVAR */
     public function aprovar($id)
     {
         $orcamento = Orcamento::findOrFail($id);
@@ -156,16 +196,36 @@ class OrcamentoController extends Controller
         return back()->with('success', 'Orçamento aprovado com sucesso!');
     }
 
+    /** CANCELAR */
     public function cancelar($id)
     {
         $orcamento = Orcamento::findOrFail($id);
         $orcamento->update(['status' => 'Cancelado']);
         return back()->with('success', 'Orçamento cancelado com sucesso!');
     }
+
+    /** PDF */
     public function gerarPdf($id)
     {
-        $orcamento = Orcamento::with(['cliente', 'itens.produto'])->findOrFail($id);
+        $orcamento = Orcamento::with(['cliente', 'fornecedor', 'itens.produto'])->findOrFail($id);
         $pdf = Pdf::loadView('orcamentos.pdf', compact('orcamento'))->setPaper('a4');
         return $pdf->stream("Orcamento_{$orcamento->id}.pdf");
+    }
+
+    /** BUSCA AJAX DE PRODUTOS */
+    public function buscarProduto(Request $request)
+    {
+        $busca = $request->input('q');
+
+        $produtos = Produto::with('fornecedor')
+            ->where('descricao', 'like', "%$busca%")
+            ->orWhere('nome', 'like', "%$busca%")
+            ->orWhereHas('fornecedor', function ($query) use ($busca) {
+                $query->where('nome', 'like', "%$busca%");
+            })
+            ->limit(20)
+            ->get();
+
+        return response()->json($produtos);
     }
 }

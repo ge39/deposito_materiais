@@ -36,6 +36,7 @@
                             <h5 class="card-title">{{ $fornecedor->nome }}</h5>
                             <p class="card-text mb-1"><strong>Email:</strong> {{ $fornecedor->email }}</p>
                             <p class="card-text mb-1"><strong>Telefone:</strong> {{ $fornecedor->telefone }}</p>
+                            <p class="card-text mb-1"><strong>observacao:</strong> {{ $fornecedor->observacoes }}</p>
                         </div>
                         <div class="card-footer text-center">
                             <a href="{{ route('fornecedores.show', $fornecedor->id) }}" class="btn btn-sm btn-info mb-1">Ver</a>
