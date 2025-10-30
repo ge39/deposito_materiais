@@ -11,6 +11,7 @@ class ItensPedidoCompra extends Model
     protected $fillable = [
         'pedido_id',
         'produto_id',
+        'pedido_compra_id', // novo campo de referência
         'quantidade',
         'preco_unitario',
         'total'

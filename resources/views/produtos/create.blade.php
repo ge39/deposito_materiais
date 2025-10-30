@@ -52,7 +52,7 @@
         <div class="row mb-3">
             <div class="col-md-12">
                 <label for="descricao" class="form-label">Descrição</label>
-                <textarea class="form-control" id="descricao" name="descricao">{{ old('descricao') }}</textarea>
+                <input type="text" class="form-control"  name="descricao" value="{{ old('descricao') }}">
             </div>
         </div>
 
@@ -60,10 +60,11 @@
         <div class="row mb-3">
             <div class="col-md-3">
                 <label for="categoria_id" class="form-label">Categoria</label>
-                <select class="form-control" id="categoria_id" name="categoria_id" required>
-                    <option value="">Selecione...</option>
+                <select name="categoria_id" class="form-select">
+                    <option value="">Selecione uma categoria</option>
                     @foreach($categorias as $categoria)
-                        <option value="{{ $categoria->id }}" {{ old('categoria_id') == $categoria->id ? 'selected' : '' }}>
+                        <option value="{{ $categoria->id }}" 
+                            {{ old('categoria_id', $produto->categoria_id ?? '') == $categoria->id ? 'selected' : '' }}>
                             {{ $categoria->nome }}
                         </option>
                     @endforeach
@@ -121,11 +122,12 @@
                 <div class="row mt-3">
                     <div class="col-md-6">
                         <label for="data_compra" class="form-label">Data da Compra</label>
-                        <input type="date" class="form-control" id="data_compra" name="data_compra" value="{{ old('data_compra', date('Y-m-d')) }}"">
+                        <input type="date" class="form-control" id="data_compra" name="data_compra" value="{{ old('data_compra', date('Y-m-d')) }}">
                     </div>
                     <div class="col-md-6">
                         <label for="validade" class="form-label">Validade</label>
-                        <input type="date" class="form-control" id="validade" name="validade" value="{{ old('validade') }}">
+                        <input type="date" class="form-control" id="validade" name="validade" value="{{ old('validade_produto', date('Y-m-d', strtotime('+30 days'))) }}">
+
                     </div>
                 </div>
 
@@ -145,8 +147,8 @@
                 <label for="imagem" class="form-label">Imagem do Produto</label>
                 <input type="file" class="form-control mb-2" id="imagem" name="imagem" accept="image/*" onchange="previewImage(event)">
                 <div>
-                    <img id="imagemPreview" src="#" alt="Prévia da Imagem"
-                        style="display:none; max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
+                    <img id="imagemPreview" src="{{ asset('storage/produtos/4Q6fMmYnfd5CJRJK3kDzvjFSrwiXpaJeAaOcBjz8.png') }}" alt="Prévia da Imagem"
+                        style=" max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
                 </div>
             </div>
         </div>

@@ -7,9 +7,10 @@ use App\Models\Empresa;
 use PDF;
 use Illuminate\Http\Request;
 use App\Models\PedidoCompra;
-use App\Models\PedidoItem;
 use App\Models\Fornecedor;
 use App\Models\Produto;
+use App\Models\Lote;
+use Carbon\Carbon;
 
 class PedidoCompraController extends Controller
 {
@@ -52,7 +53,7 @@ class PedidoCompraController extends Controller
         DB::beginTransaction();
         try {
             $pedido = PedidoCompra::create([
-                'user_id' => auth()->id() ?? 1, // usuário logado ou 1 se não existir
+                'user_id' => auth()->id() ?? 1,
                 'fornecedor_id' => $request->fornecedor_id,
                 'data_pedido' => $request->data_pedido,
                 'status' => 'pendente',
@@ -64,6 +65,7 @@ class PedidoCompraController extends Controller
                 $subtotal = $item['quantidade'] * $item['valor_unitario'];
                 $pedido->itens()->create([
                     'produto_id' => $item['produto_id'],
+                    'pedido_compra_id' => $pedido->id,
                     'quantidade' => $item['quantidade'],
                     'valor_unitario' => $item['valor_unitario'],
                     'subtotal' => $subtotal,
@@ -83,102 +85,6 @@ class PedidoCompraController extends Controller
     }
 
     /**
-     * Tela de edição de pedido
-     */
-    public function edit(PedidoCompra $pedido)
-    {
-        $fornecedores = Fornecedor::all();
-        $produtos = Produto::all();
-        $pedido->load('itens.produto.unidadeMedida', 'fornecedor');
-
-        return view('pedidos.edit', compact('pedido', 'fornecedores', 'produtos'));
-    }
-
-    /**
-     * Atualizar pedido e validar fluxo de status
-     */
-    public function update(Request $request, PedidoCompra $pedido)
-    {
-        $request->validate([
-            'fornecedor_id' => 'required|exists:fornecedores,id',
-            'data_pedido' => 'required|date',
-            'status' => 'required|string',
-            'itens' => 'required|array|min:1',
-            'itens.*.produto_id' => 'required|exists:produtos,id',
-            'itens.*.quantidade' => 'required|numeric|min:1',
-            'itens.*.valor_unitario' => 'required|numeric|min:0',
-        ]);
-
-        $fluxoStatus = [
-            'pendente' => ['pendente', 'aprovado', 'cancelado'],
-            'aprovado' => ['aprovado', 'recebido', 'cancelado'],
-            'recebido' => ['recebido'],
-            'cancelado' => ['cancelado'],
-        ];
-
-        if (!in_array($request->status, $fluxoStatus[$pedido->status] ?? [])) {
-            return redirect()->back()
-                ->withErrors(['status' => 'Alteração de status não permitida.'])
-                ->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            $pedido->update([
-                'fornecedor_id' => $request->fornecedor_id,
-                'data_pedido' => $request->data_pedido,
-                'status' => $request->status,
-            ]);
-
-            $pedido->itens()->delete();
-
-            $total = 0;
-            foreach ($request->itens as $itemData) {
-                $subtotal = $itemData['quantidade'] * $itemData['valor_unitario'];
-                $pedido->itens()->create([
-                    'produto_id' => $itemData['produto_id'],
-                    'quantidade' => $itemData['quantidade'],
-                    'valor_unitario' => $itemData['valor_unitario'],
-                    'subtotal' => $subtotal,
-                ]);
-                $total += $subtotal;
-            }
-
-            $pedido->update(['total' => $total]);
-
-            DB::commit();
-            return redirect()->route('pedidos.edit', $pedido->id)
-                ->with('success', 'Pedido atualizado com sucesso!');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error($e->getMessage());
-            return back()->withErrors('Erro ao atualizar o pedido: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Visualizar pedido
-     */
-    public function show(PedidoCompra $pedido)
-    {
-        $pedido->load('itens.produto.unidadeMedida', 'fornecedor', 'user');
-        return view('pedidos.show', compact('pedido'));
-    }
-
-    /**
-     * Gerar PDF do pedido
-     */
-    public function gerarPdf($id)
-    {
-        $pedido = PedidoCompra::with(['fornecedor', 'itens.produto.unidadeMedida'])->findOrFail($id);
-        $empresa = Empresa::where('ativo', true)->first();
-
-        $pdf = app('dompdf.wrapper');
-        $pdf->loadView('pedidos.pdf', compact('pedido', 'empresa'));
-        return $pdf->stream('pedido_'.$pedido->id.'.pdf');
-    }
-
-    /**
      * Aprovar pedido
      */
     public function aprovar($id)
@@ -194,24 +100,37 @@ class PedidoCompraController extends Controller
     }
 
     /**
-     * Receber pedido e atualizar estoque
+     * Receber pedido e gerar lotes
      */
     public function receber($id)
     {
         $pedido = PedidoCompra::with('itens.produto')->findOrFail($id);
 
-        if ($pedido->status !== 'aprovado') {
-            return redirect()->back()->withErrors('Recebimento só permitido para pedidos aprovados.');
-        }
+        DB::transaction(function () use ($pedido) {
+            foreach ($pedido->itens as $item) {
+                $produto = $item->produto;
 
-        try {
-            $pedido->receberProdutos(); // método na model PedidoCompra
-            return redirect()->route('pedidos.index')
-                            ->with('success', "Pedido #{$pedido->id} recebido e estoque atualizado!");
-        } catch (\Exception $e) {
-            \Log::error($e->getMessage());
-            return redirect()->back()->withErrors($e->getMessage());
-        }
+                // Atualiza o estoque do produto
+                $produto->quantidade_estoque = ($produto->quantidade_estoque ?? 0) + $item->quantidade;
+                $produto->save();
+
+                // Criação do lote completo
+                Lote::create([
+                    'pedido_compra_id' => $pedido->id,
+                    'produto_id'       => $produto->id,
+                    'fornecedor_id'    => $pedido->fornecedor_id,
+                    'quantidade'       => $item->quantidade,
+                    'preco_compra'     => $item->valor_unitario,
+                    'data_compra'      => $pedido->data_pedido,
+                    'validade'         => now()->addMonths(12),
+                    'numero_lote'      => now()->format('Ymd') . '-' . $produto->id,
+                ]);
+            }
+
+            $pedido->update(['status' => 'recebido']);
+        });
+
+        return redirect()->route('pedidos.index')->with('success', 'Pedido recebido e lotes gerados com sucesso!');
     }
 
     /**
@@ -227,5 +146,24 @@ class PedidoCompraController extends Controller
 
         $pedido->update(['status' => 'cancelado']);
         return redirect()->route('pedidos.index')->with('success', "Pedido #{$pedido->id} cancelado.");
+    }
+
+    /**
+     * Gerar PDF do pedido
+     */
+    public function gerarPdf($id)
+    {
+        $pedido = PedidoCompra::with(['fornecedor', 'itens.produto.unidadeMedida'])->findOrFail($id);
+        $empresa = Empresa::where('ativo', true)->first();
+
+        $pdf = app('dompdf.wrapper');
+        $pdf->loadView('pedidos.pdf', compact('pedido', 'empresa'));
+        return $pdf->stream('pedido_' . $pedido->id . '.pdf');
+    }
+
+    public function show($id)
+    {
+        $pedido = PedidoCompra::with(['fornecedor', 'user', 'itens.produto'])->findOrFail($id);
+        return view('pedidos.show', compact('pedido'));
     }
 }

@@ -24,8 +24,7 @@ class Produto extends Model
         'preco_custo',
         'preco_venda',
         'data_compra',
-        'validade',
-        'preco_venda',
+        'validade_produto',
         'peso',
         'largura',
         'altura',
@@ -34,10 +33,10 @@ class Produto extends Model
         'imagem',
         'ativo',
     ];
-    
+
     protected $casts = [
         'data_compra' => 'date',
-        'validade' => 'date',
+        'validade_produto' => 'date',
         'preco_custo' => 'decimal:2',
         'preco_venda' => 'decimal:2',
     ];
@@ -53,11 +52,6 @@ class Produto extends Model
     public function unidadeMedida()
     {
         return $this->belongsTo(UnidadeMedida::class, 'unidade_medida_id');
-    }
-    
-    public function unidade()
-    {
-        return $this->belongsTo(UnidadeMedida::class, 'unidade_id');
     }
 
     public function categoria()
@@ -75,30 +69,18 @@ class Produto extends Model
         return $this->belongsTo(Marca::class);
     }
 
-    // Quantidade total automática
+    // Estoque total somado dos lotes
     public function getEstoqueTotalAttribute()
     {
         return $this->lotes->sum('quantidade');
     }
 
     // -------------------------------
-    // EVENTOS ELOQUENT
+    // MUTATORS
     // -------------------------------
-    protected static function booted()
+    // Evita salvar data atual automaticamente se o campo vier vazio
+    public function setValidadeProdutoAttribute($value)
     {
-        static::created(function ($produto) {
-            // Gera número do lote: data + id do produto
-            $numero_lote = now()->format('Ymd') . $produto->id;
-
-            // Cria lote inicial automaticamente
-            \App\Models\Lote::create([
-                'produto_id'   => $produto->id,
-                'numero_lote'  => $numero_lote,
-                'fornecedor_id'=> $produto->fornecedor_id ?? null,
-                'data_compra'  => $produto->data_compra ?? now(),
-                'validade'     => $produto->validade ?? null,
-                'quantidade'   => $produto->quantidade_estoque ?? 0,
-            ]);
-        });
+        $this->attributes['validade_produto'] = empty($value) ? null : $value;
     }
 }

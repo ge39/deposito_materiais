@@ -20,7 +20,7 @@ class ClienteController extends Controller
                 $query->where('tipo', $tipo);
             })
             ->orderBy('nome')
-            ->paginate(9);
+            ->paginate(15);
 
         return view('clientes.index', compact('clientes'));
     }

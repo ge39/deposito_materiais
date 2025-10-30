@@ -16,7 +16,7 @@ class OrcamentoController extends Controller
     /** LISTAGEM */
     public function index()
     {
-        $orcamentos = Orcamento::with('cliente')->orderBy('id', 'desc')->get();
+        $orcamentos = Orcamento::with(['cliente', 'fornecedor'])->orderBy('id', 'desc')->get();
         return view('orcamentos.index', compact('orcamentos'));
     }
 
@@ -42,14 +42,9 @@ class OrcamentoController extends Controller
             'produtos.*.id' => 'required|exists:produtos,id',
             'produtos.*.quantidade' => 'required|numeric|min:0.01',
             'produtos.*.preco_unitario' => 'required|numeric|min:0.01',
-        ], [
-            'cliente_id.required' => 'Selecione um cliente antes de adicionar itens.',
-            'fornecedor_id.required' => 'Selecione o fornecedor.',
-            'produtos.required' => 'Adicione pelo menos um item ao orçamento.',
         ]);
 
         DB::beginTransaction();
-
         try {
             $orcamento = Orcamento::create([
                 'cliente_id' => $request->cliente_id,
@@ -90,9 +85,7 @@ class OrcamentoController extends Controller
                 ->with('success', 'Orçamento criado com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()
-                ->withInput()
-                ->with('error', 'Erro ao criar orçamento: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Erro ao criar orçamento: ' . $e->getMessage());
         }
     }
 
@@ -132,7 +125,6 @@ class OrcamentoController extends Controller
         ]);
 
         DB::beginTransaction();
-
         try {
             $orcamento->update([
                 'cliente_id' => $request->cliente_id,
@@ -204,13 +196,6 @@ class OrcamentoController extends Controller
         return back()->with('success', 'Orçamento cancelado com sucesso!');
     }
 
-    /** PDF */
-    public function gerarPdf($id)
-    {
-        $orcamento = Orcamento::with(['cliente', 'fornecedor', 'itens.produto'])->findOrFail($id);
-        $pdf = Pdf::loadView('orcamentos.pdf', compact('orcamento'))->setPaper('a4');
-        return $pdf->stream("Orcamento_{$orcamento->id}.pdf");
-    }
 
     /** BUSCA AJAX DE PRODUTOS */
     public function buscarProduto(Request $request)
@@ -228,4 +213,14 @@ class OrcamentoController extends Controller
 
         return response()->json($produtos);
     }
+    /** PDF */
+    public function gerarPdf(Orcamento $orcamento)
+    {
+        $orcamento->load('cliente', 'itens.produto'); // carregar relacionamentos
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('orcamentos.pdf', compact('orcamento'));
+
+        return $pdf->stream("Orcamento_{$orcamento->id}.pdf");
+    }
+
 }

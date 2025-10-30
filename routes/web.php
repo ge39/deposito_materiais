@@ -37,7 +37,6 @@ Route::prefix('pedidos')->group(function() {
     Route::get('receber/{id}', [PedidoCompraController::class, 'receber'])->name('pedidos.receber');
     Route::get('cancelar/{id}', [PedidoCompraController::class, 'cancelar'])->name('pedidos.cancelar');
 });
-
 Route::prefix('orcamentos')->name('orcamentos.')->group(function () {
     Route::get('/', [OrcamentoController::class, 'index'])->name('index');
     Route::get('/create', [OrcamentoController::class, 'create'])->name('create');
@@ -46,9 +45,14 @@ Route::prefix('orcamentos')->name('orcamentos.')->group(function () {
     Route::get('/{orcamento}/edit', [OrcamentoController::class, 'edit'])->name('edit');
     Route::put('/{orcamento}', [OrcamentoController::class, 'update'])->name('update');
     Route::delete('/{orcamento}', [OrcamentoController::class, 'destroy'])->name('destroy');
+
+    // Rotas para aprovar e cancelar
+    Route::post('/{orcamento}/aprovar', [OrcamentoController::class, 'aprovar'])->name('aprovar');
+    Route::post('/{orcamento}/cancelar', [OrcamentoController::class, 'cancelar'])->name('cancelar');
 });
+
 //orcamento pdf
-Route::get('/orcamentos/{id}/pdf', [App\Http\Controllers\OrcamentoController::class, 'gerarPdf'])->name('orcamentos.pdf');
+Route::get('/orcamentos/{orcamento}/pdf', [OrcamentoController::class, 'gerarPdf'])->name('orcamentos.gerarPdf');
 
 //Empresas e Filiais
 Route::prefix('empresa')->name('empresa.')->group(function () {
@@ -126,6 +130,7 @@ Route::put('/fornecedores/ativar/{fornecedor}', [FornecedorController::class, 'a
 
 // Produtos
 Route::get('/produtos/buscar', [ProdutoController::class, 'search'])->name('produtos.search');
+Route::get('/produtos/buscar/{nome}', [App\Http\Controllers\ProdutoController::class, 'buscarProdutoPorNome'])->name('produtos.buscar');
 Route::get('/produtos/inativos', [ProdutoController::class, 'inativos'])->name('produtos.inativos');
 Route::put('/produtos/{produto}/desativar', [ProdutoController::class, 'desativar'])->name('produtos.desativar');
 Route::put('/produtos/{produto}/reativar', [ProdutoController::class, 'reativar'])->name('produtos.reativar');
@@ -178,3 +183,4 @@ Route::prefix('produtos/{produto_id}/lotes')->group(function () {
     Route::get('/create', [LoteController::class, 'create'])->name('lotes.create');
     Route::post('/', [LoteController::class, 'store'])->name('lotes.store');
 });
+

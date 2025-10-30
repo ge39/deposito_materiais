@@ -89,7 +89,7 @@
                                         <input type="text" class="form-control subtotal" value="0,00" readonly>
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" class="btn btn-sm btn-danger remover">X</button>
+                                        <button type="button" class="btn btn-sm btn-danger remover">Remover</button>
                                     </td>
                                 </tr>
                             @endforeach

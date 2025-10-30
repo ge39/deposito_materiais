@@ -27,7 +27,7 @@ class LoteController extends Controller
             'quantidade' => 'required|integer|min:1',
             'preco_compra' => 'nullable|numeric|min:0',
             'data_compra' => 'nullable|date',
-            'validade' => 'nullable|date|after_or_equal:data_compra',
+             'validade' => 'nullable|date|after_or_equal:data_compra',
         ]);
 
         $produto = Produto::findOrFail($produto_id);
@@ -37,7 +37,7 @@ class LoteController extends Controller
 
         // Define validade padrão caso não informada
         if (!$lote->validade) {
-            $lote->validade = Carbon::parse($lote->data_compra ?? now())->addMonths(3);
+            $lote->validade = Carbon::parse($lote->data_compra ?? now())->addDays(30);
         }
 
         $lote->save();

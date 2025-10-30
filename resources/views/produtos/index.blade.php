@@ -26,7 +26,7 @@
     <!-- Formulário de busca -->
     <form action="{{ route('produtos.search') }}" method="GET" class="mb-3 row g-2 align-items-end">
         <div class="col-md-8">
-            <input type="text" name="q" class="form-control" placeholder="Buscar por nome, categoria ou fornecedor..." value="{{ request('q') }}">
+            <input type="text" name="query" class="form-control" placeholder="Buscar por nome, categoria ou fornecedor..." value="{{ request('q') }}">
         </div>
         <div class="col-md-4 d-flex gap-2">
             <button type="submit" class="btn btn-primary flex-grow-1">Buscar</button>
@@ -35,8 +35,13 @@
     </form>
 
     @if($produtos->count() > 0)
+        <!-- Paginação -->
+        <div class="d-flex justify-content-center mt-4">
+            {{ $produtos->links('pagination::bootstrap-5') }}
+        </div>
         <div class="row g-4">
             @foreach($produtos as $produto)
+                
                 <div class="col-md-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
@@ -46,7 +51,7 @@
                             <p class="card-text mb-1"><strong>Fornecedor:</strong> {{ $produto->fornecedor->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Marca:</strong> {{ $produto->marca->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Unidade:</strong> {{ $produto->unidadeMedida->nome ?? '-' }}</p>
-                            <p class="card-text mb-1"><strong>Estoque:</strong> {{ $produto->estoque_total }}</p>
+                            <p class="card-text mb-1"><strong>Estoque:</strong> {{ $produto->quantidade_estoque }}</p>
                             <p class="card-text mb-1"><strong>Mínimo:</strong> {{ $produto->estoque_minimo }}</p>
                             <p class="card-text mb-1"><strong>Compra:</strong> {{ \Carbon\Carbon::parse($produto->data_compra)->format('d/m/Y') }}</p>
                             <p class="card-text mb-1"><strong>Validade:</strong> {{ \Carbon\Carbon::parse($produto->validade)->format('d/m/Y') }}</p>

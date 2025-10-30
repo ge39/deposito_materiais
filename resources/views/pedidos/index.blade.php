@@ -11,7 +11,11 @@
     <div class="mb-3">
         <a href="{{ route('pedidos.create') }}" class="btn btn-primary">Novo Pedido</a>
     </div>
-
+    <div class="d-flex justify-content-center mt-3">
+            <div class="d-inline-block">
+                {{ $pedidos->links('pagination::bootstrap-5') }}
+            </div>
+        </div>
     <div class="card p-3 table-responsive">
         <table class="table table-bordered table-striped align-middle">
             <thead class="table-dark">

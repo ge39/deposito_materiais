@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <h1>Editar Produto</h1>
+<div class="container-fluid" style="background-color:#f0f2f5; padding:15px;">
+    <h1 class="mb-3">Editar Produto 000{{ $produto->id }}</h1>
 
     @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul>
+        <div class="alert alert-danger py-2">
+            <ul class="mb-0">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -18,33 +18,33 @@
         @csrf
         @method('PUT')
 
-        <!-- Linha 1: Nome, Código de Barras, SKU -->
-        <div class="row mb-3">
-            <div class="col-md-4">
+        <!-- Seção 1: Nome, Código de Barras, SKU -->
+        <div class="row mb-2 p-2" style="background-color:#ffffff; border-radius:6px;">
+            <div class="col-md-4 mb-2 mb-md-0">
                 <label for="nome" class="form-label">Nome</label>
-                <input type="text" class="form-control" id="nome" name="nome" value="{{ old('nome', $produto->nome) }}" required>
+                <input type="text" class="form-control" id="nome" name="nome" value="{{ old('nome', $produto->nome) }}" readOnly>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 mb-2 mb-md-0">
                 <label for="codigo_barras" class="form-label">Código de Barras</label>
                 <input type="text" class="form-control" id="codigo_barras" name="codigo_barras" value="{{ old('codigo_barras', $produto->codigo_barras) }}">
             </div>
             <div class="col-md-4">
                 <label for="sku" class="form-label">SKU</label>
-                <input type="text" class="form-control" id="sku" name="sku" value="{{ old('sku', $produto->sku) }}">
+                <input type="text" class="form-control text-muted" id="sku" value="{{ old('sku', $produto->sku) }}" disabled>
             </div>
         </div>
 
-        <!-- Linha 2: Descrição -->
-        <div class="row mb-3">
-            <div class="col-md-12">
+        <!-- Seção 2: Descrição -->
+        <div class="row mb-2 p-2 bg-white rounded">
+            <div class="col-12">
                 <label for="descricao" class="form-label">Descrição</label>
-                <textarea class="form-control" id="descricao" name="descricao">{{ old('descricao', $produto->descricao) }}</textarea>
+                <textarea class="form-control" id="descricao" name="descricao" rows="2">{{ old('descricao', $produto->descricao) }}</textarea>
             </div>
         </div>
 
-        <!-- Linha 3: Categoria, Fornecedor, Unidade, Marca -->
-        <div class="row mb-3">
-            <div class="col-md-3">
+        <!-- Seção 3: Categoria, Fornecedor, Unidade, Marca -->
+        <div class="row mb-2 p-2 bg-white rounded">
+            <div class="col-md-3 mb-2 mb-md-0">
                 <label for="categoria_id" class="form-label">Categoria</label>
                 <select class="form-control" id="categoria_id" name="categoria_id" required>
                     <option value="">Selecione...</option>
@@ -55,7 +55,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-3 mb-2 mb-md-0">
                 <label for="fornecedor_id" class="form-label">Fornecedor</label>
                 <select class="form-control" id="fornecedor_id" name="fornecedor_id" required>
                     <option value="">Selecione...</option>
@@ -66,7 +66,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-3 mb-2 mb-md-0">
                 <label for="unidade_medida_id" class="form-label">Unidade de Medida</label>
                 <select class="form-control" id="unidade_medida_id" name="unidade_medida_id" required>
                     <option value="">Selecione...</option>
@@ -90,100 +90,86 @@
             </div>
         </div>
 
-        <!-- Linha 4: Quantidades, Datas, Preços e Imagem lado a lado -->
-        <div class="row mb-4 align-items-start">
-            <!-- Coluna esquerda: Quantidades, Datas, Preços -->
-            <div class="col-md-8">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="quantidade_estoque" class="form-label">Quantidade em Estoque</label>
-                        <input type="number" class="form-control" id="quantidade_estoque" name="quantidade_estoque" value="{{ old('quantidade_estoque', $produto->quantidade_estoque) }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="estoque_minimo" class="form-label">Estoque Mínimo</label>
-                        <input type="number" class="form-control" id="estoque_minimo" name="estoque_minimo" value="{{ old('estoque_minimo', $produto->estoque_minimo) }}">
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
+        <!-- Seção 4: Estoque e Preços -->
+        <div class="row mb-2 p-2 bg-white rounded">
+            <div class="col-md-3 mb-2 mb-md-0">
+                <label for="quantidade_estoque" class="form-label">Qtd Estoque</label>
+                <input type="number" class="form-control text-muted" id="quantidade_estoque" value="{{ $produto->quantidade_estoque }}" disabled>
+            </div>
+            <div class="col-md-3 mb-2 mb-md-0">
+                <label for="estoque_minimo" class="form-label">Estoque Mínimo</label>
+                <input type="number" class="form-control text-muted" id="estoque_minimo" value="{{ $produto->estoque_minimo }}" disabled>
+                
+            </div>
+            <div class="row mt-3">
+                    <div class="col-md-2">
                         <label for="data_compra" class="form-label">Data da Compra</label>
-                        <input type="date" class="form-control" id="data_compra" name="data_compra" value="{{ old('data_compra', optional($produto->data_compra)->format('Y-m-d')) }}">
+                        <input type="date" class="form-control" id="data_compra" name="data_compra" value="{{ old('data_compra', date('Y-m-d')) }}">
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-2">
                         <label for="validade" class="form-label">Validade</label>
-                        <input type="date" class="form-control" id="validade" name="validade" value="{{ old('validade', optional($produto->validade)->format('Y-m-d')) }}">
+                        <input type="date" class="form-control" id="validade" name="validade" value="{{ old('validade', date('Y-m-d')) }}">
                     </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="preco_custo" class="form-label">Preço de Custo</label>
-                        <input type="number" step="0.01" class="form-control" id="preco_custo" name="preco_custo" value="{{ old('preco_custo', $produto->preco_custo) }}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="preco_venda" class="form-label">Preço de Venda</label>
-                        <input type="number" step="0.01" class="form-control" id="preco_venda" name="preco_venda" value="{{ old('preco_venda', $produto->preco_venda) }}" required>
-                    </div>
-                </div>
+                    <div class="col-md-2 mb-2 mb-md-0">
+                <label for="preco_custo" class="form-label">Preço Custo</label>
+                <input type="number" step="0.01" class="form-control text-muted" id="preco_custo" value="{{ $produto->preco_custo }}" disabled>
             </div>
+            <div class="col-md-2">
+                <label for="preco_venda" class="form-label">Preço Venda</label>
+                <input type="number" step="0.01" class="form-control text-muted" id="preco_venda" value="{{ $produto->preco_venda }}" disabled>
+            </div>
+                </div>
 
-            <!-- Coluna direita: Imagem -->
-            <div class="col-md-4 d-flex flex-column align-items-center text-center">
-                <label for="imagem" class="form-label">Imagem do Produto</label>
-                <input type="file" class="form-control mb-2" id="imagem" name="imagem" accept="image/*" onchange="previewImage(event)">
-                <div>
-                    @if($produto->imagem)
-                        <img id="imagemPreview" src="{{ asset('storage/' . $produto->imagem) }}" alt="Imagem Atual" style="max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
-                    @else
-                        <img id="imagemPreview" src="#" alt="Prévia da Imagem" style="display:none; max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
-                    @endif
+            
+        </div>
+
+        <!-- Seção 5: Imagem e Dimensões -->
+        <div class="row mb-2 p-2 bg-white rounded">
+            <div class="col-md-4 mb-2 mb-md-0 text-center">
+                <label for="imagem" class="form-label">Imagem</label>
+                <input type="file" class="form-control mb-1" id="imagem" name="imagem" accept="image/*" onchange="previewImage(event)">
+                <img id="imagemPreview" src="{{ $produto->imagem ? asset('storage/' . $produto->imagem) : asset('storage/produtos/default.png') }}" 
+                     alt="Prévia" style="max-width:150px; max-height:150px; border:1px solid #ccc; padding:3px;">
+            </div>
+            <div class="col-md-8">
+                <div class="row mb-2">
+                    <div class="col-md-3">
+                        <label for="peso" class="form-label">Peso (kg)</label>
+                        <input type="number" step="0.01" class="form-control" id="peso" name="peso" value="{{ old('peso', $produto->peso) }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="largura" class="form-label">Largura (m)</label>
+                        <input type="number" step="0.01" class="form-control" id="largura" name="largura" value="{{ old('largura', $produto->largura) }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="altura" class="form-label">Altura (m)</label>
+                        <input type="number" step="0.01" class="form-control" id="altura" name="altura" value="{{ old('altura', $produto->altura) }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="profundidade" class="form-label">Profundidade (m)</label>
+                        <input type="number" step="0.01" class="form-control" id="profundidade" name="profundidade" value="{{ old('profundidade', $produto->profundidade) }}">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <label for="localizacao_estoque" class="form-label">Localização Estoque</label>
+                        <input type="text" class="form-control" id="localizacao_estoque" name="localizacao_estoque" value="{{ old('localizacao_estoque', $produto->localizacao_estoque) }}">
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Linha 5: Dimensões -->
-        <div class="row mb-3">
-            <div class="col-md-3">
-                <label for="peso" class="form-label">Peso (kg)</label>
-                <input type="number" step="0.01" class="form-control" id="peso" name="peso" value="{{ old('peso', $produto->peso) }}">
-            </div>
-            <div class="col-md-3">
-                <label for="largura" class="form-label">Largura (m)</label>
-                <input type="number" step="0.01" class="form-control" id="largura" name="largura" value="{{ old('largura', $produto->largura) }}">
-            </div>
-            <div class="col-md-3">
-                <label for="altura" class="form-label">Altura (m)</label>
-                <input type="number" step="0.01" class="form-control" id="altura" name="altura" value="{{ old('altura', $produto->altura) }}">
-            </div>
-            <div class="col-md-3">
-                <label for="profundidade" class="form-label">Profundidade (m)</label>
-                <input type="number" step="0.01" class="form-control" id="profundidade" name="profundidade" value="{{ old('profundidade', $produto->profundidade) }}">
-            </div>
-        </div>
-
-        <!-- Linha 6: Localização -->
-        <div class="row mb-3">
+        <!-- Seção 6: Ativo e Botões -->
+        <div class="row mb-2 p-2 bg-white rounded align-items-center">
             <div class="col-md-6">
-                <label for="localizacao_estoque" class="form-label">Localização no Estoque</label>
-                <input type="text" class="form-control" id="localizacao_estoque" name="localizacao_estoque" value="{{ old('localizacao_estoque', $produto->localizacao_estoque) }}">
-            </div>
-        </div>
-
-        <!-- Linha 7: Checkbox Ativo -->
-        <div class="row mb-3">
-            <div class="col-md-12">
                 <div class="form-check">
                     <input type="checkbox" class="form-check-input" id="ativo" name="ativo" value="1" {{ $produto->ativo ? 'checked' : '' }}>
                     <label class="form-check-label" for="ativo">Ativo</label>
                 </div>
             </div>
-        </div>
-
-        <!-- Botões -->
-        <div class="row mb-3">
-            <div class="col-md-12 d-flex gap-3">
-                <button type="submit" class="btn btn-primary">Salvar Produto</button>
+            <div class="col-md-6 d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">Salvar</button>
                 <a href="{{ route('produtos.index') }}" class="btn btn-secondary">Voltar</a>
             </div>
         </div>
@@ -191,4 +177,13 @@
 </div>
 
 <script src="{{ asset('js/produto.js') }}"></script>
+
+<style>
+    body { background-color:#f0f2f5; }
+    .form-control { background-color:#fff; border-radius:4px; padding:5px 8px; }
+    .form-control[disabled] { background-color:#e9ecef; }
+    label { font-weight:500; margin-bottom:2px; }
+    .bg-white { background-color:#fff !important; }
+    .row { margin-bottom:0; }
+</style>
 @endsection

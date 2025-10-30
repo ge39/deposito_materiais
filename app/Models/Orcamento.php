@@ -13,6 +13,7 @@ class Orcamento extends Model
 
     protected $fillable = [
         'cliente_id',
+        'fornecedor_id', // adicionado caso queira vincular direto o fornecedor
         'data_orcamento',
         'validade',
         'status',
@@ -20,11 +21,19 @@ class Orcamento extends Model
         'total'
     ];
 
+    /** Relacionamento com cliente */
     public function cliente()
     {
         return $this->belongsTo(Cliente::class);
     }
 
+    /** Relacionamento com fornecedor */
+    public function fornecedor()
+    {
+        return $this->belongsTo(Fornecedor::class);
+    }
+
+    /** Relacionamento com itens do orçamento */
     public function itens()
     {
         return $this->hasMany(ItemOrcamento::class);
