@@ -26,7 +26,7 @@
                             <p class="card-text mb-1"><strong>Qtd Comprada:</strong> {{ $lote->quantidade }}</p>
                             <p class="card-text mb-1"><strong>Preço de Compra:</strong> R$ {{ number_format($lote->preco_compra, 2, ',', '.') }}</p>
                             <p class="card-text mb-1"><strong>Data da Compra:</strong> {{ \Carbon\Carbon::parse($lote->data_compra)->format('d/m/Y') }}</p>
-                            <p class="card-text mb-1"><strong>Validade até::</strong> {{ \Carbon\Carbon::parse($lote->validade)->format('d/m/Y') }}</p>
+                            <p class="card-text mb-1"><strong>Validade até::</strong> {{ \Carbon\Carbon::parse($lote->validade_lote)->format('d/m/Y') }}</p>
                             <p class="card-text text-muted small"><strong>Cadastrado em:</strong> {{ $lote->created_at->format('d/m/Y H:i') }}</p>
                         </div>
                     </div>
@@ -35,10 +35,11 @@
         </div>
     @endif
 
-    <div class="mt-4">
-        <a href="{{ route('produtos.index') }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Voltar
-        </a>
+   <div class="container mt-4 d-flex justify-content-end gap-2">
+        <a href="{{ url()->previous() }}" class="btn btn-secondary">Voltar</a>
+        <a href="{{ route('produtos.index') }}" class="btn btn-secondary">Início</a>
     </div>
+
+
 </div>
 @endsection

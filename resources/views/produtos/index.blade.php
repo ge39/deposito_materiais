@@ -1,18 +1,18 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container pt-4">
+<div class="container pt-4" style="border:1px solid #ddd; padding:15px; border-radius:5px; background-color:#f9f9f9;">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">Produtos Ativos</h2>
-        <div>
+        <!-- <div>
             <a href="{{ route('produtos.create') }}" class="btn btn-success me-2">
                 <i class="bi bi-plus-circle"></i> Novo Produto
             </a>
             <a href="{{ route('produtos.inativos') }}" class="btn btn-secondary">
                 Produtos Inativos
             </a>
-        </div>
+        </div> -->
     </div>
 
     <!-- Alertas -->
@@ -32,31 +32,39 @@
             <button type="submit" class="btn btn-primary flex-grow-1">Buscar</button>
             <a href="{{ route('produtos.index') }}" class="btn btn-secondary flex-grow-1">Limpar</a>
         </div>
+        
     </form>
-
+    <div class="col-md-4 d-flex gap-2">
+            <a href="{{ route('produtos.create') }}" class="btn btn-success btn-sm "style="width: 6.3rem">
+                <i class="bi bi-plus-circle"></i> Novo
+            </a>
+    </div>
     @if($produtos->count() > 0)
         <!-- Paginação -->
-        <div class="d-flex justify-content-center mt-4">
+        <div class="d-flex justify-content-center mt-6">
             {{ $produtos->links('pagination::bootstrap-5') }}
         </div>
         <div class="row g-4">
             @foreach($produtos as $produto)
                 
-                <div class="col-md-4">
+                <div class="col-md-5 col-lg-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
                             <h5 class="card-title">{{ $produto->nome }}</h5>
                             <p class="card-text mb-1"><strong>Codigo:</strong> 000{{ $produto->id ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Categoria:</strong> {{ $produto->categoria->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Fornecedor:</strong> {{ $produto->fornecedor->nome ?? '-' }}</p>
+                            <p class="card-text mb-1" style="color:blue"><strong>Preço de Custo:</strong> R$ {{ number_format($produto->preco_custo, 2, ',', '.') }}</p>
+                            <p class="card-text mb-1" style="color:blue"><strong>Preço Médio de Compra:</strong> R$ {{ number_format($produto->preco_medio_compra, 2, ',', '.') }}</p>
                             <p class="card-text mb-1"><strong>Marca:</strong> {{ $produto->marca->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Unidade:</strong> {{ $produto->unidadeMedida->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Estoque:</strong> {{ $produto->quantidade_estoque }}</p>
                             <p class="card-text mb-1"><strong>Mínimo:</strong> {{ $produto->estoque_minimo }}</p>
                             <p class="card-text mb-1"><strong>Compra:</strong> {{ \Carbon\Carbon::parse($produto->data_compra)->format('d/m/Y') }}</p>
-                            <p class="card-text mb-1"><strong>Validade:</strong> {{ \Carbon\Carbon::parse($produto->validade)->format('d/m/Y') }}</p>
-                            <p class="card-text mb-1"><strong>Preço:</strong> R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}</p>
-                             <!-- Coluna direita: Imagem -->
+                            <p class="card-text mb-1"><strong>Validade:</strong> {{ \Carbon\Carbon::parse($produto->validade_produto)->format('d/m/Y') }}</p>
+                            <p class="card-text mb-1"><strong>Preço Venda:</strong> R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}</p>
+                            <p class="card-text mb-1"><strong>Preço Atual Venda:</strong> R$ {{ number_format($produto->precoAtual, 2, ',', '.') }}</p>
+                            
                             <div class="d-flex flex-wrap gap-1 mt-3">
                                 <div>
                                     @if($produto->imagem)
@@ -68,17 +76,29 @@
                                 </div>
                             </div>
                             <div class="d-flex flex-wrap gap-1 mt-3">
-                                <a href="{{ route('produtos.show', $produto->id) }}" class="btn btn-sm btn-info">Ver</a>
-                                <a href="{{ route('produtos.edit', $produto->id) }}" class="btn btn-sm btn-warning">Editar</a>
-                                <a href="{{ route('lotes.index', $produto->id) }}" class="btn btn-sm btn-primary">Lotes</a>
+                                <a href="{{ route('produtos.show', $produto->id) }}" class="btn btn-sm btn-info" style="width: 6.3rem">Ver</a>
+                                <a href="{{ route('produtos.edit', $produto->id) }}" class="btn btn-sm btn-warning "style="width: 6.3rem">Editar</a>
+                                <a href="{{ route('lotes.index', $produto->id) }}" class="btn btn-sm btn-primary "style="width: 6.3rem">Lotes</a>
+                                
+                                <a href="{{ route('produtos.create') }}" class="btn btn-success btn-sm "style="width: 6.3rem">
+                                     <i class="bi bi-plus-circle"></i> Novo
+                                 </a>
+
+                                 <a href="{{ route('produtos.index-grid') }}" class="btn btn-warning btn-sm "style="width: 6.3rem">
+                                     <i class="bi bi-plus-circle"></i> Visao Linear
+                                 </a>
+                                 <a href="{{ route('produtos.inativos') }}" class="btn btn-secondary btn-sm"style="width: 6.3rem">
+                                    Inativados
+                                </a>
                                 <form action="{{ route('produtos.desativar', $produto->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('PUT')
-                                    <button type="submit" class="btn btn-sm btn-danger"
+                                    <button type="submit" class="btn btn-sm btn-danger"style="width: 6.3rem"
                                         onclick="return confirm('Deseja desativar este produto?')">
                                         Desativar
                                     </button>
                                 </form>
+                                 
                             </div>
                         </div>
                     </div>

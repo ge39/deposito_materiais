@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+<div class="container" style="border:1px solid #ddd; padding:15px; border-radius:5px; background-color:#f9f9f9;">
     <h1>Cadastro de Produto</h1>
 
     @if ($errors->any())
@@ -52,7 +52,7 @@
         <div class="row mb-3">
             <div class="col-md-12">
                 <label for="descricao" class="form-label">Descrição</label>
-                <input type="text" class="form-control"  name="descricao" value="{{ old('descricao') }}">
+                <input type="text" class="form-control"  name="descricao" required value="{{ old('descricao') }}">
             </div>
         </div>
 
@@ -125,8 +125,8 @@
                         <input type="date" class="form-control" id="data_compra" name="data_compra" value="{{ old('data_compra', date('Y-m-d')) }}">
                     </div>
                     <div class="col-md-6">
-                        <label for="validade" class="form-label">Validade</label>
-                        <input type="date" class="form-control" id="validade" name="validade" value="{{ old('validade_produto', date('Y-m-d', strtotime('+30 days'))) }}">
+                        <label for="validade_produto" class="form-label">Validade</label>
+                        <input type="date" class="form-control" id="validade_produto" name="validade_produto" value="{{ old('validade_produto', date('Y-m-d', strtotime('+30 days'))) }}">
 
                     </div>
                 </div>
@@ -195,7 +195,7 @@
         <div class="row mb-3">
             <div class="col-md-12 d-flex gap-3">
                 <button type="submit" class="btn btn-primary">Salvar Produto</button>
-                <a href="{{ route('produtos.index') }}" class="btn btn-secondary">Voltar</a>
+                <a href="{{ url()->previous() }}" class="btn btn-secondary">Voltar</a>
             </div>
         </div>
     </form>

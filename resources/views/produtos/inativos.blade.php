@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+<div class="container" style="border:1px solid #ddd; padding:15px; border-radius:5px; background-color:#f9f9f9;">
     <h1>Produtos Inativos</h1>
     <a href="{{ route('produtos.create') }}" class="btn btn-primary mb-3">Novo Produto</a>
-    <a href="{{ route('produtos.inativos') }}" class="btn btn-secondary mb-3">Produtos Inativos</a>
+    <!-- <a href="{{ route('produtos.inativos') }}" class="btn btn-secondary mb-3">Produtos Inativos</a> -->
 
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
@@ -35,7 +35,7 @@
                     <td>{{ $produto->quantidade_estoque }}</td>
                     <td>R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}</td>
                     <td>
-                        <a href="{{ route('produtos.edit', $produto->id) }}" class="btn btn-sm btn-warning">Editar</a>
+                        <!-- <a href="{{ route('produtos.edit', $produto->id) }}" class="btn btn-sm btn-warning">Editar</a> -->
                         <form action="{{ route('produtos.reativar', $produto->id) }}" method="POST" style="display:inline-block;">
                             @csrf
                             @method('PUT')
@@ -55,7 +55,7 @@
     @endif
     <div class="row mb-3">
             <div class="col-md-12 d-flex align-items-center gap-3">
-                <a href="{{ route('produtos.index') }}" class="btn btn-secondary">Voltar</a>
+                <a href="{{ route('produtos.index') }}" class="btn btn-secondary"style="width: 6.3rem">Voltar</a>
             </div>
     </div>
 </div>

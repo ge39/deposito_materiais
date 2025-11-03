@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid" style="background-color:#f0f2f5; padding:15px;">
+<div class="container pt-4" style="border:1px solid #ddd; padding:15px; border-radius:5px; background-color:#f9f9f9;">
     <h1 class="mb-3">Editar Produto 000{{ $produto->id }}</h1>
 
     @if ($errors->any())
@@ -102,18 +102,19 @@
                 
             </div>
             <div class="row mt-3">
-                    <div class="col-md-2">
-                        <label for="data_compra" class="form-label">Data da Compra</label>
-                        <input type="date" class="form-control" id="data_compra" name="data_compra" value="{{ old('data_compra', date('Y-m-d')) }}">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="validade" class="form-label">Validade</label>
-                        <input type="date" class="form-control" id="validade" name="validade" value="{{ old('validade', date('Y-m-d')) }}">
-                    </div>
-                    <div class="col-md-2 mb-2 mb-md-0">
-                <label for="preco_custo" class="form-label">Preço Custo</label>
-                <input type="number" step="0.01" class="form-control text-muted" id="preco_custo" value="{{ $produto->preco_custo }}" disabled>
-            </div>
+                <div class="col-md-2">
+                    <label for="data_compra" class="form-label">Data da Compra</label>
+                    <input type="date" class="form-control" id="data_compra" name="data_compra" value="{{ old('data_compra', date('Y-m-d')) }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="validade_produto" class="form-label">Validade</label>
+                    <input type="date" name="validade_produto"
+                    value="{{ old('validade_produto', optional($produto->validade_produto)->format('Y-m-d')) }}">
+                </div>
+                <div class="col-md-2 mb-2 mb-md-0">
+                    <label for="preco_custo" class="form-label">Preço Custo</label>
+                    <input type="number" step="0.01" class="form-control text-muted" id="preco_custo" value="{{ $produto->preco_custo }}" disabled>
+                </div>
             <div class="col-md-2">
                 <label for="preco_venda" class="form-label">Preço Venda</label>
                 <input type="number" step="0.01" class="form-control text-muted" id="preco_venda" value="{{ $produto->preco_venda }}" disabled>

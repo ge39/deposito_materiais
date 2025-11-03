@@ -5,7 +5,7 @@
     <h2 class="mb-4">Visualizar Pedido de Compra #{{ $pedido->id }}</h2>
 
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card shadow-sm mb-2 border-0">
                 <div class="card-body p-2 text-center">
                     <h6 class="card-title mb-1">Código</h6>
@@ -28,6 +28,14 @@
                 <div class="card-body p-2 text-center">
                     <h6 class="card-title mb-1">Data do Pedido</h6>
                     <p class="card-text fw-bold">{{ $pedido->data_pedido->format('d/m/Y h:i:s') }}</p>
+                </div>
+            </div>
+        </div>
+         <div class="col-md-3">
+            <div class="card shadow-sm mb-2 border-0">
+                <div class="card-body p-2 text-center">
+                    <h6 class="card-title mb-1">Data do Atualizado</h6>
+                    <p class="card-text fw-bold">{{ $pedido->updated_at->format('d/m/Y h:i:s') }}</p>
                 </div>
             </div>
         </div>

@@ -4,11 +4,14 @@ namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
+
+
 class Kernel extends HttpKernel
 {
     /**
      * Middlewares globais da aplicação.
      */
+
     protected $middleware = [
         // Laravel defaults
         \App\Http\Middleware\TrustProxies::class,
@@ -54,5 +57,6 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'checkNivel' => \App\Http\Middleware\CheckNivelAcesso::class,
     ];
 }

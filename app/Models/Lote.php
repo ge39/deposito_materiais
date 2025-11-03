@@ -18,14 +18,14 @@ class Lote extends Model
         'quantidade',
         'preco_compra',
         'data_compra',
-        'validade',
+        'validade_lote',
         'numero_lote',
         // timestamps são gerenciados automaticamente
     ];
 
     protected $casts = [
         'data_compra' => 'date',
-        'validade'    => 'date',
+        'validade_lote'    => 'date',
         'preco_compra'=> 'decimal:2',
         'quantidade'  => 'decimal:2',
     ];

@@ -51,6 +51,17 @@ Route::prefix('orcamentos')->name('orcamentos.')->group(function () {
     Route::post('/{orcamento}/cancelar', [OrcamentoController::class, 'cancelar'])->name('cancelar');
 });
 
+//Rota autenticacao produto
+    Route::middleware(['auth', 'checkNivel:admin,gerente'])->group(function () {
+    // rotas protegidas
+    Route::get('/produtos/promocoes', [ProdutoController::class, 'promocoes'])->name('produtos.promocoes');
+    Route::post('/produtos/{id}/aplicar-desconto', [ProdutoController::class, 'aplicarDesconto'])->name('produtos.aplicarDesconto');
+});
+
+Route::middleware(['auth', 'checkNivel:admin'])->group(function () {
+    Route::post('/produtos/{id}/atualizar-preco', [ProdutoController::class, 'atualizarPreco'])->name('produtos.atualizarPreco');
+});
+
 //orcamento pdf
 Route::get('/orcamentos/{orcamento}/pdf', [OrcamentoController::class, 'gerarPdf'])->name('orcamentos.gerarPdf');
 
@@ -129,11 +140,13 @@ Route::put('/fornecedores/desativar/{fornecedor}', [FornecedorController::class,
 Route::put('/fornecedores/ativar/{fornecedor}', [FornecedorController::class, 'ativar'])->name('fornecedores.ativar');
 
 // Produtos
-Route::get('/produtos/buscar', [ProdutoController::class, 'search'])->name('produtos.search');
+Route::get('/produtos/buscar', [ProdutoController::class, 'search'])->name('produtos.search');//view com cards
 Route::get('/produtos/buscar/{nome}', [App\Http\Controllers\ProdutoController::class, 'buscarProdutoPorNome'])->name('produtos.buscar');
 Route::get('/produtos/inativos', [ProdutoController::class, 'inativos'])->name('produtos.inativos');
 Route::put('/produtos/{produto}/desativar', [ProdutoController::class, 'desativar'])->name('produtos.desativar');
 Route::put('/produtos/{produto}/reativar', [ProdutoController::class, 'reativar'])->name('produtos.reativar');
+Route::get('/produtos/grid', [ProdutoController::class, 'indexGrid'])->name('produtos.index-grid');
+Route::get('/produtos/buscar2', [ProdutoController::class, 'search_grid'])->name('produtos.search_grid');//view com grids
 
 // Marcas
 Route::get('/marcas/inativos', [MarcaController::class, 'inativos'])->name('marcas.inativos');
