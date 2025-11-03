@@ -3,8 +3,8 @@
 namespace App\Providers;
 use App\Models\Produto;
 use App\Observers\ProdutoObserver;
-
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,12 +15,16 @@ class AppServiceProvider extends ServiceProvider
     {
         
     }
-
+    
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+    public function boot()
     {
-        Produto::observe(ProdutoObserver::class);
+        $this->registerPolicies();
+
+        Gate::define('gerenciar-promocoes', function ($user) {
+            return in_array(strtolower($user->nivel_acesso), ['admin', 'gerente']) && $user->ativo;
+        });
     }
 }

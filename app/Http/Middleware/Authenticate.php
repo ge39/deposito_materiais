@@ -17,4 +17,13 @@ class Authenticate
 
         return $next($request);
     }
+   
+    protected function redirectTo($request)
+    {
+        // Redireciona para a rota /login ou qualquer página de login que você tenha
+        if (! $request->expectsJson()) {
+            return route('login');
+        }
+    }
+
 }

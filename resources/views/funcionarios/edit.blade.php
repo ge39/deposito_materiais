@@ -53,13 +53,28 @@
         </div>
 
         <div class="row mb-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="endereco" class="form-label">Endereço</label>
-                <input type="text" name="endereco" id="endereco" class="form-control" value="{{ $funcionario->endereco }}">
+                <input type="text" name="endereco" id="endereco" class="form-control" value="{{ $funcionario->endereco }}" required>
+            </div>
+            <div class="col-md-1">
+                <label for="numero" class="form-label">Número</label>
+                <input type="text" name="numero" id="numero" class="form-control" value="{{ $funcionario->numero }}" required>
+            </div>
+            <div class="col-md-4">
+                <label for="bairro" class="form-label">Bairro</label>
+                <input type="text" name="bairro" id="bairro" class="form-control" value="{{ $funcionario->bairro }}" required>
             </div>
             <div class="col-md-4">
                 <label for="cidade" class="form-label">Cidade</label>
                 <input type="text" name="cidade" id="cidade" class="form-control" value="{{ $funcionario->cidade }}">
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="estado" class="form-label">Estado</label>
+                <input type="text" name="estado" id="estado" class="form-control" value="{{ $funcionario->estado }}" required>
             </div>
             <div class="col-md-4 d-flex align-items-center">
                 <div class="form-check mt-2">
