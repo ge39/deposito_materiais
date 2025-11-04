@@ -25,7 +25,7 @@ class AuthServiceProvider extends ServiceProvider
 
         // Gate para gerenciar promoções
         Gate::define('gerenciar-promocoes', function ($user) {
-            return in_array($user->nivel, ['admin', 'gerente']) && $user->ativo;
+            return in_array($user->nivel_acesso, ['admin', 'gerente']) && $user->ativo;
         });
     }
 }

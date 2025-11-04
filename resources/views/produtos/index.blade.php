@@ -85,7 +85,7 @@
                                  </a>
 
                                  <a href="{{ route('produtos.index-grid') }}" class="btn btn-warning btn-sm "style="width: 6.3rem">
-                                     <i class="bi bi-plus-circle"></i> Visao Linear
+                                     <i class="bi bi-plus-circle"></i> Grid
                                  </a>
                                  <a href="{{ route('produtos.inativos') }}" class="btn btn-secondary btn-sm"style="width: 6.3rem">
                                     Inativados

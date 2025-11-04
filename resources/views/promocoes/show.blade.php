@@ -102,7 +102,7 @@
                     </form>
                 </div>
 
-                <form action="{{ route('promocoes.toggle', $promocao->id) }}" method="POST">
+                <form action="{{ route('promocoes.toggleStatus', $promocao->id) }}" method="POST">
                     @csrf
                     <button type="submit" class="btn {{ $promocao->em_promocao ? 'btn-secondary' : 'btn-success' }}">
                         @if($promocao->em_promocao)

@@ -4,63 +4,78 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Categoria;
+use App\Models\Produto;
 
 class CategoriaController extends Controller
 {
-    // Lista todas as categorias
+    // Listar todas as categorias
     public function index()
     {
         $categorias = Categoria::all();
         return view('categorias.index', compact('categorias'));
     }
 
-    // Mostra formulário de criação
+    // Criar nova categoria
     public function create()
     {
         return view('categorias.create');
     }
 
-    // Salva nova categoria
+    // Salvar nova categoria
     public function store(Request $request)
     {
         $request->validate([
-            'nome' => 'required|string|max:255|unique:categorias,nome',
-            'descricao' => 'nullable|string',
+            'nome' => 'required|string|max:255',
         ]);
 
         Categoria::create($request->all());
 
-        return redirect()->route('categorias.index')->with('success', 'Categoria criada com sucesso!');
+        return redirect()->route('categorias.index')
+            ->with('success', 'Categoria criada com sucesso.');
     }
 
-    // Mostra formulário de edição
-    public function edit($id)
+    // Editar categoria
+    public function edit(Categoria $categoria)
     {
-        $categoria = Categoria::findOrFail($id);
         return view('categorias.edit', compact('categoria'));
     }
 
-    // Atualiza categoria
-    public function update(Request $request, $id)
+    // Atualizar categoria
+    public function update(Request $request, Categoria $categoria)
     {
-        $categoria = Categoria::findOrFail($id);
-
         $request->validate([
-            'nome' => 'required|string|max:255|unique:categorias,nome,' . $categoria->id,
-            'descricao' => 'nullable|string',
+            'nome' => 'required|string|max:255',
         ]);
 
         $categoria->update($request->all());
 
-        return redirect()->route('categorias.index')->with('success', 'Categoria atualizada com sucesso!');
+        return redirect()->route('categorias.index')
+            ->with('success', 'Categoria atualizada com sucesso.');
     }
 
-    // Remove categoria
-    public function destroy($id)
+    // Excluir categoria
+    public function destroy(Categoria $categoria)
     {
-        $categoria = Categoria::findOrFail($id);
         $categoria->delete();
 
-        return redirect()->route('categorias.index')->with('success', 'Categoria removida com sucesso!');
+        return redirect()->route('categorias.index')
+            ->with('success', 'Categoria excluída com sucesso.');
+    }
+
+    // ==========================
+    // MÉTODO PARA PREÇO MÉDIO
+    // ==========================
+    public function precoMedio($id)
+    {
+        $categoria = Categoria::findOrFail($id);
+
+        // Calcula a média de preços dos produtos ativos desta categoria
+        $precoMedio = Produto::where('categoria_id', $categoria->id)
+            ->where('ativo', 1) // opcional, se tiver campo ativo
+            ->avg('preco');
+
+        return response()->json([
+            'preco_medio' => $precoMedio ? round($precoMedio, 2) : 0
+        ]);
     }
 }

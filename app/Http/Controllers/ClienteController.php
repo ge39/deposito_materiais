@@ -7,9 +7,28 @@ use Illuminate\Http\Request;
 
 class ClienteController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+
+        // Bloqueio de acesso: apenas admin e gerente
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            if (!in_array($user->nivel_acesso, ['admin', 'gerente'])) {
+                abort(403, 'Acesso negado!');
+            }
+            return $next($request);
+        });
+    }
+    
     // Listar clientes ativos com busca inteligente
     public function index(Request $request)
     {
+       
+        $clientes = Cliente::orderBy('nome')->paginate(15);
+
+        return view('clientes.index', compact('clientes'));
+       
         $clientes = Cliente::query()
             ->where('ativo', 1)
             ->when($request->busca, function($query, $busca) {

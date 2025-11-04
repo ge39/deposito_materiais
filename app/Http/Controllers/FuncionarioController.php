@@ -7,6 +7,19 @@ use App\Models\Funcionario;
 
 class FuncionarioController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+
+        // Bloqueio de acesso: apenas admin e gerente
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            if (!in_array($user->nivel_acesso, ['admin', 'gerente'])) {
+                abort(403, 'Acesso negado!');
+            }
+            return $next($request);
+        });
+    }
     // Lista apenas funcionários ativos
     public function index()
     {

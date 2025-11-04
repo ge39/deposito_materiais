@@ -4,18 +4,15 @@ namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
-
-
 class Kernel extends HttpKernel
 {
     /**
      * Middlewares globais da aplicação.
      */
-
     protected $middleware = [
         // Laravel defaults
         \App\Http\Middleware\TrustProxies::class,
-        \Fruitcake\Cors\HandleCors::class,
+        \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
@@ -57,6 +54,11 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'checkNivel' => \App\Http\Middleware\CheckNivelAcesso::class,
-    ];
+
+        // ✅ Middleware de nível de acesso
+    'checkNivel' => \App\Http\Middleware\CheckNivel::class,
+
+];
+
+
 }

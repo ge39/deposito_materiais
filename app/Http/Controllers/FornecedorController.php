@@ -4,140 +4,156 @@ namespace App\Http\Controllers;
 
 use App\Models\Fornecedor;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Traits\Filterable;
 
 class FornecedorController extends Controller
 {
-    // Listar todos os fornecedores
-    public function index()
+    use Filterable;
+
+    /**
+     * Construtor: aplica autenticação e autorização via Gate.
+     */
+    public function __construct()
     {
-        // Busca apenas fornecedores ativos
-                
-        // Se quiser paginar (opcional)
-        $fornecedores = Fornecedor::where('ativo', 1)->paginate(15);
+        $this->middleware(['auth', 'can:gerenciar-fornecedores']);
+    }
+
+    /**
+     * Campos permitidos para filtro (usado pelo trait Filterable)
+     */
+    protected function filterableFields(): array
+    {
+        return [
+            'nome',
+            'cnpj',
+            'email',
+            'ativo',
+        ];
+    }
+
+    /**
+     * Lista fornecedores ativos com filtros e paginação.
+     */
+    public function index(Request $request)
+    {
+        $query = Fornecedor::query()->where('ativo', 1)->orderBy('nome');
+
+        // aplica filtros dinamicamente (nome, cnpj, email, ativo)
+        $query = $this->applyFilters($query, $request);
+
+        $fornecedores = $query->paginate(15)->appends($request->query());
+
         return view('fornecedores.index', compact('fornecedores'));
     }
 
-    // Formulário de criação
+    /**
+     * Formulário de criação.
+     */
     public function create()
     {
         return view('fornecedores.create');
     }
 
-    // Salvar novo fornecedor
+    /**
+     * Armazena novo fornecedor.
+     */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nome' => 'required|string|max:255',
-            'tipo' => 'nullable|string|max:20',
-            'cnpj' => 'nullable|string|max:20',
-            'telefone' => 'nullable|string|max:50',
-            'email' => 'nullable|email|max:100',
-            'cep' => 'nullable|string|max:10',
+            'cnpj' => 'nullable|string|max:20|unique:fornecedores,cnpj',
+            'email' => 'nullable|email|max:255',
+            'telefone' => 'nullable|string|max:20',
             'endereco' => 'nullable|string|max:255',
-            'numero' => 'nullable|string|max:10',
-            'bairro' => 'nullable|string|max:255',
-            'cidade' => 'nullable|string|max:255',
-            'estado' => 'nullable|string|max:2',
-            'observacoes' => 'nullable|string',
-            'ativo' => 'nullable|boolean',
         ]);
-        Fornecedor::create($request->all());
-        return redirect()->route('fornecedores.index')->with('success', 'Fornecedor criado com sucesso!');
+
+        $validated['ativo'] = 1;
+
+        Fornecedor::create($validated);
+
+        return redirect()->route('fornecedores.index')
+                         ->with('success', 'Fornecedor criado com sucesso!');
     }
 
-    // Mostrar detalhes de um fornecedor
-    public function show(Fornecedor $fornecedore)
+    /**
+     * Formulário de edição.
+     */
+    public function edit(Fornecedor $fornecedor)
     {
-        // Padronizando variável para view
-        $fornecedor = $fornecedore;
-        return view('fornecedores.show', compact('fornecedor'));
-    }
-
-    // Formulário de edição
-    public function edit(Fornecedor $fornecedore)
-    {
-        // Padronizando variável para view
-        $fornecedor = $fornecedore;
         return view('fornecedores.edit', compact('fornecedor'));
     }
 
-    // Atualizar fornecedor
-    public function update(Request $request, Fornecedor $fornecedore)
+    /**
+     * Atualiza fornecedor.
+     */
+    public function update(Request $request, Fornecedor $fornecedor)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nome' => 'required|string|max:255',
-            'tipo'=> 'nullable|string|max:20',
-            'cnpj' => 'nullable|string|max:20',
-            'telefone' => 'nullable|string|max:50',
-            'email' => 'nullable|email|max:100',
-            'cep' => 'nullable|string|max:10',
+            'cnpj' => 'nullable|string|max:20|unique:fornecedores,cnpj,' . $fornecedor->id,
+            'email' => 'nullable|email|max:255',
+            'telefone' => 'nullable|string|max:20',
             'endereco' => 'nullable|string|max:255',
-            'numero' => 'nullable|string|max:10',
-            'bairro' => 'nullable|string|max:255',
-            'cidade' => 'nullable|string|max:255',
-            'estado' => 'nullable|string|max:2',
-            'observacoes' => 'nullable|string',
-            'ativo' => 'nullable|boolean',
         ]);
 
-        $fornecedor = $fornecedore;
-        $fornecedor->update($request->all());
-
-        return redirect()->route('fornecedores.index')->with('success', 'Fornecedor atualizado com sucesso!');
-    }
-
-    // Deletar fornecedor
-    public function destroy(Fornecedor $fornecedore)
-    {
-        $fornecedor = $fornecedore;
-        $fornecedor->delete();
-
-        return redirect()->route('fornecedores.index')->with('success', 'Fornecedor deletado com sucesso!');
-    }
-
-    // Listar fornecedores inativos
-    
-    // Ativar Fornecedor
-    public function ativar(Fornecedor $fornecedore)
-    {
-        $fornecedore->ativo = 1;
-        $fornecedore->save();
-        return redirect()->route('fornecedores.inativos')->with('success', 'Fornecedor ativado.');
-    }
-
-    // Desativar Fornecedor
-    public function desativar($id)
-    {
-        // Busca o fornecedor pelo ID
-        $fornecedor = Fornecedor::find($id);
-
-        if (!$fornecedor) {
-            return redirect()->route('fornecedores.index')
-                ->with('error', 'Fornecedor não encontrado.');
-        }
-
-        // Altera apenas o campo ativo
-        $fornecedor->ativo = 0;
-        $fornecedor->save(); // salva a alteração
+        $fornecedor->update($validated);
 
         return redirect()->route('fornecedores.index')
-            ->with('success', 'Fornecedor desativado com sucesso.');
+                         ->with('success', 'Fornecedor atualizado com sucesso!');
     }
-    //   Busca fornecedores por nome ou CNPJ.
-     
+
+    /**
+     * Desativa fornecedor.
+     */
+    public function desativar(Fornecedor $fornecedor)
+    {
+        $fornecedor->update(['ativo' => 0]);
+
+        return redirect()->route('fornecedores.index')
+                         ->with('success', 'Fornecedor desativado com sucesso!');
+    }
+
+    /**
+     * Reativa fornecedor.
+     */
+    public function reativar(Fornecedor $fornecedor)
+    {
+        $fornecedor->update(['ativo' => 1]);
+
+        return redirect()->route('fornecedores.inativos')
+                         ->with('success', 'Fornecedor reativado com sucesso!');
+    }
+
+    /**
+     * Lista fornecedores inativos.
+     */
+    public function inativos(Request $request)
+    {
+        $query = Fornecedor::query()->where('ativo', 0)->orderBy('nome');
+        $query = $this->applyFilters($query, $request);
+
+        $fornecedores = $query->paginate(15)->appends($request->query());
+
+        return view('fornecedores.inativos', compact('fornecedores'));
+    }
+
+    /**
+     * Pesquisa rápida de fornecedores.
+     */
     public function search(Request $request)
     {
-        $q = $request->input('q');
+        $query = $request->input('query');
 
-        $fornecedores = Fornecedor::query()
-            ->where(function($query) use ($q) {
-                $query->where('nome', 'like', "%{$q}%")
-                    ->orWhere('cnpj', 'like', "%{$q}%");
+        $fornecedores = Fornecedor::where('ativo', 1)
+            ->when($query, function ($q) use ($query) {
+                $q->where('nome', 'LIKE', "%{$query}%")
+                  ->orWhere('cnpj', 'LIKE', "%{$query}%")
+                  ->orWhere('email', 'LIKE', "%{$query}%");
             })
+            ->orderBy('nome')
             ->paginate(15)
-            ->withQueryString();
+            ->appends($request->query());
 
         return view('fornecedores.index', compact('fornecedores'));
     }
 }
-

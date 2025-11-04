@@ -12,25 +12,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Foundation\Bus\DispatchesJobs;
-use Illuminate\Foundation\Validation\ValidatesRequests;
-use Illuminate\Routing\Controller as BaseController;
-
-class Controller extends BaseController
-{
-    use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
-}
 
 class ProdutoController extends Controller
 {
-    public function __construct()
+     public function __construct()
     {
-        // Middleware: apenas admin e gerente podem alterar preços/promos
-        $this->middleware('checkNivel:admin,gerente')->only([
-            'aplicarDesconto',
-            'atualizarPreco'
-        ]);
+        $this->middleware('auth');
+
+        // Bloqueio de acesso: apenas admin e gerente
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            if (!in_array($user->nivel_acesso, ['admin', 'gerente'])) {
+                abort(403, 'Acesso negado!');
+            }
+            return $next($request);
+        });
     }
 
     /** LISTAR PRODUTOS ATIVOS */

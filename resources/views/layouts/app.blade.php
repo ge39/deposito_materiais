@@ -44,11 +44,11 @@
             <i class="bi bi-person-lines-fill me-1"></i>Cadastro
           </a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ route('clientes.index') }}"><i class="bi bi-people me-2"></i>Clientes</a></li>
+            <!-- <li><a class="dropdown-item" href="{{ route('clientes.index') }}"><i class="bi bi-people me-2"></i>Clientes</a></li>
             <li><a class="dropdown-item" href="{{ route('fornecedores.index') }}"><i class="bi bi-truck me-2"></i>Fornecedores</a></li>
-            <li><a class="dropdown-item" href="{{ route('funcionarios.index') }}"><i class="bi bi-person-badge me-2"></i>Funcionários</a></li>
+            <li><a class="dropdown-item" href="{{ route('funcionarios.index') }}"><i class="bi bi-person-badge me-2"></i>Funcionários</a></li> -->
             <li><a class="dropdown-item" href="{{ route('users.index') }}"><i class="bi bi-person-gear me-2"></i>Usuários</a></li>
-            <li><a class="dropdown-item" href="{{ route('empresa.index') }}"><i class="bi bi-building me-2"></i>Empresa</a></li>
+            <!-- <li><a class="dropdown-item" href="{{ route('empresa.index') }}"><i class="bi bi-building me-2"></i>Empresa</a></li> -->
           </ul>
         </li>
 
@@ -96,28 +96,73 @@
           </ul>
         </li>
 
-        <!-- Administração -->
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-            <i class="bi bi-gear-wide-connected me-1"></i>Administração
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ route('users.index') }}"><i class="bi bi-person-gear me-2"></i>Gerenciar Usuários</a></li>
-            <li><a class="dropdown-item" href="{{ route('empresa.index') }}"><i class="bi bi-building me-2"></i>Empresa</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item dropdown-toggle" href="#"><i class="bi bi-tag me-2"></i>Promoções & Descontos</a>
-              <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{{ route('promocoes.index') }}"><i class="bi bi-list-stars me-2"></i>Listar Promoções</a></li>
-                <li><a class="dropdown-item" href="{{ route('promocoes.create') }}"><i class="bi bi-plus-circle me-2"></i>Nova Promoção</a></li>
-              </ul>
+       <!-- Administração -->
+@php
+    $canAccessAdmin = in_array(auth()->user()->nivel_acesso, ['admin', 'gerente']);
+@endphp
+<li class="nav-item dropdown">
+  <a class="nav-link dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#"
+     data-bs-toggle="dropdown">
+    <i class="bi bi-gear-wide-connected me-1"></i>Administração
+  </a>
+  <ul class="dropdown-menu">
+    <li>
+        <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+           href="{{ $canAccessAdmin ? route('users.index') : '#' }}">
+           <i class="bi bi-person-gear me-2"></i>Gerenciar Usuários
+        </a>
+    </li>
+    <li>
+        <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+           href="{{ $canAccessAdmin ? route('empresa.index') : '#' }}">
+           <i class="bi bi-building me-2"></i>Empresa
+        </a>
+    </li>
+	<li><a class="dropdown-item" href="{{ route('clientes.index') }}"><i class="bi bi-people me-2"></i>Clientes</a></li>
+            <li><a class="dropdown-item" href="{{ route('fornecedores.index') }}"><i class="bi bi-truck me-2"></i>Fornecedores</a></li>
+            <li><a class="dropdown-item" href="{{ route('funcionarios.index') }}"><i class="bi bi-person-badge me-2"></i>Funcionários</a></li>
+    	<li><hr class="dropdown-divider"></li>
+
+    <li class="dropdown-submenu">
+        <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
+            <i class="bi bi-tag me-2"></i>Promoções & Descontos
+        </a>
+        <ul class="dropdown-menu">
+            <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('promocoes.index') : '#' }}">
+                   <i class="bi bi-list-stars me-2"></i>Listar Promoções
+                </a>
             </li>
-          </ul>
-        </li>
+            <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('promocoes.create') : '#' }}">
+                   <i class="bi bi-plus-circle me-2"></i>Nova Promoção
+                </a>
+            </li>
+        </ul>
+    </li>
+  </ul>
+</li>
+
 
       </ul>
+
+      <!-- Usuário logado -->
+      @auth
+      <div class="d-flex align-items-center text-white">
+        <span class="me-3">
+          <i class="bi bi-person-circle me-1"></i>{{ Auth::user()->name }}
+        </span>
+        <form method="POST" action="{{ route('logout') }}" class="d-inline">
+            @csrf
+            <button type="submit" class="btn btn-outline-light btn-sm">
+                Sair
+            </button>
+        </form>
+      </div>
+      @endauth
     </div>
-  </div>
 </nav>
 
 <div class="container mt-4">
@@ -127,20 +172,18 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Seleciona o submenu “Promoções & Descontos”
+    // Submenu flyout
     var promoSubmenu = document.querySelector('.dropdown-submenu .dropdown-toggle');
 
     if (promoSubmenu) {
         promoSubmenu.addEventListener('click', function(e) {
-            e.preventDefault(); // evita seguir o link
-            e.stopPropagation(); // evita fechar o dropdown pai
-
-            var submenu = this.nextElementSibling; // pega o <ul> do submenu
-            submenu.classList.toggle('show'); // alterna visibilidade
+            e.preventDefault();
+            e.stopPropagation();
+            var submenu = this.nextElementSibling;
+            submenu.classList.toggle('show');
         });
     }
 
-    // Fecha o submenu ao clicar fora
     document.addEventListener('click', function() {
         var submenu = document.querySelector('.dropdown-submenu .dropdown-menu');
         if(submenu) submenu.classList.remove('show');

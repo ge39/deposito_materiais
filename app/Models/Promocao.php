@@ -9,6 +9,9 @@ class Promocao extends Model
 {
     use HasFactory;
 
+    // Nome correto da tabela no banco
+    protected $table = 'promocoes';
+    
     protected $fillable = [
         'tipo_abrangencia',
         'produto_id',

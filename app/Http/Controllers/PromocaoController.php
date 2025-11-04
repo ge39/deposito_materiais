@@ -6,9 +6,12 @@ use App\Models\Promocao;
 use App\Models\Produto;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Traits\Filterable;
 
 class PromocaoController extends Controller
 {
+    use Filterable;
+    
     /**
      * Construtor: aplica middleware de autenticação e autorização.
      */
@@ -18,13 +21,30 @@ class PromocaoController extends Controller
     }
 
     /**
-     * Exibe a lista de promoções.
+     * Campos permitidos para filtro (necessário para o trait Filterable)
      */
-    public function index()
+    protected function filterableFields(): array
     {
-        $promocoes = Promocao::with(['produto', 'categoria'])
-            ->orderByDesc('created_at')
-            ->paginate(15);
+        return [
+            'tipo_abrangencia',
+            'produto_id',
+            'categoria_id',
+            'em_promocao',
+        ];
+    }
+
+    /**
+     * Exibe a lista de promoções com filtros aplicáveis.
+     */
+    public function index(Request $request)
+    {
+        $query = Promocao::with(['produto', 'categoria'])->orderByDesc('created_at');
+
+        // Aplica filtros usando a trait Filterable
+        $query = $this->applyFilters($query, $request);
+
+        // Paginação mantendo os filtros na URL
+        $promocoes = $query->paginate(15)->appends($request->query());
 
         return view('promocoes.index', compact('promocoes'));
     }
@@ -55,8 +75,10 @@ class PromocaoController extends Controller
             'preco_promocional' => 'nullable|numeric|min:0',
             'promocao_inicio' => 'nullable|date',
             'promocao_fim' => 'nullable|date|after_or_equal:promocao_inicio',
-            'em_promocao' => 'nullable|boolean',
+            'em_promocao' => 'boolean',
         ]);
+
+        $validated['em_promocao'] = $request->has('em_promocao');
 
         $promocao = Promocao::create($validated);
 
@@ -138,9 +160,7 @@ class PromocaoController extends Controller
      */
     private function aplicarPromocao(Promocao $promocao)
     {
-        if (!$promocao->em_promocao) {
-            return;
-        }
+        if (!$promocao->em_promocao) return;
 
         if ($promocao->tipo_abrangencia === 'produto' && $promocao->produto_id) {
             $produtos = Produto::where('id', $promocao->produto_id)->get();
@@ -152,7 +172,6 @@ class PromocaoController extends Controller
 
         foreach ($produtos as $produto) {
             $precoBase = $produto->preco_base ?? $produto->preco;
-
             $precoFinal = $precoBase;
 
             if ($promocao->desconto_percentual > 0) {
@@ -171,9 +190,7 @@ class PromocaoController extends Controller
                 $precoFinal = $promocao->preco_promocional;
             }
 
-            $produto->update([
-                'preco' => $precoFinal
-            ]);
+            $produto->update(['preco' => $precoFinal]);
         }
     }
 }

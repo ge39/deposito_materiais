@@ -33,23 +33,23 @@
             <div class="col-1" style="width:80px">Preço</div>
             <div class="col-1" style="width:100px">Unidade</div>
             <div class="col-2" style="width:180px">Categoria</div>
-            <div class="col-2" style="width:160px">Marca</div>
-            <div class="col-2" style="width:160px">Fornecedor</div>
+            <div class="col-2" style="width:110px">Marca</div>
+            <div class="col-2" style="width:110px">Fornecedor</div>
             <div class="col-1" style="width:150px">Ações</div>
         </div>
 
         <!-- Produtos -->
         @forelse($produtos as $index => $produto)
             <div class="d-flex align-items-center border-bottom p-2 
-                        {{ $loop->even ? 'bg-light' : 'bg-white' }} hover-row">
+                        {{ $loop->even ? 'bg-light' : 'bg-white' }} hover-row" style="font-size: 14px;">
                 <div class="col-1" style="width:50px">000{{ $produto->id }}</div>
                 <div class="col-2" style="width:180px">{{ $produto->nome }}</div>
                 <div class="col-1" style="width:50px">{{ $produto->quantidade_estoque }}</div>
                 <div class="col-1" style="width:100px">R$ {{ number_format($produto->precoAtual(), 2, ',', '.') }}</div>
                 <div class="col-2" style="width:100px">{{ $produto->unidadeMedida->nome ?? '-'}}</div>
                 <div class="col-2" style="width:180px">{{ $produto->categoria->nome ?? '-' }}</div>
-                <div class="col-2" style="width:150px">{{ $produto->marca->nome ?? '-' }}</div>
-                <div class="col-2" style="width:150px">{{ $produto->fornecedor->nome ?? '-' }}</div>
+                <div class="col-2" style="width:100px">{{ $produto->marca->nome ?? '-' }}</div>
+                <div class="col-2" style="width:100px">{{ $produto->fornecedor->nome ?? '-' }}</div>
 
                 <div class="d-flex gap-1 align-items-center">
                     <a href="{{ route('produtos.show', $produto->id) }}" class="btn btn-info btn-sm">Ver</a>
@@ -61,7 +61,7 @@
                             @csrf
                             @method('PATCH')
                             <button type="submit" class="btn btn-danger btn-sm"
-                                onclick="return confirm('Deseja realmente desativar este produto?')">Desativar</button>
+                                onclick="return confirm('Deseja realmente desativar este produto?')">Inativar</button>
                         </form>
                     @endif
                 </div>

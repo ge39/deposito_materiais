@@ -8,6 +8,21 @@ use App\Models\Funcionario;
 
 class UserController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('auth');
+
+        // Bloqueio de acesso: apenas admin e gerente
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            if (!in_array($user->nivel_acesso, ['admin', 'gerente'])) {
+                abort(403, 'Acesso negado!');
+            }
+            return $next($request);
+        });
+    }
+
     // Lista todos os usuários ativos
     public function index()
     {
@@ -17,7 +32,6 @@ class UserController extends Controller
         return view('users.index', compact('users'));
     }
     
-
     // Mostra o formulário de criação
     public function create()
     {
