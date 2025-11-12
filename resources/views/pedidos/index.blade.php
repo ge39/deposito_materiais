@@ -69,7 +69,7 @@
                         <a href="{{ route('pedidos.pdf', $pedido->id) }}" target="_blank" 
                         class="btn btn-success btn-sm" 
                         style="font-size:0.65rem; padding:0.25rem;">
-                            <i class="bi bi-file-earmark-pdf"></i> Print
+                             Print
                         </a>
 
                         @if($pedido->status == 'pendente')

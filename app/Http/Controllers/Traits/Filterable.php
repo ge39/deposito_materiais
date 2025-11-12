@@ -33,11 +33,4 @@ trait Filterable
 
         return $query;
     }
-    /**
-     * Deve ser sobrescrito no controller que usa o trait.
-     */
-    protected function filterableFields(): array
-    {
-        return [];
-    }
 }

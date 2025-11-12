@@ -13,11 +13,12 @@ class Fornecedor extends Model
 
     protected $fillable = [
         'nome',
+        'tipo',
         'cnpj',
         'telefone',
         'email',
         'cep',
-        'rua',
+        'endereco',
         'numero',
         'bairro',
         'cidade',
@@ -26,8 +27,7 @@ class Fornecedor extends Model
         'ativo',
     ];
 
-    protected $dates = [
-        'created_at',
-        'updated_at',
+    protected $casts = [
+        'ativo' => 'boolean',
     ];
 }

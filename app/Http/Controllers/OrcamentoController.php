@@ -10,6 +10,7 @@ use App\Models\Cliente;
 use App\Models\Produto;
 use App\Models\Fornecedor;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrcamentoController extends Controller
 {
@@ -97,15 +98,19 @@ class OrcamentoController extends Controller
     }
 
     /** FORMULÁRIO DE EDIÇÃO */
-    public function edit($id)
+   public function edit($id)
     {
         $orcamento = Orcamento::with('itens.produto')->findOrFail($id);
-        $clientes = Cliente::orderBy('nome')->get();
-        $fornecedores = Fornecedor::orderBy('nome')->get();
-        $produtos = Produto::with('fornecedor')->orderBy('descricao')->get();
+
+        $clientes = Cliente::where('ativo', 1)->orderBy('nome')->get();
+
+        $fornecedores = Fornecedor::where('ativo', 1)->orderBy('nome')->get();
+
+        $produtos = Produto::with('fornecedor') ->where('ativo', 1)->orderBy('nome') ->get();
 
         return view('orcamentos.edit', compact('orcamento', 'clientes', 'fornecedores', 'produtos'));
     }
+
 
     /** ATUALIZA ORÇAMENTO */
     public function update(Request $request, $id)

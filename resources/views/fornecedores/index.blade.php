@@ -2,67 +2,72 @@
 
 @section('content')
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">Fornecedores Ativos</h2>
-        <a href="{{ route('fornecedores.create') }}" class="btn btn-success">
-            <i class="bi bi-plus-circle"></i> Novo Fornecedor
-        </a>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="fw-bold mb-0">Fornecedores Ativos</h2>
+       
     </div>
 
-    <!-- Alertas -->
+    {{-- Campo de busca --}}
+    <form method="GET" action="{{ route('fornecedores.index') }}" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="busca" class="form-control"
+                placeholder="Buscar por nome, telefone, CNPJ ou RG..."
+                value="{{ $busca ?? '' }}">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+            @if(!empty($busca))
+                <a href="{{ route('fornecedores.index') }}" class="btn btn-outline-secondary">Limpar</a>
+            @endif
+        </div>
+    </form>
+
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
-    <!-- Formulário de busca -->
-    <form action="{{ route('fornecedores.search') }}" method="GET" class="mb-3 row g-2 align-items-end">
-        <div class="col-md-8">
-            <input type="text" name="q" class="form-control" placeholder="Buscar por nome ou CNPJ" value="{{ request('q') }}">
+    <div class="row g-3">
+         {{-- Paginação --}}
+        <div class="d-flex justify-content-center mt-4">
+            {{ $fornecedores->links('pagination::bootstrap-5') }}
         </div>
-        <div class="col-md-4 d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-grow-1">Buscar</button>
-            <a href="{{ route('fornecedores.index') }}" class="btn btn-secondary flex-grow-1">Limpar</a>
-        </div>
+        @forelse($fornecedores as $fornecedor)
+            <div class="col-md-6 col-lg-4">
+                <div class="card shadow-sm h-100 border-0">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold mb-2">{{ $fornecedor->nome }}</h5>
+                        <p class="mb-1"><strong>CNPJ:</strong> {{ $fornecedor->cnpj ?? '—' }}</p>
+                        <p class="mb-1"><strong>RG:</strong> {{ $fornecedor->rg ?? '—' }}</p>
+                        <p class="mb-1"><strong>Email:</strong> {{ $fornecedor->email ?? '—' }}</p>
+                        <p class="mb-1"><strong>Telefone:</strong> {{ $fornecedor->telefone ?? '—' }}</p>
+                        <p class="mb-1"><strong>Cidade:</strong> {{ $fornecedor->cidade ?? '—' }}</p>
+                        <p class="mb-3"><strong>Status:</strong> <span class="text-success">Ativo</span></p>
 
-    </form>
-
-    <!-- Cards de fornecedores -->
-    @if($fornecedores->count() > 0)
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            @foreach($fornecedores as $fornecedor)
-                <div class="col">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ $fornecedor->nome }}</h5>
-                            <p class="card-text mb-1"><strong>Email:</strong> {{ $fornecedor->email }}</p>
-                            <p class="card-text mb-1"><strong>Telefone:</strong> {{ $fornecedor->telefone }}</p>
-                            <p class="card-text mb-1"><strong>observacao:</strong> {{ $fornecedor->observacoes }}</p>
-                        </div>
-                        <div class="card-footer text-center">
-                            <a href="{{ route('fornecedores.show', $fornecedor->id) }}" class="btn btn-sm btn-info mb-1">Ver</a>
-                            <a href="{{ route('fornecedores.edit', $fornecedor->id) }}" class="btn btn-sm btn-warning mb-1">Editar</a>
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('fornecedores.edit', $fornecedor->id) }}" class="btn btn-warning btn-sm">Editar</a>
+                            <a href="{{ route('fornecedores.inativos') }}" class="btn btn-secondary">Inativos</a>
+                                <a href="{{ route('fornecedores.create') }}" class="btn btn-success">Novo</a>
                             <form action="{{ route('fornecedores.desativar', $fornecedor->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('PUT')
-                                <button type="submit" class="btn btn-sm btn-danger mb-1"
-                                    onclick="return confirm('Deseja realmente desativar este fornecedor?');">
-                                    Desativar
+                                <button class="btn btn-danger btn-bg" onclick="return confirm('Deseja inativar este fornecedor?')">
+                                    Inativar
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
-            @endforeach
-        </div>
+            </div>
+        @empty
+            <div class="text-center text-muted mt-4">
+                Nenhum fornecedor encontrado para "{{ $busca ?? '' }}".
+            </div>
+        @endforelse
+    </div>
 
-        <!-- Paginação -->
-        <div class="d-flex justify-content-center mt-4">
-            {{ $fornecedores->links('pagination::bootstrap-5') }}
-        </div>
-    @else
-        <div class="alert alert-info text-center py-4 shadow-sm rounded">
-            Nenhum fornecedor ativo encontrado.
-        </div>
-    @endif
+    {{-- Paginação --}}
+    <div class="d-flex justify-content-center mt-4">
+        {{ $fornecedores->links('pagination::bootstrap-5') }}
+    </div>
+
 </div>
 @endsection

@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProdutoController extends Controller
 {
-     public function __construct()
+    public function __construct()
     {
         $this->middleware('auth');
 
@@ -43,11 +43,11 @@ class ProdutoController extends Controller
     public function create()
     {
         return view('produtos.create', [
-            'categorias' => Categoria::all(),
-            'fornecedores' => Fornecedor::all(),
-            'unidades' => UnidadeMedida::all(),
-            'marcas' => Marca::all(),
-            'produtosExistentes' => Produto::all(),
+            'categorias' => Categoria::where('ativo', '1')->get(),
+            'fornecedores' => Fornecedor::where('Ativo', '1')->get(),
+            'unidades' => UnidadeMedida::where('ativo', '1')->get(),
+            'marcas' => Marca::where('ativo', '1')->get(),
+            'produtosExistentes' => Produto::where('ativo', '1')->get(),
         ]);
     }
 

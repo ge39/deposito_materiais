@@ -37,6 +37,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // ROTAS PROTEGIDAS (auth)
 // ===============================
 Route::middleware('auth')->group(function () {
+
     // DASHBOARD
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -88,16 +89,19 @@ Route::middleware('auth')->group(function () {
     // ===============================
     // PROMOÇÕES
     // ===============================
-    Route::middleware(['auth', 'can:gerenciar-promocoes'])->prefix('promocoes')->name('promocoes.')->group(function () {
-        Route::get('/', [PromocaoController::class, 'index'])->name('index');
-        Route::get('/create', [PromocaoController::class, 'create'])->name('create');
-        Route::post('/', [PromocaoController::class, 'store'])->name('store');
-        Route::get('/{promocao}', [PromocaoController::class, 'show'])->name('show');
-        Route::get('/{promocao}/edit', [PromocaoController::class, 'edit'])->name('edit');
-        Route::put('/{promocao}', [PromocaoController::class, 'update'])->name('update');
-        Route::delete('/{promocao}', [PromocaoController::class, 'destroy'])->name('destroy');
-        Route::put('/{promocao}/toggle-status', [PromocaoController::class, 'toggleStatus'])->name('toggleStatus');
-    });
+    Route::middleware(['auth', 'can:gerenciar-promocoes'])
+        ->prefix('promocoes')
+        ->name('promocoes.')
+        ->group(function () {
+            Route::get('/', [PromocaoController::class, 'index'])->name('index');
+            Route::get('/create', [PromocaoController::class, 'create'])->name('create');
+            Route::post('/', [PromocaoController::class, 'store'])->name('store');
+            Route::get('/{promocao}', [PromocaoController::class, 'show'])->name('show');
+            Route::get('/{promocao}/edit', [PromocaoController::class, 'edit'])->name('edit');
+            Route::put('/{promocao}', [PromocaoController::class, 'update'])->name('update');
+            Route::delete('/{promocao}', [PromocaoController::class, 'destroy'])->name('destroy');
+            Route::put('/{promocao}/toggle-status', [PromocaoController::class, 'toggleStatus'])->name('toggleStatus');
+        });
 
     // ===============================
     // EMPRESAS
@@ -125,13 +129,39 @@ Route::middleware('auth')->group(function () {
     Route::resource('devolucoes', DevolucaoController::class);
 
     // ===============================
-    // ROTAS PADRÃO
+    // FORNECEDORES (corrigido)
     // ===============================
-    Route::resources([
+    Route::middleware(['auth'])->prefix('fornecedores')->group(function () {
+    Route::resource('/', FornecedorController::class)
+        ->names([
+            'index' => 'fornecedores.index',
+            'create' => 'fornecedores.create',
+            'store' => 'fornecedores.store',
+            'show' => 'fornecedores.show',
+            'edit' => 'fornecedores.edit',
+            'update' => 'fornecedores.update',
+            'destroy' => 'fornecedores.destroy',
+        ]);
+
+        // Rotas adicionais
+        Route::get('/search', [FornecedorController::class, 'search'])->name('fornecedores.search');
+        // Route::get('/fornecedores/inativos', [FornecedorController::class, 'inativos'])->name('fornecedores.inativos');
+        Route::get('/{id}/edit', [FornecedorController::class, 'edit'])->name('fornecedores.edit.id'); // edição por ID
+        Route::put('/{id}', [FornecedorController::class, 'update'])->name('fornecedores.update.id');
+        Route::put('/fornecedores/{id}/desativar', [FornecedorController::class, 'desativar'])->name('fornecedores.desativar');
+        Route::put('/fornecedores/{id}/ativar', [FornecedorController::class, 'ativar'])->name('fornecedores.ativar');
+        Route::get('/inativos', [FornecedorController::class, 'inativos'])->name('fornecedores.inativos');
+        Route::get('/orcamentos/{id}/pdf', [OrcamentoController::class, 'gerarPdf'])->name('orcamentos.pdf');
+    });
+
+
+        // ===============================
+        // ROTAS PADRÃO
+        // ===============================
+        Route::resources([
         'users' => UserController::class,
         'clientes' => ClienteController::class,
         'funcionarios' => FuncionarioController::class,
-        'fornecedores' => FornecedorController::class,
         'marcas' => MarcaController::class,
         'unidades' => UnidadeMedidaController::class,
         'vendas' => VendaController::class,
@@ -142,38 +172,19 @@ Route::middleware('auth')->group(function () {
     ]);
 
     // ===============================
-    // ROTAS ADICIONAIS (ATIVA/DESATIVA)
+    // ATIVA/DESATIVA
     // ===============================
     Route::middleware('checkNivel:admin,gerente')->group(function () {
-        // Users
         Route::put('users/desativar/{user}', [UserController::class, 'desativar'])->name('users.desativar');
-
-        // Clientes
         Route::put('clientes/ativar/{cliente}', [ClienteController::class, 'ativar'])->name('clientes.ativar');
         Route::put('clientes/desativar/{cliente}', [ClienteController::class, 'desativar'])->name('clientes.desativar');
-
-        // Funcionários
         Route::put('funcionarios/desativar/{funcionario}', [FuncionarioController::class, 'desativar'])->name('funcionarios.desativar');
         Route::put('funcionarios/ativar/{funcionario}', [FuncionarioController::class, 'ativar'])->name('funcionarios.ativar');
         Route::get('funcionarios/search', [FuncionarioController::class, 'search'])->name('funcionarios.search');
-
-        // Fornecedores
-       
-        Route::middleware(['auth', 'checkNivel:admin,gerente'])->group(function() {
-        Route::get('/fornecedores', [FornecedorController::class, 'index'])->name('fornecedores.index');
-        // Route::get('/fornecedores/create', [FornecedorController::class, 'create'])->name('fornecedores.create');
-        // Route::get('/fornecedores/search', [FornecedorController::class, 'search'])->name('fornecedores.search');
-        // Route::get('/fornecedores/{fornecedor}/edit', [FornecedorController::class, 'edit'])->name('fornecedores.edit');
-        // // Route::put('/fornecedores/{fornecedor}', [FornecedorController::class, 'update'])->name('fornecedores.update');
-        // Route::put('/fornecedores/{fornecedor}/desativar', [FornecedorController::class, 'desativar'])->name('fornecedores.desativar');
-    });
-
-
-
     });
 
     // ===============================
-    // ROTAS ADICIONAIS (OUTRAS)
+    // OUTRAS ROTAS
     // ===============================
     Route::put('marcas/{marca}/reativar', [MarcaController::class, 'reativar'])->name('marcas.reativar');
     Route::put('unidades/{unidade}/reativar', [UnidadeMedidaController::class, 'reativar'])->name('unidades.reativar');
@@ -200,5 +211,6 @@ Route::middleware('auth')->group(function () {
         Route::post('finalizar', [VendaController::class, 'finalizarVenda'])->name('finalizarVenda');
         Route::get('cupom/{venda}', [VendaController::class, 'gerarCupom'])->name('cupom');
     });
+   
 
 });
