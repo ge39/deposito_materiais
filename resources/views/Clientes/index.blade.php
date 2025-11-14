@@ -28,7 +28,7 @@
             
             <div class="col-md-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary flex-grow-1">Buscar</button>
-                <a href="{{ route('clientes.index') }}" class="btn btn-secondary flex-grow-1">Limpar</a>
+                <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary flex-grow-1">Limpar</a>
             </div>
         </div>
     </form>

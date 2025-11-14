@@ -4,23 +4,46 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
 use App\Models\Orcamento;
 use App\Models\ItemOrcamento;
 use App\Models\Cliente;
 use App\Models\Produto;
 use Illuminate\Http\Request;
-
+use Carbon\Carbon;
 class OrcamentoController extends Controller
 {
     /** LISTAGEM */
-    public function index()
-    {
-        $orcamentos = Orcamento::with(['cliente'])
-            ->orderBy('id', 'desc')
-            ->get();
+    // public function index(Request $request)
+    // {
+    //     $status = $request->status;
 
-        return view('orcamentos.index', compact('orcamentos'));
+    //     $orcamentos = Orcamento::when($status, function ($query, $status) {
+    //         return $query->where('status', $status);
+    //     })
+    //     ->orderBy('id', 'desc')
+    //     ->paginate(15);
+
+    //     return view('orcamentos.index', compact('orcamentos', 'status'));
+    // }
+    public function index(Request $request)
+{
+    $query = Orcamento::with('cliente');
+
+    // FILTRO STATUS
+    if ($request->status) {
+        $query->where('status', $request->status);
     }
+
+    // FILTRO CÓDIGO DO ORÇAMENTO
+    if ($request->codigo_orcamento) {
+        $query->where('codigo_orcamento', $request->codigo_orcamento);
+    }
+
+    $orcamentos = $query->orderBy('id', 'desc')->paginate(15);
+
+    return view('orcamentos.index', compact('orcamentos'));
+}
 
     /** FORMULÁRIO DE CRIAÇÃO */
     public function create()
@@ -96,6 +119,21 @@ class OrcamentoController extends Controller
         }
     }
 
+    public function reativar($id)
+    {
+        $orcamento = Orcamento::findOrFail($id);
+
+        // Só permite reativar se realmente estiver expirado
+        if ($orcamento->status === 'Expirado') {
+            $orcamento->status = 'Aguardando Aprovação';
+            $orcamento->save();
+
+            return back()->with('success', 'Status alterado para Aguardando Aprovação!');
+        }
+
+        return back()->with('error', 'Este orçamento não está expirado.');
+    }
+
     /** EXIBE DETALHES */
     public function show($id)
     {
@@ -116,69 +154,75 @@ class OrcamentoController extends Controller
     }
 
     /** ATUALIZA ORÇAMENTO */
-    public function update(Request $request, $id)
-    {
-        $orcamento = Orcamento::findOrFail($id);
 
-        if ($orcamento->status !== 'Aguardando aprovacao') {
-            return back()->with('error', 'Apenas orçamentos ** Aguardando aprovacao ** podem ser editados.');
-        }
 
-        $request->validate([
-            'cliente_id' => 'required|exists:clientes,id',
-            'data_orcamento' => 'required|date',
-            'validade' => 'required|date|after_or_equal:data_orcamento',
-            'produtos' => 'required|array|min:1',
-            'produtos.*.id' => 'required|exists:produtos,id',
-            'produtos.*.quantidade' => 'required|numeric|min:0.01',
-            'produtos.*.preco_unitario' => 'required|numeric|min:0.01',
+   public function update(Request $request, $id)
+{
+    $orcamento = Orcamento::findOrFail($id);
+
+    // Regra solicitada:
+    if ($orcamento->status === 'Expirado') {
+        $orcamento->status = 'Aguardando aprovacao';
+        $orcamento->save();
+    }
+
+    // Validação normal
+    $request->validate([
+        'cliente_id' => 'required|exists:clientes,id',
+        'data_orcamento' => 'required|date',
+        'validade' => 'required|date|after_or_equal:data_orcamento',
+        'produtos' => 'required|array|min:1',
+        'produtos.*.id' => 'required|exists:produtos,id',
+        'produtos.*.quantidade' => 'required|numeric|min:0.01',
+        'produtos.*.preco_unitario' => 'required|numeric|min:0.01',
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+
+        // Atualiza campos principais
+        $orcamento->update([
+            'cliente_id' => $request->cliente_id,
+            'data_orcamento' => $request->data_orcamento,
+            'validade' => $request->validade,
+            'observacoes' => $request->observacoes
         ]);
 
-        DB::beginTransaction();
+        // Remove itens antigos
+        $orcamento->itens()->delete();
 
-        try {
-            $orcamento->update([
-                'cliente_id' => $request->cliente_id,
-                'data_orcamento' => $request->data_orcamento,
-                'validade' => $request->validade,
-                'observacoes' => $request->observacoes,
+        $total = 0;
+
+        foreach ($request->produtos as $produto) {
+            $subtotal = $produto['quantidade'] * $produto['preco_unitario'];
+
+            ItemOrcamento::create([
+                'orcamento_id' => $orcamento->id,
+                'produto_id' => $produto['id'],
+                'quantidade' => $produto['quantidade'],
+                'preco_unitario' => $produto['preco_unitario'],
+                'subtotal' => $subtotal
             ]);
 
-            // Remove itens antigos
-            $orcamento->itens()->delete();
-
-            $total = 0;
-            $produtoIds = [];
-
-            foreach ($request->produtos as $produto) {
-                if (in_array($produto['id'], $produtoIds)) {
-                    throw new \Exception('Produto duplicado: ' . $produto['id']);
-                }
-
-                $produtoIds[] = $produto['id'];
-                $subtotal = $produto['quantidade'] * $produto['preco_unitario'];
-
-                ItemOrcamento::create([
-                    'orcamento_id' => $orcamento->id,
-                    'produto_id' => $produto['id'],
-                    'quantidade' => $produto['quantidade'],
-                    'preco_unitario' => $produto['preco_unitario'],
-                    'subtotal' => $subtotal,
-                ]);
-
-                $total += $subtotal;
-            }
-
-            $orcamento->update(['total' => $total]);
-            DB::commit();
-
-            return redirect()->route('orcamentos.index')
-                ->with('success', 'Orçamento atualizado com sucesso!');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Erro ao atualizar: ' . $e->getMessage());
+            $total += $subtotal;
         }
+
+        $orcamento->update(['total' => $total]);
+
+        DB::commit();
+
+        return redirect()
+            ->route('orcamentos.index')
+            ->with('success', 'Orçamento atualizado com sucesso!');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', 'Erro ao atualizar: ' . $e->getMessage());
     }
+}
+
+
 
     /** EXCLUSÃO */
     public function destroy($id)
@@ -219,6 +263,53 @@ class OrcamentoController extends Controller
         $orcamento->load('cliente', 'itens.produto.unidadeMedida');
         $pdf = Pdf::loadView('orcamentos.pdf', compact('orcamento'));
 
+        $pdfPath = storage_path('app/public/orcamento/orcamento_'.$orcamento->id.'.pdf');
+        $linkPdf = asset("storage/orcamento/orcamento_{$orcamento->id}.pdf");
+
         return $pdf->stream("Orcamento_{$orcamento->id}.pdf");
     }
+
+   public function enviarWhatsApp($id)
+    {
+        $orcamento = Orcamento::findOrFail($id);
+
+        // Gera o PDF primeiro
+        $pdf = \PDF::loadView('orcamentos.pdf', compact('orcamento'));
+
+        $fileName = "orcamento_{$orcamento->codigo_orcamento}.pdf";
+        $pdfPath = storage_path("app/public/orcamento/{$fileName}");
+
+        // Salvar PDF no storage
+        $pdf->save($pdfPath);
+
+        // Criar link público direto para o PDF
+        $linkPdf = asset("storage/orcamento/{$fileName}");
+
+        // Montar mensagem com link direto
+        $mensagem = urlencode("Olá! Segue o seu orçamento: {$linkPdf}");
+
+        // Número do cliente
+        $telefone = preg_replace('/\D/', '', $orcamento->cliente->telefone ?? '');
+
+        if (!$telefone) {
+            return back()->with('error', 'O cliente não possui número cadastrado.');
+        }
+
+        // Redireciona para WhatsApp Web com link direto para o PDF
+        return redirect()->away("https://wa.me/55{$telefone}?text={$mensagem}");
+    }
+
+
+    public function visualizarOrcamento($id)
+    {
+        $orcamento = Orcamento::findOrFail($id);
+        $fileName = "orcamento_{$orcamento->codigo_orcamento}.pdf";
+        $linkPdf = asset("storage/orcamento/{$fileName}");
+
+        // Retorna uma view simples com botão
+        return view('orcamentos.visualizar', compact('linkPdf', 'orcamento'));
+    }
+
+
+
 }

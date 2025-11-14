@@ -1,8 +1,12 @@
 @extends('layouts.app')
 
+ @php
+     $novaValidade = \Carbon\Carbon::now()->addDays(7)->format('Y/m/d');
+@endphp
+
 @section('content')
 <div class="container">
-    <h2 class="mb-4">Editar Orçamento</h2>
+    <h2 class="mb-4">Editar Orçamento #{{ $orcamento->codigo_orcamento }}</h2>
 
     {{-- Mensagens de sucesso --}}
     @if(session('success'))
@@ -20,6 +24,16 @@
             </ul>
         </div>
     @endif
+   
+   @if($orcamento->status === 'Expirado')
+        <div class="alert alert-danger text-center fw-bold" style="font-size: 18px;">
+            ⚠️ ATENÇÃO! ESTE ORÇAMENTO ESTÁ <u>EXPIRADO</u>.<br>
+            AO SALVAR A EDIÇÃO, O STATUS SERÁ ALTERADO AUTOMATICAMENTE PARA 
+            <span class="text-danger">AGUARDANDO APROVAÇÃO</span>.<br>
+            A VALIDADE SERÁ ATUALIZADA PARA <span class="text-primary">{{ \Carbon\Carbon::now()->addDays(7)->format('d/m/Y') }}</span>.
+        </div>
+    @endif
+
 
     <form action="{{ route('orcamentos.update', $orcamento->id) }}" method="POST" id="formOrcamento">
         @csrf
@@ -47,8 +61,13 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Validade <span class="text-danger">*</span></label>
-                        <input type="date" name="validade" class="form-control"
-                               value="{{ old('validade', $orcamento->validade->format('Y-m-d')) }}" required>
+                                            @php
+                            $validade = $orcamento->status === 'Expirado'
+                                ? \Carbon\Carbon::now()->addDays(7)->format('Y-m-d')
+                                : (old('validade') ?? \Carbon\Carbon::parse($orcamento->validade)->format('Y-m-d'));
+                        @endphp
+
+                        <input type="date" name="validade" class="form-control" value="{{ $validade }}" required>
                     </div>
                 </div>
 

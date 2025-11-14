@@ -233,8 +233,11 @@ Route::middleware('auth')->group(function () {
         Route::get('cupom/{venda}', [VendaController::class, 'gerarCupom'])->name('cupom');
     });
    
-Route::get('/teste-middleware', function () {
-    return 'OK - Middleware passou';
-})->middleware('checkOrcamentoValidade');
+    Route::get('/orcamentos/{id}/whatsapp', [OrcamentoController::class, 'enviarWhatsApp'])
+    ->name('orcamentos.whatsapp');
+
+    // web.php
+    Route::get('/orcamento/{id}/visualizar', [OrcamentoController::class, 'visualizarOrcamento'])->name('orcamento.visualizar');
+
 
 });

@@ -93,11 +93,21 @@
     
     <?php if($orcamento->status === 'Aprovado'): ?>
         <div class="carimbo aprovado">APROVADO</div>
+
     <?php elseif($orcamento->status === 'Cancelado'): ?>
-        <div class="carimbo">CANCELADO</div>
+        <div class="carimbo" style="color:rgba(255, 0, 0, 0.35); border-color:rgba(255, 0, 0, 0.35);">CANCELADO</div>
+
+    <?php elseif($orcamento->status === 'Expirado'): ?>
+        <div class="carimbo" style="color:rgba(255, 0, 0, 0.35); border-color:rgba(255, 0, 0, 0.35);">
+            EXPIRADO
+        </div>
+
     <?php else: ?>
-        <div class="carimbo" style="color:rgba(0,0,0,0.15); border-color:rgba(0,0,0,0.15);">Aguardando Aprovacao</div>
+        <div class="carimbo" style="color:rgba(0,0,0,0.15); border-color:rgba(0,0,0,0.15);">
+            Aguardando Aprovacao
+        </div>
     <?php endif; ?>
+
 
     <div class="header">
         <h2>Orçamento de Cliente</h2>
@@ -105,7 +115,7 @@
         <small class="text-muted">Gerado em: <?php echo e(now()->format('d/m/Y H:i')); ?></small>
     </div>
     <div class="info d-flex flex-wrap gap-3 ">
-        <div class="w-33"><strong>Código:</strong> #<?php echo e($orcamento->id); ?></div>
+        <div class="w-33"><strong>Código:</strong> #<?php echo e($orcamento->codigo_orcamento); ?></div>
         <div class="w-33"><strong>Cliente:</strong> <?php echo e($orcamento->cliente->nome); ?></div>
         <div class="w-33"><strong> Dt.Orçamento:</strong> <?php echo e(\Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y')); ?></div>
         <div class="w-50"><strong>Validade:</strong> <?php echo e(\Carbon\Carbon::parse($orcamento->validade)->format('d/m/Y')); ?></div>

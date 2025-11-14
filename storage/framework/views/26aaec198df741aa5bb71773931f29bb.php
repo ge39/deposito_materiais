@@ -1,8 +1,12 @@
 
 
+ <?php
+     $novaValidade = \Carbon\Carbon::now()->addDays(7)->format('Y/m/d');
+?>
+
 <?php $__env->startSection('content'); ?>
 <div class="container">
-    <h2 class="mb-4">Editar Orçamento</h2>
+    <h2 class="mb-4">Editar Orçamento #<?php echo e($orcamento->codigo_orcamento); ?></h2>
 
     
     <?php if(session('success')): ?>
@@ -20,6 +24,16 @@
             </ul>
         </div>
     <?php endif; ?>
+   
+   <?php if($orcamento->status === 'Expirado'): ?>
+        <div class="alert alert-danger text-center fw-bold" style="font-size: 18px;">
+            ⚠️ ATENÇÃO! ESTE ORÇAMENTO ESTÁ <u>EXPIRADO</u>.<br>
+            AO SALVAR A EDIÇÃO, O STATUS SERÁ ALTERADO AUTOMATICAMENTE PARA 
+            <span class="text-danger">AGUARDANDO APROVAÇÃO</span>.<br>
+            A VALIDADE SERÁ ATUALIZADA PARA <span class="text-primary"><?php echo e(\Carbon\Carbon::now()->addDays(7)->format('d/m/Y')); ?></span>.
+        </div>
+    <?php endif; ?>
+
 
     <form action="<?php echo e(route('orcamentos.update', $orcamento->id)); ?>" method="POST" id="formOrcamento">
         <?php echo csrf_field(); ?>
@@ -48,8 +62,13 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Validade <span class="text-danger">*</span></label>
-                        <input type="date" name="validade" class="form-control"
-                               value="<?php echo e(old('validade', $orcamento->validade->format('Y-m-d'))); ?>" required>
+                                            <?php
+                            $validade = $orcamento->status === 'Expirado'
+                                ? \Carbon\Carbon::now()->addDays(7)->format('Y-m-d')
+                                : (old('validade') ?? \Carbon\Carbon::parse($orcamento->validade)->format('Y-m-d'));
+                        ?>
+
+                        <input type="date" name="validade" class="form-control" value="<?php echo e($validade); ?>" required>
                     </div>
                 </div>
 
