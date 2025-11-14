@@ -128,6 +128,8 @@ return [
         App\Providers\AuthServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+        App\Providers\OrcamentoServiceProvider::class,
+
     ],
 
     /*
@@ -176,7 +178,7 @@ return [
         'URL' => Illuminate\Support\Facades\URL::class,
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
-
+        
         // DomPDF (caso você use PDFs)
         'PDF' => Barryvdh\DomPDF\Facade\Pdf::class,
     ],

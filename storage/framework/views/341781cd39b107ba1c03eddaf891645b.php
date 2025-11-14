@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Orçamento #{{ $orcamento->id }}</title>
+    <title>Orçamento #<?php echo e($orcamento->id); ?></title>
     <style>
         body {
             font-family: 'DejaVu Sans', sans-serif;
@@ -90,26 +90,26 @@
     </style>
 </head>
 <body>
-    {{-- Carimbo de status --}}
-    @if($orcamento->status === 'Aprovado')
+    
+    <?php if($orcamento->status === 'Aprovado'): ?>
         <div class="carimbo aprovado">APROVADO</div>
-    @elseif($orcamento->status === 'Cancelado')
+    <?php elseif($orcamento->status === 'Cancelado'): ?>
         <div class="carimbo">CANCELADO</div>
-    @else
+    <?php else: ?>
         <div class="carimbo" style="color:rgba(0,0,0,0.15); border-color:rgba(0,0,0,0.15);">Aguardando Aprovacao</div>
-    @endif
+    <?php endif; ?>
 
     <div class="header">
         <h2>Orçamento de Cliente</h2>
         <p><strong>Depósito de Materiais - Sistema Interno</strong></p>
-        <small class="text-muted">Gerado em: {{ now()->format('d/m/Y H:i') }}</small>
+        <small class="text-muted">Gerado em: <?php echo e(now()->format('d/m/Y H:i')); ?></small>
     </div>
     <div class="info d-flex flex-wrap gap-3 ">
-        <div class="w-33"><strong>Código:</strong> #{{ $orcamento->id }}</div>
-        <div class="w-33"><strong>Cliente:</strong> {{ $orcamento->cliente->nome }}</div>
-        <div class="w-33"><strong> Dt.Orçamento:</strong> {{ \Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y') }}</div>
-        <div class="w-50"><strong>Validade:</strong> {{ \Carbon\Carbon::parse($orcamento->validade)->format('d/m/Y') }}</div>
-        <div class="w-50"><strong>Status:</strong> {{ $orcamento->status }}</div>
+        <div class="w-33"><strong>Código:</strong> #<?php echo e($orcamento->id); ?></div>
+        <div class="w-33"><strong>Cliente:</strong> <?php echo e($orcamento->cliente->nome); ?></div>
+        <div class="w-33"><strong> Dt.Orçamento:</strong> <?php echo e(\Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y')); ?></div>
+        <div class="w-50"><strong>Validade:</strong> <?php echo e(\Carbon\Carbon::parse($orcamento->validade)->format('d/m/Y')); ?></div>
+        <div class="w-50"><strong>Status:</strong> <?php echo e($orcamento->status); ?></div>
     </div>
 
     <table>
@@ -122,28 +122,30 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($orcamento->itens as $item)
+            <?php $__currentLoopData = $orcamento->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <tr style="width: 100px;font-size:12px;">
-                    <td style="width: 180px;font-size:12px;">{{ $item->produto->nome ?? '-' }}</td>
-                    <td style="width: 20px;font-size:12px;">{{ number_format($item->quantidade, 2, ',', '.') }}</td>
-                    <td style="width: 50px;font-size:12px;">R$ {{ number_format($item->preco_unitario, 2, ',', '.') }}</td>
-                    <td style="width: 50px;font-size:12px;">R$ {{ number_format($item->subtotal, 2, ',', '.') }}</td>
+                    <td style="width: 180px;font-size:12px;"><?php echo e($item->produto->nome ?? '-'); ?></td>
+                    <td style="width: 20px;font-size:12px;"><?php echo e(number_format($item->quantidade, 2, ',', '.')); ?></td>
+                    <td style="width: 50px;font-size:12px;">R$ <?php echo e(number_format($item->preco_unitario, 2, ',', '.')); ?></td>
+                    <td style="width: 50px;font-size:12px;">R$ <?php echo e(number_format($item->subtotal, 2, ',', '.')); ?></td>
                 </tr>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>
     </table>
 
-    <p class="total" style="font-size:12px;">Total: R$ {{ number_format($orcamento->total, 2, ',', '.') }}</p>
+    <p class="total" style="font-size:12px;">Total: R$ <?php echo e(number_format($orcamento->total, 2, ',', '.')); ?></p>
 
-    @if($orcamento->observacoes)
+    <?php if($orcamento->observacoes): ?>
         <div class="observacoes">
             <strong>Observações:</strong>
-            <p>{{ $orcamento->observacoes }}</p>
+            <p><?php echo e($orcamento->observacoes); ?></p>
         </div>
-    @endif
+    <?php endif; ?>
 
     <div class="footer">
-        Documento gerado automaticamente pelo sistema - {{ config('app.name', 'Depósito de Materiais') }}
+        Documento gerado automaticamente pelo sistema - <?php echo e(config('app.name', 'Depósito de Materiais')); ?>
+
     </div>
 </body>
 </html>
+<?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/orcamentos/pdf.blade.php ENDPATH**/ ?>

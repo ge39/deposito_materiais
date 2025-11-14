@@ -25,20 +25,21 @@
             </tr>
         </thead>
         <tbody>
-            <?php $__currentLoopData = $orcamentos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $orcamento): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-            <tr>
-                <td><?php echo e($orcamento->id); ?></td>
-                <td><?php echo e($orcamento->cliente->nome ?? '-'); ?></td>
-                <td><?php echo e($orcamento->data_orcamento); ?></td>
-                <td>R$ <?php echo e(number_format($orcamento->total, 2, ',', '.')); ?></td>
-                <td><?php echo e(ucfirst($orcamento->status)); ?></td>
-                <td>
-                    <a href="<?php echo e(route('orcamentos.show', $orcamento->id)); ?>" class="btn btn-sm btn-info">Ver</a>
-                    <a href="<?php echo e(route('orcamentos.edit', $orcamento->id)); ?>" class="btn btn-sm btn-warning">Editar</a>
-                </td>
-            </tr>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+        <?php $__currentLoopData = $orcamentos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $orcamento): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+        <tr <?php if($orcamento->status === 'Expirado'): ?> class="text-danger" <?php endif; ?>>
+            <td><?php echo e($orcamento->id); ?></td>
+            <td><?php echo e($orcamento->cliente->nome ?? '-'); ?></td>
+            <td><?php echo e(\Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y')); ?></td>
+            <td>R$ <?php echo e(number_format($orcamento->total, 2, ',', '.')); ?></td>
+            <td><?php echo e(ucfirst($orcamento->status)); ?></td>
+            <td>
+                <a href="<?php echo e(route('orcamentos.edit', $orcamento->id)); ?>" class="btn btn-sm btn-warning">Editar</a>
+                <a href="<?php echo e(route('orcamentos.gerarPdf', $orcamento->id)); ?>" class="btn btn-primary" target="_blank">Gerar PDF</a>
+            </td>
+        </tr>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>
+
     </table>
 </div>
 <?php $__env->stopSection(); ?>

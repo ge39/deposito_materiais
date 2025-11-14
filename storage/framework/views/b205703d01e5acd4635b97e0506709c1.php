@@ -118,7 +118,7 @@
            <i class="bi bi-building me-2"></i>Empresa
         </a>
     </li>
-	<li><a class="dropdown-item" href="<?php echo e(route('clientes.index')); ?>"><i class="bi bi-people me-2"></i>Clientes</a></li>
+	          <li><a class="dropdown-item" href="<?php echo e(route('clientes.index')); ?>"><i class="bi bi-people me-2"></i>Clientes</a></li>
             <li><a class="dropdown-item" href="<?php echo e(route('fornecedores.index')); ?>"><i class="bi bi-truck me-2"></i>Fornecedores</a></li>
             <li><a class="dropdown-item" href="<?php echo e(route('funcionarios.index')); ?>"><i class="bi bi-person-badge me-2"></i>Funcionários</a></li>
     	<li><hr class="dropdown-divider"></li>

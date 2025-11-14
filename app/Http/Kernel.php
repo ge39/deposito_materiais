@@ -10,15 +10,16 @@ class Kernel extends HttpKernel
      * Middlewares globais da aplicação.
      */
     protected $middleware = [
-        // Laravel defaults
         \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        \App\Http\Middleware\CheckOrcamentosValidade::class,
     ];
 
+    
     /**
      * Grupos de middlewares.
      */
@@ -30,9 +31,7 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-
-            // Middleware personalizado para verificar conexão com o banco
-            \App\Http\Middleware\CheckDatabaseConnection::class,
+          
         ],
 
         'api' => [
@@ -42,7 +41,7 @@ class Kernel extends HttpKernel
     ];
 
     /**
-     * Middlewares individuais que podem ser atribuídos a rotas.
+     * Middlewares individuais que podem ser atribuídos a rotas específicas.
      */
     protected $routeMiddleware = [
         'auth' => \App\Http\Middleware\Authenticate::class,
@@ -50,11 +49,9 @@ class Kernel extends HttpKernel
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
         'can' => \Illuminate\Auth\Middleware\Authorize::class,
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
-        'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
+        // 'password.confirm' => \App\Http\Middleware\RequirePassword::class,
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'checkNivel' => \App\Http\Middleware\CheckNivel::class,
-
     ];
 }

@@ -13,13 +13,21 @@ class Orcamento extends Model
 
     protected $fillable = [
         'cliente_id',
-        'fornecedor_id', // adicionado caso queira vincular direto o fornecedor
         'data_orcamento',
+        'codigo_orcamento',
         'validade',
         'status',
         'observacoes',
-        'total'
+        'total',
+        'ativo',
     ];
+
+    protected $casts = [
+        'data_orcamento' => 'date',
+        'validade' => 'date',
+    ];
+
+   
 
     /** Relacionamento com cliente */
     public function cliente()
@@ -38,4 +46,11 @@ class Orcamento extends Model
     {
         return $this->hasMany(ItemOrcamento::class);
     }
+
+    public function unidadeMedida()
+    {
+        return $this->belongsTo(UnidadeMedida::class, 'unidade_medida_id');
+    }
+
+    
 }

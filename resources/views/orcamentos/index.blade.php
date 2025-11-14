@@ -25,20 +25,21 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($orcamentos as $orcamento)
-            <tr>
-                <td>{{ $orcamento->id }}</td>
-                <td>{{ $orcamento->cliente->nome ?? '-' }}</td>
-                <td>{{ $orcamento->data_orcamento }}</td>
-                <td>R$ {{ number_format($orcamento->total, 2, ',', '.') }}</td>
-                <td>{{ ucfirst($orcamento->status) }}</td>
-                <td>
-                    <a href="{{ route('orcamentos.show', $orcamento->id) }}" class="btn btn-sm btn-info">Ver</a>
-                    <a href="{{ route('orcamentos.edit', $orcamento->id) }}" class="btn btn-sm btn-warning">Editar</a>
-                </td>
-            </tr>
-            @endforeach
+        @foreach($orcamentos as $orcamento)
+        <tr @if($orcamento->status === 'Expirado') class="text-danger" @endif>
+            <td>{{ $orcamento->id }}</td>
+            <td>{{ $orcamento->cliente->nome ?? '-' }}</td>
+            <td>{{ \Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y') }}</td>
+            <td>R$ {{ number_format($orcamento->total, 2, ',', '.') }}</td>
+            <td>{{ ucfirst($orcamento->status) }}</td>
+            <td>
+                <a href="{{ route('orcamentos.edit', $orcamento->id) }}" class="btn btn-sm btn-warning">Editar</a>
+                <a href="{{ route('orcamentos.gerarPdf', $orcamento->id) }}" class="btn btn-primary" target="_blank">Gerar PDF</a>
+            </td>
+        </tr>
+        @endforeach
         </tbody>
+
     </table>
 </div>
 @endsection

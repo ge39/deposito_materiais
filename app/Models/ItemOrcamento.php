@@ -14,11 +14,8 @@ class ItemOrcamento extends Model
     protected $fillable = [
         'orcamento_id',
         'produto_id',
-        'descricao_cliente',
-        'marca',
-        'fornecedor_id',
         'quantidade',
-        'valor_unitario',
+        'preco_unitario', // ← campo correto
         'subtotal'
     ];
 
@@ -35,10 +32,10 @@ class ItemOrcamento extends Model
     }
 
     // Fornecedor vinculado (opcional)
-    public function fornecedor()
-    {
-        return $this->belongsTo(Fornecedor::class);
-    }
+    // public function fornecedor()
+    // {
+    //     return $this->belongsTo(Fornecedor::class);
+    // }
 
     // Campo dinâmico para exibir o nome do item (produto cadastrado ou texto livre)
     public function getNomeItemAttribute()

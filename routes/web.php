@@ -113,6 +113,25 @@ Route::middleware('auth')->group(function () {
     });
     Route::resource('empresa', EmpresaController::class);
 
+     
+    // Grupo de rotas protegido por autenticação
+    Route::middleware(['auth'])->group(function () {
+
+        // Rotas resource padrão (index, create, store, show, edit, update, destroy)
+        Route::resource('clientes', ClienteController::class);
+
+        // Rotas extras para ativar/desativar clientes
+        Route::get('clientes/inativos', [ClienteController::class, 'inativos'])
+            ->name('clientes.inativos');
+
+        Route::patch('clientes/{cliente}/ativar', [ClienteController::class, 'ativar'])
+            ->name('clientes.ativar');
+
+        Route::patch('clientes/{cliente}/desativar', [ClienteController::class, 'desativar'])
+            ->name('clientes.desativar');
+
+    });
+
     // ===============================
     // DEVOLUÇÕES
     // ===============================
@@ -176,6 +195,8 @@ Route::middleware('auth')->group(function () {
     // ===============================
     Route::middleware('checkNivel:admin,gerente')->group(function () {
         Route::put('users/desativar/{user}', [UserController::class, 'desativar'])->name('users.desativar');
+        
+        
         Route::put('clientes/ativar/{cliente}', [ClienteController::class, 'ativar'])->name('clientes.ativar');
         Route::put('clientes/desativar/{cliente}', [ClienteController::class, 'desativar'])->name('clientes.desativar');
         Route::put('funcionarios/desativar/{funcionario}', [FuncionarioController::class, 'desativar'])->name('funcionarios.desativar');
@@ -212,5 +233,8 @@ Route::middleware('auth')->group(function () {
         Route::get('cupom/{venda}', [VendaController::class, 'gerarCupom'])->name('cupom');
     });
    
+Route::get('/teste-middleware', function () {
+    return 'OK - Middleware passou';
+})->middleware('checkOrcamentoValidade');
 
 });

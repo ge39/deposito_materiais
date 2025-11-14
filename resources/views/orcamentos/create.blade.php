@@ -41,18 +41,18 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Data do Orçamento <span class="text-danger">*</span></label>
-                        <input type="date" name="data_orcamento" class="form-control" 
+                        <input type="date" name="data_orcamento" class="form-control"
                                value="{{ old('data_orcamento', date('Y-m-d')) }}" required>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Validade <span class="text-danger">*</span></label>
-                        <input type="date" name="validade" class="form-control" 
+                        <input type="date" name="validade" class="form-control"
                                value="{{ old('validade', date('Y-m-d', strtotime('+7 days'))) }}" required>
                     </div>
                 </div>
 
                 <hr>
-
+                              
                 <!-- Itens do orçamento -->
                 <h5>Itens do Orçamento <span class="text-danger">*</span></h5>
                 <table class="table table-bordered align-middle" id="itensTable">
@@ -60,6 +60,7 @@
                         <tr>
                             <th>Produto</th>
                             <th>Quantidade</th>
+                            <th>Unidade</th>
                             <th>Preço Unitário</th>
                             <th>Subtotal</th>
                             <th class="text-center">Ação</th>
@@ -73,7 +74,10 @@
                                         <select name="produtos[{{ $i }}][id]" class="form-select produtoSelect" required>
                                             <option value="">Selecione...</option>
                                             @foreach($produtos as $produto)
-                                                <option value="{{ $produto->id }}" {{ $oldItem['id'] == $produto->id ? 'selected' : '' }}>
+                                                <option value="{{ $produto->id }}"
+                                                        data-preco="{{ $produto->preco_venda }}"
+                                                        data-unidade="{{ $produto->unidadeMedida->nome ?? '' }}"
+                                                        {{ $oldItem['id'] == $produto->id ? 'selected' : '' }}>
                                                     {{ $produto->nome }}
                                                 </option>
                                             @endforeach
@@ -83,10 +87,19 @@
                                         <input type="number" name="produtos[{{ $i }}][quantidade]" class="form-control qtd" min="1" value="{{ $oldItem['quantidade'] }}" required>
                                     </td>
                                     <td>
-                                        <input type="number" name="produtos[{{ $i }}][preco_unitario]" class="form-control preco" step="0.01" value="{{ $oldItem['preco_unitario'] }}" required>
+                                        <!-- Label para unidade e hidden para enviar valor -->
+                                        <label class="form-label unidadeLabel">{{ $oldItem['unidade'] ?? '' }}</label>
+                                        <input type="hidden" name="produtos[{{ $i }}][unidade]" class="unidade" value="{{ $oldItem['unidade'] ?? '' }}">
                                     </td>
                                     <td>
-                                        <input type="text" class="form-control subtotal" value="0,00" readonly>
+                                        <!-- Label para preço e hidden -->
+                                        <label class="form-label precoLabel">R$ {{ number_format($oldItem['preco_unitario'] ?? 0, 2, ',', '.') }}</label>
+                                        <input type="hidden" name="produtos[{{ $i }}][preco_unitario]" class="preco" value="{{ $oldItem['preco_unitario'] ?? 0 }}">
+                                    </td>
+                                    <td>
+                                        <!-- Label para subtotal e hidden -->
+                                        <label class="form-label subtotalLabel">0,00</label>
+                                        <input type="hidden" class="subtotal" value="0,00">
                                     </td>
                                     <td class="text-center">
                                         <button type="button" class="btn btn-sm btn-danger remover">Remover</button>
@@ -97,24 +110,22 @@
                     </tbody>
                 </table>
 
-                <div class="text-end mb-3">
-                    <button type="button" class="btn btn-sm btn-secondary" id="addProduto">+ Adicionar Produto</button>
+                <!-- Botões -->
+                <div class="text-end">
+                    <button type="button" class="btn btn-primary" id="addProduto">+ Adicionar Produto</button>
+                    <button type="submit" class="btn btn-success">Salvar Orçamento</button>
+                    <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary">Voltar</a>
                 </div>
-
-                <div class="text-end mb-3">
+                
+                <div class="text-end mb-3" style="margin-top:10px">
                     <h5>Total: R$ <span id="total">0,00</span></h5>
                 </div>
 
                 <!-- Observações -->
                 <div class="mb-3">
                     <label class="form-label">Observações</label>
-                    <textarea name="observacoes" class="form-control" rows="3">{{ old('observacoes') }}</textarea>
-                </div>
+                    <textarea name="observacoes" class="form-control" rows="3">{{ old('observacoes', 'Sem observações') }}</textarea>
 
-                <!-- Botões -->
-                <div class="text-end">
-                    <button type="submit" class="btn btn-success">Salvar Orçamento</button>
-                    <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary">Voltar</a>
                 </div>
 
             </div>
@@ -123,7 +134,6 @@
 </div>
 
 <style>
-/* Bloqueia seleção do cliente sem desabilitar o input */
 .readonly-select {
     pointer-events: none;
     background-color: #e9ecef;
@@ -145,17 +155,28 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>
                 <select name="produtos[${index}][id]" class="form-select produtoSelect" required>
                     <option value="">Selecione...</option>
-                    ${produtos.map(p => `<option value="${p.id}" data-preco="${p.preco}">${p.nome}</option>`).join('')}
+                    ${produtos.map(p => `
+                        <option value="${p.id}" 
+                                data-preco="${p.preco_venda}" 
+                                data-unidade="${p.unidade_medida?.nome || ''}">
+                            ${p.nome}
+                        </option>`).join('')}
                 </select>
             </td>
             <td>
                 <input type="number" name="produtos[${index}][quantidade]" class="form-control qtd" min="1" value="1" required>
             </td>
             <td>
-                <input type="number" name="produtos[${index}][preco_unitario]" class="form-control preco" step="0.01" required>
+                <label class="form-label unidadeLabel"></label>
+                <input type="hidden" name="produtos[${index}][unidade]" class="unidade" value="">
             </td>
             <td>
-                <input type="text" class="form-control subtotal" value="0,00" readonly>
+                <label class="form-label precoLabel">R$ 0,00</label>
+                <input type="hidden" name="produtos[${index}][preco_unitario]" class="preco" value="0">
+            </td>
+            <td>
+                <label class="form-label subtotalLabel">0,00</label>
+                <input type="hidden" class="subtotal" value="0,00">
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-danger remover">X</button>
@@ -173,21 +194,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const qtd = parseFloat(tr.querySelector('.qtd').value) || 0;
             const preco = parseFloat(tr.querySelector('.preco').value) || 0;
             const subtotal = qtd * preco;
-            tr.querySelector('.subtotal').value = subtotal.toFixed(2).replace('.', ',');
+            tr.querySelector('.subtotal').value = subtotal.toFixed(2);
+            tr.querySelector('.subtotalLabel').textContent = subtotal.toFixed(2).replace('.', ',');
+            tr.querySelector('.precoLabel').textContent = 'R$ ' + preco.toFixed(2).replace('.', ',');
+            tr.querySelector('.unidadeLabel').textContent = tr.querySelector('.unidade').value;
             total += subtotal;
         });
         totalSpan.textContent = total.toFixed(2).replace('.', ',');
     }
 
     addBtn.addEventListener('click', () => {
-        // Validar cliente
         if (!clienteSelect.value) {
             alert('Selecione um cliente antes de adicionar produtos.');
             clienteSelect.focus();
             return;
         }
 
-        // Validar último item
         const lastRow = tableBody.querySelector('tr:last-child');
         if (lastRow) {
             const produto = lastRow.querySelector('.produtoSelect').value;
@@ -202,21 +224,16 @@ document.addEventListener('DOMContentLoaded', () => {
         criarItem();
     });
 
-    // Evitar duplicidade ao selecionar produto
     tableBody.addEventListener('change', e => {
         if (e.target.classList.contains('produtoSelect')) {
-            const selecionado = e.target.value;
-            const produtosSelecionados = Array.from(tableBody.querySelectorAll('.produtoSelect'))
-                .map(s => s.value)
-                .filter(v => v !== '');
-            const count = produtosSelecionados.filter(v => v === selecionado).length;
-            if (count > 1) {
-                alert('Este produto já foi adicionado.');
-                e.target.value = '';
-                return;
-            }
-            const preco = e.target.selectedOptions[0].dataset.preco || 0;
-            e.target.closest('tr').querySelector('.preco').value = preco;
+            const option = e.target.selectedOptions[0];
+            const preco = option.dataset.preco || 0;
+            const unidade = option.dataset.unidade || '';
+
+            const tr = e.target.closest('tr');
+            tr.querySelector('.preco').value = preco;
+            tr.querySelector('.unidade').value = unidade;
+
             atualizarSubtotal();
         }
     });

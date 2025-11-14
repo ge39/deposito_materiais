@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\ItemOrcamento;
 use App\Models\Orcamento;
 use App\Models\Produto;
-use App\Models\Fornecedor;
 use Illuminate\Http\Request;
 
 class ItemOrcamentoController extends Controller
@@ -14,43 +13,36 @@ class ItemOrcamentoController extends Controller
     {
         $request->validate([
             'orcamento_id' => 'required|exists:orcamentos,id',
+            'produto_id' => 'nullable|exists:produtos,id',
             'quantidade' => 'required|numeric|min:1',
-            'valor_unitario' => 'required|numeric|min:0',
+            'preco_unitario' => 'required|numeric|min:0',
         ]);
 
-        $item = new ItemOrcamento([
+        $item = ItemOrcamento::create([
             'orcamento_id' => $request->orcamento_id,
-            'produto_id' => $request->produto_id ?: null,
-            'descricao_cliente' => $request->descricao_cliente,
-            'marca' => $request->marca,
-            'fornecedor_id' => $request->fornecedor_id,
+            'produto_id' => $request->produto_id,
             'quantidade' => $request->quantidade,
-            'valor_unitario' => $request->valor_unitario,
-            'subtotal' => $request->quantidade * $request->valor_unitario,
+            'preco_unitario' => $request->preco_unitario,
+            'subtotal' => $request->quantidade * $request->preco_unitario,
         ]);
-
-        $item->save();
 
         return redirect()
             ->route('orcamentos.show', $item->orcamento_id)
             ->with('success', 'Item adicionado ao orçamento com sucesso!');
     }
-
+    
     public function update(Request $request, ItemOrcamento $itemOrcamento)
     {
         $request->validate([
             'quantidade' => 'required|numeric|min:1',
-            'valor_unitario' => 'required|numeric|min:0',
+            'preco_unitario' => 'required|numeric|min:0',
         ]);
-
+        
         $itemOrcamento->update([
             'produto_id' => $request->produto_id ?: null,
-            'descricao_cliente' => $request->descricao_cliente,
-            'marca' => $request->marca,
-            'fornecedor_id' => $request->fornecedor_id,
             'quantidade' => $request->quantidade,
-            'valor_unitario' => $request->valor_unitario,
-            'subtotal' => $request->quantidade * $request->valor_unitario,
+            'preco_unitario' => $request->preco_unitario,
+            'subtotal' => $request->quantidade * $request->preco_unitario,
         ]);
 
         return redirect()
