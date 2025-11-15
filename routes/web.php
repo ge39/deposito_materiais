@@ -237,7 +237,12 @@ Route::middleware('auth')->group(function () {
     ->name('orcamentos.whatsapp');
 
     // web.php
-    Route::get('/orcamento/{id}/visualizar', [OrcamentoController::class, 'visualizarOrcamento'])->name('orcamento.visualizar');
+    Route::post('/orcamentos/{id}/limpar-edicao', [OrcamentoController::class, 'limparEdicao'])->name('orcamentos.limparEdicao');
+    Route::post('/orcamentos/{id}/limpar-edicao', [OrcamentoController::class, 'limparEdicao'])
+    ->name('orcamentos.limparEdicao');
+
+    Route::post('produtos/{id}/limpar-edicao', [ProdutoController::class, 'limparEdicao'])
+    ->name('produtos.limparEdicao');
 
 
 });

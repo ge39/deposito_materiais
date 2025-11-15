@@ -35,6 +35,11 @@ class Orcamento extends Model
         return $this->belongsTo(Cliente::class);
     }
 
+    public function editor()
+    {
+        return $this->belongsTo(User::class, 'editando_por');
+    }
+
     /** Relacionamento com fornecedor */
     public function fornecedor()
     {

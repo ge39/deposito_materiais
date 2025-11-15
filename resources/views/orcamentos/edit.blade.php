@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
- @php
-     $novaValidade = \Carbon\Carbon::now()->addDays(7)->format('Y/m/d');
+@php
+    $novaValidade = \Carbon\Carbon::now()->addDays(7)->format('Y/m/d');
 @endphp
 
 @section('content')
@@ -24,8 +24,8 @@
             </ul>
         </div>
     @endif
-   
-   @if($orcamento->status === 'Expirado')
+
+    @if($orcamento->status === 'Expirado')
         <div class="alert alert-danger text-center fw-bold" style="font-size: 18px;">
             ⚠️ ATENÇÃO! ESTE ORÇAMENTO ESTÁ <u>EXPIRADO</u>.<br>
             AO SALVAR A EDIÇÃO, O STATUS SERÁ ALTERADO AUTOMATICAMENTE PARA 
@@ -34,13 +34,11 @@
         </div>
     @endif
 
-
     <form action="{{ route('orcamentos.update', $orcamento->id) }}" method="POST" id="formOrcamento">
         @csrf
         @method('PUT')
         <div class="card shadow-sm mb-4">
             <div class="card-body">
-
                 <!-- Cliente e Datas -->
                 <div class="row mb-3">
                     <div class="col-md-4">
@@ -61,12 +59,11 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Validade <span class="text-danger">*</span></label>
-                                            @php
+                        @php
                             $validade = $orcamento->status === 'Expirado'
                                 ? \Carbon\Carbon::now()->addDays(7)->format('Y-m-d')
                                 : (old('validade') ?? \Carbon\Carbon::parse($orcamento->validade)->format('Y-m-d'));
                         @endphp
-
                         <input type="date" name="validade" class="form-control" value="{{ $validade }}" required>
                     </div>
                 </div>
@@ -150,7 +147,6 @@
                     <label class="form-label">Observações</label>
                     <textarea name="observacoes" class="form-control" rows="3">{{ old('observacoes', $orcamento->observacoes ?: 'Sem observações') }}</textarea>
                 </div>
-
             </div>
         </div>
     </form>
@@ -263,6 +259,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     atualizarSubtotal();
+
+    // ---------- Limpar edição ao sair ----------
+    window.addEventListener('beforeunload', function(e) {
+        navigator.sendBeacon("{{ route('orcamentos.limparEdicao', $orcamento->id) }}", new URLSearchParams({'_token': '{{ csrf_token() }}'}));
+    });
+      let timeout;
+    const tempoLimite = 30000; // 30 segundos
+
+    function resetTimer() {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            window.location.href = "{{ route('orcamentos.index') }}";
+        }, tempoLimite);
+    }
+
+    // Eventos que consideram "atividade"
+    window.onload = resetTimer;
+    document.onmousemove = resetTimer;
+    document.onkeydown = resetTimer;
+    document.onclick = resetTimer;
+    document.onscroll = resetTimer;
 });
+
 </script>
+
 @endsection

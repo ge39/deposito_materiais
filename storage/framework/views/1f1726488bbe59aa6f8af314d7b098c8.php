@@ -33,7 +33,7 @@
             <!-- BOTÃO -->
              <div class="col-md-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-sm flex-grow-1  h-50">Buscar</button>
-                <a href="<?php echo e(route('clientes.index')); ?>" class="btn btn-secondary flex-grow-1  h-50">Limpar</a>
+                <a href="<?php echo e(route('orcamentos.index')); ?>" class="btn btn-secondary flex-grow-1  h-50">Limpar</a>
             </div>
 
         </div>
