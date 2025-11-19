@@ -5,7 +5,7 @@
     <div class="card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Detalhes da Promoção</h4>
-            <a href="<?php echo e(route('promocoes.index')); ?>" class="btn btn-secondary btn-sm">
+            <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary btn-sm">
                 <i class="bi bi-arrow-left"></i> Voltar
             </a>
         </div>
@@ -19,7 +19,7 @@
                 </div>
                 <div class="col-md-6">
                     <strong>Status:</strong><br>
-                    <?php if($promocao->em_promocao): ?>
+                    <?php if($promocao->status): ?>
                         <span class="badge bg-success">Ativa</span>
                     <?php else: ?>
                         <span class="badge bg-secondary">Inativa</span>
@@ -99,9 +99,9 @@
 
             <div class="d-flex justify-content-between flex-wrap gap-2 mt-4">
                 <div>
-                    <a href="<?php echo e(route('promocoes.edit', $promocao->id)); ?>" class="btn btn-warning">
+                    <!-- <a href="<?php echo e(route('promocoes.edit', $promocao->id)); ?>" class="btn btn-warning">
                         <i class="bi bi-pencil"></i> Editar
-                    </a>
+                    </a> -->
                     <form action="<?php echo e(route('promocoes.destroy', $promocao->id)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta promoção?');">
                         <?php echo csrf_field(); ?>
                         <?php echo method_field('DELETE'); ?>
@@ -111,16 +111,19 @@
                     </form>
                 </div>
 
-                <form action="<?php echo e(route('promocoes.toggleStatus', $promocao->id)); ?>" method="POST">
+               <form action="<?php echo e(route('promocoes.toggleStatus', $promocao->id)); ?>" method="POST">
                     <?php echo csrf_field(); ?>
-                    <button type="submit" class="btn <?php echo e($promocao->em_promocao ? 'btn-secondary' : 'btn-success'); ?>">
-                        <?php if($promocao->em_promocao): ?>
+                    <?php echo method_field('PUT'); ?>
+
+                    <button type="submit" class="btn <?php echo e($promocao->status ? 'btn-secondary'  : 'btn-success'); ?>">
+                        <?php if($promocao->status): ?>
                             <i class="bi bi-pause-circle"></i> Desativar Promoção
                         <?php else: ?>
                             <i class="bi bi-play-circle"></i> Ativar Promoção
                         <?php endif; ?>
                     </button>
                 </form>
+
             </div>
         </div>
     </div>

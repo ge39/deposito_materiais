@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Produto;
+use App\Models\Promocao;
 use App\Models\Categoria;
 use App\Models\Fornecedor;
 use App\Models\UnidadeMedida;
@@ -29,15 +30,26 @@ class ProdutoController extends Controller
         });
     }
 
+    public function promocao()
+    {
+        return $this->hasOne(Promocao::class, 'produto_id')
+            ->where('status', 1)
+            ->whereDate('promocao_inicio', '<=', now())
+            ->whereDate('promocao_fim', '>=', now());
+    }
+
     /** LISTAR PRODUTOS ATIVOS */
     public function index()
     {
-        $produtos = Produto::with(['lotes','categoria','fornecedor','marca','unidadeMedida'])
+        $produtos = Produto::with(['lotes','categoria','fornecedor','marca','unidadeMedida','promocao'])
             ->where('ativo', 1)
             ->paginate(15);
+        
 
         return view('produtos.index', compact('produtos'));
     }
+
+   
 
     /** FORMULÁRIO DE CRIAÇÃO */
     public function create()
@@ -54,7 +66,7 @@ class ProdutoController extends Controller
     /** SALVAR NOVO PRODUTO / ATUALIZAR ESTOQUE SE EXISTIR */
     // public function store(Request $request)
     // {
-    //     $this->validateProduto($request);
+    //      $this->validateProduto($request);
 
     //     DB::transaction(function () use ($request) {
 
@@ -111,62 +123,28 @@ class ProdutoController extends Controller
     // }
    
     public function store(Request $request)
-{
-    $this->validateProduto($request);
+    {
+        $this->validateProduto($request);
 
-    DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request) {
 
-        $produto = Produto::where('nome', $request->nome)
-            ->where('sku', $request->sku)
-            ->where('marca_id', $request->marca_id)
-            ->where('categoria_id', $request->categoria_id)
-            ->where('unidade_medida_id', $request->unidade_medida_id)
-            ->first();
+            $produto = Produto::where('nome', $request->nome)
+                ->where('sku', $request->sku)
+                ->where('marca_id', $request->marca_id)
+                ->where('categoria_id', $request->categoria_id)
+                ->where('unidade_medida_id', $request->unidade_medida_id)
+                ->first();
 
-        if ($produto) {
-            // Produto existente: atualiza estoque e cria novo lote
-            $produto->quantidade_estoque += $request->quantidade_estoque ?? 0;
-            $produto->estoque_total = $produto->lotes()->sum('quantidade');
-            $produto->codigo_barras = $request->codigo_barras;
-            $produto->descricao = $request->descricao;
-            $produto->preco_custo = $request->preco_custo;
-            $produto->preco_venda = $request->preco_venda;
-            $produto->saveQuietly();
+            if ($produto) {
+                // Produto existente: atualiza estoque e cria novo lote
+                $produto->quantidade_estoque += $request->quantidade_estoque ?? 0;
+                $produto->estoque_total = $produto->lotes()->sum('quantidade');
+                $produto->codigo_barras = $request->codigo_barras;
+                $produto->descricao = $request->descricao;
+                $produto->preco_custo = $request->preco_custo;
+                $produto->preco_venda = $request->preco_venda;
+                $produto->saveQuietly();
 
-            $produto->lotes()->create([
-                'produto_id' => $produto->id,
-                'descricao' => $produto->descricao,
-                'fornecedor_id' => $request->fornecedor_id,
-                'quantidade' => $request->quantidade_estoque,
-                'preco_compra' => $request->preco_custo,
-                'preco_venda' => $request->preco_venda,
-                'data_compra' => $request->data_compra,
-                'validade_lote' => Carbon::parse($request->validade_produto)->startOfDay(),
-            ]);
-
-        } else {
-            // Novo produto
-            $produto = new Produto();
-            $produto->fill($request->only([
-                'fornecedor_id', 'nome','codigo_barras', 'sku', 'marca_id',
-                'categoria_id', 'descricao', 'unidade_medida_id'
-            ]));
-            $produto->quantidade_estoque = $request->quantidade_estoque ?? 0;
-            $produto->estoque_minimo = $request->estoque_minimo ?? 0;
-            $produto->ativo = 1;
-            $produto->preco_custo = $request->preco_custo;
-            $produto->codigo_barras = $request->codigo_barras;
-            $produto->preco_venda = $request->preco_venda;
-            $produto->validade_produto = Carbon::parse($request->validade_produto)->startOfDay();
-
-            if ($request->hasFile('imagem')) {
-                $produto->imagem = $request->file('imagem')->store('produtos', 'public');
-            }
-
-            $produto->save();
-
-            // 🔹 Criar lote para produto novo também
-            if (($request->quantidade_estoque ?? 0) > 0) {
                 $produto->lotes()->create([
                     'produto_id' => $produto->id,
                     'descricao' => $produto->descricao,
@@ -177,13 +155,47 @@ class ProdutoController extends Controller
                     'data_compra' => $request->data_compra,
                     'validade_lote' => Carbon::parse($request->validade_produto)->startOfDay(),
                 ]);
-            }
-        }
-    });
 
-    return redirect()->route('produtos.index')
-                     ->with('success', 'Produto registrado/atualizado com sucesso!');
-}
+            } else {
+                // Novo produto
+                $produto = new Produto();
+                $produto->fill($request->only([
+                    'fornecedor_id', 'nome','codigo_barras', 'sku', 'marca_id',
+                    'categoria_id', 'descricao', 'unidade_medida_id'
+                ]));
+                $produto->quantidade_estoque = $request->quantidade_estoque ?? 0;
+                $produto->estoque_minimo = $request->estoque_minimo ?? 0;
+                $produto->ativo = 1;
+                $produto->preco_custo = $request->preco_custo;
+                $produto->codigo_barras = $request->codigo_barras;
+                $produto->preco_venda = $request->preco_venda;
+                $produto->validade_produto = Carbon::parse($request->validade_produto)->startOfDay();
+
+                if ($request->hasFile('imagem')) {
+                    $produto->imagem = $request->file('imagem')->store('produtos', 'public');
+                }
+
+                $produto->save();
+
+                // 🔹 Criar lote para produto novo também
+                if (($request->quantidade_estoque ?? 0) > 0) {
+                    $produto->lotes()->create([
+                        'produto_id' => $produto->id,
+                        'descricao' => $produto->descricao,
+                        'fornecedor_id' => $request->fornecedor_id,
+                        'quantidade' => $request->quantidade_estoque,
+                        'preco_compra' => $request->preco_custo,
+                        'preco_venda' => $request->preco_venda,
+                        'data_compra' => $request->data_compra,
+                        'validade_lote' => Carbon::parse($request->validade_produto)->startOfDay(),
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('produtos.index')
+                        ->with('success', 'Produto registrado/atualizado com sucesso!');
+    }
 
 
     public function indexGrid()

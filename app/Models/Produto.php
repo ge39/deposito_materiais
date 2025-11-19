@@ -57,6 +57,15 @@ class Produto extends Model
     // -------------------------------
     // RELACIONAMENTOS
     // -------------------------------
+
+    public function promocao()
+    {
+        return $this->hasOne(Promocao::class, 'produto_id')
+            ->where('status', 1)
+            ->whereDate('promocao_inicio', '<=', now())
+            ->whereDate('promocao_fim', '>=', now());
+    }
+
     public function lotes()
     {
         return $this->hasMany(Lote::class, 'produto_id');

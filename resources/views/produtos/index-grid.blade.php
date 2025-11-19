@@ -45,7 +45,22 @@
                 <div class="col-1" style="width:50px">000{{ $produto->id }}</div>
                 <div class="col-2" style="width:180px">{{ $produto->nome }}</div>
                 <div class="col-1" style="width:50px">{{ $produto->quantidade_estoque }}</div>
-                <div class="col-1" style="width:100px">R$ {{ number_format($produto->precoAtual(), 2, ',', '.') }}</div>
+                <div class="col-1" style="width:100px">
+                   <p class="card-text mb-1">
+                        @if($produto->promocao)
+                            <span style="text-decoration: line-through; color: #888;">
+                                R$ {{ number_format($produto->promocao->preco_original, 2, ',', '.') }}
+                            </span>
+                            <span style="color: green; font-weight: bold;">
+                             {{ number_format($produto->promocao->preco_promocional, 2, ',', '.') }}
+                            </span>
+                        @else
+                            R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}
+                        @endif
+                    </p>
+                </div>
+
+                
                 <div class="col-2" style="width:100px">{{ $produto->unidadeMedida->nome ?? '-'}}</div>
                 <div class="col-2" style="width:180px">{{ $produto->categoria->nome ?? '-' }}</div>
                 <div class="col-2" style="width:100px">{{ $produto->marca->nome ?? '-' }}</div>

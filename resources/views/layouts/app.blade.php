@@ -128,6 +128,12 @@
             <i class="bi bi-tag me-2"></i>Promoções & Descontos
         </a>
         <ul class="dropdown-menu">
+             <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('painel_promocao.index') : '#' }}">
+                   <i class="bi bi-list-stars me-2"></i>Dashboard
+                </a>
+            </li>
             <li>
                 <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
                    href="{{ $canAccessAdmin ? route('promocoes.index') : '#' }}">

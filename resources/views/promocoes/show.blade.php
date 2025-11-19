@@ -5,7 +5,7 @@
     <div class="card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Detalhes da Promoção</h4>
-            <a href="{{ route('promocoes.index') }}" class="btn btn-secondary btn-sm">
+            <a href="{{ url()->previous() }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-arrow-left"></i> Voltar
             </a>
         </div>
@@ -18,7 +18,7 @@
                 </div>
                 <div class="col-md-6">
                     <strong>Status:</strong><br>
-                    @if($promocao->em_promocao)
+                    @if($promocao->status)
                         <span class="badge bg-success">Ativa</span>
                     @else
                         <span class="badge bg-secondary">Inativa</span>
@@ -90,9 +90,9 @@
 
             <div class="d-flex justify-content-between flex-wrap gap-2 mt-4">
                 <div>
-                    <a href="{{ route('promocoes.edit', $promocao->id) }}" class="btn btn-warning">
+                    <!-- <a href="{{ route('promocoes.edit', $promocao->id) }}" class="btn btn-warning">
                         <i class="bi bi-pencil"></i> Editar
-                    </a>
+                    </a> -->
                     <form action="{{ route('promocoes.destroy', $promocao->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta promoção?');">
                         @csrf
                         @method('DELETE')
@@ -102,16 +102,19 @@
                     </form>
                 </div>
 
-                <form action="{{ route('promocoes.toggleStatus', $promocao->id) }}" method="POST">
+               <form action="{{ route('promocoes.toggleStatus', $promocao->id) }}" method="POST">
                     @csrf
-                    <button type="submit" class="btn {{ $promocao->em_promocao ? 'btn-secondary' : 'btn-success' }}">
-                        @if($promocao->em_promocao)
+                    @method('PUT')
+
+                    <button type="submit" class="btn {{ $promocao->status ? 'btn-secondary'  : 'btn-success'}}">
+                        @if($promocao->status)
                             <i class="bi bi-pause-circle"></i> Desativar Promoção
                         @else
                             <i class="bi bi-play-circle"></i> Ativar Promoção
                         @endif
                     </button>
                 </form>
+
             </div>
         </div>
     </div>

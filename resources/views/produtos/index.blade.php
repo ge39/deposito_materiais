@@ -48,7 +48,13 @@
             @foreach($produtos as $produto)
                 
                 <div class="col-md-5 col-lg-4">
-                    <div class="card shadow-sm h-100">
+                    <div class="card h-100 
+                            @if($produto->promocao && $produto->promocao->preco_promocional < $produto->preco_venda)
+                                border border-danger shadow" style="background-color:#fff5f5;"
+                            @else
+                                shadow-sm"
+                            @endif
+                        >
                         <div class="card-body">
                             <h5 class="card-title">{{ $produto->nome }}</h5>
                             <p class="card-text mb-1"><strong>Codigo:</strong> 000{{ $produto->id ?? '-' }}</p>
@@ -62,8 +68,33 @@
                             <p class="card-text mb-1"><strong>Mínimo:</strong> {{ $produto->estoque_minimo }}</p>
                             <p class="card-text mb-1"><strong>Compra:</strong> {{ \Carbon\Carbon::parse($produto->data_compra)->format('d/m/Y') }}</p>
                             <p class="card-text mb-1"><strong>Validade:</strong> {{ \Carbon\Carbon::parse($produto->validade_produto)->format('d/m/Y') }}</p>
-                            <p class="card-text mb-1"><strong>Preço Venda:</strong> R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}</p>
-                            <p class="card-text mb-1"><strong>Preço Atual Venda:</strong> R$ {{ number_format($produto->precoAtual, 2, ',', '.') }}</p>
+                            <p class="card-text mb-1">
+                                <strong>Preço Venda:</strong>
+                                @if($produto->promocao)
+                                    <span style="text-decoration: line-through; color: #888;">
+                                        R$ {{ number_format($produto->promocao->preco_original, 2, ',', '.') }}
+                                    </span>
+                                    <span style="color: green; font-weight: bold;">
+                                        por R$ {{ number_format($produto->promocao->preco_promocional, 2, ',', '.') }}
+                                    </span>
+                                @else
+                                    R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}
+                                @endif
+                            </p>
+
+                                                
+                            {{-- EXIBIR SOMENTE SE EXISTIR PROMOÇÃO VÁLIDA --}}
+                            @if ($produto->promocao)
+                                <p class="card-text mb-1" style="color:orange; font-weight:bold;font-size:1.5rem">
+                                    <strong>Valor Promoção:</strong>
+                                    R$ {{ number_format($produto->promocao->preco_promocional, 2, ',', '.') }}
+                                </p>
+
+                                <p class="card-text mb-1" style="color:green;">
+                                    <strong>Válido Até:</strong>
+                                    {{ \Carbon\Carbon::parse($produto->promocao->promocao_fim)->format('d/m/Y') }}
+                                </p>
+                            @endif
                             
                             <div class="d-flex flex-wrap gap-1 mt-3">
                                 <div>

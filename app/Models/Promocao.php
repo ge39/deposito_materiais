@@ -9,9 +9,8 @@ class Promocao extends Model
 {
     use HasFactory;
 
-    // Nome correto da tabela no banco
     protected $table = 'promocoes';
-    
+
     protected $fillable = [
         'tipo_abrangencia',
         'produto_id',
@@ -19,11 +18,21 @@ class Promocao extends Model
         'desconto_percentual',
         'acrescimo_percentual',
         'acrescimo_valor',
+        'preco_original',
         'preco_promocional',
         'promocao_inicio',
         'promocao_fim',
-        'em_promocao',
+        'status',
     ];
+   public function promocao()
+    {
+        return $this->hasOne(Promocao::class, 'produto_id')
+            ->where('status', 1); // apenas promoções válidas
+    }
+    public function unidadeMedida()
+    {
+        return $this->belongsTo(UnidadeMedida::class, 'unidade_medida');
+    }
 
     public function produto()
     {
@@ -34,44 +43,54 @@ class Promocao extends Model
     {
         return $this->belongsTo(Categoria::class);
     }
-    public function aplicarPromocao(Promocao $promocao)
-{
-    $query = Produto::query();
 
-    if ($promocao->tipo_abrangencia === 'produto') {
-        $query->where('id', $promocao->produto_id);
-    } elseif ($promocao->tipo_abrangencia === 'categoria') {
-        $query->where('categoria_id', $promocao->categoria_id);
+    /**
+     * Aplica esta promoção aos produtos relacionados
+     */
+    public function aplicarPromocao()
+    {
+        $query = Produto::query();
+
+        if ($this->tipo_abrangencia === 'produto') {
+            $query->where('id', $this->produto_id);
+        } elseif ($this->tipo_abrangencia === 'categoria') {
+            $query->where('categoria_id', $this->categoria_id);
+        }
+
+        $produtos = $query->get();
+
+        foreach ($produtos as $produto) {
+
+            // Use o nome correto do campo no seu DB!
+            $precoBase = $produto->preco_venda;  
+
+            $preco = $precoBase;
+
+            // Desconto %
+            if ($this->desconto_percentual > 0) {
+                $preco -= ($preco * $this->desconto_percentual / 100);
+            }
+
+            // Acréscimo %
+            if ($this->acrescimo_percentual > 0) {
+                $preco += ($preco * $this->acrescimo_percentual / 100);
+            }
+
+            // Acréscimo fixo
+            if ($this->acrescimo_valor > 0) {
+                $preco += $this->acrescimo_valor;
+            }
+
+            // Se usuário informar preço promocional manual, ele vence qualquer regra
+            if ($this->preco_promocional > 0) {
+                $preco = $this->preco_promocional;
+            }
+
+            // Atualiza o produto
+            $produto->update([
+                'preco_atual' => $preco,
+                'status' => 1,
+            ]);
+        }
     }
-
-    $produtos = $query->get();
-
-    foreach ($produtos as $produto) {
-        $precoBase = $produto->preco_base;
-
-        $preco = $precoBase;
-
-        if ($promocao->desconto_percentual > 0) {
-            $preco -= ($preco * $promocao->desconto_percentual / 100);
-        }
-
-        if ($promocao->acrescimo_percentual > 0) {
-            $preco += ($preco * $promocao->acrescimo_percentual / 100);
-        }
-
-        if ($promocao->acrescimo_valor > 0) {
-            $preco += $promocao->acrescimo_valor;
-        }
-
-        if ($promocao->preco_promocional) {
-            $preco = $promocao->preco_promocional;
-        }
-
-        $produto->update([
-            'preco_atual' => $preco,
-            'em_promocao' => true,
-        ]);
-    }
-}
-
 }

@@ -23,7 +23,8 @@ use App\Http\Controllers\{
     EmpresaController,
     PedidoCompraController,
     OrcamentoController,
-    PromocaoController
+    PromocaoController,
+    PainelPromocaoController
 };
 
 // ===============================
@@ -74,34 +75,39 @@ Route::middleware('auth')->group(function () {
         Route::get('buscar2', [ProdutoController::class, 'search_grid'])->name('search_grid');
         Route::put('{produto}/desativar', [ProdutoController::class, 'desativar'])->name('desativar');
         Route::put('{produto}/reativar', [ProdutoController::class, 'reativar'])->name('reativar');
-
-        // Controle de promoções/descontos
-        Route::middleware('checkNivel:admin,gerente')->group(function () {
-            Route::get('promocoes', [ProdutoController::class, 'promocoes'])->name('promocoes');
-            Route::post('{id}/aplicar-desconto', [ProdutoController::class, 'aplicarDesconto'])->name('aplicarDesconto');
-        });
-
+        
         // Atualização de preço (apenas admin)
         Route::middleware('checkNivel:admin')->post('{id}/atualizar-preco', [ProdutoController::class, 'atualizarPreco'])->name('atualizarPreco');
     });
     Route::resource('produtos', ProdutoController::class);
+    
 
     // ===============================
     // PROMOÇÕES
     // ===============================
-    Route::middleware(['auth', 'can:gerenciar-promocoes'])
-        ->prefix('promocoes')
-        ->name('promocoes.')
-        ->group(function () {
-            Route::get('/', [PromocaoController::class, 'index'])->name('index');
-            Route::get('/create', [PromocaoController::class, 'create'])->name('create');
-            Route::post('/', [PromocaoController::class, 'store'])->name('store');
-            Route::get('/{promocao}', [PromocaoController::class, 'show'])->name('show');
-            Route::get('/{promocao}/edit', [PromocaoController::class, 'edit'])->name('edit');
-            Route::put('/{promocao}', [PromocaoController::class, 'update'])->name('update');
-            Route::delete('/{promocao}', [PromocaoController::class, 'destroy'])->name('destroy');
-            Route::put('/{promocao}/toggle-status', [PromocaoController::class, 'toggleStatus'])->name('toggleStatus');
-        });
+   Route::middleware(['auth', 'can:gerenciar-promocoes'])
+    ->prefix('promocoes')
+    ->name('promocoes.')
+    ->group(function () {
+        Route::get('/', [PromocaoController::class, 'index'])->name('index');
+        Route::get('/create', [PromocaoController::class, 'create'])->name('create');
+        Route::post('/', [PromocaoController::class, 'store'])->name('store');
+        Route::get('/{promocao}', [PromocaoController::class, 'show'])->name('show');
+        Route::get('/{promocao}/edit', [PromocaoController::class, 'edit'])->name('edit');
+        Route::put('/{promocao}', [PromocaoController::class, 'update'])->name('update');
+        Route::delete('/{promocao}', [PromocaoController::class, 'destroy'])->name('destroy');
+
+     // 🔥 ROTA CORRETA DO TOGGLE
+        Route::put('/{promocao}/toggle-status', [PromocaoController::class, 'toggleStatus'])
+            ->name('toggleStatus');
+
+        // Encerrar promoção manualmente
+        Route::patch('/{promocao}/encerrar', [PromocaoController::class, 'encerrar'])
+            ->name('encerrar');
+    });
+
+
+
 
     // ===============================
     // EMPRESAS
@@ -243,6 +249,19 @@ Route::middleware('auth')->group(function () {
 
     Route::post('produtos/{id}/limpar-edicao', [ProdutoController::class, 'limparEdicao'])
     ->name('produtos.limparEdicao');
+
+   Route::get('/painel_promocao', [\App\Http\Controllers\PainelPromocaoController::class, 'index'])
+    ->name('painel_promocao.index')
+    ->middleware(['auth']);
+
+    Route::patch('/promocoes/{promocao}/toggle', [App\Http\Controllers\PromocaoController::class, 'toggle'])
+    ->name('promocoes.toggle');
+
+   Route::get('/promocoes/{id}/toggle-status', [PromocaoController::class, 'toggleStatus'])
+    ->name('promocoes.toggleStatus')
+    ->middleware('can:gerenciar-promocoes');
+
+
 
 
 });

@@ -5,9 +5,7 @@
     <div class="card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Nova Promoção</h4>
-            <a href="{{ route('promocoes.index') }}" class="btn btn-secondary btn-sm">
-                <i class="bi bi-arrow-left"></i> Voltar
-            </a>
+            <a href="{{ url()->previous() }}" class="btn btn-secondary">Voltar</a>
         </div>
 
         <div class="card-body">
@@ -41,12 +39,21 @@
                     <select name="produto_id" id="produto_id" class="form-select" onchange="atualizarPreco()">
                         <option value="">Selecione um produto...</option>
                         @foreach($produtos as $produto)
-                            {{-- Adiciona data-preco com o valor correto do produto --}}
-                            <option value="{{ $produto->id }}" data-preco="{{ $produto->preco_venda }}">{{ $produto->nome }}</option>
+                            <option 
+                                value="{{ $produto->id }}"
+                                data-preco="{{ $produto->preco_venda }}"
+                                data-nome="{{ $produto->nome }}"
+                                data-marca="{{ $produto->marca->nome }}"
+                                data-unidade="{{ $produto->unidadeMedida->nome}}"
+                                data-estoque="{{ $produto->quantidade_estoque }}"
+                                data-fornecedor="{{ $produto->fornecedor->nome ?? '' }}"
+                                data-descricao="{{ $produto->descricao }}"
+                            >
+                                {{ $produto->nome }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
-
 
                 {{-- Categoria --}}
                 <div class="mb-3 d-none" id="campo_categoria">
@@ -63,20 +70,58 @@
 
                 {{-- Campos de valores --}}
                 <div class="row">
+
+                    {{-- DADOS DO PRODUTO (VISUALIZAÇÃO) --}}
+                    <div class="row g-2 align-items-end mb-3">
+
+                        <div class="col-auto">
+                            <label class="form-label">Produto</label>
+                            <input type="text" id="visu_nome" class="form-control form-control-sm" readonly>
+                        </div>
+
+                        <div class="col-auto">
+                            <label class="form-label">Marca</label>
+                            <input type="text" id="visu_marca" class="form-control form-control-sm" readonly>
+                        </div>
+
+                        <div class="col-auto">
+                            <label class="form-label">Unidade</label>
+                            <input type="text" id="visu_unidade" class="form-control form-control-sm" readonly>
+                        </div>
+
+                        <div class="col-auto">
+                            <label class="form-label">Estoque</label>
+                            <input type="text" id="visu_estoque" class="form-control form-control-sm" readonly>
+                        </div>
+
+                        <div class="col-auto">
+                            <label class="form-label" style=" size:100%">Fornecedor</label>
+                            <input type="text" id="visu_fornecedor" class="form-control form-control-sm" readonly>
+                        </div>
+                         <div class="col-auto">
+                            <label class="form-label">Descrição</label>
+                            <input type="text" size="150px" id="visu_descricao" class="form-control form-control-sm" readonly>
+                        </div>
+
+                    </div>
+
                     <div class="col-md-3 mb-3">
                         <label for="preco_venda" class="form-label" style="color:green;font-weight:bold;">Preço Venda (R$)</label>
-                        <input type="number" id="preco_venda" class="form-control" readonly style="color:#000;font-weight:bold;">
+                        <input type="number" name="preco_original" id="preco_venda" class="form-control" style="color:#000;font-weight:bold;" readonly>
+                        
                     </div>
+
                     <div class="col-md-3 mb-3">
                         <label for="desconto_percentual" class="form-label">Desconto (%)</label>
                         <input type="number" name="desconto_percentual" id="desconto_percentual" class="form-control" step="0.01" min="1" oninput="simularPreco()">
                         <div id="msg_desconto" class="text-danger small mt-1"></div>
-
                     </div>
+
                     <div class="col-md-3 mb-3">
                         <label for="acrescimo_percentual" class="form-label">Acréscimo (%)</label>
                         <input type="number" name="acrescimo_percentual" id="acrescimo_percentual" class="form-control" step="0.01" min="1" oninput="simularPreco()">
                     </div>
+
                     <div class="col-md-3 mb-3">
                         <label for="acrescimo_valor" class="form-label">Acréscimo (R$)</label>
                         <input type="number" name="acrescimo_valor" id="acrescimo_valor" class="form-control" step="0.01" min="1" oninput="simularPreco()">
@@ -85,7 +130,8 @@
 
                 <div class="mb-3">
                     <label for="preco_simulado" class="form-label" style="color:red;font-weight:bold;">Preço Simulado (R$)</label>
-                    <input type="number" id="preco_simulado" class="form-control" readonly style="color:#000;font-weight:bold;">
+                   <input type="number" name="preco_promocional" id="preco_simulado" class="form-control" style="color:#000;font-weight:bold;" readonly>
+                
                 </div>
 
                 <hr>
@@ -103,10 +149,10 @@
                 </div>
 
                 {{-- Status --}}
-                <div class="form-check form-switch mb-4">
-                    <input class="form-check-input" type="checkbox" name="em_promocao" id="em_promocao" value="1" checked>
-                    <label class="form-check-label" for="em_promocao">Ativar promoção imediatamente</label>
-                </div>
+                <!-- <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" name="status" id="status" value="1" checked>
+                    <label class="form-check-label" for="status">Ativar promoção imediatamente</label>
+                </div> -->
 
                 {{-- Botões --}}
                 <div class="d-flex justify-content-end">
@@ -118,7 +164,97 @@
         </div>
     </div>
 </div>
+
 <script>
+
+    function toggleCampos(valor) {
+        const campoProduto = document.getElementById('campo_produto');
+        const campoCategoria = document.getElementById('campo_categoria');
+
+        campoProduto.classList.add('d-none');
+        campoCategoria.classList.add('d-none');
+
+        document.getElementById('preco_venda').value = '';
+        document.getElementById('preco_simulado').value = '';
+        document.getElementById('desconto_percentual').value = '';
+        document.getElementById('acrescimo_percentual').value = '';
+        document.getElementById('acrescimo_valor').value = '';
+
+        document.getElementById('preco_venda').disabled = true;
+        document.getElementById('desconto_percentual').disabled = true;
+        document.getElementById('acrescimo_percentual').disabled = true;
+        document.getElementById('acrescimo_valor').disabled = true;
+
+        if(valor === 'produto') {
+            campoProduto.classList.remove('d-none');
+        } 
+        else if(valor === 'categoria') {
+            campoCategoria.classList.remove('d-none');
+            document.getElementById('desconto_percentual').disabled = false;
+            document.getElementById('acrescimo_percentual').disabled = false;
+            document.getElementById('acrescimo_valor').disabled = false;
+        }
+
+        atualizarPreco();
+    }
+
+    function atualizarPreco() {
+
+        const tipo = document.getElementById('tipo_abrangencia').value;
+
+        if(tipo !== 'produto')
+            return;
+
+        const opt = document.getElementById('produto_id').selectedOptions[0];
+        if(!opt) return;
+
+        // ■■■ PREENCHER TODOS OS CAMPOS DE VISUALIZAÇÃO ■■■
+        document.getElementById('visu_nome').value        = opt.dataset.nome || '';
+        document.getElementById('visu_marca').value       = opt.dataset.marca || '';
+        document.getElementById('visu_unidade').value     = opt.dataset.unidade || '';
+        document.getElementById('visu_estoque').value     = opt.dataset.estoque || '';
+        document.getElementById('visu_fornecedor').value  = opt.dataset.fornecedor || '';
+        document.getElementById('visu_descricao').value  = opt.dataset.descricao || '';
+        
+        // preço
+        const preco = parseFloat(opt.dataset.preco || 0);
+
+        document.getElementById('preco_venda').value = preco.toFixed(2);
+        document.getElementById('preco_simulado').value = '';
+
+        if(preco > 0){
+            document.getElementById('desconto_percentual').disabled = false;
+            document.getElementById('acrescimo_percentual').disabled = false;
+            document.getElementById('acrescimo_valor').disabled = false;
+        }
+    }
+
+    // Validar desconto máximo
+    if (parseFloat(this.value) > 10) {
+        msgDesconto.textContent = 'O desconto não pode ser maior que 10%.';
+        this.value = ''; // limpa o campo
+    } else {
+        msgDesconto.textContent = '';
+    }
+    
+    function simularPreco() {
+        const precoVenda = parseFloat(document.getElementById('preco_venda').value || 0);
+
+        let precoFinal = precoVenda;
+        const desconto = parseFloat(document.getElementById('desconto_percentual').value) || 0;
+        const acrescimoPercentual = parseFloat(document.getElementById('acrescimo_percentual').value) || 0;
+        const acrescimoValor = parseFloat(document.getElementById('acrescimo_valor').value) || 0;
+
+        if(desconto > 0) precoFinal -= precoVenda * (desconto / 100);
+        else if(acrescimoPercentual > 0) precoFinal += precoVenda * (acrescimoPercentual / 100);
+        else if(acrescimoValor > 0) precoFinal += acrescimoValor;
+
+        document.getElementById('preco_simulado').value = precoFinal.toFixed(2);
+    }
+
+</script>
+
+<!-- <script>
     function toggleCampos(valor) {
         const campoProduto = document.getElementById('campo_produto');
         const campoCategoria = document.getElementById('campo_categoria');
@@ -170,29 +306,37 @@
 
         atualizarPreco();
     }
-
     function atualizarPreco() {
+
         const tipo = document.getElementById('tipo_abrangencia').value;
-        let preco = 0;
 
-        if(tipo === 'produto') {
-            const produto = document.getElementById('produto_id').selectedOptions[0];
-            preco = parseFloat(produto?.dataset?.preco || 0);
-        }
+        if(tipo !== 'produto')
+            return;
 
-        const precoVendaInput = document.getElementById('preco_venda');
-        const precoSimuladoInput = document.getElementById('preco_simulado');
+        const opt = document.getElementById('produto_id').selectedOptions[0];
+        if(!opt) return;
 
-        precoVendaInput.value = preco.toFixed(2);
-        precoSimuladoInput.value = '';
+        // ■■■ PREENCHER TODOS OS CAMPOS DE VISUALIZAÇÃO ■■■
+        document.getElementById('visu_nome').value        = opt.dataset.nome || '';
+        document.getElementById('visu_marca').value       = opt.dataset.marca || '';
+        document.getElementById('visu_unidade').value     = opt.dataset.unidade || '';
+        document.getElementById('visu_estoque').value     = opt.dataset.estoque || '';
+        document.getElementById('visu_fornecedor').value  = opt.dataset.fornecedor || '';
+        document.getElementById('visu_descricao').value  = opt.dataset.descricao || '';
         
-        // habilitar desconto/acréscimo somente se houver preço para produto
-        if(tipo === 'produto' && preco > 0){
+        // preço
+        const preco = parseFloat(opt.dataset.preco || 0);
+
+        document.getElementById('preco_venda').value = preco.toFixed(2);
+        document.getElementById('preco_simulado').value = '';
+
+        if(preco > 0){
             document.getElementById('desconto_percentual').disabled = false;
             document.getElementById('acrescimo_percentual').disabled = false;
             document.getElementById('acrescimo_valor').disabled = false;
         }
     }
+
 
     function simularPreco() {
         const tipo = document.getElementById('tipo_abrangencia').value;
@@ -240,6 +384,7 @@
         const desconto = parseFloat(document.getElementById('desconto_percentual').value) || 0;
         const acrescimoPerc = parseFloat(document.getElementById('acrescimo_percentual').value) || 0;
         const acrescimoValor = parseFloat(document.getElementById('acrescimo_valor').value) || 0;
+        
 
         if(tipo === '') {
             alert('Selecione o tipo de abrangência.');
@@ -266,8 +411,7 @@
             e.preventDefault(); return;
         }
     });
-</script>
-
+</script> -->
 
 
 @endsection

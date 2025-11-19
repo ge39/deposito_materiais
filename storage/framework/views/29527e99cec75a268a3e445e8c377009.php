@@ -45,7 +45,25 @@
                 <div class="col-1" style="width:50px">000<?php echo e($produto->id); ?></div>
                 <div class="col-2" style="width:180px"><?php echo e($produto->nome); ?></div>
                 <div class="col-1" style="width:50px"><?php echo e($produto->quantidade_estoque); ?></div>
-                <div class="col-1" style="width:100px">R$ <?php echo e(number_format($produto->precoAtual(), 2, ',', '.')); ?></div>
+                <div class="col-1" style="width:100px">
+                   <p class="card-text mb-1">
+                        <?php if($produto->promocao): ?>
+                            <span style="text-decoration: line-through; color: #888;">
+                                R$ <?php echo e(number_format($produto->promocao->preco_original, 2, ',', '.')); ?>
+
+                            </span>
+                            <span style="color: green; font-weight: bold;">
+                             <?php echo e(number_format($produto->promocao->preco_promocional, 2, ',', '.')); ?>
+
+                            </span>
+                        <?php else: ?>
+                            R$ <?php echo e(number_format($produto->preco_venda, 2, ',', '.')); ?>
+
+                        <?php endif; ?>
+                    </p>
+                </div>
+
+                
                 <div class="col-2" style="width:100px"><?php echo e($produto->unidadeMedida->nome ?? '-'); ?></div>
                 <div class="col-2" style="width:180px"><?php echo e($produto->categoria->nome ?? '-'); ?></div>
                 <div class="col-2" style="width:100px"><?php echo e($produto->marca->nome ?? '-'); ?></div>

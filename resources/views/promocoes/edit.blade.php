@@ -1,138 +1,152 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mt-4">
+<div class="container">
+
+    <!-- {{-- Mensagens contextuais dinâmicas --}}
+    @php
+        $alertType = 'success'; // padrão
+        $message = session('success') ?? session('popup_message') ?? null;
+
+        if (session('success') && str_contains(session('success'), 'excluída')) {
+            $alertType = 'danger';
+        } elseif (session('success') && str_contains(session('success'), 'encerrada')) {
+            $alertType = 'warning';
+        } elseif (session('popup_message')) {
+            $alertType = 'info';
+        }
+    @endphp
+
+    @if($message)
+        <div class="alert alert-{{ $alertType }} alert-dismissible fade show" role="alert">
+            {{ $message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    @endif -->
+
+
+
     <div class="card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Editar Promoção</h4>
-            <a href="{{ route('promocoes.index') }}" class="btn btn-secondary btn-sm">
-                <i class="bi bi-arrow-left"></i> Voltar
-            </a>
-        </div>
+        <h4>Editar Promoção</h4>
+
+        {{-- Botão para encerrar promoção --}}
+        <form action="{{ route('promocoes.encerrar', $promocao->id) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja encerrar esta promoção?')">
+            @csrf
+            @method('PATCH')
+
+            <button type="submit" class="btn btn-danger btn-sm">
+                <i class="bi bi-x-circle"></i> Encerrar Promoção
+            </button>
+        </form>
+    </div>
+
 
         <div class="card-body">
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <strong>Ops!</strong> Verifique os erros abaixo:<br><br>
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $erro)
-                            <li>{{ $erro }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
 
             <form action="{{ route('promocoes.update', $promocao->id) }}" method="POST">
                 @csrf
                 @method('PUT')
 
-                {{-- Tipo de Abrangência --}}
-                <div class="mb-3">
-                    <label for="tipo_abrangencia" class="form-label">Tipo de Abrangência</label>
-                    <select name="tipo_abrangencia" id="tipo_abrangencia" class="form-select" required onchange="toggleCampos(this.value)">
-                        <option value="">Selecione...</option>
-                        <option value="produto" {{ $promocao->tipo_abrangencia == 'produto' ? 'selected' : '' }}>Por Produto</option>
-                        <option value="categoria" {{ $promocao->tipo_abrangencia == 'categoria' ? 'selected' : '' }}>Por Categoria</option>
-                    </select>
-                </div>
+                <h5 class="mb-3">Dados do Produto - ID {{$promocao->produto_id}}</h5>
 
-                {{-- Produto --}}
-                <div class="mb-3 {{ $promocao->tipo_abrangencia == 'produto' ? '' : 'd-none' }}" id="campo_produto">
-                    <label for="produto_id" class="form-label">Produto</label>
-                    <select name="produto_id" id="produto_id" class="form-select">
-                        <option value="">Selecione um produto...</option>
-                        @foreach($produtos as $produto)
-                            <option value="{{ $produto->id }}" {{ $promocao->produto_id == $produto->id ? 'selected' : '' }}>
-                                {{ $produto->nome }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                {{-- Categoria --}}
-                <div class="mb-3 {{ $promocao->tipo_abrangencia == 'categoria' ? '' : 'd-none' }}" id="campo_categoria">
-                    <label for="categoria_id" class="form-label">Categoria</label>
-                    <select name="categoria_id" id="categoria_id" class="form-select">
-                        <option value="">Selecione uma categoria...</option>
-                        @foreach($categorias as $categoria)
-                            <option value="{{ $categoria->id }}" {{ $promocao->categoria_id == $categoria->id ? 'selected' : '' }}>
-                                {{ $categoria->nome }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <hr>
-
-                {{-- Campos de valores --}}
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label for="desconto_percentual" class="form-label">Desconto (%)</label>
-                        <input type="number" name="desconto_percentual" id="desconto_percentual"
-                            value="{{ $promocao->desconto_percentual }}" class="form-control" step="0.01" min="0">
+                        <label>Produto </label>
+                        <input type="text" class="form-control" value="{{ $promocao->produto->nome }}" readonly>
                     </div>
 
                     <div class="col-md-4 mb-3">
-                        <label for="acrescimo_percentual" class="form-label">Acréscimo (%)</label>
-                        <input type="number" name="acrescimo_percentual" id="acrescimo_percentual"
-                            value="{{ $promocao->acrescimo_percentual }}" class="form-control" step="0.01" min="0">
+                        <label>Marca</label>
+                        <input type="text" class="form-control" value="{{ $promocao->produto->marca->nome }}" readonly>
                     </div>
 
                     <div class="col-md-4 mb-3">
-                        <label for="acrescimo_valor" class="form-label">Acréscimo (R$)</label>
-                        <input type="number" name="acrescimo_valor" id="acrescimo_valor"
-                            value="{{ $promocao->acrescimo_valor }}" class="form-control" step="0.01" min="0">
+                        <label>Unidade</label>
+                        <input type="text" class="form-control" value="{{ $promocao->produto->unidadeMedida->nome }}" readonly>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label>Fornecedor</label>
+                        <input type="text" class="form-control" value="{{  $promocao->produto->fornecedor->nome ?? '---' }}" readonly>
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label>Descrição</label>
+                        <textarea class="form-control" rows="2" readonly>{{ $promocao->produto->descricao }}</textarea>
                     </div>
                 </div>
 
                 <hr>
 
-                {{-- Datas --}}
+                <h5 class="mb-3">Dados da Promoção</h5>
+
                 <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="promocao_inicio" class="form-label">Data de Início</label>
-                        <input type="date" name="promocao_inicio" id="promocao_inicio"
-                            value="{{ \Carbon\Carbon::parse($promocao->promocao_inicio)->format('Y-m-d') }}" class="form-control" required>
+
+                    <div class="col-md-4 mb-3">
+                        <label>Preço Original</label>
+                        <input type="text" name="preco_original" class="form-control" value="{{ $promocao->preco_original }}" readonly>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="promocao_fim" class="form-label">Data de Fim</label>
-                        <input type="date" name="promocao_fim" id="promocao_fim"
-                            value="{{ \Carbon\Carbon::parse($promocao->promocao_fim)->format('Y-m-d') }}" class="form-control" required>
+
+                    <div class="col-md-4 mb-3">
+                        <label>Desconto (%)</label>
+                        <input type="number" name="desconto_percentual" class="form-control" min="{{ $promocao->desconto_percentual }}" value="{{ $promocao->desconto_percentual }}">
                     </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label>Preço Promocional</label>
+                        <input type="text" name="preco_promocional" class="form-control" value="{{ $promocao->preco_promocional }}" readonly>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label>Status</label>
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="status" id="status1" value="1" autocomplete="off" {{ $promocao->status == 1 ? 'checked' : '' }}>
+                            <label class="btn btn-outline-success" for="status1">Ativo</label>
+
+                            <!-- <input type="radio" class="btn-check" name="status" id="status0" value="0" autocomplete="off" {{ $promocao->status == 0 ? 'checked' : '' }}>
+                            <label class="btn btn-outline-secondary" for="status0">Inativo</label> -->
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label>Data Início</label>
+                        <input type="date" name="promocao_inicio" class="form-control" value="{{ $promocao->promocao_inicio }}" readonly>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label>Data Fim</label>
+                        <input type="date" name="promocao_fim" class="form-control" value="{{ $promocao->promocao_fim }}" min="{{ $promocao->promocao_fim }}">
+                    </div>
+
                 </div>
 
-                {{-- Status --}}
-                <div class="form-check form-switch mb-4">
-                    <input class="form-check-input" type="checkbox" name="em_promocao" id="em_promocao"
-                        {{ $promocao->em_promocao ? 'checked' : '' }}>
-                    <label class="form-check-label" for="em_promocao">Promoção ativa</label>
-                </div>
-
-                {{-- Botões --}}
-                <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-success">
-                        <i class="bi bi-check-circle"></i> Atualizar Promoção
-                    </button>
+                
+                <div>
+                  <button type="submit"class="btn btn-success mt-3" > Salvar Alterações </button>
+                 <a href="{{ url()->previous() }}" class="btn btn-secondary mt-3">Voltar</a>
                 </div>
             </form>
+
         </div>
     </div>
+
 </div>
 
-{{-- Script para alternar campos --}}
 <script>
-    function toggleCampos(valor) {
-        const campoProduto = document.getElementById('campo_produto');
-        const campoCategoria = document.getElementById('campo_categoria');
+    const precoOriginal = parseFloat('{{ $promocao->preco_original }}');
+    const descontoInput = document.querySelector('[name="desconto_percentual"]');
+    const precoPromocionalInput = document.querySelector('[name="preco_promocional"]');
 
-        campoProduto.classList.add('d-none');
-        campoCategoria.classList.add('d-none');
-
-        if (valor === 'produto') {
-            campoProduto.classList.remove('d-none');
-        } else if (valor === 'categoria') {
-            campoCategoria.classList.remove('d-none');
+    descontoInput.addEventListener('input', function() {
+        let descontoAtual = parseFloat(this.value);
+        if(descontoAtual < {{ $promocao->desconto_percentual }}) {
+            descontoAtual = {{ $promocao->desconto_percentual }};
+            this.value = descontoAtual;
         }
-    }
+        const precoPromocional = precoOriginal - (precoOriginal * descontoAtual / 100);
+        precoPromocionalInput.value = precoPromocional.toFixed(2);
+    });
 </script>
+
 @endsection

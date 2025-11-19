@@ -6,52 +6,36 @@ use App\Models\Promocao;
 use App\Models\Produto;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Traits\Filterable;
+use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 
 class PromocaoController extends Controller
 {
-    use Filterable;
-    
-    /**
-     * Construtor: aplica middleware de autenticação e autorização.
-     */
     public function __construct()
     {
         $this->middleware(['auth', 'can:gerenciar-promocoes']);
     }
 
-    /**
-     * Campos permitidos para filtro (necessário para o trait Filterable)
-     */
-    protected function filterableFields(): array
-    {
-        return [
-            'tipo_abrangencia',
-            'produto_id',
-            'categoria_id',
-            'em_promocao',
-        ];
-    }
-
-    /**
-     * Exibe a lista de promoções com filtros aplicáveis.
-     */
+    // LISTAGEM DE PROMOÇÕES
     public function index(Request $request)
     {
-        $query = Promocao::with(['produto', 'categoria'])->orderByDesc('created_at');
+        $query = Promocao::with(['produto', 'categoria'])
+            ->where('status', 1)
+            ->orderByDesc('created_at');
 
-        // Aplica filtros usando a trait Filterable
-        $query = $this->applyFilters($query, $request);
+        // se o usuário filtrar por status, aplica; caso contrário, lista todas
+        foreach (['tipo_abrangencia', 'produto_id', 'categoria_id', 'status'] as $field) {
+            if ($request->filled($field)) {
+                $query->where($field, $request->input($field));
+            }
+        }
 
-        // Paginação mantendo os filtros na URL
         $promocoes = $query->paginate(15)->appends($request->query());
 
         return view('promocoes.index', compact('promocoes'));
     }
 
-    /**
-     * Mostra o formulário de criação de promoção.
-     */
+    // FORMULÁRIO DE CRIAÇÃO
     public function create()
     {
         $produtos = Produto::orderBy('nome')->get();
@@ -60,44 +44,60 @@ class PromocaoController extends Controller
         return view('promocoes.create', compact('produtos', 'categorias'));
     }
 
-    /**
-     * Armazena uma nova promoção.
-     */
+    // SALVAR NOVA PROMOÇÃO
     public function store(Request $request)
     {
+        // Validação básica antes do validated() para checar conflito de promo por produto
+        if ($request->tipo_abrangencia === 'produto' && $request->produto_id && $request->input('status') == 1) {
+            $hoje = Carbon::today();
+            $promoVigente = Promocao::where('produto_id', $request->produto_id)
+                ->where('status', 1)
+                ->whereDate('promocao_inicio', '<=', $hoje)
+                ->whereDate('promocao_fim', '>=', $hoje)
+                ->exists();
+
+            if ($promoVigente) {
+                $produto = Produto::find($request->produto_id);
+                throw ValidationException::withMessages([
+                    'produto_id' => "O produto '{$produto->nome}' já participa de uma promoção vigente."
+                ]);
+            }
+        }
+
         $validated = $request->validate([
             'tipo_abrangencia' => 'required|in:produto,categoria,geral',
-            'produto_id' => 'nullable|exists:produtos,id',
-            'categoria_id' => 'nullable|exists:categorias,id',
+            'produto_id' => 'required_if:tipo_abrangencia,produto|nullable|exists:produtos,id',
+            'categoria_id' => 'required_if:tipo_abrangencia,categoria|nullable|exists:categorias,id',
             'desconto_percentual' => 'nullable|numeric|min:0|max:100',
             'acrescimo_percentual' => 'nullable|numeric|min:0|max:100',
             'acrescimo_valor' => 'nullable|numeric|min:0',
+            'preco_original' => 'nullable|numeric|min:0',
             'preco_promocional' => 'nullable|numeric|min:0',
-            'promocao_inicio' => 'nullable|date',
-            'promocao_fim' => 'nullable|date|after_or_equal:promocao_inicio',
-            'em_promocao' => 'boolean',
+            'promocao_inicio' => 'required|date',
+            'promocao_fim' => 'required|date|after_or_equal:promocao_inicio',
+            'status' => 'nullable|in:0,1',
         ]);
 
-        $validated['em_promocao'] = $request->has('em_promocao');
+        // cria usando valores validados; se status não for enviado, deixa 0 (inativa) por segurança
+        $promocao = Promocao::create([
+            'tipo_abrangencia'    => $validated['tipo_abrangencia'],
+            'produto_id'          => $validated['produto_id'] ?? null,
+            'categoria_id'        => $validated['categoria_id'] ?? null,
+            'desconto_percentual' => $validated['desconto_percentual'] ?? 0,
+            'acrescimo_percentual'=> $validated['acrescimo_percentual'] ?? 0,
+            'acrescimo_valor'     => $validated['acrescimo_valor'] ?? 0,
+            'preco_original'      => $validated['preco_original'] ?? 0,
+            'preco_promocional'   => $validated['preco_promocional'] ?? 0,
+            'promocao_inicio'     => $validated['promocao_inicio'],
+            'promocao_fim'        => $validated['promocao_fim'],
+            'status'              => 1,
+        ]);
 
-        $promocao = Promocao::create($validated);
-
-        $this->aplicarPromocao($promocao);
-
-        return redirect()->route('promocoes.index')->with('success', 'Promoção criada com sucesso!');
+        // Não aplicamos nada no Controller — o Observer (PromocaoObserver) fará o trabalho
+        return $this->flashMessage($promocao, 'created');
     }
 
-    /**
-     * Exibe detalhes da promoção.
-     */
-    public function show(Promocao $promocao)
-    {
-        return view('promocoes.show', compact('promocao'));
-    }
-
-    /**
-     * Mostra formulário de edição.
-     */
+    // FORMULÁRIO DE EDIÇÃO
     public function edit(Promocao $promocao)
     {
         $produtos = Produto::orderBy('nome')->get();
@@ -106,91 +106,121 @@ class PromocaoController extends Controller
         return view('promocoes.edit', compact('promocao', 'produtos', 'categorias'));
     }
 
-    /**
-     * Atualiza a promoção.
-     */
+    // ATUALIZAR PROMOÇÃO
     public function update(Request $request, Promocao $promocao)
     {
+        // Se a intenção for ativar a promoção agora, checa conflito com outra vigente (exclui a atual)
+        if ($request->has('status') && (int)$request->input('status') === 1
+            && $promocao->tipo_abrangencia === 'produto' && $promocao->produto_id) {
+
+            $hoje = Carbon::today();
+            $promoVigente = Promocao::where('produto_id', $promocao->produto_id)
+                ->where('status', 1)
+                ->whereDate('promocao_inicio', '<=', $hoje)
+                ->whereDate('promocao_fim', '>=', $hoje)
+                ->where('id', '<>', $promocao->id)
+                ->exists();
+
+            if ($promoVigente) {
+                throw ValidationException::withMessages([
+                    'produto_id' => "O produto '{$promocao->produto->nome}' já participa de uma promoção vigente."
+                ]);
+            }
+        }
+
+        // validação mais permissiva que permite ajustar desconto/data sem travar pelo valor antigo
         $validated = $request->validate([
-            'tipo_abrangencia' => 'required|in:produto,categoria,geral',
-            'produto_id' => 'nullable|exists:produtos,id',
-            'categoria_id' => 'nullable|exists:categorias,id',
             'desconto_percentual' => 'nullable|numeric|min:0|max:100',
-            'acrescimo_percentual' => 'nullable|numeric|min:0|max:100',
-            'acrescimo_valor' => 'nullable|numeric|min:0',
             'preco_promocional' => 'nullable|numeric|min:0',
-            'promocao_inicio' => 'nullable|date',
             'promocao_fim' => 'nullable|date|after_or_equal:promocao_inicio',
-            'em_promocao' => 'nullable|boolean',
+            'promocao_inicio' => 'nullable|date',
+            'status' => 'nullable|in:0,1',
         ]);
 
-        $promocao->update($validated);
+        // aplica somente os campos enviados (não sobrescreve tudo)
+        $updateData = [];
+        foreach (['desconto_percentual', 'preco_promocional', 'promocao_inicio', 'promocao_fim', 'status'] as $fld) {
+            if (array_key_exists($fld, $validated)) {
+                $updateData[$fld] = $validated[$fld];
+            }
+        }
 
-        $this->aplicarPromocao($promocao);
+        if (!empty($updateData)) {
+            $promocao->update($updateData);
+        }
 
-        return redirect()->route('promocoes.index')->with('success', 'Promoção atualizada com sucesso!');
+        // Observer irá aplicar/restaurar quando detectar mudança de status ou expiração
+
+        return $this->flashMessage($promocao, 'updated');
     }
 
-    /**
-     * Remove uma promoção.
-     */
+    // DELETAR PROMOÇÃO
     public function destroy(Promocao $promocao)
     {
+        // Observer -> deleting() cuidará de restaurar preços
         $promocao->delete();
-        return redirect()->route('promocoes.index')->with('success', 'Promoção excluída com sucesso!');
+
+        return $this->flashMessage($promocao, 'deleted');
     }
 
-    /**
-     * Ativa ou desativa rapidamente uma promoção.
-     */
-    public function toggleStatus(Promocao $promocao)
+    // Encerrar promoção manualmente
+    public function encerrar($id)
     {
-        $promocao->em_promocao = !$promocao->em_promocao;
+        $promocao = Promocao::findOrFail($id);
+
+        // marcar como encerrada (status 0) e atualizar fim para hoje — usar save() para disparar observer
+        $promocao->status = 0;
+        $promocao->promocao_fim = Carbon::today();
         $promocao->save();
 
-        if ($promocao->em_promocao) {
-            $this->aplicarPromocao($promocao);
-        }
-
-        return redirect()->back()->with('success', 'Status da promoção atualizado!');
+        // Observer -> updated() irá restaurar os preços
+        return $this->flashMessage($promocao, 'ended');
     }
 
-    /**
-     * Aplica a promoção nos produtos afetados.
-     */
-    private function aplicarPromocao(Promocao $promocao)
+    public function toggle(Promocao $promocao)
     {
-        if (!$promocao->em_promocao) return;
+        return $this->toggleStatus($promocao);
+    }
 
-        if ($promocao->tipo_abrangencia === 'produto' && $promocao->produto_id) {
-            $produtos = Produto::where('id', $promocao->produto_id)->get();
-        } elseif ($promocao->tipo_abrangencia === 'categoria' && $promocao->categoria_id) {
-            $produtos = Produto::where('categoria_id', $promocao->categoria_id)->get();
-        } else {
-            $produtos = Produto::all();
-        }
+    // Alternar status da promoção
+    public function toggleStatus(Promocao $promocao)
+    {
+        $promocao->status = !$promocao->status;
+        $promocao->save(); // Observer aplica/restaura conforme necessário
 
-        foreach ($produtos as $produto) {
-            $precoBase = $produto->preco_base ?? $produto->preco;
-            $precoFinal = $precoBase;
+        return redirect()
+            ->route('promocoes.index')
+            ->with(
+                'success',
+                $promocao->status
+                    ? 'Promoção ativada com sucesso!'
+                    : 'Promoção desativada com sucesso!'
+            );
+    }
 
-            if ($promocao->desconto_percentual > 0) {
-                $precoFinal -= ($precoBase * ($promocao->desconto_percentual / 100));
-            }
+    // VISUALIZAR PROMOÇÃO
+    public function show(Promocao $promocao)
+    {
+        return view('promocoes.show', compact('promocao'));
+    }
 
-            if ($promocao->acrescimo_percentual > 0) {
-                $precoFinal += ($precoBase * ($promocao->acrescimo_percentual / 100));
-            }
-
-            if ($promocao->acrescimo_valor > 0) {
-                $precoFinal += $promocao->acrescimo_valor;
-            }
-
-            if ($promocao->preco_promocional > 0) {
-                $precoFinal = $promocao->preco_promocional;
-            }
-
-            $produto->update(['preco' => $precoFinal]);
+    private function flashMessage(Promocao $promocao, string $action)
+    {
+        switch($action) {
+            case 'created':
+                return redirect()->route('promocoes.index')
+                    ->with('success', 'Promoção criada com sucesso!');
+            case 'updated':
+                return redirect()->route('promocoes.index')
+                    ->with('success', 'Promoção atualizada com sucesso!');
+            case 'ended':
+                return redirect()->route('promocoes.index')
+                    ->with('success', 'Promoção encerrada com sucesso!');
+            case 'deleted':
+                return redirect()->route('promocoes.index')
+                    ->with('success', 'Promoção excluída com sucesso!');
+            default:
+                return redirect()->route('promocoes.index');
         }
     }
 }
