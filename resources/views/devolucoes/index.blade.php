@@ -2,8 +2,9 @@
 
 @section('content')
 <div class="container">
-    <h2>Rastrear Venda</h2>
+    <h2>Rastrear Devoluções Venda</h2>
 
+    <!-- Formulário de filtros -->
     <form action="{{ route('devolucoes.buscar') }}" method="GET" class="mb-4">
         <div class="row g-4">
             <div class="col-md-3">
@@ -57,55 +58,82 @@
             <div class="col-12 d-flex justify-content-end gap-2 mt-2">
                 <button type="submit" class="btn btn-primary">Buscar</button>
                 <a href="{{ route('devolucoes.index') }}" class="btn btn-secondary">Limpar</a>
-                <a href="{{ route('devolucoes.pendentes') }}" class="btn btn-warning">DevoluçõesPendente</a>
+                <a href="{{ route('devolucoes.pendentes') }}" class="btn btn-warning">Devoluções Pendentes</a>
             </div>
         </div>
     </form>
 
+    <!-- Cards de resultados -->
     @if($itens->isNotEmpty())
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Venda</th>
-                    <th>Cliente</th>
-                    <th>Produto</th>
-                    <th>Lote</th>
-                    <th>QTD</th>
-                    <th>Vl.Unit</th>
-                    <th>Desconto</th>
-                    <th>VL.Total</th>
-                    <th>Data da Venda</th>
-                    <th>Ação</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($itens as $item)
-                    <tr>
-                        <td>{{ $item->venda->id }}</td>
-                        <td>{{ $item->venda->cliente->nome }}</td>
-                        <td>{{ $item->produto->nome }}</td>
-                        <td>Lote #{{ $item->lote->id ?? '-' }}</td>
-                        <td>{{ $item->quantidade }}</td>
-                        <td>R${{ number_format($item->preco_unitario, 2, ',', '.') }}</td>
-                        <td>R${{ number_format($item->desconto, 2, ',', '.') }}</td>
-                        <td>R${{ number_format($item->subtotal, 2, ',', '.') }}</td>
-                        <td>{{ $item->venda->created_at->format('d/m/Y') }}</td>
-                        <td>
-                            <a href="{{ route('devolucoes.registrar', ['item_id' => $item->id]) }}" 
-                               class="btn btn-sm btn-danger">
-                                <i class="bi bi-x-circle"></i> Devolução
-                            </a>
-                            <a href="{{ route('devolucoes.index') }}" class="btn btn-secondary btn-sm">Voltar</a>
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+            @foreach($itens as $item)
+                @php
+                    $qtdDevolvida = $item->devolucoes
+                        ->whereIn('status', ['aprovada','concluida'])
+                        ->sum('quantidade');
+                    $qtdDisponivel = $item->quantidade - $qtdDevolvida;
+                @endphp
+                <div class="col">
+                    <div class="card h-100 shadow-sm 
+                        @if($qtdDisponivel == 0) border-success @endif">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                Venda #{{ $item->venda->id }} - {{ $item->produto->nome }}
+                            </h5>
+                            <p class="card-text mb-1"><strong>Data da Venda:</strong> {{ $item->venda->created_at->format('d/m/Y') }}</p>
+                            <p class="card-text mb-1"><strong>Cliente:</strong> {{ $item->venda->cliente->nome }}</p>
+                            <p class="card-text mb-1"><strong>Lote Rastreio:</strong> {{ $item->lote->id ?? '-' }}</p>
+                            <p class="card-text mb-1"><strong>Valor Compra:</strong> R${{ number_format($item->subtotal,2,',','.') }}</p>
+                            <p class="card-text mb-1">
+                                <strong>Qtde Comprada:</strong> {{ $item->quantidade }} |
+                                <strong>Devolvida:</strong> {{ $qtdDevolvida }} |
+                                <strong>Disponível:</strong> {{ $qtdDisponivel }}
+                            </p>                            
+                            <p class="card-text mb-1"><strong>Valor Unidade:</strong> R${{ number_format($item->preco_unitario,2,',','.') }}</p>
+                                @php
+                                    $valorExtornado = $qtdDevolvida * $item->preco_unitario;
+                                @endphp
+                            <p class="card-text mb-1">
+                                <strong>Valor Extornado:</strong>
+                                R${{ number_format($valorExtornado, 2, ',', '.') }}
+                            </p>
+                            <p class="card-text mb-1"><strong>Subtotal:</strong> R${{ number_format($item->subtotal - $valorExtornado,2,',','.') }}</p>
+                            <div class="mt-2 d-flex gap-2 align-items-start">
+                                @if($qtdDisponivel > 0)
+                                    <a href="{{ route('devolucoes.registrar', ['item_id' => $item->id]) }}" 
+                                    class="btn btn-sm mt-3 btn-danger">
+                                        <i class="bi bi-x-circle"></i> Devolver
+                                    </a>
+                                @else
+                                    <div class="d-flex flex-column">
+                                        <p class="card-text mb-1">
+                                            Última Devolução:
+                                            @if ($item->devolucoes->count() > 0)
+                                                {{ $item->devolucoes->last()->updated_at->format('d/m/Y') }}
+                                            @else
+                                                — 
+                                            @endif
+                                        </p>
+                                        
+                                        @if ($item->devolucoes->count() > 0)
+                                            <p class="text-success fw-bold mb-0 mt-2 text-start">
+                                                Totalmente devolvido
+                                            </p>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                <a href="{{ route('devolucoes.index') }}" class="btn btn-sm mt-3 btn-secondary">Voltar</a>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
     @else
-        <div class="card mt-4 alert alert-warning text-center py-3" style="background-color: #f0d791;">
-            <div class="card-body">
-                <h5 class="card-title mb-0 text-muted">Nenhum item encontrado</h5>
-            </div>
+        <div class="alert alert-warning text-center py-3" style="background-color: #f0d791;">
+            Nenhum item encontrado
         </div>
     @endif
 </div>

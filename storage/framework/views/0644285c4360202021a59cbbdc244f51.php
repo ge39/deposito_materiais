@@ -1,10 +1,10 @@
-@extends('layouts.app')
 
-@section('content')
 
-@foreach($item->venda->itens as $itemVenda)
+<?php $__env->startSection('content'); ?>
 
-    @php
+<?php $__currentLoopData = $item->venda->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemVenda): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+
+    <?php
         // Somente devoluções aprovadas ou concluídas
         $qtdDevolvida = $itemVenda->devolucoes
             ->whereIn('status', ['aprovada', 'concluida'])
@@ -21,21 +21,21 @@
 
         // Lista de devoluções
         $devolucoes = $itemVenda->devolucoes ?? collect();
-    @endphp
+    ?>
 
-@endforeach
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
 <div class="container">
-    <h2 class="mb-4">Registrar Devolução / Troca - Venda #{{ $item->venda->id }}</h2>
-    <h4 class="mb-4">Cliente: {{ $item->venda->cliente->nome }}</h4>
+    <h2 class="mb-4">Registrar Devolução / Troca - Venda #<?php echo e($item->venda->id); ?></h2>
+    <h4 class="mb-4">Cliente: <?php echo e($item->venda->cliente->nome); ?></h4>
 
     <div class="row">
         <div class="col-12 d-flex justify-content-end gap-2 mb-2">
-            <a href="{{ route('devolucoes.index') }}" class="btn btn-secondary">Voltar</a>
+            <a href="<?php echo e(route('devolucoes.index')); ?>" class="btn btn-secondary">Voltar</a>
         </div>
 
-        @foreach($item->venda->itens as $itemVenda)
-            @php
+        <?php $__currentLoopData = $item->venda->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemVenda): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php
                 // Somente devoluções aprovadas ou concluídas
                 $qtdDevolvida = $itemVenda->devolucoes
                     ->whereIn('status', ['aprovada', 'concluida'])
@@ -51,65 +51,70 @@
                 $jaDevolvido = $qtdDisponivel <= 0;
 
                 $devolucoes = $itemVenda->devolucoes ?? collect();
-            @endphp
+            ?>
 
             <div class="col-md-6 mb-4">
                 <div class="card shadow-sm position-relative">
 
-                    {{-- Carimbo produto devolvido --}}
-                    @if($jaDevolvido)
+                    
+                    <?php if($jaDevolvido): ?>
                         <div class="stamped">PRODUTO JÁ DEVOLVIDO</div>
-                    @endif
+                    <?php endif; ?>
 
                     <div class="card-header bg-light d-flex align-items-center gap-3">
                         <img 
-                            src="{{ asset('storage/' . ($itemVenda->produto->imagem ?? '')) }}"
+                            src="<?php echo e(asset('storage/' . ($itemVenda->produto->imagem ?? ''))); ?>"
                             class="card-img-top"
                             style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;"
                         >
-                        <strong>{{ $itemVenda->produto->nome }}</strong>
+                        <strong><?php echo e($itemVenda->produto->nome); ?></strong>
                     </div>
 
                     <div class="card-body">
 
-                        <p><strong>Código ID:</strong> 000{{ $itemVenda->id }}</p>
-                        <p><strong>Lote Rastreio:</strong> 000{{ $itemVenda->lote_id }}</p>
-                        <p><strong>Comprada:</strong> {{ $itemVenda->quantidade }}</p>
+                        <p><strong>Código ID:</strong> 000<?php echo e($itemVenda->id); ?></p>
+                        <p><strong>Lote Rastreio:</strong> 000<?php echo e($itemVenda->lote_id); ?></p>
+                        <p><strong>Comprada:</strong> <?php echo e($itemVenda->quantidade); ?></p>
 
                         <p><strong>Valor Compra:</strong> 
-                            R${{ number_format($itemVenda->subtotal, 2, ',', '.') }}
+                            R$<?php echo e(number_format($itemVenda->subtotal, 2, ',', '.')); ?>
+
                         </p>
 
                         <p><strong>Valor Extornado:</strong> 
-                            R{{ number_format($valorExtornado, 2, ',', '.') }}
+                            R<?php echo e(number_format($valorExtornado, 2, ',', '.')); ?>
+
                         </p>
 
                         <p><strong>Já Devolvida:</strong>
-                            {{ $qtdDevolvida }} {{ $itemVenda->produto->unidadeMedida->sigla }}
+                            <?php echo e($qtdDevolvida); ?> <?php echo e($itemVenda->produto->unidadeMedida->sigla); ?>
+
                         </p>
 
                         <p><strong>Data da Venda:</strong> 
-                            {{ $itemVenda->venda->created_at->format('d/m/Y') }}
+                            <?php echo e($itemVenda->venda->created_at->format('d/m/Y')); ?>
+
                         </p>
 
                         <p><strong>Última Devolução:</strong>
-                            @if($devolucoes->count() > 0)
-                                {{ $devolucoes->last()->created_at->format('d/m/Y') }}
-                            @else
+                            <?php if($devolucoes->count() > 0): ?>
+                                <?php echo e($devolucoes->last()->created_at->format('d/m/Y')); ?>
+
+                            <?php else: ?>
                                 —
-                            @endif
+                            <?php endif; ?>
                         </p>
 
-                        @if(!$jaDevolvido)
+                        <?php if(!$jaDevolvido): ?>
                         <form 
-                            action="{{ route('devolucoes.salvar') }}" 
+                            action="<?php echo e(route('devolucoes.salvar')); ?>" 
                             method="POST" 
                             enctype="multipart/form-data" 
                             class="d-flex flex-column gap-2"
                         >
-                            @csrf
+                            <?php echo csrf_field(); ?>
 
-                            <input type="hidden" name="item_id" value="{{ $itemVenda->id }}">
+                            <input type="hidden" name="item_id" value="<?php echo e($itemVenda->id); ?>">
 
                             <div class="d-flex align-items-center gap-2">
                                 <label class="mb-0">À Devolver:</label>
@@ -118,7 +123,7 @@
                                     name="quantidade" 
                                     class="form-control"
                                     min="1" 
-                                    max="{{ $qtdDisponivel }}"
+                                    max="<?php echo e($qtdDisponivel); ?>"
                                     placeholder="0" 
                                     required
                                     style="width: 100px;"
@@ -136,46 +141,46 @@
                             <label class="mt-2">Evidências (opcional, até 4 imagens):</label>
 
                             <div class="d-flex flex-wrap gap-2 align-items-center">
-                                @for ($i = 1; $i <= 4; $i++)
+                                <?php for($i = 1; $i <= 4; $i++): ?>
                                     <div class="image-container">
                                         <input 
                                             type="file" 
-                                            name="imagem{{ $i }}" 
-                                            id="imagem-{{ $itemVenda->id }}-{{ $i }}" 
+                                            name="imagem<?php echo e($i); ?>" 
+                                            id="imagem-<?php echo e($itemVenda->id); ?>-<?php echo e($i); ?>" 
                                             class="image-input" 
                                             accept="image/*" 
                                             hidden
                                         >
                                         <label 
-                                            for="imagem-{{ $itemVenda->id }}-{{ $i }}" 
+                                            for="imagem-<?php echo e($itemVenda->id); ?>-<?php echo e($i); ?>" 
                                             class="image-label"
                                         >
                                             <img 
-                                                id="preview-{{ $itemVenda->id }}-{{ $i }}" 
+                                                id="preview-<?php echo e($itemVenda->id); ?>-<?php echo e($i); ?>" 
                                                 class="img-preview"
                                                 src="" 
                                                 alt="Adicionar imagem"
                                             >
                                         </label>
                                     </div>
-                                @endfor
+                                <?php endfor; ?>
                             </div>
 
                             <div class="d-flex gap-2 mt-3">
                                 <button type="submit" class="btn btn-danger btn-sm flex-grow-1">
                                     Confirmar
                                 </button>
-                                <a href="{{ route('devolucoes.index') }}" class="btn btn-secondary btn-sm flex-grow-1">
+                                <a href="<?php echo e(route('devolucoes.index')); ?>" class="btn btn-secondary btn-sm flex-grow-1">
                                     Voltar
                                 </a>
                             </div>
                         </form>
-                        @endif
+                        <?php endif; ?>
 
                     </div>
                 </div>
             </div>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
 </div>
 
@@ -266,4 +271,6 @@ document.querySelectorAll('.image-input').forEach(input => {
 }
 </style>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/devolucoes/registrar.blade.php ENDPATH**/ ?>

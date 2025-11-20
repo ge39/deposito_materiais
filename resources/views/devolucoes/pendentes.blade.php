@@ -16,12 +16,12 @@
         <div class="col-md-6">
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-light">
-                    <strong>Codigo:</strong> 000{{ optional($devolucao->vendaItem->venda->cliente)->id ?? '-' }} <br>
+                    <strong>Venda ID:</strong> 000{{ optional($devolucao->vendaItem->venda->cliente)->id ?? '-' }} <br>
                     <strong>Cliente:</strong> {{ optional($devolucao->vendaItem->venda->cliente)->nome ?? '-' }} <br>
                     <strong>Lote:</strong> {{ optional($devolucao->vendaItem->lote)->id ?? '-' }} <br>
-                    <strong>Codigo:</strong> 000{{ optional($devolucao->produto)->id ?? '-' }} <br>
-                    <strong>Produto:</strong> {{ optional($devolucao->vendaItem->produto)->nome ?? '-' }} <br>
-                    <strong>Quantidade:</strong> {{ $devolucao->quantidade }} <br>
+                    <strong>Codigo Produto:</strong> 000{{ optional($devolucao->produto)->id ?? '-' }} <br>
+                    <strong>Descrição:</strong> {{ optional($devolucao->vendaItem->produto)->nome ?? '-' }} <br>
+                    <strong>Qtde Devolvida:</strong> {{ $devolucao->quantidade }} <br>
                     <strong>Status:</strong> <span class="badge bg-warning">{{ ucfirst($devolucao->status) }}</span>
                 </div>
 
@@ -49,22 +49,34 @@
                                     </li>
                                 @endforeach
                             </ul>
-                                <form action="{{ route('devolucoes.aprovar', $devolucao->id) }}" method="POST" style="display:inline;">
+                                                                <form action="{{ route('devolucoes.aprovar', $devolucao->id) }}"
+                                    method="POST" style="display:inline;">
                                     @csrf
                                     @method('PUT')
-                                    <button type="submit" class="btn btn-success btn-sm">
+                                    <button type="submit"
+                                            id="btn-aprovar-{{ $devolucao->id }}"
+                                            class="btn btn-success btn-sm"
+                                            disabled>
                                         Aprovar
                                     </button>
                                 </form>
 
-                                <form action="{{ route('devolucoes.rejeitar', $devolucao->id) }}" method="POST" style="display:inline;">
+                                <form action="{{ route('devolucoes.rejeitar', $devolucao->id) }}"
+                                    method="POST" style="display:inline;">
                                     @csrf
                                     @method('PUT')
                                     <button type="submit" class="btn btn-warning btn-sm">
                                         Rejeitar
                                     </button>
-                                </form>                                
-                                <a href="{{ route('devolucoes.cupom', $devolucao) }}" class="btn btn-primary btn-sm" target="_blank">Gerar Vale-Troca</a>
+                                </form>
+
+                                <a href="{{ route('devolucoes.cupom', $devolucao) }}"
+                                class="btn btn-primary btn-sm gerar-vale"
+                                data-id="{{ $devolucao->id }}"
+                                target="_blank">
+                                    Gerar Vale-Troca
+                                </a>
+
                             </div>
                         </div>
                     </div>
@@ -86,3 +98,26 @@
     </div>
 </div>
 @endsection
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // Quando clicar no botão "Gerar Vale-Troca"
+    document.querySelectorAll('.gerar-vale').forEach(btn => {
+
+        btn.addEventListener('click', function() {
+
+            let id = this.getAttribute('data-id');
+
+            // Habilita o botão Aprovar correspondente
+            let btnAprovar = document.getElementById('btn-aprovar-' + id);
+            if (btnAprovar) {
+                btnAprovar.removeAttribute('disabled');
+                btnAprovar.classList.add('btn-success');
+            }
+        });
+
+    });
+
+});
+</script>
+

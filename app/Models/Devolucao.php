@@ -27,6 +27,8 @@ class Devolucao extends Model
         'imagem3',
         'imagem4',
         'motivo_rejeicao',
+        'created_at',
+        'updated_at',
     ];
 
     // 🔗 Relacionamentos

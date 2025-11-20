@@ -17,23 +17,70 @@ use Illuminate\Support\Facades\DB;
 
 class DevolucaoController extends Controller
 {
-    public function index()
-    {
-        $clientes = Cliente::orderBy('nome')->get();
-        $produtos = Produto::orderBy('nome')->get();
-        $produtos = Produto::with('unidade')->get();
-        $lotes = Lote::orderBy('id')->get();
-        $vendas = Venda::with('cliente')->orderBy('id')->get();
-        $itens = collect();
+    // public function index()
+    // {
+    //     $clientes = Cliente::orderBy('nome')->get();
+    //      // Somente produtos já usados em alguma devolução
+    //     $produtos = Produto::whereIn(
+    //         'id',
+    //         Devolucao::select('produto_id')
+    //             ->distinct()
+    //             ->pluck('produto_id')
+    //     )->orderBy('nome')->get();
 
-        return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
-    }
+    //     $lotes = Lote::whereIn(
+    //      'id',
+    //         Devolucao::select('produto_id')
+    //             ->distinct()
+    //             ->pluck('lote_id')
+    //     )->orderBy('nome')->get();
+
+       
+
+    //     $vendas = Venda::with('cliente')->orderBy('id','desc')->get();
+    //     $itens = collect();
+
+    //     return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
+    // }
+   public function index()
+{
+    $clientes = Cliente::orderBy('nome')->get();
+
+    $produtos = Produto::whereIn(
+        'id',
+        Devolucao::select('produto_id')->distinct()->pluck('produto_id')
+    )->orderBy('nome')->get();
+
+    $lotes = Lote::whereIn(
+        'produto_id',
+        Devolucao::select('produto_id')->distinct()->pluck('produto_id')
+    )->orderBy('id')->get();
+
+    // SELECT para o combobox (todas)
+    $vendas = Venda::with('cliente')->orderBy('id','desc')->get();
+
+    // QUERY separada para os cards (apenas 1)
+    $vendaCard = Venda::with(['cliente','itens.devolucoes'])
+        ->orderBy('id','desc')
+        ->limit(1)
+        ->get(); // ou ->first();
+
+    $itens = collect();
+
+    return view('devolucoes.index', compact('clientes','produtos','lotes','vendas','vendaCard','itens'));
+}
+
 
     public function buscar(Request $request)
     {
         $clientes = Cliente::orderBy('nome')->get();
-        $produtos = Produto::orderBy('nome')->get();
-        $produtos = Produto::with('unidade')->get();
+         // Somente produtos já usados em alguma devolução
+        $produtos = Produto::whereIn(
+            'id',
+            Devolucao::select('produto_id')
+                ->distinct()
+                ->pluck('produto_id')
+        )->orderBy('nome')->get();
         $lotes = Lote::orderBy('id')->get();
         $vendas = Venda::with('cliente')->orderBy('id')->get();
 
@@ -82,6 +129,7 @@ class DevolucaoController extends Controller
 
         DB::beginTransaction();
 
+        
         try {
             $itemVenda = VendaItem::findOrFail($request->item_id);
             $qtdeDisponivel = $itemVenda->quantidade - $itemVenda->quantidade_devolvida;
@@ -128,7 +176,7 @@ class DevolucaoController extends Controller
 
             DB::commit();
 
-            return redirect()->route('devolucoes.index')
+            return redirect()->route('devolucoes.pendentes')
                 ->with('success', 'Devolução registrada com sucesso e aguardando aprovação.');
 
         } catch (\Exception $e) {
@@ -136,6 +184,89 @@ class DevolucaoController extends Controller
             return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
         }
     }
+
+    // public function salvar(Request $request)
+    // {
+    //     $request->validate([
+    //         'item_id' => 'required|exists:venda_itens,id',
+    //         'quantidade' => 'nullable|numeric|min:1',
+    //         'completo' => 'nullable|boolean',
+    //         'motivo' => 'required|string|max:255',
+    //         'imagem1' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //         'imagem2' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //         'imagem3' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //         'imagem4' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //     ]);
+
+    //     DB::beginTransaction();
+
+    //     try {
+    //         $itemVenda = VendaItem::findOrFail($request->item_id);
+    //         $qtdeDisponivel = $itemVenda->quantidade - $itemVenda->quantidade_devolvida;
+
+    //         // Verificação: bloqueia se já existe devolução pendente ou rejeitada
+    //         $pedidoExistente = Devolucao::where('venda_item_id', $itemVenda->id)
+    //             ->whereIn('status', ['pendente','rejeitada'])
+    //             ->exists();
+
+    //         if ($pedidoExistente) {
+    //             return back()->with('error', 'Já existe um pedido de devolução pendente ou rejeitado para este item da venda. Aguarde aprovação ou conclusão.');
+    //         }
+
+    //         // Define a quantidade a devolver
+    //         if ($request->has('completo') && $request->completo) {
+    //             $quantidadeDevolver = $qtdeDisponivel;
+    //         } else {
+    //             $quantidadeDevolver = $request->quantidade ?? 0;
+    //             if ($quantidadeDevolver > $qtdeDisponivel) {
+    //                 return back()->with('error', 'Quantidade informada excede o limite permitido.');
+    //             }
+    //         }
+
+    //         // Processa imagens
+    //         $imagens = [];
+    //         for ($i = 1; $i <= 4; $i++) {
+    //             $campo = 'imagem' . $i;
+    //             $imagens[$campo] = $request->hasFile($campo)
+    //                 ? $request->file($campo)->store('devolucoes', 'public')
+    //                 : null;
+    //         }
+
+    //         // Cria a devolução
+    //         $devolucao = Devolucao::create([
+    //             'cliente_id' => $itemVenda->venda->cliente_id,
+    //             'venda_id' => $itemVenda->venda_id,
+    //             'venda_item_id' => $itemVenda->id,
+    //             'produto_id' => $itemVenda->produto_id,
+    //             'quantidade' => $quantidadeDevolver,
+    //             'motivo' => $request->motivo,
+    //             'tipo' => $request->tipo ?? 'devolucao',
+    //             'status' => 'pendente',
+    //             'imagem1' => $imagens['imagem1'],
+    //             'imagem2' => $imagens['imagem2'],
+    //             'imagem3' => $imagens['imagem3'],
+    //             'imagem4' => $imagens['imagem4'],
+    //         ]);
+
+    //         // Log
+    //         DevolucaoLog::create([
+    //             'devolucao_id' => $devolucao->id,
+    //             'acao' => 'registrada',
+    //             'descricao' => 'Devolução registrada pelo cliente. Aguardando aprovação.',
+    //             'usuario' => 'Sistema',
+    //         ]);
+
+    //         DB::commit();
+
+    //         return redirect()->route('devolucoes.pendentes')
+    //             ->with('success', 'Devolução registrada com sucesso e aguardando aprovação.');
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
+    //     }
+    // }
+
     public function show(PedidoCompra $pedido)
     {
         // Carrega os itens, os produtos e a unidade de medida de cada produto
@@ -144,20 +275,48 @@ class DevolucaoController extends Controller
         return view('pedidos.show', compact('pedido'));
     }
 
-   public function aprovar(Devolucao $devolucao)
+//    public function aprovar(Devolucao $devolucao)
+//     {
+//         DB::transaction(function () use ($devolucao) {
+//             // Atualiza status da devolução
+//             $devolucao->status = 'aprovada';
+//             $devolucao->save();
+
+//             // Atualiza item da venda
+//             $item = $devolucao->vendaItem;
+//             if ($item) {
+//                 $item->quantidade_devolvida += $devolucao->quantidade;
+//                 $item->quantidade -= $devolucao->quantidade;
+//                 $item->save(); // MySQL recalcula subtotal automaticamente
+//             }
+
+//             // Atualiza estoque do produto
+//             $produto = $devolucao->produto;
+//             if ($produto) {
+//                 $produto->quantidade_estoque += $devolucao->quantidade;
+//                 $produto->save();
+//             }
+
+//             // Log: devolução aprovada
+//             DevolucaoLog::create([
+//                 'devolucao_id' => $devolucao->id,
+//                 'acao' => 'aprovada',
+//                 'descricao' => 'Devolução aprovada, estoque e subtotal atualizados.',
+//                 'usuario' => auth()->user()->name ?? 'Administrador',
+//             ]);
+//         });
+
+//         return redirect()->route('devolucoes.index')
+//             ->with('success', 'Devolução aprovada, subtotal e estoque atualizados com sucesso!');
+//     }
+
+    public function aprovar(Devolucao $devolucao)
     {
         DB::transaction(function () use ($devolucao) {
+
             // Atualiza status da devolução
             $devolucao->status = 'aprovada';
             $devolucao->save();
-
-            // Atualiza item da venda
-            $item = $devolucao->vendaItem;
-            if ($item) {
-                $item->quantidade_devolvida += $devolucao->quantidade;
-                $item->quantidade -= $devolucao->quantidade;
-                $item->save(); // MySQL recalcula subtotal automaticamente
-            }
 
             // Atualiza estoque do produto
             $produto = $devolucao->produto;
@@ -166,19 +325,18 @@ class DevolucaoController extends Controller
                 $produto->save();
             }
 
-            // Log: devolução aprovada
+            // Log
             DevolucaoLog::create([
                 'devolucao_id' => $devolucao->id,
                 'acao' => 'aprovada',
-                'descricao' => 'Devolução aprovada, estoque e subtotal atualizados.',
+                'descricao' => 'Devolução aprovada e estoque atualizado.',
                 'usuario' => auth()->user()->name ?? 'Administrador',
             ]);
         });
 
         return redirect()->route('devolucoes.index')
-            ->with('success', 'Devolução aprovada, subtotal e estoque atualizados com sucesso!');
+            ->with('success', 'Devolução aprovada com sucesso!');
     }
-
 
     public function rejeitar(Devolucao $devolucao)
     {
@@ -210,7 +368,7 @@ class DevolucaoController extends Controller
     }
     
     public function gerarCupom($id)
-        {
+    {
         // Buscar a devolução
         $devolucao = Devolucao::findOrFail($id);
 
