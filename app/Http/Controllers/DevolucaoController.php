@@ -135,84 +135,102 @@ class DevolucaoController extends Controller
     }
 
 
-    public function registrar(int $item_id)
-    {
-        $item = VendaItem::with(['venda.cliente', 'produto', 'lote'])->findOrFail($item_id);
-        $venda = $item->venda;
+    // public function registrar(int $item_id)
+    // {
+    //     $item = VendaItem::with(['venda.cliente', 'produto', 'lote'])->findOrFail($item_id);
+    //     $venda = $item->venda;
 
-        return view('devolucoes.registrar', compact('item', 'venda'));
+    //     return view('devolucoes.registrar', compact('item', 'venda'));
+    // }
+    public function registrar($venda_id)
+    {
+        $venda = Venda::with(['itens.produto', 'itens.lote', 'itens.devolucoes'])
+            ->where('id', $venda_id)
+            ->firstOrFail();
+
+        return view('devolucoes.registrar', compact('venda'));
     }
 
-    public function salvar(Request $request)
-    {
-        $request->validate([
-            'item_id' => 'required|exists:venda_itens,id',
-            'quantidade' => 'nullable|numeric|min:1',
-            'completo' => 'nullable|boolean',
-            'motivo' => 'required|string|max:255',
-            'imagem1' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'imagem2' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'imagem3' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'imagem4' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
 
-        DB::beginTransaction();
+    // public function salvar(Request $request)
+    // {
+    //     $request->validate([
+    //         'item_id' => 'required|exists:venda_itens,id',
+    //         'quantidade' => 'nullable|numeric|min:1',
+    //         'completo' => 'nullable|boolean',
+    //         'motivo' => 'required|string|max:255',
+    //         'imagem1' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //         'imagem2' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //         'imagem3' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //         'imagem4' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //     ]);
+
+    //     DB::beginTransaction();
 
         
-        try {
-            $itemVenda = VendaItem::findOrFail($request->item_id);
-            $qtdeDisponivel = $itemVenda->quantidade - $itemVenda->quantidade_devolvida;
+    //         try {
+    //         $itemVenda = VendaItem::findOrFail($request->item_id);
+    //         $qtdeDisponivel = $itemVenda->quantidade - $itemVenda->quantidade_devolvida;
 
-            if ($request->has('completo') && $request->completo) {
-                $quantidadeDevolver = $qtdeDisponivel;
-            } else {
-                $quantidadeDevolver = $request->quantidade ?? 0;
-                if ($quantidadeDevolver > $qtdeDisponivel) {
-                    return back()->with('error', 'Quantidade informada excede o limite permitido.');
-                }
-            }
+    //         // Verificação: bloqueia se já existe devolução pendente ou rejeitada
+    //         $pedidoExistente = Devolucao::where('venda_item_id', $itemVenda->id)
+    //             ->whereIn('status', ['pendente','rejeitada'])
+    //             ->exists();
 
-            $imagens = [];
-            for ($i = 1; $i <= 4; $i++) {
-                $campo = 'imagem' . $i;
-                $imagens[$campo] = $request->hasFile($campo)
-                    ? $request->file($campo)->store('devolucoes', 'public')
-                    : null;
-            }
+    //         if ($pedidoExistente) {
+    //             return back()->with('error', 'Já existe um pedido de devolução pendente ou rejeitado para este item da venda. Aguarde aprovação ou conclusão.');
+    //         }
 
-            // Cria a devolução
-            $devolucao = Devolucao::create([
-                'cliente_id' => $itemVenda->venda->cliente_id,
-                'venda_id' => $itemVenda->venda_id,
-                'venda_item_id' => $itemVenda->id,
-                'produto_id' => $itemVenda->produto_id,
-                'quantidade' => $quantidadeDevolver,
-                'motivo' => $request->motivo,
-                'status' => 'pendente',
-                'imagem1' => $imagens['imagem1'],
-                'imagem2' => $imagens['imagem2'],
-                'imagem3' => $imagens['imagem3'],
-                'imagem4' => $imagens['imagem4'],
-            ]);
+    //         // Define a quantidade a devolver
+    //         if ($request->has('completo') && $request->completo) {
+    //             $quantidadeDevolver = $qtdeDisponivel;
+    //         } else {
+    //             $quantidadeDevolver = $request->quantidade ?? 0;
+    //             if ($quantidadeDevolver > $qtdeDisponivel) {
+    //                 return back()->with('error', 'Quantidade informada excede o limite permitido.');
+    //             }
+    //         }
+    //         $imagens = [];
+    //         for ($i = 1; $i <= 4; $i++) {
+    //             $campo = 'imagem' . $i;
+    //             $imagens[$campo] = $request->hasFile($campo)
+    //                 ? $request->file($campo)->store('devolucoes', 'public')
+    //                 : null;
+    //         }
 
-            // Log: devolução registrada
-            DevolucaoLog::create([
-                'devolucao_id' => $devolucao->id,
-                'acao' => 'registrada',
-                'descricao' => 'Devolução registrada pelo cliente. Aguardando aprovação.',
-                'usuario' => 'Sistema',
-            ]);
+    //         // Cria a devolução
+    //         $devolucao = Devolucao::create([
+    //             'cliente_id' => $itemVenda->venda->cliente_id,
+    //             'venda_id' => $itemVenda->venda_id,
+    //             'venda_item_id' => $itemVenda->id,
+    //             'produto_id' => $itemVenda->produto_id,
+    //             'quantidade' => $quantidadeDevolver,
+    //             'motivo' => $request->motivo,
+    //             'status' => 'pendente',
+    //             'imagem1' => $imagens['imagem1'],
+    //             'imagem2' => $imagens['imagem2'],
+    //             'imagem3' => $imagens['imagem3'],
+    //             'imagem4' => $imagens['imagem4'],
+    //         ]);
 
-            DB::commit();
+    //         // Log: devolução registrada
+    //         DevolucaoLog::create([
+    //             'devolucao_id' => $devolucao->id,
+    //             'acao' => 'registrada',
+    //             'descricao' => 'Devolução registrada pelo cliente. Aguardando aprovação.',
+    //             'usuario' => 'Sistema',
+    //         ]);
 
-            return redirect()->route('devolucoes.pendentes')
-                ->with('success', 'Devolução registrada com sucesso e aguardando aprovação.');
+    //         DB::commit();
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
-        }
-    }
+    //         return redirect()->route('devolucoes.pendentes')
+    //             ->with('success', 'Devolução registrada com sucesso e aguardando aprovação.');
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
+    //     }
+    // }
 
     // public function salvar(Request $request)
     // {
@@ -295,6 +313,103 @@ class DevolucaoController extends Controller
     //         return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
     //     }
     // }
+
+    public function salvar(Request $request)
+    {
+        $request->validate([
+            'item_id' => 'required|exists:venda_itens,id',
+            'quantidade' => 'nullable|numeric|min:1',
+            'completo' => 'nullable|boolean',
+            'motivo' => 'required|string|max:255',
+            'motivo_outro' => 'nullable|string|max:255',
+            'imagem1' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'imagem2' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'imagem3' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'imagem4' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        // normalizar motivo final (se usar "Outro motivo")
+        $motivoSelecionado = $request->motivo;
+        $motivoFinal = ($motivoSelecionado === 'Outro motivo' || $motivoSelecionado === 'Outro')
+            ? ($request->motivo_outro ?? $motivoSelecionado)
+            : $motivoSelecionado;
+
+        // checagem rápida antes de começar a transação
+        $existingPending = Devolucao::where('venda_item_id', $request->item_id)
+            ->where('status', 'pendente')
+            ->exists();
+
+        if ($existingPending) {
+            return back()->with('error', 'Já existe uma devolução pendente para este item. Aguarde a análise antes de registrar outra.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // rechecagem dentro da transação (protege contra concorrência simples)
+            $existingPending = Devolucao::where('venda_item_id', $request->item_id)
+                ->where('status', 'pendente')
+                ->lockForUpdate() // opcional: tenta bloquear os registros (se existirem)
+                ->exists();
+
+            if ($existingPending) {
+                DB::rollBack();
+                return back()->with('error', 'Já existe uma devolução pendente para este item (verificação final).');
+            }
+
+            $itemVenda = VendaItem::findOrFail($request->item_id);
+            $qtdeDisponivel = $itemVenda->quantidade - $itemVenda->quantidade_devolvida;
+
+            if ($request->has('completo') && $request->completo) {
+                $quantidadeDevolver = $qtdeDisponivel;
+            } else {
+                $quantidadeDevolver = $request->quantidade ?? 0;
+                if ($quantidadeDevolver > $qtdeDisponivel) {
+                    DB::rollBack();
+                    return back()->with('error', 'Quantidade informada excede o limite permitido.');
+                }
+            }
+
+            $imagens = [];
+            for ($i = 1; $i <= 4; $i++) {
+                $campo = 'imagem' . $i;
+                $imagens[$campo] = $request->hasFile($campo)
+                    ? $request->file($campo)->store('devolucoes', 'public')
+                    : null;
+            }
+
+            // Cria a devolução
+            $devolucao = Devolucao::create([
+                'cliente_id' => $itemVenda->venda->cliente_id,
+                'venda_id' => $itemVenda->venda_id,
+                'venda_item_id' => $itemVenda->id,
+                'produto_id' => $itemVenda->produto_id,
+                'quantidade' => $quantidadeDevolver,
+                'motivo' => $motivoFinal,
+                'status' => 'pendente',
+                'imagem1' => $imagens['imagem1'],
+                'imagem2' => $imagens['imagem2'],
+                'imagem3' => $imagens['imagem3'],
+                'imagem4' => $imagens['imagem4'],
+            ]);
+
+            DevolucaoLog::create([
+                'devolucao_id' => $devolucao->id,
+                'acao' => 'registrada',
+                'descricao' => 'Devolução registrada pelo cliente. Aguardando aprovação.',
+                'usuario' => auth()->user()->name ?? 'Sistema',
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('devolucoes.pendentes')
+                ->with('success', 'Devolução registrada com sucesso e aguardando aprovação.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // opcional: logar $e->getMessage() em log de aplicação
+            return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
+        }
+    }
 
     public function show(PedidoCompra $pedido)
     {
@@ -384,6 +499,7 @@ class DevolucaoController extends Controller
 
         return redirect()->route('devolucoes.index')->with('success', 'Devolução rejeitada com sucesso!');
     }
+    
 
     public function pendentes()
     {
