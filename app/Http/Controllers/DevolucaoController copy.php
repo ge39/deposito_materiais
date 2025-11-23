@@ -19,39 +19,33 @@ class DevolucaoController extends Controller
 {
     // public function index()
     // {
-    //      $clientes = Cliente::orderBy('nome')->get();
-    //       // Somente produtos já usados em alguma devolução
-    //      $produtos = Produto::whereIn(
-    //          'id',
-    //          Devolucao::select('produto_id')
-    //              ->distinct()
-    //              ->pluck('produto_id')
-    //      )->orderBy('nome')->get();
+    //     $clientes = Cliente::orderBy('nome')->get();
+    //      // Somente produtos já usados em alguma devolução
+    //     $produtos = Produto::whereIn(
+    //         'id',
+    //         Devolucao::select('produto_id')
+    //             ->distinct()
+    //             ->pluck('produto_id')
+    //     )->orderBy('nome')->get();
 
-    //     // Lotes relacionados a esses produtos
+    //    // Lotes relacionados a esses produtos
    
-    //      $lote = Lote::whereIn(
-    //          'produto_id',
-    //          Devolucao::distinct()->pluck('produto_id') // pega apenas os produtos que já tiveram devoluções
-    //      )
-    //      ->orderBy('id')
-    //      ->pluck('id'); // retorna só os IDs dos lotes
+    //     $lote = Lote::whereIn(
+    //         'produto_id',
+    //         Devolucao::distinct()->pluck('produto_id') // pega apenas os produtos que já tiveram devoluções
+    //     )
+    //     ->orderBy('id')
+    //     ->pluck('id'); // retorna só os IDs dos lotes
 
 
 
-    //      $vendas = Venda::with('cliente')->orderBy('id','desc')->get();
-    //      $itens = collect();
+    //     $vendas = Venda::with('cliente')->orderBy('id','desc')->get();
+    //     $itens = collect();
 
-    //      return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
+    //     return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
     // }
-
-  public function index()
+    public function index()
     {
-        // Tela inicial vazia
-        $itens = collect();
-        $vendas = collect(); // Nenhuma venda mostrada
-
-        // Dados para os selects de filtro (clientes, produtos e lotes)
         $clientes = Cliente::orderBy('nome')->get();
 
         $produtos = Produto::whereIn(
@@ -59,81 +53,67 @@ class DevolucaoController extends Controller
             Devolucao::distinct()->pluck('produto_id')
         )->orderBy('nome')->get();
 
-        $lotes = Lote::whereIn(
-            'produto_id',
-            Devolucao::distinct()->pluck('produto_id')
-        )
-        ->orderBy('id')
-        ->pluck('id');
+        // Garante que $lotes exista
+        $lotes = Lote::whereIn('produto_id', Devolucao::distinct()->pluck('produto_id'))
+                    ->orderBy('id')
+                    ->pluck('id'); // só os IDs dos lotes
 
-        return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
+        // Vendas para combobox
+        $vendas = Venda::with('cliente')->orderBy('id', 'desc')->get();
+
+        // Última venda para cards
+        $vendaCard = Venda::with(['cliente','itens.devolucoes'])
+                        ->orderBy('id','desc')
+                        ->limit(1)
+                        ->get();
+
+        $itens = collect();
+
+        return view('devolucoes.index', compact('clientes','produtos','lotes','vendas','vendaCard','itens'));
     }
+
 
     public function buscar(Request $request)
     {
-        $search = $request->input('search');
-
-        if (!$search) {
-            // Campo de busca vazio: tela limpa
-            $itens = collect();
-            $vendas = collect();
-            $clientes = Cliente::orderBy('nome')->get();
-            $produtos = Produto::whereIn(
-                'id',
-                Devolucao::distinct()->pluck('produto_id')
-            )->orderBy('nome')->get();
-            $lotes = Lote::whereIn(
-                'produto_id',
-                Devolucao::distinct()->pluck('produto_id')
-            )
-            ->orderBy('id')
-            ->pluck('id');
-
-            return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
-        }
-
-        $vendas = DB::table('vendas')
-            ->join('clientes', 'clientes.id', '=', 'vendas.cliente_id')
-            ->select(
-                'vendas.id as venda_id',
-                'clientes.nome as cliente_nome',
-                'vendas.data_venda',
-                'vendas.total as valor_total',
-                DB::raw('(SELECT SUM(quantidade) FROM venda_itens WHERE venda_itens.venda_id = vendas.id) as quantidade_comprada'),
-                DB::raw('(SELECT COALESCE(SUM(quantidade),0) FROM devolucoes WHERE devolucoes.venda_id = vendas.id) as quantidade_devolvida'),
-                DB::raw('((SELECT SUM(quantidade) FROM venda_itens WHERE venda_itens.venda_id = vendas.id) - 
-                        (SELECT COALESCE(SUM(quantidade),0) FROM devolucoes WHERE devolucoes.venda_id = vendas.id)) as quantidade_disponivel'),
-                DB::raw('(SELECT COALESCE(SUM(d.quantidade * p.preco_venda),0)
-                        FROM devolucoes d
-                        JOIN venda_itens vi ON vi.id = d.venda_item_id
-                        JOIN produtos p ON p.id = vi.produto_id
-                        WHERE d.venda_id = vendas.id) as valor_extornado')
-            )
-            ->where('vendas.id', $search)
-            ->orWhere('clientes.nome', 'like', "%{$search}%")
-            ->orderByDesc('vendas.id')
-            ->paginate(10);
-
-        $vendas->appends(['search' => $search]);
-
-        // Mantém os dados dos filtros
         $clientes = Cliente::orderBy('nome')->get();
+         // Somente produtos já usados em alguma devolução
         $produtos = Produto::whereIn(
             'id',
-            Devolucao::distinct()->pluck('produto_id')
+            Devolucao::select('produto_id')
+                ->distinct()
+                ->pluck('produto_id')
         )->orderBy('nome')->get();
-        $lotes = Lote::whereIn(
-            'produto_id',
-            Devolucao::distinct()->pluck('produto_id')
-        )
-        ->orderBy('id')
-        ->pluck('id');
 
-        $itens = collect(); // Mantendo consistência com o index()
+        $lotes = Lote::whereIn(
+    'produto_id',
+    Devolucao::distinct()->pluck('produto_id')
+)->pluck('id'); // só os IDs da tabela Lotes
+
+
+            
+    $vendas = Venda::with('cliente')->orderBy('id')->get();
+
+        $itensQuery = VendaItem::query();
+
+        if ($request->filled('venda_id')) {
+            $itensQuery->where('venda_id', $request->venda_id);
+        } else {
+            if ($request->filled('cliente_id')) {
+                $vendasCliente = Venda::where('cliente_id', $request->cliente_id)->pluck('id');
+                $itensQuery->whereIn('venda_id', $vendasCliente);
+            }
+            if ($request->filled('produto_id')) {
+                $itensQuery->where('produto_id', $request->produto_id);
+            }
+            if ($request->filled('lote_id')) {
+                $itensQuery->where('lote_id', $request->lote_id);
+            }
+        }
+
+        $itens = $itensQuery->get();
 
         return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
     }
-
 
     public function registrar(int $item_id)
     {
