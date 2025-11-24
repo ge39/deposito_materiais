@@ -36,7 +36,9 @@
                         <div class="card-body">
                             <h5 class="card-title">Venda #{{ $item->venda_id }}</h5>
                             <p class="card-text mb-1"><strong>Data da Venda:</strong> {{ \Carbon\Carbon::parse($item->data_venda)->format('d/m/Y') }}</p>
-                            <p class="card-text mb-1"><strong>Cliente:</strong> {{ $item->cliente_nome }}</p>
+                            <p class="card-text mb-1"><strong>Pessoa:</strong> {{ $item->cliente_tipo }}</p>
+                            <p class="card-text mb-1"><strong>Nome:</strong> {{ $item->cliente_nome }}</p>
+                             <p class="card-text mb-1"><strong>Doc:</strong> {{ $item->cliente_cpf_cnpj }}</p>
                             <p class="card-text mb-1">
                                 <strong>Qtde Comprada:</strong> {{ $item->quantidade_comprada }} |
                                 <strong>Devolvida:</strong> {{ $item->quantidade_devolvida }} |

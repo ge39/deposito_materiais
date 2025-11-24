@@ -36,7 +36,9 @@
                         <div class="card-body">
                             <h5 class="card-title">Venda #<?php echo e($item->venda_id); ?></h5>
                             <p class="card-text mb-1"><strong>Data da Venda:</strong> <?php echo e(\Carbon\Carbon::parse($item->data_venda)->format('d/m/Y')); ?></p>
-                            <p class="card-text mb-1"><strong>Cliente:</strong> <?php echo e($item->cliente_nome); ?></p>
+                            <p class="card-text mb-1"><strong>Pessoa:</strong> <?php echo e($item->cliente_tipo); ?></p>
+                            <p class="card-text mb-1"><strong>Nome:</strong> <?php echo e($item->cliente_nome); ?></p>
+                             <p class="card-text mb-1"><strong>Doc:</strong> <?php echo e($item->cliente_cpf_cnpj); ?></p>
                             <p class="card-text mb-1">
                                 <strong>Qtde Comprada:</strong> <?php echo e($item->quantidade_comprada); ?> |
                                 <strong>Devolvida:</strong> <?php echo e($item->quantidade_devolvida); ?> |

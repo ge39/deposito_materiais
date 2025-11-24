@@ -33,9 +33,9 @@
     </p>
     
 
-    <div class="d-flex justify-content-end mb-3">
-        <a href="<?php echo e(route('devolucoes.index')); ?>" class="btn btn-secondary btn-sm">Voltar</a>
-    </div>
+    <!-- <div class="d-flex justify-content-end mb-3">
+        <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary btn-sm">Voltar</a>
+    </div> -->
 
     <div class="row">
 
@@ -72,20 +72,23 @@
                             />
                             <div class="ms-3">
                                 <strong class="product-name"><?php echo e($itemVenda->produto->nome); ?></strong>
-                                <div class="small text-muted">Cód. Item: 000<?php echo e($itemVenda->produto_id); ?></div>
+                                <div class="small text-muted">Produto ID: 000<?php echo e($itemVenda->produto_id); ?></div>
                             </div>
                         </div>
 
                         
                         <div class="info-block mb-3">
                             <div><strong>Lote:</strong> 000<?php echo e($itemVenda->lote_id); ?></div>
-                            <div><strong>Comprada:</strong> <?php echo e($itemVenda->quantidade); ?></div>
-                            <div><strong>Preco Unit.:</strong> <?php echo e($itemVenda->preco_unitario); ?></div>
-                            <div><strong>Já Devolvida:</strong> <?php echo e($qtdDevolvida); ?> <?php echo e($itemVenda->produto->unidadeMedida->sigla); ?></div>
-                            <div><strong>Disponível:</strong> <?php echo e($qtdDisponivel); ?></div>
+                            <div><strong>Qtde Comprada:</strong> <?php echo e($itemVenda->quantidade); ?></div> 
                             <div><strong>Valor Compra:</strong> R$ <?php echo e(number_format($itemVenda->subtotal, 2, ',', '.')); ?></div>
-                            <div><strong>Valor Extornado:</strong> R$ <?php echo e(number_format($valorExtornado, 2, ',', '.')); ?></div>
-                            <div><strong>Data da Venda:</strong> <?php echo e($itemVenda->venda->created_at->format('d/m/Y')); ?></div>
+                            <div><strong>Devolvida:</strong> <?php echo e($qtdDevolvida); ?> <?php echo e($itemVenda->produto->unidadeMedida->sigla); ?></div>
+                            
+                           <div><strong>Preco Unit.:</strong> <?php echo e($itemVenda->preco_unitario); ?></div>
+                           <div><strong>Disponível:</strong> <?php echo e($qtdDisponivel); ?></div>
+                           <div><strong>Data da Venda:</strong> <?php echo e($itemVenda->venda->created_at->format('d/m/Y')); ?></div>
+                           <div><strong>Valor Extornado:</strong> R$ <?php echo e(number_format($valorExtornado, 2, ',', '.')); ?></div>
+                            
+                           
                             <div><strong>Última Devolução:</strong>
                                 <?php if($devolucoes->count() > 0): ?>
                                     <?php echo e($devolucoes->last()->created_at->format('d/m/Y')); ?>
@@ -167,8 +170,11 @@
 
                             </div>
 
-                            <button class="btn btn-danger btn-sm w-100 mt-2">Confirmar</button>
-
+                            
+                            <div class="mt-2 d-flex gap-2 align-items-start">
+                                <button class="btn btn-sm mt-3 btn-danger">Confirmar</button>
+                                <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary btn-sm mt-3">Voltar</a>
+                            </div>
                         </form>
                         <?php endif; ?>
 

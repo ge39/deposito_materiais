@@ -59,7 +59,7 @@
                         >
                         <div class="card-body">
                             <h5 class="card-title"><?php echo e($produto->nome); ?></h5>
-                            <p class="card-text mb-1"><strong>Codigo:</strong> 000<?php echo e($produto->id ?? '-'); ?></p>
+                            <p class="card-text mb-1"><strong>Produto ID:</strong> 000<?php echo e($produto->id ?? '-'); ?></p>
                             <p class="card-text mb-1"><strong>Categoria:</strong> <?php echo e($produto->categoria->nome ?? '-'); ?></p>
                             <p class="card-text mb-1"><strong>Fornecedor:</strong> <?php echo e($produto->fornecedor->nome ?? '-'); ?></p>
                             <p class="card-text mb-1" style="color:blue"><strong>Preço de Custo:</strong> R$ <?php echo e(number_format($produto->preco_custo, 2, ',', '.')); ?></p>

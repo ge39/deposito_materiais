@@ -29,9 +29,9 @@
     </p>
     {{-- FIM DO TRECHO ADICIONADO --}}
 
-    <div class="d-flex justify-content-end mb-3">
-        <a href="{{ route('devolucoes.index') }}" class="btn btn-secondary btn-sm">Voltar</a>
-    </div>
+    <!-- <div class="d-flex justify-content-end mb-3">
+        <a href="{{ url()->previous() }}" class="btn btn-secondary btn-sm">Voltar</a>
+    </div> -->
 
     <div class="row">
 
@@ -68,20 +68,23 @@
                             />
                             <div class="ms-3">
                                 <strong class="product-name">{{ $itemVenda->produto->nome }}</strong>
-                                <div class="small text-muted">Cód. Item: 000{{ $itemVenda->produto_id }}</div>
+                                <div class="small text-muted">Produto ID: 000{{ $itemVenda->produto_id }}</div>
                             </div>
                         </div>
 
                         {{-- Bloco de informações --}}
                         <div class="info-block mb-3">
                             <div><strong>Lote:</strong> 000{{ $itemVenda->lote_id }}</div>
-                            <div><strong>Comprada:</strong> {{ $itemVenda->quantidade }}</div>
-                            <div><strong>Preco Unit.:</strong> {{ $itemVenda->preco_unitario }}</div>
-                            <div><strong>Já Devolvida:</strong> {{ $qtdDevolvida }} {{ $itemVenda->produto->unidadeMedida->sigla }}</div>
-                            <div><strong>Disponível:</strong> {{ $qtdDisponivel }}</div>
+                            <div><strong>Qtde Comprada:</strong> {{ $itemVenda->quantidade }}</div> 
                             <div><strong>Valor Compra:</strong> R$ {{ number_format($itemVenda->subtotal, 2, ',', '.') }}</div>
-                            <div><strong>Valor Extornado:</strong> R$ {{ number_format($valorExtornado, 2, ',', '.') }}</div>
-                            <div><strong>Data da Venda:</strong> {{ $itemVenda->venda->created_at->format('d/m/Y') }}</div>
+                            <div><strong>Devolvida:</strong> {{ $qtdDevolvida }} {{ $itemVenda->produto->unidadeMedida->sigla }}</div>
+                            
+                           <div><strong>Preco Unit.:</strong> {{ $itemVenda->preco_unitario }}</div>
+                           <div><strong>Disponível:</strong> {{ $qtdDisponivel }}</div>
+                           <div><strong>Data da Venda:</strong> {{ $itemVenda->venda->created_at->format('d/m/Y') }}</div>
+                           <div><strong>Valor Extornado:</strong> R$ {{ number_format($valorExtornado, 2, ',', '.') }}</div>
+                            
+                           
                             <div><strong>Última Devolução:</strong>
                                 @if($devolucoes->count() > 0)
                                     {{ $devolucoes->last()->created_at->format('d/m/Y') }}
@@ -162,8 +165,11 @@
 
                             </div>
 
-                            <button class="btn btn-danger btn-sm w-100 mt-2">Confirmar</button>
-
+                            
+                            <div class="mt-2 d-flex gap-2 align-items-start">
+                                <button class="btn btn-sm mt-3 btn-danger">Confirmar</button>
+                                <a href="{{ url()->previous() }}" class="btn btn-secondary btn-sm mt-3">Voltar</a>
+                            </div>
                         </form>
                         @endif
 

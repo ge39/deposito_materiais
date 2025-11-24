@@ -57,7 +57,7 @@
                         >
                         <div class="card-body">
                             <h5 class="card-title">{{ $produto->nome }}</h5>
-                            <p class="card-text mb-1"><strong>Codigo:</strong> 000{{ $produto->id ?? '-' }}</p>
+                            <p class="card-text mb-1"><strong>Produto ID:</strong> 000{{ $produto->id ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Categoria:</strong> {{ $produto->categoria->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Fornecedor:</strong> {{ $produto->fornecedor->nome ?? '-' }}</p>
                             <p class="card-text mb-1" style="color:blue"><strong>Preço de Custo:</strong> R$ {{ number_format($produto->preco_custo, 2, ',', '.') }}</p>

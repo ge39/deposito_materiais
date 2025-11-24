@@ -23,7 +23,7 @@
 
                             </h5>
                             <p class="card-text mb-1"><strong>Pedido Compra:</strong> 000<?php echo e($lote->pedido_compra_id); ?></p>
-                            <p class="card-text mb-1"><strong>Codigo:</strong> 000<?php echo e($lote->produto_id); ?></p>
+                            <p class="card-text mb-1"><strong>Produto ID:</strong> 000<?php echo e($lote->produto_id); ?></p>
                             <p class="card-text mb-1"><strong>Qtd Comprada:</strong> <?php echo e($lote->quantidade); ?></p>
                             <p class="card-text mb-1"><strong>Preço de Compra:</strong> R$ <?php echo e(number_format($lote->preco_compra, 2, ',', '.')); ?></p>
                             <p class="card-text mb-1"><strong>Data da Compra:</strong> <?php echo e(\Carbon\Carbon::parse($lote->data_compra)->format('d/m/Y')); ?></p>

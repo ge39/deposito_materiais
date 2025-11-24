@@ -97,6 +97,8 @@ class DevolucaoController extends Controller
             ->select(
                 'vendas.id as venda_id',
                 'clientes.nome as cliente_nome',
+                'clientes.cpf_cnpj as cliente_cpf_cnpj', // novo campo
+                'clientes.tipo as cliente_tipo',         // novo campo
                 'vendas.data_venda',
                 'vendas.total as valor_total',
                 DB::raw('(SELECT SUM(quantidade) FROM venda_itens WHERE venda_itens.venda_id = vendas.id) as quantidade_comprada'),

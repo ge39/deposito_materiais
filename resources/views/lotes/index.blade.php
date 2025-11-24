@@ -22,7 +22,7 @@
                                 <i class="bi bi-box-seam"></i> Lote #{{ $lote->numero_lote }}
                             </h5>
                             <p class="card-text mb-1"><strong>Pedido Compra:</strong> 000{{ $lote->pedido_compra_id }}</p>
-                            <p class="card-text mb-1"><strong>Codigo:</strong> 000{{ $lote->produto_id }}</p>
+                            <p class="card-text mb-1"><strong>Produto ID:</strong> 000{{ $lote->produto_id }}</p>
                             <p class="card-text mb-1"><strong>Qtd Comprada:</strong> {{ $lote->quantidade }}</p>
                             <p class="card-text mb-1"><strong>Preço de Compra:</strong> R$ {{ number_format($lote->preco_compra, 2, ',', '.') }}</p>
                             <p class="card-text mb-1"><strong>Data da Compra:</strong> {{ \Carbon\Carbon::parse($lote->data_compra)->format('d/m/Y') }}</p>
