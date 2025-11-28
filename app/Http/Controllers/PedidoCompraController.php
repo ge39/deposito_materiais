@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\DB;
-use App\Models\Empresa;
-use PDF;
 use Illuminate\Http\Request;
-use App\Models\PedidoCompra;
-use App\Models\Fornecedor;
-use App\Models\Produto;
-use App\Models\Lote;
-use Carbon\Carbon;
+use App\Models\PedidoCompra;        // Modelo principal do pedido
+use App\Models\Fornecedor;          // Fornecedor
+use App\Models\Produto;             // Produtos
+use App\Models\UnidadeMedida;       // Unidades de medida
+use App\Models\Lote;                // Lotes
+use App\Models\User;                // Usuários (ex: funcionários)
+use App\Models\Orcamento;           // Caso use orçamentos relacionados
+use Illuminate\Support\Facades\DB;  // Para queries diretas, se houver
+use Illuminate\Support\Facades\Auth; // Para usuário autenticado
 
 class PedidoCompraController extends Controller
 {
@@ -24,6 +25,16 @@ class PedidoCompraController extends Controller
             ->paginate(10);
 
         return view('pedidos.index', compact('pedidos'));
+    }
+    public function edit($id)
+    {
+        $pedido = PedidoCompra::with('itens', 'fornecedor')->findOrFail($id); // carrega o pedido
+
+        $fornecedores = Fornecedor::all(); // ou outros dados necessários
+        $produtos = Produto::all();
+        $unidades = UnidadeMedida::all();
+
+        return view('pedidos.edit', compact('pedido', 'fornecedores', 'produtos', 'unidades'));
     }
 
     /**

@@ -12,6 +12,8 @@ class Lote extends Model
     protected $table = 'lotes';
 
     protected $fillable = [
+         'numero_lote',
+        'pedido_compra_id',
         'produto_id',
         'fornecedor_id',
         'pedido_compra_id',
@@ -19,7 +21,7 @@ class Lote extends Model
         'preco_compra',
         'data_compra',
         'validade_lote',
-        'numero_lote',
+       
         // timestamps são gerenciados automaticamente
     ];
 
@@ -32,7 +34,7 @@ class Lote extends Model
 
     public function produto()
     {
-        return $this->belongsTo(Produto::class, 'produto_id');
+        return $this->belongsTo(Produto::class);
     }
 
     public function fornecedor()

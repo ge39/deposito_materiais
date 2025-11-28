@@ -91,38 +91,93 @@
         </div>
 
         <!-- Seção 4: Estoque e Preços -->
-        <div class="row mb-2 p-2 bg-white rounded">
+        <!-- <div class="row mb-2 p-2 bg-white rounded">
             <div class="col-md-3 mb-2 mb-md-0">
                 <label for="quantidade_estoque" class="form-label">Qtd Estoque</label>
-                <input type="number" class="form-control text-muted" id="quantidade_estoque" value="{{ $produto->quantidade_estoque }}" disabled>
+                <input type="number" class="form-control text-muted" id="quantidade_estoque" value="{{ $produto->quantidade_estoque }}" required>
             </div>
-            <div class="col-md-3 mb-2 mb-md-0">
+            <div class="col-md-3">
                 <label for="estoque_minimo" class="form-label">Estoque Mínimo</label>
-                <input type="number" class="form-control text-muted" id="estoque_minimo" value="{{ $produto->estoque_minimo }}" disabled>
+                <input type="number" class="form-control text-muted" id="estoque_minimo" value="{{ $produto->estoque_minimo }}" required>
                 
             </div>
-            <div class="row mt-3">
-                <div class="col-md-2">
+            <div class="row md-3">
+                <div class="col-md-3">
                     <label for="data_compra" class="form-label">Data da Compra</label>
                     <input type="date" class="form-control" id="data_compra" name="data_compra" value="{{ old('data_compra', date('Y-m-d')) }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label for="validade_produto" class="form-label">Validade</label>
                     <input type="date" name="validade_produto"
                     value="{{ old('validade_produto', optional($produto->validade_produto)->format('Y-m-d')) }}">
                 </div>
-                <div class="col-md-2 mb-2 mb-md-0">
+                <div class="col-md-3">
                     <label for="preco_custo" class="form-label">Preço Custo</label>
-                    <input type="number" step="0.01" class="form-control text-muted" id="preco_custo" value="{{ $produto->preco_custo }}" disabled>
+                    <input type="number" step="0.01" class="form-control text-muted" id="preco_custo" 
+                    value="{{ $produto->preco_custo }}" disabled>
                 </div>
-            <div class="col-md-2">
-                <label for="preco_venda" class="form-label">Preço Venda</label>
-                <input type="number" step="0.01" class="form-control text-muted" id="preco_venda" value="{{ $produto->preco_venda }}" disabled>
+                <div class="col-md-3">
+                    <label for="preco_venda" class="form-label">Preço Venda</label>
+                    <input type="number" step="0.01" class="form-control text-muted" id="preco_venda" value="{{ $produto->preco_venda }}" disabled>
+                </div>
             </div>
-                </div>
+        </div> -->
 
-            
+        <!-- Seção 4: Estoque e Preços -->
+<div class="row mb-2 p-2 bg-white rounded">
+
+    <div class="col-md-3 mb-2 mb-md-0">
+        <label for="quantidade_estoque" class="form-label">Qtd Estoque</label>
+        <input type="number" class="form-control text-muted" 
+               id="quantidade_estoque" 
+               name="quantidade_estoque"
+               value="{{ $produto->quantidade_estoque }}" required>
+    </div>
+
+    <div class="col-md-3">
+        <label for="estoque_minimo" class="form-label">Estoque Mínimo</label>
+        <input type="number" class="form-control text-muted" 
+               id="estoque_minimo"
+               name="estoque_minimo"
+               value="{{ $produto->estoque_minimo }}" required>
+    </div>
+
+    <!-- Linha com 4 campos alinhados -->
+    <div class="row mt-3">
+
+        <div class="col-md-3">
+            <label for="data_compra" class="form-label">Data da Compra</label>
+            <input type="date" class="form-control"
+                   id="data_compra" name="data_compra"
+                   value="{{ old('data_compra', date('Y-m-d')) }}">
         </div>
+
+        <div class="col-md-3">
+            <label for="validade_produto" class="form-label">Validade</label>
+            <input type="date" class="form-control"
+                   id="validade_produto" name="validade_produto"
+                   value="{{ old('validade_produto', optional($produto->validade_produto)->format('Y-m-d')) }}">
+        </div>
+
+        <div class="col-md-3">
+            <label for="preco_custo" class="form-label">Preço Custo</label>
+            <input type="number" step="0.01" class="form-control text-muted"
+                   id="preco_custo"
+                   name="preco_custo"
+                   value="{{ $produto->preco_custo }}" disabled>
+        </div>
+
+        <div class="col-md-3">
+            <label for="preco_venda" class="form-label">Preço Venda</label>
+            <input type="number" step="0.01" class="form-control text-muted"
+                   id="preco_venda"
+                   name="preco_venda"
+                   value="{{ $produto->preco_venda }}" disabled>
+        </div>
+
+        </div>
+    </div>
+
 
         <!-- Seção 5: Imagem e Dimensões -->
         <div class="row mb-2 p-2 bg-white rounded">
@@ -237,9 +292,8 @@
     window.addEventListener('beforeunload', function() {
         limparEdicao();
     });
-});
+    });
 </script>
-
 
 <style>
     body { background-color:#f0f2f5; }

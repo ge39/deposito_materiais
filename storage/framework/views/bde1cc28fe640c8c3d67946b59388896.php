@@ -25,7 +25,7 @@
             <div class="mb-3" style="color:blue"><strong>Preço de Custo:</strong> R$ <?php echo e(number_format($produto->preco_custo, 2, ',', '.')); ?></div>
             <div class="mb-3"><strong>Preço de Venda:</strong> R$ <?php echo e(number_format($produto->preco_venda, 2, ',', '.')); ?></div>
             <div class="mb-3"><strong>Data da Compra:</strong> <?php echo e($produto->data_compra ? $produto->data_compra->format('d/m/Y') : '-'); ?></div>
-            <div class="mb-3"><strong>Validade:</strong> <?php echo e($produto->validade_produto ? $produto->validade_produto->format('d/m/Y') : '-'); ?></div>
+            <!-- <div class="mb-3"><strong>Validade:</strong> <?php echo e($produto->validade_produto ? $produto->validade_produto->format('d/m/Y') : '-'); ?></div> -->
             <div class="mb-3"><strong>Peso:</strong> <?php echo e($produto->peso); ?> kg</div>
         </div>
 

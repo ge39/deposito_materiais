@@ -72,31 +72,59 @@ document.addEventListener('DOMContentLoaded', function () {
         imagemPreview.style.display = 'block';
     }
 
-    function limparCampos() {
-        const hoje = new Date().toISOString().split('T')[0];
-        document.getElementById('codigo_barras').value = '';
-        document.getElementById('sku').value = '';
-        document.getElementById('descricao').value = '';
-        document.getElementById('categoria_id').value = '';
-        document.getElementById('fornecedor_id').value = '';
-        document.getElementById('unidade_medida_id').value = '';
-        document.getElementById('marca_id').value = '';
-        document.getElementById('estoque_minimo').value = 0;
-        document.getElementById('data_compra').value = hoje;
-        document.getElementById('validade').value = '';
-        document.getElementById('preco_custo').value = 0;
-        document.getElementById('preco_venda').value = 0;
-        document.getElementById('peso').value = '';
-        document.getElementById('largura').value = '';
-        document.getElementById('altura').value = '';
-        document.getElementById('profundidade').value = '';
-        document.getElementById('localizacao_estoque').value = '';
-        document.getElementById('ativo').checked = true;
+    // function limparCampos() {
+    //     const hoje = new Date().toISOString().split('T')[0];
+    //     document.getElementById('codigo_barras').value = '';
+    //     document.getElementById('sku').value = '';
+    //     document.getElementById('descricao').value = '';
+    //     document.getElementById('categoria_id').value = '';
+    //     document.getElementById('fornecedor_id').value = '';
+    //     document.getElementById('unidade_medida_id').value = '';
+    //     document.getElementById('marca_id').value = '';
+    //     document.getElementById('estoque_minimo').value = 0;
+    //     document.getElementById('data_compra').value = hoje;
+    //     document.getElementById('validade').value = '';
+    //     document.getElementById('preco_custo').value = 0;
+    //     document.getElementById('preco_venda').value = 0;
+    //     document.getElementById('peso').value = '';
+    //     document.getElementById('largura').value = '';
+    //     document.getElementById('altura').value = '';
+    //     document.getElementById('profundidade').value = '';
+    //     document.getElementById('localizacao_estoque').value = '';
+    //     document.getElementById('ativo').checked = true;
 
-        // Sempre mostra a imagem padrão
-        imagemPreview.src = imagemPadrao;
-        imagemPreview.style.display = 'block';
-    }
+    //     // Sempre mostra a imagem padrão
+    //     imagemPreview.src = imagemPadrao;
+    //     imagemPreview.style.display = 'block';
+    // }
+    
+    function limparCampos() {
+    const hoje = new Date().toISOString().split('T')[0];
+
+    // NÃO LIMPA MAIS O CÓDIGO DE BARRAS
+    // document.getElementById('codigo_barras').value = '';
+
+    // document.getElementById('sku').value = '';
+    document.getElementById('descricao').value = '';
+    document.getElementById('categoria_id').value = '';
+    document.getElementById('fornecedor_id').value = '';
+    document.getElementById('unidade_medida_id').value = '';
+    document.getElementById('marca_id').value = '';
+    document.getElementById('estoque_minimo').value = 0;
+    document.getElementById('data_compra').value = hoje;
+    document.getElementById('validade').value = '';
+    document.getElementById('preco_custo').value = 0;
+    document.getElementById('preco_venda').value = 0;
+    document.getElementById('peso').value = '';
+    document.getElementById('largura').value = '';
+    document.getElementById('altura').value = '';
+    document.getElementById('profundidade').value = '';
+    document.getElementById('localizacao_estoque').value = '';
+    document.getElementById('ativo').checked = true;
+
+    imagemPreview.src = imagemPadrao;
+}
+
 });
 
 

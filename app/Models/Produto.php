@@ -21,18 +21,13 @@ class Produto extends Model
         'unidade_medida_id',
         'marca_id',
         'quantidade_estoque',
-        'estoque_total',
         'estoque_minimo',
-        'preco_custo',
         'preco_venda',
-        'preco_base',
-        'preco_promocional',
-        'desconto_percentual',
-        'promocao_inicio',
-        'promocao_fim',
-        'em_promocao',
-        'data_compra',
         'validade_produto',
+        // 'preco_promocional',
+        'em_promocao',
+        // 'promocao_inicio',
+        // 'promocao_fim',
         'peso',
         'largura',
         'altura',
@@ -40,18 +35,17 @@ class Produto extends Model
         'localizacao_estoque',
         'imagem',
         'ativo',
+        'editando_por', 
+        'editando_em',
     ];
-
+   
     protected $casts = [
-        'data_compra' => 'date',
-        'validade_produto' => 'date',
-        'preco_custo' => 'decimal:2',
         'preco_venda' => 'decimal:2',
-        'preco_base' => 'decimal:2',
-        'preco_promocional' => 'decimal:2',
         'promocao_inicio' => 'date',
+        'validade_produto'=> 'date',
         'promocao_fim' => 'date',
         'em_promocao' => 'boolean',
+        
     ];
 
     // -------------------------------
@@ -66,9 +60,9 @@ class Produto extends Model
             ->whereDate('promocao_fim', '>=', now());
     }
 
-    public function lotes()
+   public function lotes()
     {
-        return $this->hasMany(Lote::class, 'produto_id');
+        return $this->hasMany(Lote::class);
     }
 
     public function unidadeMedida()

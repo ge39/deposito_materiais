@@ -2,7 +2,7 @@
 
 <?php $__env->startSection('content'); ?>
 <div class="container mt-4">
-    <h2 class="mb-4">Lotes do Produto: <?php echo e($produto->nome); ?></h2>
+    <h2 class="mb-4">Lotes do Produto: <?php echo e($produto->id); ?></h2>
 
     <!-- <a href="<?php echo e(route('lotes.create', $produto->id)); ?>" class="btn btn-success mb-3">
         <i class="bi bi-plus-circle"></i> Novo Lote

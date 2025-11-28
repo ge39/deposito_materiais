@@ -1,52 +1,53 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 <div class="container">
-    <h2 class="mb-4">Editar Pedido de Compra #{{ $pedido->id }}</h2>
+    <h2 class="mb-4">Editar Pedido de Compra #<?php echo e($pedido->id); ?></h2>
 
-    {{-- Mensagens de feedback --}}
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if($errors->any())
+    
+    <?php if(session('success')): ?>
+        <div class="alert alert-success"><?php echo e(session('success')); ?></div>
+    <?php endif; ?>
+    <?php if($errors->any()): ?>
         <div class="alert alert-danger">
             <ul class="mb-0">
-                @foreach($errors->all() as $erro)
-                    <li>{{ $erro }}</li>
-                @endforeach
+                <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $erro): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><?php echo e($erro); ?></li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </ul>
         </div>
-    @endif
+    <?php endif; ?>
 
-    {{-- Formulário principal --}}
-    <form action="{{ route('pedidos.update', $pedido->id) }}" method="POST" id="pedidoForm">
-        @csrf
-        @method('PUT')
+    
+    <form action="<?php echo e(route('pedidos.update', $pedido->id)); ?>" method="POST" id="pedidoForm">
+        <?php echo csrf_field(); ?>
+        <?php echo method_field('PUT'); ?>
 
         <div class="row mb-3">
             <div class="col-md-6">
                 <label>Codigo: <span class="text-danger">
-                     <input type="text" class="form-control" name="pedido_id" value="{{ $pedido->id }}" readonly>
+                     <input type="text" class="form-control" name="pedido_id" value="<?php echo e($pedido->id); ?>" readonly>
                     </span>
                 </label>
 
                 <label>Fornecedor <span class="text-danger">
-                     <input type="text" class="form-control" value="{{ $pedido->fornecedor->nome ?? $pedido->fornecedor->nome_fantasia ?? $pedido->fornecedor->razao_social }}" readonly>
+                     <input type="text" class="form-control" value="<?php echo e($pedido->fornecedor->nome ?? $pedido->fornecedor->nome_fantasia ?? $pedido->fornecedor->razao_social); ?>" readonly>
                     </span>
-                    <input type="hidden" name="fornecedor_id" value="{{ $pedido->fornecedor_id }}">
+                    <input type="hidden" name="fornecedor_id" value="<?php echo e($pedido->fornecedor_id); ?>">
                 </label>
-                <select name="fornecedor_id" id="fornecedorSelect" class="form-control" required {{ $pedido->itens->count() > 0 ? 'disabled' : '' }}>
+                <select name="fornecedor_id" id="fornecedorSelect" class="form-control" required <?php echo e($pedido->itens->count() > 0 ? 'disabled' : ''); ?>>
                     <option value="">-- Selecione --</option>
-                    @foreach($fornecedores as $fornecedor)
-                        <option value="{{ $fornecedor->id }}" {{ $pedido->fornecedor_id == $fornecedor->id ? 'selected' : '' }}>
-                            {{ $fornecedor->nome_fantasia ?? $fornecedor->razao_social }}
+                    <?php $__currentLoopData = $fornecedores; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $fornecedor): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($fornecedor->id); ?>" <?php echo e($pedido->fornecedor_id == $fornecedor->id ? 'selected' : ''); ?>>
+                            <?php echo e($fornecedor->nome_fantasia ?? $fornecedor->razao_social); ?>
+
                         </option>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
             <div class="col-md-3">
                 <label for="data_pedido">Nova Data do Pedido <span class="text-danger">*</span></label>
-                <input type="datetime-local" id="data_pedido" name="data_pedido" class="form-control" value="{{ date('Y-m-d\TH:i') }}" required>
+                <input type="datetime-local" id="data_pedido" name="data_pedido" class="form-control" value="<?php echo e(date('Y-m-d\TH:i')); ?>" required>
             </div>
         </div>
 
@@ -69,52 +70,54 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($pedido->itens as $index => $item)
+                    <?php $__currentLoopData = $pedido->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <tr>
-                            <td>{{ $index + 1 }}</td>
+                            <td><?php echo e($index + 1); ?></td>
                             <td>
-                                <select name="itens[{{ $index }}][produto_id]" class="form-control produto-select" required>
+                                <select name="itens[<?php echo e($index); ?>][produto_id]" class="form-control produto-select" required>
                                     <option value="">Selecione...</option>
-                                    @foreach($produtos as $produto)
-                                        <option value="{{ $produto->id }}"
-                                            data-preco-custo="{{ $produto->valor_unitario }}"
-                                            {{ $produto->id == $item->produto_id ? 'selected' : '' }}>
-                                            {{ $produto->nome }}
+                                    <?php $__currentLoopData = $produtos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $produto): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($produto->id); ?>"
+                                            data-preco-custo="<?php echo e($produto->valor_unitario); ?>"
+                                            <?php echo e($produto->id == $item->produto_id ? 'selected' : ''); ?>>
+                                            <?php echo e($produto->nome); ?>
+
                                         </option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </td>
                             <td>
-                                <input type="text" class="form-control unidade_medida" value="{{ $item->produto->unidadeMedida->nome ?? '' }}" readonly>
+                                <input type="text" class="form-control unidade_medida" value="<?php echo e($item->produto->unidadeMedida->nome ?? ''); ?>" readonly>
                             </td>
                             <td>
-                                <input type="number" name="itens[{{ $index }}][quantidade]" class="form-control quantidade" min="1" value="{{ $item->quantidade }}" required>
+                                <input type="number" name="itens[<?php echo e($index); ?>][quantidade]" class="form-control quantidade" min="1" value="<?php echo e($item->quantidade); ?>" required>
                             </td>
                             <td>
-                                <input type="text" name="itens[{{ $index }}][valor_unitario]" class="form-control valor_unitario" value="{{ number_format($item->valor_unitario ?? $item->produto->valor_unitario, 2, '.', '') }}">
+                                <input type="text" name="itens[<?php echo e($index); ?>][valor_unitario]" class="form-control valor_unitario" value="<?php echo e(number_format($item->valor_unitario ?? $item->produto->valor_unitario, 2, '.', '')); ?>">
                             </td>
                             <td>
-                                <input type="text" name="itens[{{ $index }}][subtotal]" class="form-control subtotal" value="{{ number_format($item->subtotal ?? ($item->quantidade * ($item->valor_unitario ?? $item->produto->valor_unitario)), 2, '.', '') }}">
+                                <input type="text" name="itens[<?php echo e($index); ?>][subtotal]" class="form-control subtotal" value="<?php echo e(number_format($item->subtotal ?? ($item->quantidade * ($item->valor_unitario ?? $item->produto->valor_unitario)), 2, '.', '')); ?>">
                             </td>
                             <td>
-                                @php
+                                <?php
                                     $statusClasses = [
                                         'pendente' => 'badge bg-warning text-dark',
                                         'aprovado' => 'badge bg-primary',
                                         'recebido' => 'badge bg-success',
                                         'cancelado' => 'badge bg-danger'
                                     ];
-                                @endphp
-                                <span class="{{ $statusClasses[$pedido->status] ?? 'badge bg-secondary' }}">
-                                    {{ ucfirst($pedido->status) }}
+                                ?>
+                                <span class="<?php echo e($statusClasses[$pedido->status] ?? 'badge bg-secondary'); ?>">
+                                    <?php echo e(ucfirst($pedido->status)); ?>
+
                                 </span>
-                                <input type="hidden" name="status" value="{{ $pedido->status }}">
+                                <input type="hidden" name="status" value="<?php echo e($pedido->status); ?>">
                             </td>
                             <td>
                                 <button type="button" class="btn btn-danger btn-sm removeItem">Remover</button>
                             </td>
                         </tr>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
             </table>
         </div>
@@ -123,19 +126,19 @@
             <div class="mt-4">
                 <button type="button" class="btn btn-primary" id="addItem">Adicionar Item</button>
                 <button type="submit" class="btn btn-success">Atualizar Pedido</button>
-                <a href="{{ route('pedidos.index') }}" class="btn btn-secondary">Voltar</a>
+                <a href="<?php echo e(route('pedidos.index')); ?>" class="btn btn-secondary">Voltar</a>
             </div>
-            <h5 class="mb-0">Total: R$ <span id="totalGeral">{{ number_format($pedido->total, 2, '.', '') }}</span></h5>
+            <h5 class="mb-0">Total: R$ <span id="totalGeral"><?php echo e(number_format($pedido->total, 2, '.', '')); ?></span></h5>
         </div>
     </form>
 </div>
 
 <!-- <script>
-    const produtos = @json($produtos->load('unidadeMedida'));
+    const produtos = <?php echo json_encode($produtos->load('unidadeMedida'), 15, 512) ?>;
     const table = document.querySelector('#itensTable tbody');
     const scrollContainer = document.getElementById('scrollTableContainer');
-    let itemIndex = {{ $pedido->itens->count() }};
-    let fornecedorSelecionado = {{ $pedido->fornecedor_id ?? 'null' }};
+    let itemIndex = <?php echo e($pedido->itens->count()); ?>;
+    let fornecedorSelecionado = <?php echo e($pedido->fornecedor_id ?? 'null'); ?>;
 
 
     document.getElementById('addItem').addEventListener('click', () => {
@@ -239,7 +242,7 @@
 </script> -->
 
 <script>
-const produtos = @json($produtos->load('unidadeMedida'));
+const produtos = <?php echo json_encode($produtos->load('unidadeMedida'), 15, 512) ?>;
 const table = document.querySelector('#itensTable tbody');
 const fornecedorSelect = document.getElementById('fornecedorSelect');
 const scrollContainer = document.getElementById('scrollTableContainer');
@@ -377,4 +380,5 @@ table.querySelectorAll('tr').forEach(row => atualizarValores(row));
 atualizarTotalGeral();
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pedidos/edit.blade.php ENDPATH**/ ?>

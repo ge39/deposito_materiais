@@ -25,7 +25,7 @@
             <div class="mb-3" style="color:blue"><strong>Preço de Custo:</strong> R$ {{ number_format($produto->preco_custo, 2, ',', '.') }}</div>
             <div class="mb-3"><strong>Preço de Venda:</strong> R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}</div>
             <div class="mb-3"><strong>Data da Compra:</strong> {{ $produto->data_compra ? $produto->data_compra->format('d/m/Y') : '-' }}</div>
-            <div class="mb-3"><strong>Validade:</strong> {{ $produto->validade_produto ? $produto->validade_produto->format('d/m/Y') : '-' }}</div>
+            <!-- <div class="mb-3"><strong>Validade:</strong> {{ $produto->validade_produto ? $produto->validade_produto->format('d/m/Y') : '-' }}</div> -->
             <div class="mb-3"><strong>Peso:</strong> {{ $produto->peso }} kg</div>
         </div>
 

@@ -24,6 +24,22 @@
         </div>
     <?php endif; ?>
 
+    <?php if(session('error')): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Atenção:</strong> <?php echo e(session('error')); ?>
+
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+
+    <!-- <?php if(session('success')): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <?php echo e(session('success')); ?>
+
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?> -->
+
     <!-- Formulário de busca -->
     <form action="<?php echo e(route('produtos.search')); ?>" method="GET" class="mb-3 row g-2 align-items-end">
         <div class="col-md-8">

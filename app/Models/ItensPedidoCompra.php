@@ -2,26 +2,39 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ItensPedidoCompra extends Model
+class PedidoItem extends Model
 {
+    use HasFactory;
+
     protected $table = 'itens_pedido_compras';
 
     protected $fillable = [
-        'pedido_id',
+        'pedido_id',     // FK correta
         'produto_id',
-        'pedido_compra_id', // novo campo de referência
         'quantidade',
         'preco_unitario',
-        'total'
+        'total',
+        'validade',      // caso esteja usando validade por item
+        'numero_lote',   // caso lote seja informado no pedido
     ];
 
-    public function pedido() {
+    protected $casts = [
+        'total' => 'decimal:2',
+        'preco_unitario' => 'decimal:2',
+        'validade' => 'date',
+    ];
+
+    // RELACIONAMENTOS ------------------------------------
+    public function pedido()
+    {
         return $this->belongsTo(PedidoCompra::class, 'pedido_id');
     }
 
-    public function produto() {
+    public function produto()
+    {
         return $this->belongsTo(Produto::class);
     }
 }

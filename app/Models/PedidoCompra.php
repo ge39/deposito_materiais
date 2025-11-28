@@ -25,7 +25,8 @@ class PedidoCompra extends Model
         'total' => 'decimal:2',
     ];
 
-    // Relações
+    // RELACIONAMENTOS ------------------------------------------------
+
     public function fornecedor()
     {
         return $this->belongsTo(Fornecedor::class);
@@ -41,42 +42,54 @@ class PedidoCompra extends Model
         return $this->hasMany(PedidoItem::class, 'pedido_id');
     }
 
-    /**
-     * Receber os produtos do pedido.
-     * Atualiza quantidade_estoque dos produtos, gerencia lotes e atualiza status.
-     */
-   public function receberProdutos()
+
+    // ================================================================
+    // MÉTODO PRINCIPAL: RECEBIMENTO DO PEDIDO
+    // ================================================================
+    public function receberProdutos()
     {
-    if ($this->status !== 'aprovado') {
-        throw new \Exception("Recebimento só é permitido para pedidos aprovados.");
-    }
-
-    DB::transaction(function () {
-
-        foreach ($this->itens as $item) {
-            $produto = $item->produto;
-
-            // Atualiza quantidade_estoque do produto
-            $produto->quantidade_estoque += $item->quantidade;
-            $produto->save();
-
-            // Cria ou atualiza lote
-            $lote = \App\Models\Lote::firstOrNew([
-                'produto_id' => $produto->id,
-                'numero_lote' => now()->format('Ymd') . $produto->id, // gera número do lote
-            ]);
-
-            $lote->quantidade = ($lote->quantidade ?? 0) + $item->quantidade;
-            $lote->validade = $item->validade ?? $produto->validade ?? null;
-            $lote->fornecedor_id = $this->fornecedor_id;
-            $lote->data_compra = $this->data_pedido;
-            $lote->save();
+        if ($this->status !== 'aprovado') {
+            throw new \Exception("Recebimento só é permitido para pedidos com status 'aprovado'.");
         }
 
-        // Atualiza status do pedido
-        $this->status = 'recebido';
-        $this->updated_at = now();
-        $this->save();
-    });
+        DB::transaction(function () {
+
+            foreach ($this->itens as $item) {
+
+                $produto = $item->produto;
+
+                // -----------------------------------------------------
+                // 1. Atualiza o estoque principal (campo direto no produto)
+                // -----------------------------------------------------
+                $produto->increment('quantidade_estoque', $item->quantidade);
+
+
+                // -----------------------------------------------------
+                // 2. Gerenciamento de LOTES
+                // -----------------------------------------------------
+
+                // Número de lote mais seguro (único por item)
+                $numeroLote = $item->numero_lote
+                    ?? ($produto->id . '-' . now()->format('YmdHis'));
+
+                $lote = Lote::firstOrNew([
+                    'produto_id'   => $produto->id,
+                    'numero_lote'  => $numeroLote,
+                ]);
+
+                $lote->quantidade = ($lote->quantidade ?? 0) + $item->quantidade;
+                $lote->validade = $item->validade ?? $produto->validade_produto ?? null;
+                $lote->fornecedor_id = $this->fornecedor_id;
+                $lote->data_compra = $this->data_pedido;
+                $lote->save();
+            }
+
+            // -----------------------------------------------------
+            // 3. Atualizar o status do pedido
+            // -----------------------------------------------------
+            $this->update([
+                'status' => 'recebido'
+            ]);
+        });
     }
 }

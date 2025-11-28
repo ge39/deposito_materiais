@@ -10,7 +10,7 @@ class Venda extends Model
 
     public function itens()
     {
-        return $this->hasMany(VendaItem::class);
+        return $this->hasMany(ItemVenda::class);
     }
 
     public function cliente()

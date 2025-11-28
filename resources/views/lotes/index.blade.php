@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container mt-4">
-    <h2 class="mb-4">Lotes do Produto: {{ $produto->nome }}</h2>
+    <h2 class="mb-4">Lotes do Produto: {{ $produto->id }}</h2>
 
     <!-- <a href="{{ route('lotes.create', $produto->id) }}" class="btn btn-success mb-3">
         <i class="bi bi-plus-circle"></i> Novo Lote

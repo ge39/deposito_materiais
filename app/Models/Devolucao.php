@@ -42,12 +42,12 @@ class Devolucao extends Model
     }
     public function item()
     {
-        return $this->belongsTo(VendaItem::class, 'venda_item_id');
+          return $this->belongsTo(ItemVenda::class, 'item_venda_id');
     }
-    public function vendaItem()
-    {
-        return $this->belongsTo(VendaItem::class, 'venda_item_id');
-    }
+    // public function vendaItem()
+    // {
+    //     return $this->belongsTo(VendaItem::class, 'venda_item_id');
+    // }
     public function produto()
     {
         return $this->belongsTo(Produto::class);

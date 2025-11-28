@@ -20,12 +20,14 @@
     </div>
 
     <div class="card p-3">
+
         <!-- Header -->
-        <div class="d-grid grid-template-columns" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 1rem; font-weight: bold; background-color: #343a40; color: #fff; padding: 0.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem; 
+                    font-weight: bold; background-color: #343a40; color: #fff;
+                    padding: 0.5rem;">
             <div>ID</div>
             <div>Fornecedor</div>
-            <div>DT Pedido</div>
-            <div>Validade</div>
+            <div>Data Pedido</div>
             <div>Total</div>
             <div>Status</div>
             <div>Criado por</div>
@@ -35,12 +37,15 @@
         <!-- Rows -->
         <div>
             <?php $__empty_1 = true; $__currentLoopData = $pedidos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pedido): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                <div class="d-grid grid-template-columns align-items-center" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 1rem; padding: 0.5rem; border-bottom: 1px solid #dee2e6;">
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem;
+                            padding: 0.5rem; border-bottom: 1px solid #dee2e6;">
+
                     <div><?php echo e($pedido->id); ?></div>
                     <div><?php echo e($pedido->fornecedor->nome ?? '-'); ?></div>
                     <div><?php echo e(\Carbon\Carbon::parse($pedido->data_pedido)->format('d/m/Y')); ?></div>
-                    <div><?php echo e(\Carbon\Carbon::parse($pedido->validade_produto ?? now())->format('d/m/Y')); ?></div>
+
                     <div>R$ <?php echo e(number_format($pedido->total, 2, ',', '.')); ?></div>
+
                     <div>
                         <?php
                             $statusClasses = [
@@ -50,41 +55,55 @@
                                 'cancelado' => 'badge bg-danger'
                             ];
                         ?>
+
                         <span class="<?php echo e($statusClasses[$pedido->status] ?? 'badge bg-secondary'); ?>">
                             <?php echo e(ucfirst($pedido->status)); ?>
 
                         </span>
                     </div>
+
                     <div><?php echo e($pedido->user->name ?? '-'); ?></div>
 
-                    <div class="d-grid grid-template-columns gap-1" style="display: grid; grid-template-columns: repeat(5, auto); gap: 0.25rem;">
+                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
                         <a href="<?php echo e(route('pedidos.show', $pedido->id)); ?>" 
-                        class="btn btn-info btn-sm" 
-                        style="font-size:0.65rem; padding:0.25rem 0.4rem;">View</a>
+                           class="btn btn-info btn-sm"
+                           style="font-size:0.65rem; padding:0.25rem 0.4rem;">
+                            View
+                        </a>
 
-                        <?php if($pedido->status != 'cancelado' && $pedido->status != 'recebido'): ?>
+                        <?php if(!in_array($pedido->status, ['cancelado','recebido'])): ?>
                             <a href="<?php echo e(route('pedidos.edit', $pedido->id)); ?>" 
-                            class="btn btn-warning btn-sm" 
-                            style="font-size:0.65rem; padding:0.25rem;">Editar</a>
+                               class="btn btn-warning btn-sm"
+                               style="font-size:0.65rem; padding:0.25rem;">
+                                Editar
+                            </a>
                         <?php endif; ?>
 
                         <a href="<?php echo e(route('pedidos.pdf', $pedido->id)); ?>" target="_blank" 
-                        class="btn btn-success btn-sm" 
-                        style="font-size:0.65rem; padding:0.25rem;">
+                           class="btn btn-success btn-sm"
+                           style="font-size:0.65rem; padding:0.25rem;">
                              Print
                         </a>
 
-                        <?php if($pedido->status == 'pendente'): ?>
+                        <?php if($pedido->status === 'pendente'): ?>
                             <a href="<?php echo e(route('pedidos.aprovar', $pedido->id)); ?>" 
-                            class="btn btn-primary btn-sm" 
-                            style="font-size:0.65rem; padding:0.25rem;">Aprovar</a>
+                               class="btn btn-primary btn-sm"
+                               style="font-size:0.65rem; padding:0.25rem;">
+                                Aprovar
+                            </a>
+
                             <a href="<?php echo e(route('pedidos.cancelar', $pedido->id)); ?>" 
-                            class="btn btn-danger btn-sm" 
-                            style="font-size:0.65rem; padding:0.25rem;">Cancelar</a>
-                        <?php elseif($pedido->status == 'aprovado'): ?>
+                               class="btn btn-danger btn-sm"
+                               style="font-size:0.65rem; padding:0.25rem;">
+                                Cancelar
+                            </a>
+
+                        <?php elseif($pedido->status === 'aprovado'): ?>
                             <a href="<?php echo e(route('pedidos.receber', $pedido->id)); ?>" 
-                            class="btn btn-success btn-sm" 
-                            style="font-size:0.65rem; padding:0.25rem;">Receber</a>
+                               class="btn btn-success btn-sm"
+                               style="font-size:0.65rem; padding:0.25rem;">
+                                Receber
+                            </a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -100,6 +119,7 @@
 
         </div>
     </div>
+
 </div>
 <?php $__env->stopSection(); ?>
 

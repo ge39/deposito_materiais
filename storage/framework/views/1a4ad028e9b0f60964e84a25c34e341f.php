@@ -35,7 +35,7 @@
                 </div>
                 <div class="col-md-6">
                     <label>Data do Pedido</label>
-                    <input type="dateTime" name="data_pedido" class="form-control" value="<?php echo e(now()->format('Y-m-d H:i:s')); ?>" readOnly>
+                    <input type="dateTime" name="data_pedido" class="form-control" value="<?php echo e(now()->format('d-m-Y H:i:s')); ?>" readOnly>
                 </div>
             </div>
         </div>
@@ -90,14 +90,13 @@
     function atualizarValores(row) {
         const selectProduto = row.querySelector('.produto-select');
         const quantidade = row.querySelector('.quantidade');
-        const valor = row.querySelector('.valor_unitario');
+        const valor = row.querySelector('.valor_unitario'); // <-- alterado
         const subtotal = row.querySelector('.subtotal');
         const unidadeInput = row.querySelector('.unidade_medida');
 
         selectProduto.addEventListener('change', () => {
-            const selectedOption = selectProduto.selectedOptions[0];
             const produto = produtos.find(p => p.id == selectProduto.value);
-            const valorUnit = parseFloat(produto?.preco_custo || 0);
+            const valorUnit = parseFloat(produto?.preco_compra_atual || 0); // preço do último lote
             valor.value = valorUnit.toFixed(2);
             unidadeInput.value = produto?.unidade_medida?.nome || '';
             subtotal.value = (valorUnit * parseFloat(quantidade.value || 0)).toFixed(2);
@@ -150,7 +149,7 @@
         const row = document.createElement('tr');
         itemIndex++;
         let options = '<option value="">Selecione</option>';
-        produtos.forEach(p => options += `<option value="${p.id}" data-preco-custo="${p.preco_custo}">${p.nome}</option>`);
+        produtos.forEach(p => options += `<option value="${p.id}" data-preco-compra="${p.preco_compra_atual}">${p.nome}</option>`);
 
         row.innerHTML = `
             <td class="text-center"></td>
@@ -188,5 +187,4 @@
     });
 </script>
 <?php $__env->stopSection(); ?>
-
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pedidos/create.blade.php ENDPATH**/ ?>
