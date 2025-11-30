@@ -97,14 +97,17 @@
                                style="font-size:0.65rem; padding:0.25rem;">
                                 Cancelar
                             </a>
+                                <?php elseif($pedido->status === 'aprovado'): ?> 
+                                    <button 
+                                        class="btn btn-success btn-sm"
+                                        onclick="window.location='<?php echo e(route('pedidos.receber.view', $pedido->id)); ?>'"
+                                        style="font-size:0.65rem; padding:0.25rem;">
+                                        Receber
+                                    </button>
 
-                        <?php elseif($pedido->status === 'aprovado'): ?>
-                            <a href="<?php echo e(route('pedidos.receber', $pedido->id)); ?>" 
-                               class="btn btn-success btn-sm"
-                               style="font-size:0.65rem; padding:0.25rem;">
-                                Receber
-                            </a>
-                        <?php endif; ?>
+                                <?php endif; ?>
+
+
                     </div>
                 </div>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -121,6 +124,61 @@
     </div>
 
 </div>
+
 <?php $__env->stopSection(); ?>
+
+<!-- Modal de Recebimento -->
+<div class="modal fade" id="modalReceber" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Receber Pedido</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body" id="modalBodyReceber">
+        <!-- Conteúdo será carregado via AJAX -->
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.btn-receber').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const id = this.dataset.id;
+                try {
+                    // Pega o HTML da view (retorna a partial blade)
+                    const res = await fetch("<?php echo e(url('pedidos/modal-recebimento')); ?>/" + id, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!res.ok) throw new Error('Falha ao carregar modal');
+
+                    const html = await res.text();
+
+                    // Insere no body e mostra (Bootstrap)
+                    let wrapper = document.createElement('div');
+                    wrapper.innerHTML = html;
+                    document.body.appendChild(wrapper);
+
+                    // assume que a partial contém <div class="modal" id="modalReceber-..."> e inicializa o modal
+                    const modalEl = wrapper.querySelector('.modal');
+                    if (modalEl) {
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+
+                        // remove modal do DOM ao fechar
+                        modalEl.addEventListener('hidden.bs.modal', () => wrapper.remove());
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Erro ao abrir tela de recebimento: ' + err.message);
+                }
+            });
+        });
+    });
+</script>
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pedidos/index.blade.php ENDPATH**/ ?>

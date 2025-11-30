@@ -24,7 +24,8 @@ use App\Http\Controllers\{
     PedidoCompraController,
     OrcamentoController,
     PromocaoController,
-    PainelPromocaoController
+    PainelPromocaoController,
+    PedidoCompraRecebimentoController
 };
 
 // ===============================
@@ -37,22 +38,48 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // ===============================
 // ROTAS PROTEGIDAS (auth)
 // ===============================
-Route::middleware('auth')->group(function () {
+    Route::middleware('auth')->group(function () {
 
-    // DASHBOARD
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        // DASHBOARD
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // ===============================
+        // ===============================
     // PEDIDOS DE COMPRA
     // ===============================
     Route::prefix('pedidos')->name('pedidos.')->group(function () {
-        Route::patch('{pedido}/status', [PedidoCompraController::class, 'updateStatus'])->name('updateStatus');
-        Route::get('aprovar/{id}', [PedidoCompraController::class, 'aprovar'])->name('aprovar');
-        Route::get('receber/{id}', [PedidoCompraController::class, 'receber'])->name('receber');
-        Route::get('cancelar/{id}', [PedidoCompraController::class, 'cancelar'])->name('cancelar');
-        Route::get('pdf/{id}', [PedidoCompraController::class, 'gerarPdf'])->name('pdf');
+
+        // Atualizar status
+        Route::patch('{pedido}/status', [PedidoCompraController::class, 'updateStatus'])
+            ->name('updateStatus');
+
+        // Aprovar pedido
+        Route::get('aprovar/{id}', [PedidoCompraController::class, 'aprovar'])
+            ->name('aprovar');
+
+        // Tela de recebimento (VIEW)
+        Route::get('receber-view/{id}', [PedidoCompraController::class, 'receberView'])
+            ->name('receber.view');
+
+        // Confirmar recebimento (POST) — ESTA É A ROTA QUE FALTAVA
+        Route::post('receber-confirmar/{id}', [PedidoCompraController::class, 'receberConfirmar'])
+            ->name('receber.confirmar');
+
+        // Receber direto (se quiser manter)
+        Route::post('receber/{id}', [PedidoCompraController::class, 'receber'])
+            ->name('receber');
+
+        // Cancelar pedido
+        Route::get('cancelar/{id}', [PedidoCompraController::class, 'cancelar'])
+            ->name('cancelar');
+
+        // PDF
+        Route::get('pdf/{id}', [PedidoCompraController::class, 'gerarPdf'])
+            ->name('pdf');
     });
+
+    // Resource
     Route::resource('pedidos', PedidoCompraController::class);
+
 
     // ===============================
     // ORÇAMENTOS

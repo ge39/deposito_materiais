@@ -3,20 +3,21 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\PedidoCompra;        // Modelo principal do pedido
-use App\Models\Fornecedor;          // Fornecedor
-use App\Models\Produto;             // Produtos
-use App\Models\UnidadeMedida;       // Unidades de medida
-use App\Models\Lote;                // Lotes
-use App\Models\User;                // Usuários (ex: funcionários)
-use App\Models\Orcamento;           // Caso use orçamentos relacionados
-use Illuminate\Support\Facades\DB;  // Para queries diretas, se houver
-use Illuminate\Support\Facades\Auth; // Para usuário autenticado
+use App\Models\PedidoCompra;
+use App\Models\Fornecedor;
+use App\Models\Produto;
+use App\Models\UnidadeMedida;
+use App\Models\Lote;
+use App\Models\User;
+use App\Models\Empresa;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class PedidoCompraController extends Controller
 {
     /**
-     * Listar pedidos de compra
+     * LISTA PEDIDOS
      */
     public function index()
     {
@@ -26,36 +27,27 @@ class PedidoCompraController extends Controller
 
         return view('pedidos.index', compact('pedidos'));
     }
-    public function edit($id)
-    {
-        $pedido = PedidoCompra::with('itens', 'fornecedor')->findOrFail($id); // carrega o pedido
-
-        $fornecedores = Fornecedor::all(); // ou outros dados necessários
-        $produtos = Produto::all();
-        $unidades = UnidadeMedida::all();
-
-        return view('pedidos.edit', compact('pedido', 'fornecedores', 'produtos', 'unidades'));
-    }
 
     /**
-     * Tela de criação de pedido
+     * VIEW CREATE
      */
     public function create()
     {
-        $fornecedores = Fornecedor::all();
-        $produtos = Produto::all();
-        return view('pedidos.create', compact('fornecedores', 'produtos'));
+        return view('pedidos.create', [
+            'fornecedores' => Fornecedor::all(),
+            'produtos' => Produto::all()
+        ]);
     }
 
     /**
-     * Armazenar pedido no banco
+     * SALVAR PEDIDO
      */
     public function store(Request $request)
     {
         $request->validate([
             'fornecedor_id' => 'required|exists:fornecedores,id',
-            'data_pedido' => 'required|date',
-            'itens' => 'required|array|min:1',
+            'data_pedido'   => 'required|date',
+            'itens'         => 'required|array|min:1',
             'itens.*.produto_id' => 'required|exists:produtos,id',
             'itens.*.quantidade' => 'required|numeric|min:1',
             'itens.*.valor_unitario' => 'required|numeric|min:0',
@@ -64,23 +56,26 @@ class PedidoCompraController extends Controller
         DB::beginTransaction();
         try {
             $pedido = PedidoCompra::create([
-                'user_id' => auth()->id() ?? 1,
+                'user_id'       => auth()->id() ?? 1,
                 'fornecedor_id' => $request->fornecedor_id,
-                'data_pedido' => $request->data_pedido,
-                'status' => 'pendente',
-                'total' => 0,
+                'data_pedido'   => $request->data_pedido,
+                'status'        => 'pendente',
+                'total'         => 0,
             ]);
 
             $total = 0;
             foreach ($request->itens as $item) {
+
                 $subtotal = $item['quantidade'] * $item['valor_unitario'];
+
                 $pedido->itens()->create([
-                    'produto_id' => $item['produto_id'],
-                    'pedido_compra_id' => $pedido->id,
-                    'quantidade' => $item['quantidade'],
-                    'valor_unitario' => $item['valor_unitario'],
-                    'subtotal' => $subtotal,
+                    'produto_id'        => $item['produto_id'],
+                    'pedido_compra_id'  => $pedido->id,
+                    'quantidade'        => $item['quantidade'],
+                    'valor_unitario'    => $item['valor_unitario'],
+                    'subtotal'          => $subtotal,
                 ]);
+
                 $total += $subtotal;
             }
 
@@ -89,78 +84,286 @@ class PedidoCompraController extends Controller
             DB::commit();
             return redirect()->route('pedidos.index')->with('success', 'Pedido salvo com sucesso!');
         } catch (\Exception $e) {
+
             DB::rollBack();
             \Log::error($e->getMessage());
+
             return back()->withErrors('Erro ao salvar o pedido: ' . $e->getMessage());
         }
     }
 
     /**
-     * Aprovar pedido
+     * EDITAR PEDIDO
+     */
+    public function edit($id)
+    {
+        return view('pedidos.edit', [
+            'pedido'      => PedidoCompra::with('itens', 'fornecedor')->findOrFail($id),
+            'fornecedores'=> Fornecedor::all(),
+            'produtos'    => Produto::all(),
+            'unidades'    => UnidadeMedida::all(),
+        ]);
+    }
+
+    /**
+     * APROVAR PEDIDO
      */
     public function aprovar($id)
     {
         $pedido = PedidoCompra::findOrFail($id);
 
         if ($pedido->status !== 'pendente') {
-            return redirect()->back()->withErrors('Aprovação só é permitida para pedidos pendentes.');
+            return back()->withErrors('Aprovação só permitida para pedidos pendentes.');
         }
 
         $pedido->update(['status' => 'aprovado']);
-        return redirect()->route('pedidos.index')->with('success', "Pedido #{$pedido->id} aprovado com sucesso!");
+
+        return redirect()->route('pedidos.index')->with(
+            'success',
+            "Pedido #{$pedido->id} aprovado com sucesso!"
+        );
     }
 
     /**
-     * Receber pedido e gerar lotes
+     * RECEBER PEDIDO + GERAR LOTES
      */
-    public function receber($id)
+    // public function receber(Request $request, $id)
+    // {
+    //     $pedido = PedidoCompra::with('itens.produto')->findOrFail($id);
+
+    //     if ($request->has('itens_recebimento')) {
+    //         $request->validate([
+    //             'itens_recebimento'                       => 'required|array',
+    //             'itens_recebimento.*.item_id'            => 'required|integer',
+    //             'itens_recebimento.*.quantidade_recebida'=> 'required|numeric|min:0',
+    //             'itens_recebimento.*.validade_lote'      => 'nullable|date',
+    //             'itens_recebimento.*.numero_lote'        => 'nullable|string|max:50',
+    //         ]);
+    //     }
+
+    //     DB::beginTransaction();
+    //     try {
+    //         $itensPedido = $pedido->itens;
+    //         $mapRecebimento = [];
+
+    //         if ($request->has('itens_recebimento')) {
+    //             foreach ($request->itens_recebimento as $item) {
+    //                 $mapRecebimento[(int)$item['item_id']] = [
+    //                     'quantidade_recebida' => (float)$item['quantidade_recebida'],
+    //                     'validade_lote'       => $item['validade_lote'] ?? null,
+    //                     'numero_lote'         => $item['numero_lote'] ?? null,
+    //                 ];
+    //             }
+    //         }
+
+    //         $todosRecebidosCompletos = true;
+
+    //         foreach ($itensPedido as $item) {
+
+    //             $produto = $item->produto;
+    //             $itemId  = $item->id;
+
+    //             $qtdRecebida = $mapRecebimento[$itemId]['quantidade_recebida'] ?? $item->quantidade;
+    //             $validadeLote= $mapRecebimento[$itemId]['validade_lote']       ?? null;
+    //             $numeroLote  = $mapRecebimento[$itemId]['numero_lote']         ?? null;
+
+    //             if ($qtdRecebida <= 0) {
+    //                 $todosRecebidosCompletos = false;
+    //                 continue;
+    //             }
+
+    //             $qtdRecebida = min($qtdRecebida, $item->quantidade);
+
+    //             if (empty($numeroLote) || Lote::where('numero_lote', $numeroLote)->exists()) {
+    //                 $numeroLote = now()->format('YmdHis') . '-' . $pedido->id . '-' . $produto->id . '-' . Str::random(4);
+    //             }
+
+    //             // cria o lote
+    //             Lote::create([
+    //                 'pedido_compra_id'     => $pedido->id,
+    //                 'produto_id'           => $produto->id,
+    //                 'fornecedor_id'        => $pedido->fornecedor_id,
+    //                 'quantidade'           => $qtdRecebida,
+    //                 'quantidade_disponivel'=> $qtdRecebida,
+    //                 'preco_compra'         => $item->valor_unitario,
+    //                 'data_compra'          => $pedido->data_pedido ?? now(),
+    //                 'validade_lote'        => $validadeLote,
+    //                 'numero_lote'          => $numeroLote,
+    //                 'status'               => 1,
+    //             ]);
+
+    //             $produto->quantidade_estoque =
+    //                 Lote::where('produto_id', $produto->id)->sum('quantidade_disponivel');
+
+    //             $produto->validade_produto =
+    //                 Lote::where('produto_id', $produto->id)
+    //                     ->whereNotNull('validade_lote')
+    //                     ->min('validade_lote');
+
+    //             $produto->preco_compra_atual = $item->valor_unitario;
+    //             $produto->save();
+
+    //             if ($qtdRecebida < $item->quantidade) {
+    //                 $todosRecebidosCompletos = false;
+    //             }
+    //         }
+
+    //         $pedido->update([
+    //             'status' => $todosRecebidosCompletos
+    //                 ? 'recebido'
+    //                 : ($pedido->status === 'pendente' ? 'aprovado' : $pedido->status)
+    //         ]);
+
+    //         DB::commit();
+
+    //         return redirect()
+    //             ->route('pedidos.index')
+    //             ->with('success', $todosRecebidosCompletos
+    //                 ? 'Pedido recebido e lotes gerados com sucesso!'
+    //                 : 'Recebimento parcial realizado – lotes gerados.');
+    //     } catch (\Exception $e) {
+
+    //         DB::rollBack();
+    //         \Log::error('Erro ao receber pedido: ' . $e->getMessage());
+
+    //         return back()->withErrors('Erro: ' . $e->getMessage());
+    //     }
+    // }
+
+    // public function receber(Request $request, $id)
+    // {
+    //     $pedido = PedidoCompra::with('itens.produto')->findOrFail($id);
+
+    //     $request->validate([
+    //         'itens' => 'required|array',
+    //         'itens.*.item_id' => 'required|integer',
+    //         'itens.*.quantidade_recebida' => 'required|numeric|min:0',
+    //         'itens.*.preco_compra' => 'required|numeric|min:0',
+    //         'itens.*.validade_lote' => 'nullable|date',
+    //         'itens.*.numero_lote' => 'nullable|string|max:50',
+    //     ]);
+
+    //     DB::beginTransaction();
+    //     try {
+    //         foreach ($request->itens as $input) {
+
+    //             $item = $pedido->itens->where('id', $input['item_id'])->first();
+    //             if (!$item) continue;
+
+    //             $produto = $item->produto;
+    //             $qtd = (float)$input['quantidade_recebida'];
+
+    //             if ($qtd <= 0) continue;
+
+    //             Lote::create([
+    //                 'pedido_compra_id'     => $pedido->id,
+    //                 'produto_id'           => $produto->id,
+    //                 'fornecedor_id'        => $pedido->fornecedor_id,
+    //                 'quantidade'           => $qtd,
+    //                 'quantidade_disponivel'=> $qtd,
+    //                 'preco_compra'         => $input['preco_compra'],
+    //                 'data_compra'          => $pedido->data_pedido ?? now(),
+    //                 'validade_lote'        => $input['validade_lote'],
+    //                 'numero_lote'          => $input['numero_lote'] ?? now()->timestamp,
+    //                 'status'               => 1,
+    //             ]);
+
+    //             // Atualizar estoque e preço médio
+    //             $produto->quantidade_estoque = Lote::where('produto_id', $produto->id)
+    //                 ->sum('quantidade_disponivel');
+
+    //             $produto->validade_produto = Lote::where('produto_id', $produto->id)
+    //                 ->min('validade_lote');
+
+    //             $produto->preco_compra_atual = $input['preco_compra'];
+    //             $produto->save();
+    //         }
+
+    //         $pedido->update(['status' => 'recebido']);
+
+    //         DB::commit();
+    //         return redirect()->route('pedidos.index')
+    //             ->with('success', 'Pedido recebido com sucesso! Lotes gerados.');
+            
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return back()->withErrors("Erro ao receber: " . $e->getMessage());
+    //     }
+    // }
+
+    public function receber(Request $request, $id)
     {
-        $pedido = PedidoCompra::with('itens.produto')->findOrFail($id);
+        $pedido = PedidoCompra::with('itens.produto', 'fornecedor')->findOrFail($id);
 
-        DB::transaction(function () use ($pedido) {
+        if (!$request->has('itens') || empty($request->itens)) {
+            return back()->with('error', 'Nenhum item foi enviado.');
+        }
+
+        DB::beginTransaction();
+
+        try {
             foreach ($pedido->itens as $item) {
-                $produto = $item->produto;
 
-                // Atualiza o estoque do produto
-                $produto->quantidade_estoque = ($produto->quantidade_estoque ?? 0) + $item->quantidade;
-                $produto->save();
+                $dados = $request->itens[$item->id] ?? null;
+                if (!$dados) continue;
 
-                // Criação do lote completo
-                Lote::create([
-                    'pedido_compra_id' => $pedido->id,
-                    'produto_id'       => $produto->id,
-                    'fornecedor_id'    => $pedido->fornecedor_id,
-                    'quantidade'       => $item->quantidade,
-                    'preco_compra'     => $item->valor_unitario,
-                    'data_compra'      => $pedido->data_pedido,
-                    'validade'         => now()->addMonths(12),
-                    'numero_lote'      => now()->format('Ymd') . '-' . $produto->id,
+                $criarLote = $dados['criar_lote'] ?? "0";
+                $quantidade = max(0, (int) ($dados['quantidade_recebida'] ?? 0));
+                $validade = $dados['validade_lote'] ?? now()->addDays(30)->format('Y-m-d');
+                $status = ($criarLote === "1" && $quantidade > 0) ? 1 : 0;
+
+                // Criar lote com número temporário
+                $lote = Lote::create([
+                    'numero_lote'           => 'TEMP',
+                    'pedido_compra_id'      => $pedido->id,
+                    'produto_id'            => $item->produto_id,
+                    'fornecedor_id'         => $pedido->fornecedor_id,
+                    'quantidade'            => $quantidade,
+                    'quantidade_disponivel' => $quantidade,
+                    'preco_compra'          => $dados['preco_compra'] ?? $item->preco_compra,
+                    'data_compra'           => now()->format('Y-m-d'),
+                    'lancado_por'           => auth()->id(),
+                    'validade_lote'         => $validade,
+                    'status'                => $status,
                 ]);
+
+                // Atualizar numero_lote para: AAAAMMDD-ID
+                $lote->numero_lote = now()->format('Ymd') . $lote->id;
+                $lote->save();
             }
 
-            $pedido->update(['status' => 'recebido']);
-        });
+            DB::commit();
 
-        return redirect()->route('pedidos.index')->with('success', 'Pedido recebido e lotes gerados com sucesso!');
+            return redirect()->route('pedidos.index')
+                ->with('success', 'Produtos recebidos e lotes criados com sucesso.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Erro ao receber produtos: ' . $e->getMessage());
+        }
     }
 
     /**
-     * Cancelar pedido
+     * CANCELAR
      */
     public function cancelar($id)
     {
         $pedido = PedidoCompra::findOrFail($id);
 
         if (!in_array($pedido->status, ['pendente', 'aprovado'])) {
-            return redirect()->back()->withErrors('Cancelamento não permitido para pedidos recebidos ou já cancelados.');
+            return back()->withErrors('Cancelamento não permitido.');
         }
 
         $pedido->update(['status' => 'cancelado']);
-        return redirect()->route('pedidos.index')->with('success', "Pedido #{$pedido->id} cancelado.");
+
+        return redirect()->route('pedidos.index')->with(
+            'success',
+            "Pedido #{$pedido->id} cancelado."
+        );
     }
 
     /**
-     * Gerar PDF do pedido
+     * PDF
      */
     public function gerarPdf($id)
     {
@@ -169,12 +372,48 @@ class PedidoCompraController extends Controller
 
         $pdf = app('dompdf.wrapper');
         $pdf->loadView('pedidos.pdf', compact('pedido', 'empresa'));
+
         return $pdf->stream('pedido_' . $pedido->id . '.pdf');
     }
 
+    /**
+     * SHOW
+     */
     public function show($id)
     {
         $pedido = PedidoCompra::with(['fornecedor', 'user', 'itens.produto'])->findOrFail($id);
+
         return view('pedidos.show', compact('pedido'));
     }
+
+    public function receberForm($id)
+    {
+        $pedido = PedidoCompra::with('itens.produto')->findOrFail($id);
+
+        // Garantir que apenas pedidos aprovados podem ser recebidos
+        if ($pedido->status !== 'aprovado') {
+            return redirect()->route('pedidos.index')
+                ->withErrors('Somente pedidos aprovados podem ser recebidos.');
+        }
+
+        return view('pedidos.receber', compact('pedido'));
+    }
+
+
+    /**
+     * AJAX CARREGAR ITENS
+     */
+    public function carregarItensRecebimento($id)
+    {
+        return response()->json([
+            'pedido' => PedidoCompra::with('itens.produto')->findOrFail($id)
+        ]);
+    }
+    public function receberView($id)
+    {
+        $pedido = PedidoCompra::with('itens.produto')->findOrFail($id);
+        return view('pedidos.receber', compact('pedido'));
+    }
+
+
 }

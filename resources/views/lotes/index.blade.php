@@ -21,6 +21,7 @@
                             <h5 class="card-title text-success fw-bold">
                                 <i class="bi bi-box-seam"></i> Lote #{{ $lote->numero_lote }}
                             </h5>
+                            <p class="card-text mb-1"><strong>Produto Recebido:</strong> 000{{ $lote->lancado_por }}</p>
                             <p class="card-text mb-1"><strong>Pedido Compra:</strong> 000{{ $lote->pedido_compra_id }}</p>
                             <p class="card-text mb-1"><strong>Produto ID:</strong> 000{{ $lote->produto_id }}</p>
                             <p class="card-text mb-1"><strong>Qtd Comprada:</strong> {{ $lote->quantidade }}</p>
