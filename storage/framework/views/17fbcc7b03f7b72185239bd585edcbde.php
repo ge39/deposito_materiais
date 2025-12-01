@@ -157,8 +157,19 @@
                 <td><strong>E-mail:</strong> <?php echo e($pedido->fornecedor->email ?? '-'); ?></td>
             </tr>
             <tr>
-                <td colspan="2"><strong>Status:</strong> <?php echo e(ucfirst($pedido->status)); ?></td>
+                <td><strong>Status:</strong> <?php echo e(ucfirst($pedido->status)); ?></td>
+
+                <?php if($pedido->status === 'recebido'): ?>
+                    <td><strong>Recebido e conferido por:</strong> <?php echo e($pedido->user->name ?? '-'); ?></td>
+                <?php elseif($pedido->status === 'aprovado'): ?>
+                    <td><strong>Pedido Compra aprovado por:</strong> <?php echo e($pedido->user->name ?? '-'); ?></td>
+                <?php elseif($pedido->status === 'cancelado'): ?>
+                    <td><strong>Cancelado por:</strong> <?php echo e($pedido->user->name ?? '-'); ?></td>
+                <?php else: ?>
+                    <td></td>
+                <?php endif; ?>
             </tr>
+
         </table>
     </div>
 

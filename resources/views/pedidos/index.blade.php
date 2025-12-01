@@ -43,9 +43,10 @@
                     <div>{{ $pedido->fornecedor->nome ?? '-' }}</div>
                     <div>{{ \Carbon\Carbon::parse($pedido->data_pedido)->format('d/m/Y') }}</div>
 
-                    <div>R$ {{ number_format($pedido->total, 2, ',', '.') }}</div>
-
                     <div>
+                        R$ {{ number_format($pedido->lotes->sum(fn($lote) => $lote->quantidade * $lote->preco_compra), 2, ',', '.') }}
+                    </div>
+                   <div>
                         @php
                             $statusClasses = [
                                 'pendente' => 'badge bg-warning text-dark',

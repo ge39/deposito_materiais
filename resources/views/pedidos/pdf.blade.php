@@ -157,8 +157,19 @@
                 <td><strong>E-mail:</strong> {{ $pedido->fornecedor->email ?? '-' }}</td>
             </tr>
             <tr>
-                <td colspan="2"><strong>Status:</strong> {{ ucfirst($pedido->status) }}</td>
+                <td><strong>Status:</strong> {{ ucfirst($pedido->status) }}</td>
+
+                @if($pedido->status === 'recebido')
+                    <td><strong>Recebido e conferido por:</strong> {{ $pedido->user->name ?? '-' }}</td>
+                @elseif($pedido->status === 'aprovado')
+                    <td><strong>Pedido Compra aprovado por:</strong> {{ $pedido->user->name ?? '-' }}</td>
+                @elseif($pedido->status === 'cancelado')
+                    <td><strong>Cancelado por:</strong> {{ $pedido->user->name ?? '-' }}</td>
+                @else
+                    <td></td>
+                @endif
             </tr>
+
         </table>
     </div>
 

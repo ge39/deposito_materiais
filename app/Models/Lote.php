@@ -95,7 +95,11 @@ class Lote extends Model
     /* ============================================================
        RELACIONAMENTOS
     ============================================================ */
-    public function produto()
+    public function usuario()
+    {
+        return $this->belongsTo(User::class, 'lancado_por');
+    }
+        public function produto()
     {
         return $this->belongsTo(Produto::class);
     }

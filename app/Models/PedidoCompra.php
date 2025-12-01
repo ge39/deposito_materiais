@@ -33,6 +33,11 @@ class PedidoCompra extends Model
         return $this->belongsTo(Fornecedor::class);
     }
 
+    public function lotes()
+    {
+        return $this->hasMany(Lote::class, 'pedido_compra_id');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

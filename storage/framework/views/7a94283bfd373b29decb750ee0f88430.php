@@ -128,7 +128,12 @@
                 <button type="submit" class="btn btn-success">Atualizar Pedido</button>
                 <a href="<?php echo e(route('pedidos.index')); ?>" class="btn btn-secondary">Voltar</a>
             </div>
-            <h5 class="mb-0">Total: R$ <span id="totalGeral"><?php echo e(number_format($pedido->total, 2, '.', '')); ?></span></h5>
+            <!-- <h5 class="mb-0">Total: R$ <span id="totalGeral"><?php echo e(number_format($pedido->total, 2, '.', '')); ?></span></h5> -->
+            
+            <h5 class="mb-0">
+                Total: R$ <span id="totalGeral"><?php echo e(number_format($pedido->itens->sum(fn($i) => $i->quantidade * $i->valor_unitario), 2, ',', '.')); ?></span>
+            </h5>
+
         </div>
     </form>
 </div>
@@ -242,142 +247,159 @@
 </script> -->
 
 <script>
-const produtos = <?php echo json_encode($produtos->load('unidadeMedida'), 15, 512) ?>;
-const table = document.querySelector('#itensTable tbody');
-const fornecedorSelect = document.getElementById('fornecedorSelect');
-const scrollContainer = document.getElementById('scrollTableContainer');
-let fornecedorSelecionado = null;
-let itemIndex = table.querySelectorAll('tr').length - 1;
+    const produtos = <?php echo json_encode($produtos->load('unidadeMedida'), 15, 512) ?>;
+    const table = document.querySelector('#itensTable tbody');
+    const fornecedorSelect = document.getElementById('fornecedorSelect');
+    const scrollContainer = document.getElementById('scrollTableContainer');
+    let fornecedorSelecionado = null;
+    let itemIndex = table.querySelectorAll('tr').length - 1;
 
-// Atualiza os índices da tabela
-function atualizarIndices() {
-    table.querySelectorAll('tr').forEach((row, index) => {
-        row.querySelector('td:first-child').textContent = index + 1;
-    });
-}
-
-// Atualiza o total geral
-function atualizarTotalGeral() {
-    let total = 0;
-    table.querySelectorAll('.subtotal').forEach(sub => {
-        total += parseFloat(sub.value || 0);
-    });
-    document.getElementById('totalGeral').textContent = total.toFixed(2);
-}
-
-// Adiciona eventos de mudança de produto, quantidade e remoção
-function atualizarValores(row) {
-    const selectProduto = row.querySelector('.produto-select');
-    const quantidade = row.querySelector('.quantidade');
-    const valor = row.querySelector('.valor_unitario');
-    const subtotal = row.querySelector('.subtotal');
-    const unidadeInput = row.querySelector('.unidade_medida');
-
-    // Inicializa valores se já tiver produto selecionado (itens existentes)
-    if (selectProduto.value) {
-        const produto = produtos.find(p => p.id == selectProduto.value);
-        if (produto) {
-            const valorUnit = parseFloat(valor.value || produto.preco_compra_atual || 0);
-            valor.value = valorUnit.toFixed(2);
-            unidadeInput.value = produto.unidade_medida?.nome || '';
-            subtotal.value = (valorUnit * parseFloat(quantidade.value || 0)).toFixed(2);
-        }
+    // Converte string com vírgula para float
+    function parseValor(valorStr) {
+        if (!valorStr) return 0;
+        return parseFloat(valorStr.replace(',', '.')) || 0;
     }
 
-    selectProduto.addEventListener('change', () => {
-        const duplicado = Array.from(table.querySelectorAll('.produto-select'))
-            .filter(s => s !== selectProduto)
-            .some(s => s.value === selectProduto.value);
-        if (duplicado) {
-            alert('Este produto já foi adicionado para este fornecedor.');
-            selectProduto.value = '';
-            unidadeInput.value = '';
-            valor.value = '';
-            subtotal.value = '';
+    // Formata número para 2 casas decimais com vírgula
+    function formatValor(valor) {
+        return valor.toFixed(2).replace('.', ',');
+    }
+
+    // Atualiza os índices da tabela
+    function atualizarIndices() {
+        table.querySelectorAll('tr').forEach((row, index) => {
+            row.querySelector('td:first-child').textContent = index + 1;
+        });
+    }
+
+    // Atualiza o total geral
+    function atualizarTotalGeral() {
+        let total = 0;
+        table.querySelectorAll('.subtotal').forEach(sub => {
+            total += parseValor(sub.value);
+        });
+        document.getElementById('totalGeral').textContent = formatValor(total);
+    }
+
+    // Adiciona eventos de mudança de produto, quantidade, valor unitário e remoção
+    function atualizarValores(row) {
+        const selectProduto = row.querySelector('.produto-select');
+        const quantidade = row.querySelector('.quantidade');
+        const valor = row.querySelector('.valor_unitario');
+        const subtotal = row.querySelector('.subtotal');
+        const unidadeInput = row.querySelector('.unidade_medida');
+
+        if (selectProduto.value) {
+            const produto = produtos.find(p => p.id == selectProduto.value);
+            if (produto) {
+                const valorUnit = parseFloat(valor.value.replace(',', '.') || produto.preco_compra_atual || 0);
+                valor.value = formatValor(valorUnit);
+                unidadeInput.value = produto.unidade_medida?.nome || '';
+                subtotal.value = formatValor(valorUnit * parseValor(quantidade.value));
+            }
+        }
+
+        selectProduto.addEventListener('change', () => {
+            const duplicado = Array.from(table.querySelectorAll('.produto-select'))
+                .filter(s => s !== selectProduto)
+                .some(s => s.value === selectProduto.value);
+            if (duplicado) {
+                alert('Este produto já foi adicionado para este fornecedor.');
+                selectProduto.value = '';
+                unidadeInput.value = '';
+                valor.value = '';
+                subtotal.value = '';
+                atualizarTotalGeral();
+                return;
+            }
+
+            const produto = produtos.find(p => p.id == selectProduto.value);
+            const valorUnit = parseFloat(produto?.preco_compra_atual || 0);
+            valor.value = formatValor(valorUnit);
+            unidadeInput.value = produto?.unidade_medida?.nome || '';
+            subtotal.value = formatValor(valorUnit * parseValor(quantidade.value));
             atualizarTotalGeral();
+        });
+
+        quantidade.addEventListener('input', () => {
+            if (parseValor(quantidade.value) <= 0) quantidade.value = 1;
+            subtotal.value = formatValor(parseValor(valor.value) * parseValor(quantidade.value));
+            atualizarTotalGeral();
+        });
+
+        valor.addEventListener('input', () => {
+            if (parseValor(valor.value) <= 0) valor.value = '0,01';
+            subtotal.value = formatValor(parseValor(valor.value) * parseValor(quantidade.value));
+            atualizarTotalGeral();
+        });
+
+        row.querySelector('.removeItem').addEventListener('click', () => {
+            row.remove();
+            atualizarIndices();
+            atualizarTotalGeral();
+            if (!table.querySelectorAll('tr').length) {
+                fornecedorSelecionado = null;
+                fornecedorSelect.disabled = false;
+            }
+        });
+    }
+
+    // Adicionar novo item
+    document.getElementById('addItem').addEventListener('click', () => {
+        const fornecedorAtual = fornecedorSelect.value;
+        if (!fornecedorAtual) {
+            alert('Selecione um fornecedor antes de adicionar itens.');
             return;
         }
 
-        const produto = produtos.find(p => p.id == selectProduto.value);
-        const valorUnit = parseFloat(produto?.preco_compra_atual || 0);
-        valor.value = valorUnit.toFixed(2);
-        unidadeInput.value = produto?.unidade_medida?.nome || '';
-        subtotal.value = (valorUnit * parseFloat(quantidade.value || 0)).toFixed(2);
-        atualizarTotalGeral();
-    });
+        if (fornecedorSelecionado && fornecedorSelecionado !== fornecedorAtual) {
+            alert('Não é permitido trocar o fornecedor após adicionar itens.');
+            return;
+        }
 
-    quantidade.addEventListener('input', () => {
-        subtotal.value = (parseFloat(valor.value || 0) * parseFloat(quantidade.value || 0)).toFixed(2);
-        atualizarTotalGeral();
-    });
+        const rows = table.querySelectorAll('tr');
+        if (rows.length > 0) {
+            const lastRowSelect = rows[rows.length - 1].querySelector('.produto-select');
+            if (!lastRowSelect.value) {
+                alert('Selecione o produto do item anterior antes de adicionar outro.');
+                return;
+            }
+        }
 
-    row.querySelector('.removeItem').addEventListener('click', () => {
-        row.remove();
+        if (!fornecedorSelecionado) {
+            fornecedorSelecionado = fornecedorAtual;
+            fornecedorSelect.disabled = true;
+        }
+
+        const row = document.createElement('tr');
+        itemIndex++;
+
+        let options = '<option value="">Selecione</option>';
+        produtos.forEach(p => options += `<option value="${p.id}" data-preco-compra="${p.preco_compra_atual}">${p.nome}</option>`);
+
+        row.innerHTML = `
+            <td class="text-center"></td>
+            <td>
+                <select name="itens[${itemIndex}][produto_id]" class="form-control produto-select" required>
+                    ${options}
+                </select>
+            </td>
+            <td><input type="text" name="itens[${itemIndex}][unidade_medida]" class="form-control unidade_medida" readonly></td>
+            <td><input type="number" name="itens[${itemIndex}][quantidade]" class="form-control quantidade" min="1" value="1" required></td>
+            <td><input type="text" name="itens[${itemIndex}][valor_unitario]" class="form-control valor_unitario" value="0,01"></td>
+            <td><input type="text" name="itens[${itemIndex}][subtotal]" class="form-control subtotal" value="0,01" readonly></td>
+            <td><button type="button" class="btn btn-danger btn-sm removeItem">Remover</button></td>
+        `;
+
+        table.appendChild(row);
+        atualizarValores(row);
         atualizarIndices();
-        atualizarTotalGeral();
-        if (!table.querySelectorAll('tr').length) {
-            fornecedorSelecionado = null;
-            fornecedorSelect.disabled = false;
-        }
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
     });
-}
 
-// Evento do botão adicionar item
-document.getElementById('addItem').addEventListener('click', () => {
-    const fornecedorAtual = fornecedorSelect.value;
-    if (!fornecedorAtual) {
-        alert('Selecione um fornecedor antes de adicionar itens.');
-        return;
-    }
-
-    if (fornecedorSelecionado && fornecedorSelecionado !== fornecedorAtual) {
-        alert('Não é permitido trocar o fornecedor após adicionar itens.');
-        return;
-    }
-
-    const rows = table.querySelectorAll('tr');
-    if (rows.length > 0) {
-        const lastRowSelect = rows[rows.length - 1].querySelector('.produto-select');
-        if (!lastRowSelect.value) {
-            alert('Selecione o produto do item anterior antes de adicionar outro.');
-            return;
-        }
-    }
-
-    if (!fornecedorSelecionado) {
-        fornecedorSelecionado = fornecedorAtual;
-        fornecedorSelect.disabled = true;
-    }
-
-    const row = document.createElement('tr');
-    itemIndex++;
-
-    let options = '<option value="">Selecione</option>';
-    produtos.forEach(p => options += `<option value="${p.id}" data-preco-compra="${p.preco_compra_atual}">${p.nome}</option>`);
-
-    row.innerHTML = `
-        <td class="text-center"></td>
-        <td>
-            <select name="itens[${itemIndex}][produto_id]" class="form-control produto-select" required>
-                ${options}
-            </select>
-        </td>
-        <td><input type="text" name="itens[${itemIndex}][unidade_medida]" class="form-control unidade_medida" readonly></td>
-        <td><input type="number" name="itens[${itemIndex}][quantidade]" class="form-control quantidade" min="1" value="1" required></td>
-        <td><input type="text" name="itens[${itemIndex}][valor_unitario]" class="form-control valor_unitario" readonly></td>
-        <td><input type="text" name="itens[${itemIndex}][subtotal]" class="form-control subtotal" readonly></td>
-        <td><button type="button" class="btn btn-danger btn-sm removeItem">Remover</button></td>
-    `;
-
-    table.appendChild(row);
-    atualizarValores(row);
-    atualizarIndices();
-    scrollContainer.scrollTop = scrollContainer.scrollHeight;
-});
-
-// Inicializa os itens existentes
-table.querySelectorAll('tr').forEach(row => atualizarValores(row));
-atualizarTotalGeral();
+    // Inicializa os itens existentes
+    table.querySelectorAll('tr').forEach(row => atualizarValores(row));
+    atualizarTotalGeral();
 </script>
 
 <?php $__env->stopSection(); ?>

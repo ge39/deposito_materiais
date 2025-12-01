@@ -44,9 +44,11 @@
                     <div><?php echo e($pedido->fornecedor->nome ?? '-'); ?></div>
                     <div><?php echo e(\Carbon\Carbon::parse($pedido->data_pedido)->format('d/m/Y')); ?></div>
 
-                    <div>R$ <?php echo e(number_format($pedido->total, 2, ',', '.')); ?></div>
-
                     <div>
+                        R$ <?php echo e(number_format($pedido->lotes->sum(fn($lote) => $lote->quantidade * $lote->preco_compra), 2, ',', '.')); ?>
+
+                    </div>
+                   <div>
                         <?php
                             $statusClasses = [
                                 'pendente' => 'badge bg-warning text-dark',
