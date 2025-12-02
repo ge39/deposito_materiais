@@ -62,7 +62,8 @@ class Produto extends Model
 
    public function lotes()
     {
-        return $this->hasMany(Lote::class);
+       return $this->hasMany(Lote::class);
+       
     }
 
     public function unidadeMedida()

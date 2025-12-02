@@ -74,25 +74,41 @@
                             <p class="card-text mb-1"><strong>Produto ID:</strong> 000{{ $produto->id ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Categoria:</strong> {{ $produto->categoria->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Fornecedor:</strong> {{ $produto->fornecedor->nome ?? '-' }}</p>
-                            <p class="card-text mb-1" style="color:blue"><strong>Preço de Custo:</strong> R$ {{ number_format($produto->preco_custo, 2, ',', '.') }}</p>
-                            <p class="card-text mb-1" style="color:blue"><strong>Preço Médio de Compra:</strong> R$ {{ number_format($produto->preco_medio_compra, 2, ',', '.') }}</p>
+                             <div class="card-text mb-1">
+                                <strong>Pedido Compra:</strong>
+                                @if ($produto->lotes->isEmpty())
+                                    <span class="text-danger ms-1">Sem lote</span>
+                                @else
+                                    <span class="ms-1">
+                                        @foreach ($produto->lotes as $lote)
+                                            <a href="{{ url('pedidos/' . $lote->pedido_compra_id) }}" class="me-2">
+                                                {{ $lote->pedido_compra_id }}
+                                            </a>
+                                        @endforeach
+                                    </span>
+                                @endif
+                            </div>
+                            <!-- <p class="card-text mb-1" style="color:blue"><strong>Preço de Custo:</strong> R$ {{ number_format($produto->preco_custo, 2, ',', '.') }}</p> -->
+                            <p class="card-text mb-1 text-primary"><strong>Preço Médio de Compra:</strong> R$ {{ number_format($produto->preco_medio_compra, 2, ',', '.') }}</p>
                             <p class="card-text mb-1"><strong>Marca:</strong> {{ $produto->marca->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Unidade:</strong> {{ $produto->unidadeMedida->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Estoque:</strong> {{ $produto->quantidade_estoque }}</p>
                             <p class="card-text mb-1"><strong>Mínimo:</strong> {{ $produto->estoque_minimo }}</p>
                             <p class="card-text mb-1"><strong>Compra:</strong> {{ \Carbon\Carbon::parse($produto->data_compra)->format('d/m/Y') }}</p>
-                            <p class="card-text mb-1"><strong>Validade:</strong> {{ \Carbon\Carbon::parse($produto->validade_produto)->format('d/m/Y') }}</p>
-                            <p class="card-text mb-1">
+                            <p class="card-text mb-1 text-primary"><strong>Validade:</strong> {{ \Carbon\Carbon::parse($produto->validade_produto)->format('d/m/Y') }}</p>
+                            <p class="card-text mb-1 text-primary">
                                 <strong>Preço Venda:</strong>
                                 @if($produto->promocao)
-                                    <span style="text-decoration: line-through; color: #888;">
+                                    <span style="text-decoration: line-through; color: #888;color:blue">
                                         R$ {{ number_format($produto->promocao->preco_original, 2, ',', '.') }}
                                     </span>
                                     <span style="color: green; font-weight: bold;">
                                         por R$ {{ number_format($produto->promocao->preco_promocional, 2, ',', '.') }}
                                     </span>
                                 @else
-                                    R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}
+                                    
+                                        R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}
+                                   
                                 @endif
                             </p>
 

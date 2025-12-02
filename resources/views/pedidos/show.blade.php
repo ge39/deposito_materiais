@@ -34,7 +34,7 @@
          <div class="col-md-3">
             <div class="card shadow-sm mb-2 border-0">
                 <div class="card-body p-2 text-center">
-                    <h6 class="card-title mb-1">Data do Atualizado</h6>
+                    <h6 class="card-title mb-1">Data Recebimento</h6>
                     <p class="card-text fw-bold">{{ $pedido->updated_at->format('d/m/Y h:i:s') }}</p>
                 </div>
             </div>

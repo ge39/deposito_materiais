@@ -2,11 +2,11 @@
 
 @section('content')
 <div class="container mt-4">
-    <h2 class="mb-4">Lotes do Produto: {{ $produto->id }}</h2>
+    <h2 class="mb-4">Lotes do Produto: 000{{ $produto->id }} </h2>
 
-    <!-- <a href="{{ route('lotes.create', $produto->id) }}" class="btn btn-success mb-3">
-        <i class="bi bi-plus-circle"></i> Novo Lote
-    </a> -->
+    <div class="justify-content-end gap-2 text-primary">
+         Produto: <strong> {{ $produto->nome }} </strong>
+    </div>
 
     @if($produto->lotes->isEmpty())
         <div class="alert alert-warning text-center py-3">
@@ -19,10 +19,17 @@
                     <div class="card border shadow-sm h-100">
                         <div class="card-body">
                             <h5 class="card-title text-success fw-bold">
-                                <i class="bi bi-box-seam"></i> Lote #{{ $lote->numero_lote }}
+                                <i class="bi bi-box-seam"></i> Lote #{{ $lote->numero_lote }} 
                             </h5>
                             <p class="card-text mb-1"><strong>Lote Criado por:</strong> {{ $lote->usuario->name ?? '-' }}</p>
-                            <p class="card-text mb-1"><strong>Pedido Compra:</strong> 000{{ $lote->pedido_compra_id }}</p>
+                                <!-- <p class="card-text mb-1"><strong>Pedido Compra:</strong> 000{{ $lote->pedido_compra_id }}</p> -->
+                             <p class="card-text mb-1">
+                                <strong>Pedido Compra:</strong>
+                                <a href="{{ route('pedidos.show', $lote->pedido_compra_id) }}">
+                                    000{{ $lote->pedido_compra_id }}
+                                </a>
+                            </p>
+
                             <p class="card-text mb-1"><strong>Produto ID:</strong> 000{{ $lote->produto_id }}</p>
                             <p class="card-text mb-1"><strong>Qtd Comprada:</strong> {{ $lote->quantidade }}</p>
                             <p class="card-text mb-1"><strong>Preço de Compra:</strong> R$ {{ number_format($lote->preco_compra, 2, ',', '.') }}</p>

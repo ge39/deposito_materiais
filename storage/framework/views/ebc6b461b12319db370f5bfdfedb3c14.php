@@ -78,18 +78,35 @@
                             <p class="card-text mb-1"><strong>Produto ID:</strong> 000<?php echo e($produto->id ?? '-'); ?></p>
                             <p class="card-text mb-1"><strong>Categoria:</strong> <?php echo e($produto->categoria->nome ?? '-'); ?></p>
                             <p class="card-text mb-1"><strong>Fornecedor:</strong> <?php echo e($produto->fornecedor->nome ?? '-'); ?></p>
-                            <p class="card-text mb-1" style="color:blue"><strong>Preço de Custo:</strong> R$ <?php echo e(number_format($produto->preco_custo, 2, ',', '.')); ?></p>
-                            <p class="card-text mb-1" style="color:blue"><strong>Preço Médio de Compra:</strong> R$ <?php echo e(number_format($produto->preco_medio_compra, 2, ',', '.')); ?></p>
+                             <div class="card-text mb-1">
+                                <strong>Pedido Compra:</strong>
+
+                                <?php if($produto->lotes->isEmpty()): ?>
+                                    <span class="text-danger ms-1">Sem lote</span>
+                                <?php else: ?>
+                                    <span class="ms-1">
+                                        <?php $__currentLoopData = $produto->lotes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $lote): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <a href="<?php echo e(url('pedidos/' . $lote->pedido_compra_id)); ?>" class="me-2">
+                                                <?php echo e($lote->pedido_compra_id); ?>
+
+                                            </a>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- <p class="card-text mb-1" style="color:blue"><strong>Preço de Custo:</strong> R$ <?php echo e(number_format($produto->preco_custo, 2, ',', '.')); ?></p> -->
+                            <p class="card-text mb-1 text-primary"><strong>Preço Médio de Compra:</strong> R$ <?php echo e(number_format($produto->preco_medio_compra, 2, ',', '.')); ?></p>
                             <p class="card-text mb-1"><strong>Marca:</strong> <?php echo e($produto->marca->nome ?? '-'); ?></p>
                             <p class="card-text mb-1"><strong>Unidade:</strong> <?php echo e($produto->unidadeMedida->nome ?? '-'); ?></p>
                             <p class="card-text mb-1"><strong>Estoque:</strong> <?php echo e($produto->quantidade_estoque); ?></p>
                             <p class="card-text mb-1"><strong>Mínimo:</strong> <?php echo e($produto->estoque_minimo); ?></p>
                             <p class="card-text mb-1"><strong>Compra:</strong> <?php echo e(\Carbon\Carbon::parse($produto->data_compra)->format('d/m/Y')); ?></p>
-                            <p class="card-text mb-1"><strong>Validade:</strong> <?php echo e(\Carbon\Carbon::parse($produto->validade_produto)->format('d/m/Y')); ?></p>
-                            <p class="card-text mb-1">
+                            <p class="card-text mb-1 text-primary"><strong>Validade:</strong> <?php echo e(\Carbon\Carbon::parse($produto->validade_produto)->format('d/m/Y')); ?></p>
+                            <p class="card-text mb-1 text-primary">
                                 <strong>Preço Venda:</strong>
                                 <?php if($produto->promocao): ?>
-                                    <span style="text-decoration: line-through; color: #888;">
+                                    <span style="text-decoration: line-through; color: #888;color:blue">
                                         R$ <?php echo e(number_format($produto->promocao->preco_original, 2, ',', '.')); ?>
 
                                     </span>
@@ -98,8 +115,10 @@
 
                                     </span>
                                 <?php else: ?>
-                                    R$ <?php echo e(number_format($produto->preco_venda, 2, ',', '.')); ?>
+                                    
+                                        R$ <?php echo e(number_format($produto->preco_venda, 2, ',', '.')); ?>
 
+                                   
                                 <?php endif; ?>
                             </p>
 

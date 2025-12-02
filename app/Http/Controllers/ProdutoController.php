@@ -27,14 +27,14 @@ class ProdutoController extends Controller
 
     public function index()
     {
-        $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida'])
+        $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida','lotes'])
             ->where('ativo', 1)
             ->paginate(15);
-
+     
         return view('produtos.index', compact('produtos'));
     }
 
-    // public function create()
+       // public function create()
     // {
     //     return view('produtos.create', [
     //         'categorias' => Categoria::where('ativo','1')->get(),
