@@ -11,7 +11,9 @@
 
     <!-- Form de busca -->
     <form action="{{ route('produtos.search_grid') }}" method="GET" class="mb-3 d-flex">
-        <input type="text" name="query" class="form-control me-2" placeholder="Buscar produto..." value="{{ request('query') }}">
+        <input type="text" name="query" class="form-control me-2" 
+        placeholder="Pesquisar por ID 00020, produto, código, categoria, fornecedor ou marca"
+        value="{{ request('query') }}">
         <button class="btn btn-primary" type="submit">Buscar</button>
         <div class="me-2" style="margin-left: 5px;">
             <a href="{{ route('produtos.index-grid') }}" class="btn btn-secondary flex-grow-1">Limpar</a>
@@ -44,7 +46,7 @@
                         {{ $loop->even ? 'bg-light' : 'bg-white' }} hover-row" style="font-size: 14px;">
                 <div class="col-1" style="width:50px">000{{ $produto->id }}</div>
                 <div class="col-2" style="width:180px">{{ $produto->nome }}</div>
-                <div class="col-1" style="width:50px">{{ $produto->quantidade_estoque }}</div>
+                <div class="col-1" style="width:50px">{{ $produto->lotes->sum('quantidade_disponivel') }}</div>
                 <div class="col-1" style="width:100px">
                    <p class="card-text mb-1">
                         @if($produto->promocao)

@@ -111,7 +111,7 @@
     </div>
 
     <div class="d-flex justify-content-between align-items-end mb-3 mt-3">
-        <a href="{{ route('pedidos.index') }}" class="btn btn-secondary">Voltar</a>
+        <a href="{{ url()->previous() }}" class="btn btn-secondary">Voltar</a>
         <!-- <h5 class="mb-0">Total: R$ <span id="totalGeral">{{ number_format($pedido->total, 2, ',', '.') }}</span></h5> -->
         <h5 class="mb-0">Total: R$ <span id="totalGeral">{{ number_format($totalGeral, 2, ',', '.') }}</span></h5>
     </div>

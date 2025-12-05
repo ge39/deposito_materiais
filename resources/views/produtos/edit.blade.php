@@ -127,11 +127,11 @@
 <div class="row mb-2 p-2 bg-white rounded">
 
     <div class="col-md-3 mb-2 mb-md-0">
-        <label for="quantidade_estoque" class="form-label">Qtd Estoque</label>
+        <label for="quantidade_estoque" class="form-label">Estoque Atual</label>
         <input type="number" class="form-control text-muted" 
                id="quantidade_estoque" 
                name="quantidade_estoque"
-               value="{{ $produto->quantidade_estoque }}" required>
+               value="{{ $produto->lotes->sum('quantidade_disponivel') }}" required>
     </div>
 
     <div class="col-md-3">

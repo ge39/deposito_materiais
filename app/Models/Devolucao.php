@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Devolucao extends Model
 {
     use HasFactory;
-    // Força o nome correto da tabela
+
     protected $table = 'devolucoes';
     
     protected $fillable = [
@@ -27,6 +27,7 @@ class Devolucao extends Model
         'imagem3',
         'imagem4',
         'motivo_rejeicao',
+        'empresa_id',
         'created_at',
         'updated_at',
     ];
@@ -36,18 +37,22 @@ class Devolucao extends Model
     {
         return $this->belongsTo(Cliente::class);
     }
+
     public function venda()
     {
         return $this->belongsTo(Venda::class);
     }
+
+     public function itemVenda()
+    {
+        return $this->belongsTo(ItemVenda::class, 'venda_item_id'); // FK correta
+    }
+    
     public function item()
     {
-          return $this->belongsTo(ItemVenda::class, 'item_venda_id');
+        return $this->belongsTo(ItemVenda::class, 'venda_item_id');
     }
-    // public function vendaItem()
-    // {
-    //     return $this->belongsTo(VendaItem::class, 'venda_item_id');
-    // }
+
     public function produto()
     {
         return $this->belongsTo(Produto::class);
@@ -56,5 +61,16 @@ class Devolucao extends Model
     public function usuario()
     {
         return $this->belongsTo(Funcionario::class, 'criado_por');
+    }
+
+    // Status helpers
+    public function isAprovada()
+    {
+        return $this->status === 'aprovada';
+    }
+
+    public function isRejeitada()
+    {
+        return $this->status === 'rejeitada';
     }
 }

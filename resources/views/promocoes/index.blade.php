@@ -51,7 +51,7 @@
 
                             {{-- Tipo Abrangência --}}
                             <p class="text-muted mb-1">
-                                Produto ID: <strong>{{ $promo->produto_id }}</strong>
+                                Produto ID: <strong>000{{ $promo->produto_id }}</strong>
                             </p>
 
                             <hr>

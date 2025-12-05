@@ -116,7 +116,7 @@
     </div>
 
     <div class="d-flex justify-content-between align-items-end mb-3 mt-3">
-        <a href="<?php echo e(route('pedidos.index')); ?>" class="btn btn-secondary">Voltar</a>
+        <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary">Voltar</a>
         <!-- <h5 class="mb-0">Total: R$ <span id="totalGeral"><?php echo e(number_format($pedido->total, 2, ',', '.')); ?></span></h5> -->
         <h5 class="mb-0">Total: R$ <span id="totalGeral"><?php echo e(number_format($totalGeral, 2, ',', '.')); ?></span></h5>
     </div>

@@ -34,20 +34,7 @@ class ProdutoController extends Controller
         return view('produtos.index', compact('produtos'));
     }
 
-       // public function create()
-    // {
-    //     return view('produtos.create', [
-    //         'categorias' => Categoria::where('ativo','1')->get(),
-    //         'fornecedores' => Fornecedor::where('ativo','1')->get(),
-    //         'unidades' => UnidadeMedida::where('ativo','1')->get(),
-    //         'marcas' => Marca::where('ativo','1')->get(),
-
-    //         // ➕ ADICIONE ESTA LINHA
-    //         'produtosExistentes' => Produto::select('id','nome')->get(),
-    //     ]);
-    // }
-
-    public function create()
+   public function create()
     {
         // Carrega apenas registros ativos
         $categorias = Categoria::where('ativo', 1)->get();
@@ -245,6 +232,12 @@ class ProdutoController extends Controller
 
             // 🔹 ATUALIZA ESTOQUE
             $produto->quantidade_estoque = $produto->lotes()->sum('quantidade');
+
+            if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
+                $path = $request->file('imagem')->store('produtos', 'public');
+                $produto->imagem = $path;
+            }
+
             $produto->save();
 
             DB::commit();
@@ -283,52 +276,7 @@ class ProdutoController extends Controller
         ]);
     }
 
-    // public function update(Request $request, Produto $produto)
-    // {
-    //     $this->validateProduto($request, false);
-
-    //     DB::transaction(function () use ($request, $produto) {
-
-    //         $produto->fill($request->except('imagem'));
-
-    //             // Verifica flag de edição
-    //         if ($produto->editando_por && $produto->editando_por != auth()->id()) {
-    //             $usuario = $produto->usuarioEditando; 
-    //             $nomeUsuario = $usuario->name ?? 'Outro usuário';
-
-    //             // Ao invés de lançar Exception, redirecione com erro
-    //             return redirect()
-    //                 ->route('produtos.index')
-    //                 ->with('error', "Este produto está sendo editado por: {$nomeUsuario}");
-    //         }
-
-    //         if ($request->filled('validade_produto')) {
-    //             $produto->validade_produto = Carbon::parse($request->validade_produto)->startOfDay();
-    //         }
-
-    //         if ($request->hasFile('imagem')) {
-    //             if ($produto->imagem) {
-    //                 Storage::disk('public')->delete($produto->imagem);
-    //             }
-    //             $produto->imagem = $request->file('imagem')->store('produtos', 'public');
-    //         }
-
-    //         // --- Libera o bloqueio de edição ---
-    //         if ($produto->editando_por == auth()->id()) {
-    //             $produto->editando_por = null;
-    //             $produto->editando_em = null;
-    //             $produto->save();
-    //         }
-
-    //         $produto->save();
-    //     });
-
-
-    //     return redirect()->route('produtos.index')
-    //         ->with('success', 'Produto atualizado com sucesso!');
-    // }
-
-    public function update(Request $request, Produto $produto)
+     public function update(Request $request, Produto $produto)
     {
         $this->validateProduto($request, false);
 
@@ -368,6 +316,82 @@ class ProdutoController extends Controller
 
         return redirect()->route('produtos.index')
             ->with('success', 'Produto atualizado com sucesso!');
+    }
+
+    /** PESQUISAR COM VIEWS E CARDS */
+    public function search(Request $request)
+    {
+        $query = $request->input('query');
+
+        $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida'])
+            ->where('ativo', 1)
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($sub) use ($query) {
+                    $sub->where('nome', 'LIKE', "%$query%")
+                        ->orWhere('codigo_barras', 'LIKE', "%$query%")
+                        ->orWhere('descricao', 'LIKE', "%$query%")
+                        ->orWhere('id', $query); // busca pelo ID exato
+                })
+
+                // Categoria
+                ->orWhereHas('categoria', function($cat) use ($query) {
+                    $cat->where('ativo', 1)
+                        ->where('nome', 'LIKE', "%$query%");
+                })
+
+                // Fornecedor
+                ->orWhereHas('fornecedor', function($for) use ($query) {
+                    $for->where('ativo', 1)
+                        ->where('nome', 'LIKE', "%$query%");
+                })
+
+                // Marca
+                ->orWhereHas('marca', function($mar) use ($query) {
+                    $mar->where('ativo', 1)
+                        ->where('nome', 'LIKE', "%$query%");
+                });
+            })
+            ->paginate(20);
+
+        return view('produtos.index', compact('produtos'));
+    }
+
+    /** PESQUISAR COM VIEWS E grids */
+    public function search_grid(Request $request)
+    {
+        $query = $request->input('query');
+
+        $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida'])
+            ->where('ativo', 1)
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($sub) use ($query) {
+                    $sub->where('nome', 'LIKE', "%$query%")
+                        ->orWhere('codigo_barras', 'LIKE', "%$query%")
+                        ->orWhere('descricao', 'LIKE', "%$query%")
+                         ->orWhere('id', $query); // busca pelo ID exato
+                })
+
+                // Categoria
+                ->orWhereHas('categoria', function($cat) use ($query) {
+                    $cat->where('ativo', 1)
+                        ->where('nome', 'LIKE', "%$query%");
+                })
+
+                // Fornecedor
+                ->orWhereHas('fornecedor', function($for) use ($query) {
+                    $for->where('ativo', 1)
+                        ->where('nome', 'LIKE', "%$query%");
+                })
+
+                // Marca
+                ->orWhereHas('marca', function($mar) use ($query) {
+                    $mar->where('ativo', 1)
+                        ->where('nome', 'LIKE', "%$query%");
+                });
+            })
+            ->paginate(20);
+
+        return view('produtos.index', compact('produtos'));
     }
 
     public function inativos()
@@ -425,9 +449,9 @@ class ProdutoController extends Controller
      public function indexGrid()
     {
        // CORRETO: retorna LengthAwarePaginator
-    $produtos = Produto::where('ativo', 1)->paginate(15);
+        $produtos = Produto::where('ativo', 1)->paginate(15);
 
-    return view('produtos.index-grid', compact('produtos'));
+        return view('produtos.index-grid', compact('produtos'));
     }
     /** EXIBIR PRODUTO */
     public function show($id)
@@ -445,4 +469,4 @@ class ProdutoController extends Controller
 
         return response()->json(['status' => 'ok']);
     }
-}
+    }

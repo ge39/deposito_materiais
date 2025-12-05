@@ -25,9 +25,14 @@
                                 <!-- <p class="card-text mb-1"><strong>Pedido Compra:</strong> 000{{ $lote->pedido_compra_id }}</p> -->
                              <p class="card-text mb-1">
                                 <strong>Pedido Compra:</strong>
-                                <a href="{{ route('pedidos.show', $lote->pedido_compra_id) }}">
-                                    000{{ $lote->pedido_compra_id }}
-                                </a>
+                                @if ($lote->pedido_compra_id)
+                                    <a href="{{ route('pedidos.show', $lote->pedido_compra_id) }}">
+                                        Pedido #{{ $lote->pedido_compra_id }}
+                                    </a>
+                                @else
+                                    <span class="text-danger">Sem pedido</span>
+                                @endif
+
                             </p>
 
                             <p class="card-text mb-1"><strong>Produto ID:</strong> 000{{ $lote->produto_id }}</p>

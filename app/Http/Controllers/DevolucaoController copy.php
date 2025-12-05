@@ -85,13 +85,13 @@ class DevolucaoController extends Controller
         )->orderBy('nome')->get();
 
         $lotes = Lote::whereIn(
-    'produto_id',
-    Devolucao::distinct()->pluck('produto_id')
-)->pluck('id'); // só os IDs da tabela Lotes
+        'produto_id',
+            Devolucao::distinct()->pluck('produto_id')
+        )->pluck('id'); // só os IDs da tabela Lotes
 
 
             
-    $vendas = Venda::with('cliente')->orderBy('id')->get();
+        $vendas = Venda::with('cliente')->orderBy('id')->get();
 
         $itensQuery = VendaItem::query();
 

@@ -16,24 +16,54 @@
         <div class="col-md-6">
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-light">
-                    <strong>Venda ID:</strong> 000<?php echo e(optional($devolucao->vendaItem->venda->cliente)->id ?? '-'); ?> <br>
-                    <strong>Cliente:</strong> <?php echo e(optional($devolucao->vendaItem->venda->cliente)->nome ?? '-'); ?> <br>
-                    <strong>Lote:</strong> <?php echo e(optional($devolucao->vendaItem->lote)->id ?? '-'); ?> <br>
-                    <strong>Codigo Produto:</strong> 000<?php echo e(optional($devolucao->produto)->id ?? '-'); ?> <br>
-                    <strong>Descrição:</strong> <?php echo e(optional($devolucao->vendaItem->produto)->nome ?? '-'); ?> <br>
+                    <?php
+                        $vendaItem = $devolucao->vendaItem;
+                        $venda = optional($vendaItem)->venda;
+                        $cliente = optional($venda)->cliente;
+                        $produtoVendaItem = optional($vendaItem)->produto;
+                        $lote = optional($vendaItem)->lote;
+                    ?>
+
+                    <strong>Venda ID:</strong> 000<?php echo e($devolucao->venda_id?? '-'); ?> <br>
+                    <strong>Cliente:</strong> <?php echo e($devolucao->itemVenda->venda->cliente->nome ?? ''); ?> <br>
+                    <strong>Lote:</strong> <?php echo e($devolucao->itemVenda->lote->numero ?? 'Sem lote'); ?> <br>
+                    <strong>Produto ID:</strong> 000<?php echo e(optional($devolucao->produto)->id ?? '-'); ?> <br>
+                    <strong>Produto Nome:</strong> <?php echo e($devolucao->produto->nome ?? 'Sem Descrição'); ?> <br>
+                    <strong>Motivo Rejeição:</strong> <?php echo e($devolucao->motivo_rejeicao); ?> <br>
+                    <strong>Valor Unitario</strong> R$ <?php echo e($devolucao->itemVenda->preco_unitario ?? '-'); ?> <br>
+                    <strong>Subtotal</strong> R$ <?php echo e(number_format($devolucao->itemVenda->preco_unitario * $devolucao->itemVenda->quantidade, 2, ',', '.')); ?> <br>
+                    <strong>Quantidade Comprada:</strong> <?php echo e($devolucao->itemVenda->quantidade ?? 'Sem Descrição'); ?> <br>
                     <strong>Qtde Devolvida:</strong> <?php echo e($devolucao->quantidade); ?> <br>
+                    <strong>Qtde Restante:</strong> <?php echo e($devolucao->itemVenda->quantidade - $devolucao->quantidade); ?>  <br>
                     <strong>Status:</strong> <span class="badge bg-warning"><?php echo e(ucfirst($devolucao->status)); ?></span>
                 </div>
-
                 <div class="card-body">
                     <div class="row mb-2">
-                        <div class="col-md-4">
-                            <?php if(optional($devolucao->vendaItem->produto)->imagem): ?>
-                                <img src="<?php echo e(asset('storage/' . $devolucao->vendaItem->produto->imagem)); ?>" class="img-fluid rounded" alt="Produto">
-                            <?php else: ?>
-                                <img src="<?php echo e(asset('images/no-image.png')); ?>" class="img-fluid rounded" alt="Sem imagem">
+                        <div class="col-md-10 d-flex gap-2 flex-row flex-wrap align-items-start">
+
+                            <?php
+                                $imagens = [];
+                                for ($i = 1; $i <= 4; $i++) {
+                                    $campo = 'imagem' . $i;
+                                    if ($devolucao->$campo) {
+                                        $imagens[] = $devolucao->$campo;
+                                    }
+                                }
+                                $multiplicador = count($imagens) > 1 ? 0.99 : 1;
+                                $tamanho = 90 * $multiplicador;
+                            ?>
+
+                            <?php $__empty_2 = true; $__currentLoopData = $imagens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $idx => $imagem): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
+                                <img src="<?php echo e(asset('storage/' . $imagem)); ?>" 
+                                    class="img-zoom"
+                                    alt="Imagem <?php echo e($idx + 1); ?>" 
+                                    style="width: <?php echo e($tamanho); ?>px; height: <?php echo e($tamanho); ?>px; object-fit: cover; border-radius: 5px;">
+
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
+                                Sem imagem
                             <?php endif; ?>
-                        </div>
+                        </div>                    
+
                         <div class="col-md-8">
                             <strong>Motivo da Devolução:</strong>
                             <p><?php echo e($devolucao->motivo); ?></p>
@@ -49,35 +79,35 @@
                                     </li>
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </ul>
-                                                                <form action="<?php echo e(route('devolucoes.aprovar', $devolucao->id)); ?>"
-                                    method="POST" style="display:inline;">
-                                    <?php echo csrf_field(); ?>
-                                    <?php echo method_field('PUT'); ?>
-                                    <button type="submit"
-                                            id="btn-aprovar-<?php echo e($devolucao->id); ?>"
-                                            class="btn btn-success btn-sm"
-                                            disabled>
-                                        Aprovar
-                                    </button>
-                                </form>
 
-                                <form action="<?php echo e(route('devolucoes.rejeitar', $devolucao->id)); ?>"
-                                    method="POST" style="display:inline;">
-                                    <?php echo csrf_field(); ?>
-                                    <?php echo method_field('PUT'); ?>
-                                    <button type="submit" class="btn btn-warning btn-sm">
-                                        Rejeitar
-                                    </button>
-                                </form>
+                            <form action="<?php echo e(route('devolucoes.aprovar', $devolucao->id)); ?>"
+                                  method="POST" style="display:inline;">
+                                <?php echo csrf_field(); ?>
+                                <?php echo method_field('PUT'); ?>
+                                <button type="submit"
+                                        id="btn-aprovar-<?php echo e($devolucao->id); ?>"
+                                        class="btn btn-success btn-sm"
+                                        disabled>
+                                    Aprovar
+                                </button>
+                            </form>
 
-                                <a href="<?php echo e(route('devolucoes.cupom', $devolucao)); ?>"
-                                class="btn btn-primary btn-sm gerar-vale"
-                                data-id="<?php echo e($devolucao->id); ?>"
-                                target="_blank">
-                                    Gerar Vale-Troca
-                                </a>
+                            <form action="<?php echo e(route('devolucoes.rejeitar', $devolucao->id)); ?>"
+                                  method="POST" style="display:inline;">
+                                <?php echo csrf_field(); ?>
+                                <?php echo method_field('PUT'); ?>
+                                <button type="submit" class="btn btn-warning btn-sm">
+                                    Rejeitar
+                                </button>
+                            </form>
 
-                            </div>
+                            <a href="<?php echo e(route('devolucoes.cupom', $devolucao)); ?>"
+                               class="btn btn-primary btn-sm gerar-vale"
+                               data-id="<?php echo e($devolucao->id); ?>"
+                               target="_blank">
+                                Gerar Vale-Troca
+                            </a>
+
                         </div>
                     </div>
                 </div>
@@ -93,33 +123,80 @@
         </div>
     <?php endif; ?>
 
-    <div class="d-flex justify-content-center">
-        <?php echo e($devolucoes->links()); ?>
-
-    </div>
+   
 </div>
 <?php $__env->stopSection(); ?>
+
+<style>
+    .img-zoom {
+        transition: transform 0.25s ease-in-out;
+        cursor: zoom-in;
+        z-index: 10;
+        position: relative;
+    }
+
+    .img-zoom.active {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) scale(3); /* zoom + centro */
+        cursor: zoom-out;
+        z-index: 9999;
+        max-width: 90%;
+        max-height: 90%;
+    }
+
+    /* Impede que o card estoure quando o zoom está ativo */
+    .zoom-container {
+        position: relative;
+        overflow: hidden; /* Impede sair do container */
+    }
+</style>
+
+
+
 <script>
-document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function() {
 
-    // Quando clicar no botão "Gerar Vale-Troca"
-    document.querySelectorAll('.gerar-vale').forEach(btn => {
+        document.querySelectorAll('.gerar-vale').forEach(btn => {
+            btn.addEventListener('click', function (e) {
 
-        btn.addEventListener('click', function() {
+                // OPÇÃO 1 – deixa abrir o PDF normalmente:
+                // (não usa preventDefault)
 
-            let id = this.getAttribute('data-id');
+                let id = this.dataset.id;
+                let btnAprovar = document.getElementById('btn-aprovar-' + id);
 
-            // Habilita o botão Aprovar correspondente
-            let btnAprovar = document.getElementById('btn-aprovar-' + id);
-            if (btnAprovar) {
-                btnAprovar.removeAttribute('disabled');
-                btnAprovar.classList.add('btn-success');
-            }
+                if (btnAprovar) {
+                    btnAprovar.removeAttribute('disabled');  // ✔ corrigido
+                    btnAprovar.classList.remove('btn-secondary');
+                    btnAprovar.classList.add('btn-success');
+                }
+            });
         });
 
     });
 
-});
+    document.addEventListener("DOMContentLoaded", function() {
+
+        // Seleciona todas as imagens das devoluções
+        const imagens = document.querySelectorAll('.img-zoom');
+
+        imagens.forEach(img => {
+            img.addEventListener('click', function(event) {
+                event.stopPropagation(); // impede que o clique saia da imagem
+                this.classList.toggle('active'); // ativa o zoom
+            });
+        });
+
+        // Clicar fora da imagem tira o zoom
+        document.addEventListener('click', function() {
+            imagens.forEach(img => img.classList.remove('active'));
+        });
+
+    });
+
+
 </script>
 
 

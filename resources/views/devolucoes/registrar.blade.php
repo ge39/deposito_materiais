@@ -3,18 +3,18 @@
 @section('content')
 
 <div class="container">
-
-            @if(session('error'))
+       
+        @if(session('error'))
             <div class="alert alert-danger">
-                {{ session('error') }}
+                {!! session('error') !!}
             </div>
         @endif
 
-        @if(session('success'))
+        <!-- @if(session('success'))
             <div class="alert alert-success">
                 {{ session('success') }}
             </div>
-        @endif
+        @endif -->
 
     <h2 class="mb-3">Registrar Devolução / Troca - Venda #{{ $venda->id }}</h2>
     <h4 class="mb-0">Cliente: {{ $venda->cliente->nome }}</h4>
@@ -34,7 +34,7 @@
     </div> -->
 
     <div class="row">
-
+       
         @foreach($venda->itens as $itemVenda)
 
             @php
@@ -49,6 +49,8 @@
                 $jaDevolvido = $qtdDisponivel <= 0;
 
                 $devolucoes = $itemVenda->devolucoes ?? collect();
+
+                
             @endphp
 
             <div class="col-md-6 mb-4">
@@ -81,7 +83,8 @@
                             
                            <div><strong>Preco Unit.:</strong> {{ $itemVenda->preco_unitario }}</div>
                            <div><strong>Disponível:</strong> {{ $qtdDisponivel }}</div>
-                           <div><strong>Data da Venda:</strong> {{ $itemVenda->venda->created_at->format('d/m/Y') }}</div>
+                           <div><strong>Data da Venda:</strong> {{ \Carbon\Carbon::parse($itemVenda->venda->data_venda)->format('d/m/Y') }}</div>
+                           
                            <div><strong>Valor Extornado:</strong> R$ {{ number_format($valorExtornado, 2, ',', '.') }}</div>
                             
                            

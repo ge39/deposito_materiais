@@ -3,20 +3,20 @@
 <?php $__env->startSection('content'); ?>
 
 <div class="container">
-
-            <?php if(session('error')): ?>
+       
+        <?php if(session('error')): ?>
             <div class="alert alert-danger">
-                <?php echo e(session('error')); ?>
+                <?php echo session('error'); ?>
 
             </div>
         <?php endif; ?>
 
-        <?php if(session('success')): ?>
+        <!-- <?php if(session('success')): ?>
             <div class="alert alert-success">
                 <?php echo e(session('success')); ?>
 
             </div>
-        <?php endif; ?>
+        <?php endif; ?> -->
 
     <h2 class="mb-3">Registrar Devolução / Troca - Venda #<?php echo e($venda->id); ?></h2>
     <h4 class="mb-0">Cliente: <?php echo e($venda->cliente->nome); ?></h4>
@@ -38,7 +38,7 @@
     </div> -->
 
     <div class="row">
-
+       
         <?php $__currentLoopData = $venda->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemVenda): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
 
             <?php
@@ -53,6 +53,8 @@
                 $jaDevolvido = $qtdDisponivel <= 0;
 
                 $devolucoes = $itemVenda->devolucoes ?? collect();
+
+                
             ?>
 
             <div class="col-md-6 mb-4">
@@ -85,7 +87,8 @@
                             
                            <div><strong>Preco Unit.:</strong> <?php echo e($itemVenda->preco_unitario); ?></div>
                            <div><strong>Disponível:</strong> <?php echo e($qtdDisponivel); ?></div>
-                           <div><strong>Data da Venda:</strong> <?php echo e($itemVenda->venda->created_at->format('d/m/Y')); ?></div>
+                           <div><strong>Data da Venda:</strong> <?php echo e(\Carbon\Carbon::parse($itemVenda->venda->data_venda)->format('d/m/Y')); ?></div>
+                           
                            <div><strong>Valor Extornado:</strong> R$ <?php echo e(number_format($valorExtornado, 2, ',', '.')); ?></div>
                             
                            

@@ -20,14 +20,10 @@ class Produto extends Model
         'fornecedor_id',
         'unidade_medida_id',
         'marca_id',
-        'quantidade_estoque',
         'estoque_minimo',
         'preco_venda',
         'validade_produto',
-        // 'preco_promocional',
         'em_promocao',
-        // 'promocao_inicio',
-        // 'promocao_fim',
         'peso',
         'largura',
         'altura',
@@ -45,7 +41,6 @@ class Produto extends Model
         'validade_produto'=> 'date',
         'promocao_fim' => 'date',
         'em_promocao' => 'boolean',
-        
     ];
 
     // -------------------------------
@@ -60,10 +55,9 @@ class Produto extends Model
             ->whereDate('promocao_fim', '>=', now());
     }
 
-   public function lotes()
+    public function lotes()
     {
-       return $this->hasMany(Lote::class);
-       
+        return $this->hasMany(Lote::class);
     }
 
     public function unidadeMedida()
@@ -87,17 +81,11 @@ class Produto extends Model
     }
 
     // -------------------------------
-    // ESTOQUE
+    // ESTOQUE (total disponível)
     // -------------------------------
-    public function getEstoqueTotalAttribute()
+    public function getEstoqueAttribute()
     {
-        return $this->lotes->sum('quantidade');
-    }
-
-    public function atualizarEstoqueTotal()
-    {
-        $this->estoque_total = $this->lotes()->sum('quantidade');
-        $this->saveQuietly();
+        return $this->lotes->sum('quantidade_disponivel');
     }
 
     // -------------------------------
@@ -105,14 +93,22 @@ class Produto extends Model
     // -------------------------------
     public function setValidadeProdutoAttribute($value)
     {
-        $this->attributes['validade_produto'] = empty($value) ? null : Carbon::parse($value)->startOfDay();
+        $this->attributes['validade_produto'] = empty($value)
+            ? null
+            : Carbon::parse($value)->startOfDay();
     }
 
+    // -------------------------------
+    // NOME FORMATADO
+    // -------------------------------
     public function getNomeFormatadoAttribute()
     {
         return Str::title($this->nome);
     }
 
+    // -------------------------------
+    // PREÇO MÉDIO DE COMPRA
+    // -------------------------------
     public function getPrecoMedioCompraAttribute()
     {
         $lotes = $this->lotes;
@@ -129,21 +125,28 @@ class Produto extends Model
             $totalQuantidade += $lote->quantidade;
         }
 
-        return $totalQuantidade > 0 ? round($totalValor / $totalQuantidade, 2) : 0;
+        return $totalQuantidade > 0
+            ? round($totalValor / $totalQuantidade, 2)
+            : 0;
     }
 
     // -------------------------------
-    // ACCESSOR: PREÇO ATUAL (com promo/desconto)
+    // PREÇO ATUAL COM PROMOÇÃO
     // -------------------------------
     public function getPrecoAtualAttribute()
     {
         $preco = $this->preco_base ?? $this->preco_venda;
         $hoje = Carbon::today();
 
-        if ($this->em_promocao &&
-            $this->promocao_inicio && $this->promocao_fim &&
-            $hoje->between(Carbon::parse($this->promocao_inicio), Carbon::parse($this->promocao_fim))) {
-
+        if (
+            $this->em_promocao &&
+            $this->promocao_inicio &&
+            $this->promocao_fim &&
+            $hoje->between(
+                Carbon::parse($this->promocao_inicio),
+                Carbon::parse($this->promocao_fim)
+            )
+        ) {
             if ($this->preco_promocional) {
                 $preco = $this->preco_promocional;
             } elseif ($this->desconto_percentual) {
@@ -153,24 +156,22 @@ class Produto extends Model
 
         return round($preco, 2);
     }
-    // App/Models/Produto.php
 
+    // -------------------------------
+    // PREÇO COM DESCONTO FIXO/%
+    // -------------------------------
     public function precoAtual()
     {
-        // preço base
         $preco = $this->preco_venda;
 
-        // aplica desconto fixo
-        if(!empty($this->desconto) && $this->desconto > 0){
+        if (!empty($this->desconto) && $this->desconto > 0) {
             $preco -= $this->desconto;
         }
 
-        // aplica desconto percentual
-        if(!empty($this->desconto_percentual) && $this->desconto_percentual > 0){
+        if (!empty($this->desconto_percentual) && $this->desconto_percentual > 0) {
             $preco = $preco * (1 - $this->desconto_percentual / 100);
         }
 
         return round($preco, 2);
     }
-
 }

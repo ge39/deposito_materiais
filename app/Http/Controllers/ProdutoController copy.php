@@ -324,7 +324,8 @@ class ProdutoController extends Controller
             ->when($query, function ($q) use ($query) {
                 $q->where('nome', 'LIKE', "%{$query}%")
                   ->orWhere('codigo_barras', 'LIKE', "%{$query}%")
-                  ->orWhere('descricao', 'LIKE', "%{$query}%");
+                  ->orWhere('descricao', 'LIKE', "%{$query}%")
+                   ->orWhere('id', $query); // busca pelo ID exato
             })
             ->orderBy('nome')
             ->paginate(15);
@@ -342,7 +343,8 @@ class ProdutoController extends Controller
             ->when($query, function ($q) use ($query) {
                 $q->where('nome', 'LIKE', "%{$query}%")
                   ->orWhere('codigo_barras', 'LIKE', "%{$query}%")
-                  ->orWhere('descricao', 'LIKE', "%{$query}%");
+                  ->orWhere('descricao', 'LIKE', "%{$query}%")
+                   ->orWhere('id', $query); // busca pelo ID exato
             })
             ->orderBy('nome')
             ->paginate(15);

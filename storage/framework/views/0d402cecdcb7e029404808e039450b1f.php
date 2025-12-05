@@ -25,10 +25,15 @@
                                 <!-- <p class="card-text mb-1"><strong>Pedido Compra:</strong> 000<?php echo e($lote->pedido_compra_id); ?></p> -->
                              <p class="card-text mb-1">
                                 <strong>Pedido Compra:</strong>
-                                <a href="<?php echo e(route('pedidos.show', $lote->pedido_compra_id)); ?>">
-                                    000<?php echo e($lote->pedido_compra_id); ?>
+                                <?php if($lote->pedido_compra_id): ?>
+                                    <a href="<?php echo e(route('pedidos.show', $lote->pedido_compra_id)); ?>">
+                                        Pedido #<?php echo e($lote->pedido_compra_id); ?>
 
-                                </a>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="text-danger">Sem pedido</span>
+                                <?php endif; ?>
+
                             </p>
 
                             <p class="card-text mb-1"><strong>Produto ID:</strong> 000<?php echo e($lote->produto_id); ?></p>
