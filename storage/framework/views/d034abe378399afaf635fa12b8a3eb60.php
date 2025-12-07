@@ -1,101 +1,73 @@
 
 
 <?php $__env->startSection('content'); ?>
-<div style="font-family:Arial, sans-serif; background:#f0f0f0; padding:10px;">
-    <!-- Header -->
-    <div style="background:#004080; color:white; padding:10px; display:flex; align-items:center;">
-        <img src="<?php echo e(asset('images/logo.png')); ?>" alt="YZIDRO" style="height:40px; margin-right:10px;">
-        <h2>YZIDRO - PDV</h2>
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Vendas</h1>
+        <a href="<?php echo e(route('vendas.create')); ?>" class="btn btn-primary">Nova Venda</a>
     </div>
 
-    <div style="display:flex; gap:10px; margin-top:10px;">
-        <!-- Lado esquerdo -->
-        <div style="flex:1; background:#004080; color:white; padding:10px; display:flex; flex-direction:column; gap:10px;">
-            <!-- Cliente -->
-            <div>
-                <label>Cliente</label>
-                <input type="text" id="cliente" style="width:100%; padding:5px;">
-                <small>Crédito disponível: R$ <span id="credito">0,00</span></small>
-            </div>
+    <?php if(session('success')): ?>
+        <div class="alert alert-success"><?php echo e(session('success')); ?></div>
+    <?php endif; ?>
+    <?php if(session('error')): ?>
+        <div class="alert alert-danger"><?php echo e(session('error')); ?></div>
+    <?php endif; ?>
 
-            <!-- Desconto e Forma de Pagamento -->
-            <div style="display:flex; gap:5px;">
-                <div style="flex:1;">
-                    <label>Desconto (R$)</label>
-                    <input type="number" id="desconto" value="0,00" style="width:100%; padding:5px;">
-                </div>
-                <div style="flex:1;">
-                    <label>Forma de Pagamento</label>
-                    <select id="formaPagamento" style="width:100%; padding:5px;">
-                        <option value="caixa">Caixa</option>
-                        <option value="cartao">Cartão</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Total -->
-            <div>
-                <h3>Total: R$ <span id="total">0,00</span></h3>
-            </div>
-
-            <!-- Pagamentos -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
-                <div>
-                    <label>Dinheiro</label>
-                    <input type="number" id="dinheiro" value="0,00" style="width:100%; padding:5px;">
-                </div>
-                <div>
-                    <label>Cheque</label>
-                    <input type="number" id="cheque" value="0,00" style="width:100%; padding:5px;">
-                </div>
-                <div>
-                    <label>Cartão Crédito</label>
-                    <input type="number" id="cartaoCredito" value="0,00" style="width:100%; padding:5px;">
-                </div>
-                <div>
-                    <label>Cartão Débito</label>
-                    <input type="number" id="cartaoDebito" value="0,00" style="width:100%; padding:5px;">
-                </div>
-            </div>
-
-            <!-- Saldo -->
-            <div>
-                <h4>Saldo: R$ <span id="saldo">0,00</span></h4>
-            </div>
-
-            <!-- Botão finalizar -->
-            <button id="finalizarVenda" style="background:#e74c3c; color:white; padding:10px; border:none; width:100%;">FINALIZAR VENDA</button>
-
-            <!-- Atalhos -->
-            <div style="font-size:12px; margin-top:10px; background:#00264d; padding:5px;">
-                <p>F2 - Cliente | F10 - Emitir NF-e | F12 - Emitir CF-e-SAT</p>
-                <p>Ctrl+U - Utilizar Crédito | Ctrl+C - Indicar Crédito</p>
-                <p>S - Desconto(R$) | P - Desconto(%) | Q - Acréscimo(R$) | W - Acréscimo(%)</p>
-                <p>Ctrl+D - CPF | D - Dinheiro | C - Cheque | X - Cartão Crédito | A - Cartão Débito | Esc - Sair</p>
-            </div>
-        </div>
-
-        <!-- Lado direito - Lista de produtos -->
-        <div style="flex:2; background:white; padding:10px; max-height:600px; overflow-y:auto;">
-            <h3 style="border-bottom:2px solid #004080; padding-bottom:5px;">Lista de Produtos</h3>
-            <table style="width:100%; border-collapse:collapse;">
-                <thead>
-                    <tr style="background:#004080; color:white;">
-                        <th>Item</th>
-                        <th>Código de Barras</th>
-                        <th>Descrição</th>
-                        <th>Qtd</th>
-                        <th>Vl. Unit</th>
-                        <th>Total</th>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Data</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php $__empty_1 = true; $__currentLoopData = $vendas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $venda): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                    <tr>
+                        <td><?php echo e($venda->id); ?></td>
+                        <td><?php echo e($venda->cliente->nome ?? '-'); ?></td>
+                        <td><?php echo e($venda->created_at->format('d/m/Y H:i')); ?></td>
+                        <td>R$ <?php echo e(number_format($venda->total, 2, ',', '.')); ?></td>
+                        <td>
+                            <?php if($venda->status == 1): ?>
+                                <span class="badge bg-success">Concluída</span>
+                            <?php elseif($venda->status == 0): ?>
+                                <span class="badge bg-warning text-dark">Pendente</span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary">Cancelada</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <a href="<?php echo e(route('vendas.show', $venda->id)); ?>" class="btn btn-sm btn-info">Ver</a>
+                            <a href="<?php echo e(route('vendas.edit', $venda->id)); ?>" class="btn btn-sm btn-warning">Editar</a>
+                            <form action="<?php echo e(route('vendas.destroy', $venda->id)); ?>" method="POST" class="d-inline">
+                                <?php echo csrf_field(); ?>
+                                <?php echo method_field('DELETE'); ?>
+                                <button type="submit" class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Tem certeza que deseja excluir esta venda?')">Excluir</button>
+                            </form>
+                        </td>
                     </tr>
-                </thead>
-                <tbody id="carrinho">
-                    <tr><td colspan="6" style="text-align:center;">Nenhum produto adicionado</td></tr>
-                </tbody>
-            </table>
-            <h3 style="text-align:right; margin-top:10px;">Subtotal: R$ <span id="subtotal">0,00</span></h3>
-        </div>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">Nenhuma venda encontrada</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
+
+    <div class="d-flex justify-content-end">
+        <?php echo e($vendas->links()); ?>
+
+    </div>
+
 </div>
 <?php $__env->stopSection(); ?>
 

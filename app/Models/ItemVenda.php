@@ -8,7 +8,6 @@ class ItemVenda extends Model
 {
     protected $fillable = [
         'venda_id',
-        'data_venda',
         'produto_id',
         'quantidade',
         'preco_unitario',

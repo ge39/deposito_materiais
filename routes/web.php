@@ -10,7 +10,7 @@ use App\Http\Controllers\{
     FuncionarioController,
     UserController,
     ProdutoController,
-    VendaController,
+    PdvController,
     ItensVendaController,
     FrotaController,
     EntregaController,
@@ -216,7 +216,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         'funcionarios' => FuncionarioController::class,
         'marcas' => MarcaController::class,
         'unidades' => UnidadeMedidaController::class,
-        'vendas' => VendaController::class,
+        'vendas' =>PdvController::class,
         'itens_venda' => ItensVendaController::class,
         'frotas' => FrotaController::class,
         'entregas' => EntregaController::class,
@@ -257,14 +257,30 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('categorias/{id}/preco-medio', [CategoriaController::class, 'precoMedio']);
 
     // PDV
-    Route::prefix('pdv')->name('pdv.')->group(function () {
-        Route::get('/', [VendaController::class, 'index'])->name('index');
-        Route::get('buscar-produto', [VendaController::class, 'buscarProduto'])->name('buscarProduto');
-        Route::post('adicionar-produto', [VendaController::class, 'adicionarProduto'])->name('adicionarProduto');
-        Route::post('remover-produto', [VendaController::class, 'removerProduto'])->name('removerProduto');
-        Route::post('finalizar', [VendaController::class, 'finalizarVenda'])->name('finalizarVenda');
-        Route::get('cupom/{venda}', [VendaController::class, 'gerarCupom'])->name('cupom');
-    });
+   // routes/web.php
+   // PDV - Index
+Route::get('/pdv', [VendaController::class, 'index'])->name('pdv.index');
+
+// Abrir nova venda
+    Route::get('/pdv/abrir', [VendaController::class, 'abrir'])->name('pdv.abrir');
+    Route::post('/pdv/abrir', [VendaController::class, 'abrirConfirmar'])->name('pdv.abrirConfirmar');
+
+    // Itens da venda
+    Route::get('/pdv/{venda}/itens', [VendaController::class, 'itens'])->name('pdv.itens');
+    Route::post('/pdv/{venda}/adicionarItem', [VendaController::class, 'adicionarItem'])->name('pdv.adicionarItem');
+    Route::delete('/pdv/item/{item}/remover', [VendaController::class, 'removerItem'])->name('pdv.removerItem');
+
+    // Finalizar venda
+    Route::get('/pdv/{venda}/finalizar', [VendaController::class, 'finalizar'])->name('pdv.finalizar');
+    Route::post('/pdv/{venda}/finalizarConfirmado', [VendaController::class, 'finalizarConfirmado'])->name('pdv.finalizarConfirmado');
+
+    // Cancelar venda
+    Route::post('/pdv/{venda}/cancelar', [VendaController::class, 'cancelar'])->name('pdv.cancelar');
+
+    // Recibo
+    Route::get('/pdv/{venda}/recibo', [VendaController::class, 'recibo'])->name('pdv.recibo');
+
+
    
     Route::get('/orcamentos/{id}/whatsapp', [OrcamentoController::class, 'enviarWhatsApp'])
     ->name('orcamentos.whatsapp');
