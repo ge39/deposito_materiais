@@ -44,9 +44,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
         // ===============================
-    // PEDIDOS DE COMPRA
-    // ===============================
-    Route::prefix('pedidos')->name('pedidos.')->group(function () {
+        // PEDIDOS DE COMPRA
+        // ===============================
+        Route::prefix('pedidos')->name('pedidos.')->group(function () {
 
         // Atualizar status
         Route::patch('{pedido}/status', [PedidoCompraController::class, 'updateStatus'])
@@ -257,31 +257,21 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('categorias/{id}/preco-medio', [CategoriaController::class, 'precoMedio']);
 
     // PDV
-   // routes/web.php
-   // PDV - Index
-Route::get('/pdv', [VendaController::class, 'index'])->name('pdv.index');
+    Route::get('/pdv', [PdvController::class, 'index'])->name('pdv.index');
+        ///Busca inteligente do PDV (produto, e orçamento)
+     Route::get('/pdv/buscar-produto', [PDVController::class, 'buscarProduto'])
+        ->name('pdv.buscarProduto');
+     ///Busca inteligente do PDV (NOME cliente e CPF)
+     Route::get('/pdv/buscar-cliente', [PDVController::class, 'buscarCliente'])
+        ->name('pdv.buscarCliente');
 
-// Abrir nova venda
-    Route::get('/pdv/abrir', [VendaController::class, 'abrir'])->name('pdv.abrir');
-    Route::post('/pdv/abrir', [VendaController::class, 'abrirConfirmar'])->name('pdv.abrirConfirmar');
+     //Busca produto por codigo de barras
+    Route::get('/pdv/produto/{codigo}', [PDVController::class, 'buscarProdutoPorCodigo'])
+    ->name('pdv.buscarProdutoPorCodigo');
 
-    // Itens da venda
-    Route::get('/pdv/{venda}/itens', [VendaController::class, 'itens'])->name('pdv.itens');
-    Route::post('/pdv/{venda}/adicionarItem', [VendaController::class, 'adicionarItem'])->name('pdv.adicionarItem');
-    Route::delete('/pdv/item/{item}/remover', [VendaController::class, 'removerItem'])->name('pdv.removerItem');
+    
 
-    // Finalizar venda
-    Route::get('/pdv/{venda}/finalizar', [VendaController::class, 'finalizar'])->name('pdv.finalizar');
-    Route::post('/pdv/{venda}/finalizarConfirmado', [VendaController::class, 'finalizarConfirmado'])->name('pdv.finalizarConfirmado');
-
-    // Cancelar venda
-    Route::post('/pdv/{venda}/cancelar', [VendaController::class, 'cancelar'])->name('pdv.cancelar');
-
-    // Recibo
-    Route::get('/pdv/{venda}/recibo', [VendaController::class, 'recibo'])->name('pdv.recibo');
-
-
-   
+    // Enviar orçamento por WhatsApp   
     Route::get('/orcamentos/{id}/whatsapp', [OrcamentoController::class, 'enviarWhatsApp'])
     ->name('orcamentos.whatsapp');
 
@@ -303,8 +293,5 @@ Route::get('/pdv', [VendaController::class, 'index'])->name('pdv.index');
    Route::get('/promocoes/{id}/toggle-status', [PromocaoController::class, 'toggleStatus'])
     ->name('promocoes.toggleStatus')
     ->middleware('can:gerenciar-promocoes');
-
-
-
 
 });

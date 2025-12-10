@@ -1,40 +1,39 @@
-<!-- pdv/recibo.blade.php -->
-@extends('layouts.app')
-@section('content')
-<div class="container py-4">
-<div class="row justify-content-center">
-<div class="col-md-6">
-<div class="card shadow-sm rounded-4">
-<div class="card-header bg-dark text-white rounded-top-4 text-center">
-<h5 class="mb-0">Recibo de Venda</h5>
-</div>
-<div class="card-body">
-<p><strong>Venda:</strong> #{{ $venda->id }}</p>
-<p><strong>Cliente:</strong> {{ $venda->cliente->nome }}</p>
-<p><strong>Data:</strong> {{ $venda->data_venda }}</p>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recibo da Venda {{ $venda->id }}</title>
+    <style>
+        body { font-family: Arial; font-size: 14px; padding: 20px; }
+        .linha { border-bottom: 1px dashed #aaa; margin: 5px 0; }
+        .titulo { text-align: center; font-size: 18px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
 
+<div class="titulo">RECIBO DA VENDA Nº {{ $venda->id }}</div>
 
-<hr>
-<h6 class="fw-bold">Itens</h6>
-<ul class="list-group mb-3">
-@foreach($itens as $item)
-<li class="list-group-item d-flex justify-content-between">
-{{ $item->produto->nome }} (x{{ $item->quantidade }})
-<span>R$ {{ number_format($item->subtotal, 2, ',', '.') }}</span>
-</li>
+<div class="linha"></div>
+@foreach($venda->itens as $item)
+    <p>
+        {{ $item->produto->nome }} <br>
+        {{ $item->quantidade }} x R$ {{ number_format($item->preco,2,',','.') }}
+        <strong class="float-end">
+            R$ {{ number_format($item->total,2,',','.') }}
+        </strong>
+    </p>
+    <div class="linha"></div>
 @endforeach
-</ul>
 
+<h3>Total: R$ {{ number_format($venda->total,2,',','.') }}</h3>
 
-<h4 class="text-end fw-bold">Total: R$ {{ number_format($venda->total, 2, ',', '.') }}</h4>
+<p>Forma de pagamento: <strong>{{ $venda->forma_pagamento }}</strong></p>
 
+<br>
+<p>Obrigado pela preferência!</p>
 
-<div class="text-center mt-3">
-<a href="{{ route('pdv.index') }}" class="btn btn-primary px-4">Nova Venda</a>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-@endsection
+<script>
+    window.print();
+</script>
+
+</body>
+</html>

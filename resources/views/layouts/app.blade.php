@@ -70,7 +70,7 @@
             <i class="bi bi-cash-stack me-1"></i>Vendas
           </a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-receipt-cutoff me-2"></i>Vendas</a></li>
+            <li><a class="dropdown-item" href="{{ route('pdv.index') }}"><i class="bi bi-receipt-cutoff me-2"></i>Vendas</a></li>
             <li><a class="dropdown-item" href="#"><i class="bi bi-list-ul me-2"></i>Itens Venda</a></li>
             <li><a class="dropdown-item" href="{{ route('devolucoes.index') }}"><i class="bi bi-list-ul me-2"></i>Troca/Devoluções</a></li>
           </ul>

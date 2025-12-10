@@ -127,4 +127,6 @@ class Lote extends Model
             ->whereNotNull('validade_lote')
             ->min('validade_lote');
     }
+
+   
 }
