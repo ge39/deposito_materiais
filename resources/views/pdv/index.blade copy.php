@@ -124,23 +124,14 @@
             <label>Data Venda</label>
             <input class="form-control" type="date" value="{{ date('Y-m-d') }}" readonly>
         </div>
-        <div class="col-md-2 fw-bold mb-0">
-             <!-- <label>ID</label> -->
-            <input type="hidden" name="cliente_id">
+
+         <div class="col-md-1 fw-bold mb-0">
+             <label>ID</label>
+            <input class="form-control" name ="id" required readonly>
+        </div>
+        <div class="col-md-4 fw-bold mb-0">
             <label>Cliente</label>
             <input class="form-control" name="nome" required readonly>
-        </div>
-         <div class="col-md-1 fw-bold mb-0">
-            <label>Pessoa</label>
-            <input class="form-control" name="pessoa" required readonly>
-        </div>
-        <div class="col-md-1 fw-bold mb-0">
-            <label>Telefone</label>
-            <input class="form-control" name="telefone" required readonly>
-        </div>
-         <div class="col-md-4 fw-bold mb-0">
-            <label>Endereço</label>
-            <input class="form-control" name="endereco" required readonly>
         </div>
         <div class="col-md-2 fw-bold mb-0">
             <label>Op. de Caixa</label>
@@ -148,6 +139,14 @@
         
         </div>
     </div>
+
+    <!-- TÍTULO PRODUTO -->
+    <!-- <div class="row mb-2">
+        <div class="col">
+            <div class="bg-primary text-white fw-bold p-1 ps-2">Produto</div> -->
+              <!-- <input class="form-control" id="codigo_barras " readOnly> -->
+        <!-- </div>
+    </div> -->
 
     <!-- CORPO PRINCIPAL -->
     <div class="row g-2 ">
@@ -170,7 +169,6 @@
                     <label for="quantidade" class="form-label">Quantidade</label>
                     <input type="number" name="quantidade" id="quantidade" 
                         class="form-control form-control-sm" min="1" value="1">
-                    <small id="msgEstoque" class="text-danger fw-bold"></small>
                 </div>
 
                 <!-- Unidade -->
@@ -190,13 +188,13 @@
                 <!-- Quantidade -->
                 <div class="col-md-4">
                     <label class="fw-bold">Qtd.Disponivel</label>
-                    <input class="form-control" id="qtd_disponivel" type="text" class="form-control mb-2 fw-bold" min="1" step="1" readOnly>
+                    <input id="num_itens" type="text" class="form-control mb-2 fw-bold" min="1" step="1" readOnly>
                 </div>
 
                     <!-- Total Geral -->
                 <div class="col-md-8">
                     <label class="fw-bold">TOTAL</label>
-                    <input class="form-control bg-warning fw-bold fw-bold" id="total_geral" type="text" readOnly>
+                    <input class="form-control bg-warning fw-bold fw-bold" >
                 </div>
             </div>
 
@@ -211,12 +209,13 @@
             <table class="table table-bordered table-sm bg-white">
                 <thead class="table-primary fw-bold text-center fs-10px">
                     <tr>
-                        <th class="text-center" style="width:50px">Item</th>
-                        <th class="text-center" style="width:250px">Descrição</th>
-                        <th class="text-center" style="width:70px">Qtde</th>
-                        <th class="text-center" style="width:100px">Unid</th>
-                        <th class="text-center" style="width:100px">Preço</th>
-                        <th class="text-center" style="width:150px">SubTotal</th>
+                        <th style="width:50px">Itens</th>
+                        <th style="width:200px">Código de barras</th>
+                        <th style="width:250px">Descrição</th>
+                        <th style="width:100px">Un</th>
+                        <th style="width:70px">Qtde</th>
+                        <th style="width:100px">Vr. Unit</th>
+                        <th style="width:150px">Total</th>
                     </tr>
                 </thead>
                 <tbody id="lista-itens"></tbody>
@@ -277,99 +276,6 @@
 </div>
 @endsection
 
-<!-- SCRIPT FINAL – QUANTIDADE × PREÇO = TOTAL -->
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-
-        const inputQtd = document.getElementById("quantidade");
-        const inputPreco = document.getElementById("preco_venda");
-        const inputQtdDisp = document.getElementById("quantidade_disponivel");
-        const inputTotal = document.getElementById("total");
-        const erroQtd = document.getElementById("erro-quantidade");
-
-        /**
-         * Permitir apenas números no campo quantidade
-         */
-        inputQtd.addEventListener("input", () => {
-            inputQtd.value = inputQtd.value.replace(/\D/g, ""); // remove tudo que não é número
-            validarQuantidade();
-            atualizarTotal();
-        });
-
-        /**
-         * Validação da quantidade com base na quantidade_disponivel
-         */
-        function validarQuantidade() {
-            const inputQtd = Number(inputQuantidade.value);
-            const qtdDisp = Number(inputQuantidade_disponivel.value);
-
-            if (qtd > qtdDisp) {
-                erroQtd.textContent = "Quantidade informada excede a quantidade disponível.";
-                inputQtd.classList.add("is-invalid");
-                return false;
-            }
-
-            erroQtd.textContent = "";
-            inputQtd.classList.remove("is-invalid");
-            return true;
-        }
-
-        /**
-         * Calcula o total automaticamente
-         */
-        function atualizarTotal() {
-            if (!validarQuantidade()) {
-                inputTotal.value = "";
-                return;
-            }
-
-            const qtd = Number(inputQtd.value);
-            const preco = Number(inputPreco.value);
-
-            const total = qtd * preco;
-
-            inputTotal.value = total.toFixed(2);
-        }
-
-    });
-
-</script>
-
-<!-- Quantidade venda vs quantidade_disponivel -->
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-
-    const inputQtd = document.getElementById("quantidade");
-    const inputQtdDisp = document.getElementById("quantidade_disponivel");
-    const erroQtd = document.getElementById("erroQtd");
-
-    function validarQuantidade() {
-        const qtd = Number(inputQtd.value);
-        const qtdDisp = Number(inputQtdDisp.value);
-
-        if (!qtdDisp || qtdDisp < 0) return true; // proteção simples
-
-        if (qtd > qtdDisp) {
-            erroQtd.textContent = "Quantidade informada é maior que a disponível.";
-            inputQtd.classList.add("is-invalid");
-            return false;
-        }
-
-        erroQtd.textContent = "";
-        inputQtd.classList.remove("is-invalid");
-        return true;
-    }
-
-    // Permitir apenas números
-    inputQtd.addEventListener("input", () => {
-        inputQtd.value = inputQtd.value.replace(/\D/g, ""); // somente dígitos
-        validarQuantidade();
-    });
-
-});
-</script>
-
-<!-- Busca Clientes e Produtos -->
 <script>
     document.addEventListener('keydown', function (e) {
 
@@ -411,7 +317,7 @@
     const inputCodigo = document.getElementById("codigo_barras");
     const inputDescricao = document.getElementById("descricao");
     const inputQuantidade = document.getElementById("quantidade");
-    const qtd_disponivel = document.getElementById("qtd_disponivel") || inputQuantidade;
+    const inputNumItens = document.getElementById("num_itens") || inputQuantidade;
     const inputPrecoVenda = document.getElementById("preco_venda");
     const inputTotalGeral = document.getElementById("total_geral");
     const imgProduto = document.getElementById("produto-imagem");
@@ -420,7 +326,7 @@
     const hCat = document.getElementById("produto_categoria");
     const hForn = document.getElementById("produto_fornecedor");
     const hMarca = document.getElementById("produto_marca");
-    const hUnid = document.getElementById("produto_unidadeMedida->sigla");
+    const hUnid = document.getElementById("produto_unidade");
 
     const hLoteID = document.getElementById("lote_id");
     const hLoteValidade = document.getElementById("lote_validade");
@@ -429,19 +335,20 @@
     // calcular total
     function calcularTotal() {
         const preco = parseFloat((inputPrecoVenda?.value || "0").replace(",", ".")) || 0;
-        const qtd = parseFloat(inputQuantidade?.value || "1") || 1;
+        const qtd = parseFloat(inputNumItens?.value || "1") || 1;
         if (inputTotalGeral) inputTotalGeral.value = (preco * qtd).toFixed(2);
-        }
+    }
 
-        if (inputQuantidade) {
-            inputQuantidade.addEventListener("input", calcularTotal);
-        }
+    if (inputNumItens) {
+        inputNumItens.addEventListener("input", calcularTotal);
+    }
 
     function limparCampos() {
         if (inputDescricao) inputDescricao.value = "";
         if (inputPrecoVenda) inputPrecoVenda.value = "";
         if (inputTotalGeral) inputTotalGeral.value = "";
         if (inputQuantidade) inputQuantidade.value = 1;
+        if (inputQuantidade) inputQuantidade.value = 0;
         if (imgProduto) imgProduto.src = "";
 
         [hProdutoID, hCat, hForn, hMarca, hUnid, hLoteID, hLoteValidade, hLoteEstoque].forEach(e => {
@@ -469,7 +376,7 @@
         const inputCodigo = document.getElementById("codigo_barras");
         const inputDescricao = document.getElementById("descricao");
         const inputQuantidade = document.getElementById("quantidade");
-        const qtd_disponivel = document.getElementById("qtd_disponivel"); // agora usamos o input correto
+        const inputNumItens = document.getElementById("num_itens"); // agora usamos o input correto
         const inputPrecoVenda = document.getElementById("preco_venda");
         const inputTotalGeral = document.getElementById("total_geral");
         const imgProduto = document.getElementById("produto-imagem");
@@ -478,21 +385,21 @@
         const hCat = document.getElementById("produto_categoria");
         const hForn = document.getElementById("produto_fornecedor");
         const hMarca = document.getElementById("produto_marca");
-        // const hUnid = document.getElementById("produto_unidade");
-        const hUnid = document.getElementById("unidade");
+        const hUnid = document.getElementById("produto_unidade");
+
         const hLoteID = document.getElementById("lote_id");
         const hLoteValidade = document.getElementById("lote_validade");
         const hLoteEstoque = document.getElementById("lote_estoque");
 
-            // Calcula total
+        // Calcula total
         function calcularTotal() {
             const preco = parseFloat((inputPrecoVenda?.value || "0").replace(",", ".")) || 0;
-            const qtd = parseFloat(inputQuantidade?.value || "1") || 1;
+            const qtd = parseFloat(inputNumItens?.value || "1") || 1;
             if (inputTotalGeral) inputTotalGeral.value = (preco * qtd).toFixed(2);
         }
 
-        if (inputQuantidade) {
-            inputQuantidade.addEventListener("input", calcularTotal);
+        if (inputNumItens) {
+            inputNumItens.addEventListener("input", calcularTotal);
         }
 
         function limparCampos() {
@@ -500,7 +407,7 @@
             if (inputPrecoVenda) inputPrecoVenda.value = "";
             if (inputTotalGeral) inputTotalGeral.value = "";
             if (inputQuantidade) inputQuantidade.value = 1;
-            if (qtd_disponivel) qtd_disponivel.value = 1;
+            if (inputNumItens) inputNumItens.value = 1;
             if (imgProduto) imgProduto.src = "";
 
             [hProdutoID, hCat, hForn, hMarca, hUnid, hLoteID, hLoteValidade, hLoteEstoque].forEach(e => {
@@ -550,20 +457,10 @@
                 if (hUnid) hUnid.value = produto.unidade_medida?.nome || "";
 
                 // Imagem
-                // if (imgProduto && produto.imagem) {
-                //     imgProduto.src = "/storage/" + produto.imagem;
-                // } else if (imgProduto) {
-                //     imgProduto.src = "";
-                // }
-                // Imagem
-                const imagemPadrao = "/images/produto-sem-imagem.png";
-
-                if (imgProduto) {
-                    if (produto.imagem && produto.imagem !== "") {
-                        imgProduto.src = "/storage/" + produto.imagem;
-                    } else {
-                        imgProduto.src = imagemPadrao;
-                    }
+                if (imgProduto && produto.imagem) {
+                    imgProduto.src = "/storage/" + produto.imagem;
+                } else if (imgProduto) {
+                    imgProduto.src = "";
                 }
 
                 // Preenche lote
@@ -578,10 +475,9 @@
                 }
 
                 // Preenche quantidade total disponível (soma de todos os lotes)
-                if (qtd_disponivel) qtd_disponivel.value = produto.quantidade_total_disponivel || 1;
+                if (inputNumItens) inputNumItens.value = produto.quantidade_total_disponivel || 1;
                 // if (inputQuantidade) inputQuantidade.value = produto.quantidade_total_disponivel || 1;
-                              
-    
+
                 calcularTotal();
 
                 // Limpa campo código e foca novamente
@@ -620,127 +516,6 @@
     document.getElementById('quantidade').addEventListener('input', atualizarSubtotal);
 
 
-
-</script>
-
- <!-- //  FUNÇÃO PRINCIPAL: ADICIONAR ITEM AO CARRINHO -->
-<script>
-    // ======================================================================
-    //  FUNÇÃO PRINCIPAL: ADICIONAR ITEM AO CARRINHO
-    // ======================================================================
-    function adicionarItemCarrinho(produto) {
-
-        const tabela = document.querySelector('#tabelaCarrinho tbody');
-
-        // Obtém a quantidade digitada no PDV
-        const quantidade = Number(document.getElementById('quantidade').value);
-
-        // Preço vindo do produto (já retornado pela busca)
-        const preco = Number(produto.preco_venda);
-
-        // Subtotal
-        const subtotal = quantidade * preco;
-
-        // Monta a linha do carrinho
-        const linha = `
-            <tr>
-                <td class="text-center item-numero"></td>
-                <td>${produto.nome}</td>
-                <td class="text-center">${quantidade}</td>
-                <td class="text-center">${produto.unidade_sigla ?? ''}</td>
-                <td class="text-end">${preco.toFixed(2)}</td>
-                <td class="text-end subtotal">${subtotal.toFixed(2)}</td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-danger remover-item">X</button>
-                </td>
-            </tr>
-        `;
-
-        // Insere no carrinho
-        tabela.insertAdjacentHTML('beforeend', linha);
-
-        // Atualiza numeração e total
-        atualizarNumeroItens();
-        atualizarTotal();
-
-        // Limpa quantidade para evitar duplicações acidentais
-        document.getElementById('quantidade').value = 1;
-    }
-
-
-
-    // ======================================================================
-    //  FUNÇÃO: REORGANIZA A NUMERAÇÃO DOS ITENS DO CARRINHO
-    // ======================================================================
-    function atualizarNumeroItens() {
-        const linhas = document.querySelectorAll('#tabelaCarrinho tbody tr');
-        let contador = 1;
-
-        linhas.forEach(linha => {
-            linha.querySelector('.item-numero').textContent = contador;
-            contador++;
-        });
-
-        // Atualiza contador visual (opcional)
-        const totalItensSpan = document.getElementById('totalItens');
-        if (totalItensSpan) {
-            totalItensSpan.textContent = linhas.length;
-        }
-    }
-
-
-
-    // ======================================================================
-    //  FUNÇÃO: RECAUCULAR TOTAL DO CARRINHO
-    // ======================================================================
-    function atualizarTotal() {
-        const subtotais = document.querySelectorAll('.subtotal');
-        let total = 0;
-
-        subtotais.forEach(st => {
-            total += Number(st.textContent);
-        });
-
-        const totalGeral = document.getElementById('totalGeral');
-        if (totalGeral) {
-            totalGeral.textContent = total.toFixed(2);
-        }
-    }
-
-
-
-    // ======================================================================
-    //  EVENTO: REMOVER ITEM DO CARRINHO
-    // ======================================================================
-    document.addEventListener('click', function(e) {
-
-        if (e.target.classList.contains('remover-item')) {
-
-            // Remove a linha clicada
-            e.target.closest('tr').remove();
-
-            // Recalcula tudo
-            atualizarNumeroItens();
-            atualizarTotal();
-        }
-
-    });
-</script>
-
-<!-- Mensagem quantidade excedeu estoque -->
-<script>
-    document.getElementById('quantidade').addEventListener('input', function() {
-        let max = parseInt(this.max);
-        let valor = parseInt(this.value);
-        let msg = document.getElementById('msgEstoque');
-
-        if (valor == max) {
-            msg.textContent = "Quantidade digitada excede o estoque disponível (" + max + ").";
-            this.value = max;
-        } else {
-            msg.textContent = "";
-        }
-    });
 
 </script>
 

@@ -34,6 +34,7 @@ class PDVController extends Controller
         $clientes = Cliente::where('ativo', 1)
             ->when($query, function ($q) use ($query) {
                 $q->where('nome', 'LIKE', "%{$query}%")
+                  ->orWhere('tipo', 'LIKE', "%{$query}%")
                   ->orWhere('cpf_cnpj', 'LIKE', "%{$query}%")
                   ->orWhere('telefone', 'LIKE', "%{$query}%")
                   ->orWhere('endereco', 'LIKE', "%{$query}%")
@@ -45,7 +46,7 @@ class PDVController extends Controller
             })
             ->orderBy('nome')
             ->limit(20)
-            ->get(['id', 'nome', 'cpf_cnpj', 'telefone', 'endereco', 'numero','cep','bairro','cidade','estado']);
+            ->get(['id', 'nome','tipo', 'cpf_cnpj', 'telefone', 'endereco', 'numero','cep','bairro','cidade','estado']);
 
         return response()->json($clientes);
     }
@@ -55,54 +56,6 @@ class PDVController extends Controller
      * F3 – Buscar Produto (Modal de produtos)
      */
         
-//    public function buscarProduto(Request $request)
-//     {
-//         $query = trim($request->input('query'));
-
-//         if (!$query || strlen($query) < 2) {
-//             return response()->json([]);
-//         }
-
-//         $produtos = Produto::with(['categoria','marca','unidadeMedida'])
-//             ->where('ativo', 1)
-//             ->whereHas('lotes', function($q) {
-//                 $q->where('status', 1)
-//                 ->where('quantidade_disponivel', '>', 0)
-//                 ->whereDate('validade_lote', '>=', now());
-//             })
-//             ->when($query, function($q) use ($query) {
-//                 $q->where(function($inner) use ($query) {
-//                     $inner->where('nome', 'LIKE', "%{$query}%")
-//                         ->orWhere('sku', 'LIKE', "%{$query}%")
-//                         ->orWhere('codigo_barras', 'LIKE', "%{$query}%");
-//                 });
-//             })
-//             ->orderBy('nome')
-//             ->limit(20)
-//             ->get()
-//             ->map(function($p) {
-
-//                 // retorna exatamente o que seu JS espera
-//                 return [
-//                     'id'            => $p->id,
-//                     'nome'          => $p->nome,
-//                     'sku'           => $p->sku,
-//                     'codigo_barras' => $p->codigo_barras,
-//                     'preco_venda'   => $p->preco_venda,
-
-//                     'marca' => [
-//                         'nome' => $p->marca->nome ?? ''
-//                     ],
-
-//                     'unidade' => $p->unidadeMedida->sigla ?? 'UN',
-
-//                     'imagem' => $p->imagem ? asset('storage/'.$p->imagem) : null
-//                 ];
-//             });
-
-//         return response()->json($produtos);
-//     }
-
     public function buscarProduto(Request $request)
     {
         $query = trim($request->input('query'));
@@ -168,56 +121,6 @@ class PDVController extends Controller
     }
 
     /**
-     * F3.1 – Buscar Produto por Código de Barras
-     */
-    // public function buscarProdutoPorCodigo($codigo)
-    // {
-    //     if (!$codigo) {
-    //         return response()->json([
-    //             'status' => 'erro',
-    //             'mensagem' => 'Código não informado.'
-    //         ], 400);
-    //     }
-
-    //     try {
-    //         $produto = Produto::with([
-    //             'categoria',
-    //             'marca',
-    //             'unidadeMedida',
-    //             'lotes' => function($q) {
-    //                 $q->where('status', 1)
-    //                 ->where('quantidade_disponivel', '>', 0)
-    //                 ->whereDate('validade_lote', '>=', now())
-    //                 ->orderBy('validade_lote', 'asc')
-    //                 ->limit(1);
-    //             }
-    //         ])
-    //         ->where('ativo', 1)
-    //         ->where('codigo_barras', $codigo) // somente o campo código de barras
-    //         ->first();
-
-    //         if (!$produto) {
-    //             return response()->json([
-    //                 'status' => 'erro',
-    //                 'mensagem' => 'Produto não encontrado.'
-    //             ], 404);
-    //         }
-
-    //         return response()->json([
-    //             'status' => 'ok',
-    //             'produto' => $produto
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'status' => 'erro',
-    //             'mensagem' => 'Erro ao buscar produto.',
-    //             'detalhes' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
-
-     /**
      *  Buscar Produto (Código de Barras)
      */
     public function buscarProdutoPorCodigo($codigo)

@@ -20,8 +20,9 @@
     </div>
 </div>
 
+<!-- BUSCA PRODUTO  -->
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function () {
 
     let modalProduto = document.getElementById('modalProduto');
 
@@ -90,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         '${p.sku ?? ''}',
                         '${(p.marca?.nome ?? '').replace(/'/g, "\\'")}',
                         '${unidade}',
-                        ${qtdDisp},
+                        '${qtdDisp}',
                         '${(imagem).replace(/'/g, "\\'")}'
                     )">
 
@@ -120,14 +121,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         });
     });
-});
+    });
 </script>
-
+<!--  FUNÇÃO FINAL E ÚNICA: SELECIONAR PRODUTO NO PDV -->
 <script>
-// ======================================================================
-// FUNÇÃO FINAL E ÚNICA: SELECIONAR PRODUTO NO PDV
-// ======================================================================
-function selecionarProdutoPDV(id, nomeEncoded, preco, barras, sku, marca, unidade, qtdDisponivel, imagem) {
+    // ======================================================================
+    // FUNÇÃO FINAL E ÚNICA: SELECIONAR PRODUTO NO PDV
+    // ======================================================================
+    function selecionarProdutoPDV(id, nomeEncoded, preco, barras, sku, marca, unidade, qtdDisponivel, imagem) {
 
     const nome = decodeURIComponent(nomeEncoded);
 
@@ -144,14 +145,24 @@ function selecionarProdutoPDV(id, nomeEncoded, preco, barras, sku, marca, unidad
     if (elPreco) elPreco.value = parseFloat(preco).toFixed(2);
 
     // Quantidade disponível
-    const elNumItens = document.getElementById('num_itens');
-    if (elNumItens) elNumItens.value = qtdDisponivel;
+    const elqtd_disponivel = document.getElementById('qtd_disponivel');
+    if (elqtd_disponivel) elqtd_disponivel.value = qtdDisponivel;
+
+    //Quantidade
+    const elQuantidade = document.getElementById('quantidade');
+    if (elQuantidade) {
+        elQuantidade.max = qtdDisponivel;   // <-- define o valor máximo permitido
+    }
 
     // Unidade
     const elUn = document.getElementById('unidade');
     if (elUn) elUn.value = unidade;
 
-    // Código de barras
+    // Preco total geral
+    const elTotalGeral = document.getElementById('total_geral');
+    if (elTotalGeral) elTotalGeral.value = parseFloat(preco).toFixed(2);
+
+    // Código de barras 
     const elBarras = document.getElementById('codigo_barras');
     if (elBarras) elBarras.value = barras;
 
@@ -169,7 +180,7 @@ function selecionarProdutoPDV(id, nomeEncoded, preco, barras, sku, marca, unidad
         if (imagem && imagem !== '') {
             elImg.src = imagem;
         } else {
-            elImg.src = "/images/sem-imagem.png";
+            elImg.src = "/images/produto-sem-imagem.png";
         }
     }
 
@@ -184,6 +195,7 @@ function selecionarProdutoPDV(id, nomeEncoded, preco, barras, sku, marca, unidad
         qtd.focus();
         qtd.select();
     }
-}
+    }
 </script>
+
 <?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/modals/modal_produto_pdv.blade.php ENDPATH**/ ?>

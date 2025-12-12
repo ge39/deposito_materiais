@@ -18,6 +18,7 @@
                             <tr>
                                 <th style="width: 10px;">ID</th>
                                 <th style="width: 50px;">Nome</th>
+                                <th style="width: 50px;">Pessoa</th>
                                 <th style="width: 70px;">CPF/CNPJ</th>
                                 <th style="width: 50px;">Telefone</th>
                                 <th style="width: 100px;">Endereço</th>
@@ -48,7 +49,7 @@
     modalCliente.addEventListener('shown.bs.modal', function () {
         document.getElementById('buscaClientePDV').focus();
     });
-});
+    });
 
     document.getElementById('buscaClientePDV').addEventListener('keyup', function () {
 
@@ -70,6 +71,7 @@
                     <tr class="pointer">
                         <td>${c.id}</td>
                         <td>${c.nome}</td>
+                        <td>${c.tipo}</td>
                         <td>${c.cpf_cnpj ?? ''}</td>
                         <td>${c.telefone ?? ''}</td>
                         <td>${c.endereco ?? ''}</td>
@@ -80,7 +82,7 @@
                         <td>${c.estado ?? ''}</td>
                         <td>
                             <button class="btn btn-sm btn-primary"
-                                    onclick="selecionarClientePDV(${c.id}, '${c.nome}')">
+                                    onclick="selecionarClientePDV(${c.id}, '${c.nome}', '${c.tipo}', '${c.telefone}', '${c.endereco}', '${c.numero ?? ''}', '${c.cep ?? ''}', '${c.bairro ?? ''}', '${c.cidade ?? ''}', '${c.estado ?? ''}')">
                                 Selecionar
                             </button>
                         </td>
@@ -92,8 +94,34 @@
 
         });
 
-});
+    });
 </script>
+
+<script>    
+    function selecionarClientePDV(  
+    id, nome, pessoa, telefone = '', endereco = '', numero = '',
+    cep = '', bairro = '', cidade = '', estado = ''
+    ){
+    // Preenche o campo HIDDEN
+    document.querySelector('input[name="cliente_id"]').value = id;
+
+
+    // Preenche os campos visíveis
+    document.querySelector('input[name="nome"]').value = nome;
+    document.querySelector('input[name="pessoa"]').value = pessoa;
+    document.querySelector('input[name="telefone"]').value = telefone;
+
+    const enderecoCompleto =
+        `${endereco} ${numero} - ${bairro}, ${cidade} - ${estado}, CEP: ${cep}`;
+    document.querySelector('input[name="endereco"]').value = enderecoCompleto;
+
+    // Fecha o modal
+    const modalElement = document.getElementById('modalCliente');
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    modal.hide();
+    }
+</script>
+
 
 <style>
     #modalCliente .table {
