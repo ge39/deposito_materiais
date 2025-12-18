@@ -69,18 +69,17 @@
             data.forEach(c => {
                 html += `
                     <tr class="pointer">
-                        <td>${c.id}</td>
-                        <td>${c.nome}</td>
-                        <td>${c.tipo}</td>
-                        <td>${c.cpf_cnpj ?? ''}</td>
-                        <td>${c.telefone ?? ''}</td>
-                        <td>${c.endereco ?? ''}</td>
-                        <td>${c.numero ?? ''}</td>
-                        <td>${c.cep ?? ''}</td>
-                        <td>${c.bairro ?? ''}</td>
-                        <td>${c.cidade ?? ''}</td>
-                        <td>${c.estado ?? ''}</td>
-                        <td>
+                        <td style="font-size: 12px; font-weight: bold;">${c.id}</td>
+                        <td style="font-size: 12px; font-weight: bold;">${c.nome}</td>
+                        <td style="font-size: 12px; font-weight: bold;">${c.cpf_cnpj ?? ''}</td>
+                        <td style="font-size: 12px; font-weight: bold;">${c.telefone ?? ''}</td>
+                        <td style="font-size: 12px; font-weight: bold;">${c.endereco ?? ''}</td>
+                        <td style="font-size: 12px; font-weight: bold;">${c.numero ?? ''}</td>
+                        <td style="font-size: 12px; font-weight: bold;">${c.cep ?? ''}</td>
+                        <td style="font-size: 12px; font-weight: bold;">${c.bairro ?? ''}</td>
+                        <td style="font-size: 12px; font-weight: bold;">${c.cidade ?? ''}</td>
+                        <td style="font-size: 12px; font-weight: bold;">${c.estado ?? ''}</td>
+                        <td style="font-size: 12px; font-weight: bold;">
                             <button class="btn btn-sm btn-primary"
                                     onclick="selecionarClientePDV(${c.id}, '${c.nome}', '${c.tipo}', '${c.telefone}', '${c.endereco}', '${c.numero ?? ''}', '${c.cep ?? ''}', '${c.bairro ?? ''}', '${c.cidade ?? ''}', '${c.estado ?? ''}')">
                                 Selecionar

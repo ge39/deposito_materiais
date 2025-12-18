@@ -19,6 +19,12 @@ class ItemOrcamento extends Model
         'subtotal'
     ];
 
+    protected $casts = [
+        'quantidade'     => 'decimal:2',
+        'preco_unitario' => 'decimal:2',
+        'subtotal'       => 'decimal:2',
+    ];
+
     // Relacionamento com o orçamento principal
     public function orcamento()
     {

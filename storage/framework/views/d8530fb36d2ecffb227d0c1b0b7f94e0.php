@@ -20,7 +20,7 @@
     </div>
 </div>
 
-<!-- BUSCA PRODUTO  -->
+<!-- BUSCA PRODUTO  Modal-->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
 
@@ -71,7 +71,7 @@
         produtos.forEach(p => {
 
             // Quantidade total retornada pelo controller
-            const qtdDisp = p.quantidade_total_disponivel ?? 0;
+            const qtdDisp = p.quantidade_total_disponivel ?? 1;
 
             // Unidade — seu controller retorna diretamente p.unidade = sigla
             const unidade = p.unidade ?? 'UN';
@@ -149,10 +149,10 @@
     if (elqtd_disponivel) elqtd_disponivel.value = qtdDisponivel;
 
     //Quantidade
-    const elQuantidade = document.getElementById('quantidade');
+    const elQuantidade = document.getElementById('quantidade').value = 1;
     if (elQuantidade) {
         elQuantidade.max = qtdDisponivel;   // <-- define o valor máximo permitido
-    }
+    } 
 
     // Unidade
     const elUn = document.getElementById('unidade');
@@ -190,7 +190,7 @@
     if (modalInstance) modalInstance.hide();
 
     // Move foco para campo quantidade
-    const qtd = document.getElementById('quantidade');
+    const qtd = document.getElementById('codigo_barras');
     if (qtd) {
         qtd.focus();
         qtd.select();

@@ -269,7 +269,14 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/pdv/produto/{codigo}', [PDVController::class, 'buscarProdutoPorCodigo'])
     ->name('pdv.buscarProdutoPorCodigo');
 
+    // carregar orçamento no PDV
+    Route::get('/pdv/orcamento/{codigo}', [PdvController::class, 'carregarOrcamento']);
+    //buscar orcamentos no PDV    
     
+    Route::get('/orcamentos/buscar', [OrcamentoController::class, 'buscar'])
+        ->name('orcamentos.buscar')
+        ->middleware('auth');
+
 
     // Enviar orçamento por WhatsApp   
     Route::get('/orcamentos/{id}/whatsapp', [OrcamentoController::class, 'enviarWhatsApp'])

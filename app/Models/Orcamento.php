@@ -24,38 +24,64 @@ class Orcamento extends Model
 
     protected $casts = [
         'data_orcamento' => 'date',
-        'validade' => 'date',
+        'validade'       => 'date',
+        'total'          => 'decimal:2',
+        'ativo'          => 'boolean',
     ];
 
-   
+    /* =========================
+     | RELACIONAMENTOS
+     ========================= */
 
-    /** Relacionamento com cliente */
+    /** Cliente do orçamento */
     public function cliente()
     {
         return $this->belongsTo(Cliente::class);
     }
 
+    /** Usuário que está editando o orçamento */
     public function editor()
     {
         return $this->belongsTo(User::class, 'editando_por');
     }
 
-    /** Relacionamento com fornecedor */
+    /** Fornecedor (caso aplicável) */
     public function fornecedor()
     {
         return $this->belongsTo(Fornecedor::class);
     }
 
-    /** Relacionamento com itens do orçamento */
+    /** Itens do orçamento */
     public function itens()
     {
-        return $this->hasMany(ItemOrcamento::class);
+        return $this->hasMany(ItemOrcamento::class, 'orcamento_id');
     }
 
+    /** Unidade de medida (se usada no cabeçalho) */
     public function unidadeMedida()
     {
         return $this->belongsTo(UnidadeMedida::class, 'unidade_medida_id');
     }
 
-    
+    /* =========================
+     | SCOPES ÚTEIS PARA O PDV
+     ========================= */
+
+    /** Orçamentos ativos */
+    public function scopeAtivo($query)
+    {
+        return $query->where('ativo', true);
+    }
+
+    /** Orçamento pelo código */
+    public function scopeCodigo($query, $codigo)
+    {
+        return $query->where('codigo_orcamento', $codigo);
+    }
+
+    /** Orçamentos não faturados */
+    public function scopeNaoFaturado($query)
+    {
+        return $query->where('status', '!=', 'faturado');
+    }
 }

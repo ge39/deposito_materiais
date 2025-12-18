@@ -345,4 +345,35 @@ class OrcamentoController extends Controller
 
         return response()->json(['status' => 'ok']);
     }
+
+    
+    // Buscar orçamentos no PDV
+    public function buscar(Request $request)
+{
+    $request->validate([
+       'codigo_orcamento' => 'required|numeric' // bigint aceita numeric
+    ]);
+
+    $codigo = (int) $request->codigo_orcamento;
+
+    $orcamento = Orcamento::where('codigo_orcamento', $codigo)
+        ->where('ativo', 1)        // campo ativo INT
+        ->where('status', 'Aprovado') // status correto
+        ->with(['itens.produto']) // itens e produtos relacionados
+        ->first();
+
+    if (!$orcamento) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Orçamento não encontrado ou não aprovado'
+        ], 404);
+    }
+
+    return response()->json([
+        'success' => true,
+        'orcamento' => $orcamento
+    ]);
+}
+
+
 }

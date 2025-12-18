@@ -162,6 +162,9 @@ class PDVController extends Controller
             ], 404);
         }
 
+        // Adiciona a sigla da unidade diretamente no objeto
+        $produto->unidade_sigla = $produto->unidadeMedida->sigla ?? null;
+
         // 🔹 Soma quantidade total disponível (opcional)
         $produto->quantidade_total_disponivel = $produto->lotes->sum('quantidade_disponivel');
 
