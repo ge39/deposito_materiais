@@ -297,11 +297,11 @@
         </div>
 
         <div class="col">
-            <button class="btn btn-secondary w-100">F4 Fin. Venda</button>
+            <button  class="btn btn-primary w-100">F4 Orçamento</button>
         </div>
 
         <div class="col">
-            <button class="btn btn-secondary w-100">F5 Exc. Produto</button>
+            <button class="btn btn-secondary w-100">F5 Fin. Venda</button>
         </div>
 
         <div class="col">
@@ -333,7 +333,7 @@
 </div>
 @endsection
 
-<!-- Busca Clientes e Produtos -->
+<!-- Busca Clientes e Produtos, Modal F2-Cliente, F3-Produto -->
 <script>
     /* =====================================================
     ATALHOS DE TECLADO – ISOLADO (SEM CONFLITO)
@@ -395,6 +395,44 @@
     })();
 </script>
 
+<!-- Ativa modal F4, carregar orçamento no PDV -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const modalEl     = document.getElementById('modalOrcamento');
+        const inputCodigo = document.getElementById('inputCodigoOrcamento');
+        const carrinhoTbody = document.querySelector('#carrinho tbody');
+        const totalVendaEl  = document.getElementById('total-venda');
+
+        if (!modalEl || !inputCodigo) {
+            console.error('Modal ou input do orçamento não encontrado');
+            return;
+        }
+
+        const modalOrcamento = new bootstrap.Modal(modalEl);
+
+        // ===============================
+        // ABRIR MODAL COM F4
+        // ===============================
+        window.addEventListener('keydown', function (e) {
+            if (e.code === 'F4') {
+                e.preventDefault();
+                modalOrcamento.show();
+            }
+        });
+
+        // ===============================
+        // FOCO AUTOMÁTICO
+        // ===============================
+        modalEl.addEventListener('shown.bs.modal', function () {
+            inputCodigo.value = '';
+            inputCodigo.focus();
+        });
+        
+    });
+</script>
+
+<!-- Função de busca de produtos, Clientes e inserir nos input -->
 <script>
   document.addEventListener("DOMContentLoaded", () => {
 
@@ -652,8 +690,9 @@
     };
   });
 </script>
+
  <!-- //remove itens do carrinho -->
-<script>
+<!-- <script>
     //remove itens do carrinho
     document.addEventListener("DOMContentLoaded", function () {
 
@@ -772,10 +811,11 @@
     tdAcoes.style.lineHeight = alturaLinha + "px";
 
     });
-</script>
+</script> -->
+
 <!-- Alinhamento dos botoes abaixo da linha dos itens do carrinho -->
 <script>
- document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", () => {
 
     const tabela = document.getElementById("lista-itens");
     const acoes  = document.getElementById("acoes-carrinho");
@@ -825,7 +865,8 @@
 
  });
 </script>
-<!-- Funções dos botões diminuir, remover e ocultar itens do carrinho -->
+
+<!-- Funções dos botões, editar itens do carrinho e ocultar botoes edição -->
  <script>
     document.addEventListener('DOMContentLoaded', () => {
         const listaItens = document.getElementById('lista-itens');
@@ -932,9 +973,39 @@
                 linha.children[0].textContent = contador++;
             });
         }
+        // Limpar carrinho (função pública)
+        function limparCarrinho() {
+            document.querySelectorAll('#lista-itens tr').forEach(linha => linha.remove());
+            document.getElementById('totalGeral').textContent = 'R$ 0,00';
+        }
+        // Adicionar item ao PDV (função pública)
+        function adicionarItemPDV({ descricao, quantidade, preco }) {
+            const listaItens = document.getElementById('lista-itens');
+            const linha = document.createElement('tr');
+
+            linha.innerHTML = `
+                <td></td>
+                <td>${descricao}</td>
+                <td class="text-center">${quantidade}</td>
+                <td class="text-center">UN</td>
+                <td class="text-end">${preco.toFixed(2).replace('.', ',')}</td>
+                <td class="text-end">R$ ${(quantidade * preco).toFixed(2).replace('.', ',')}</td>
+            `;
+
+            listaItens.appendChild(linha);
+
+            atualizarTotalVenda();
+            reordenarItens();
+        }
+        
     });
 </script>
 
 @include('pdv.modals.modal_cliente_pdv')
 @include('pdv.modals.modal_produto_pdv')
+@include('pdv.modals.modal_orcamento')
+
+
+
+
 

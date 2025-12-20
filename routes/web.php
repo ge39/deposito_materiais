@@ -10,6 +10,7 @@ use App\Http\Controllers\{
     FuncionarioController,
     UserController,
     ProdutoController,
+    PDV\OrcamentoPDVController,
     PdvController,
     ItensVendaController,
     FrotaController,
@@ -256,37 +257,22 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     // CATEGORIAS / RELATÓRIOS
     Route::get('categorias/{id}/preco-medio', [CategoriaController::class, 'precoMedio']);
 
-    // PDV
-    Route::get('/pdv', [PdvController::class, 'index'])->name('pdv.index');
-        ///Busca inteligente do PDV (produto, e orçamento)
-     Route::get('/pdv/buscar-produto', [PDVController::class, 'buscarProduto'])
-        ->name('pdv.buscarProduto');
-     ///Busca inteligente do PDV (NOME cliente e CPF)
-     Route::get('/pdv/buscar-cliente', [PDVController::class, 'buscarCliente'])
-        ->name('pdv.buscarCliente');
-
-     //Busca produto por codigo de barras
-    Route::get('/pdv/produto/{codigo}', [PDVController::class, 'buscarProdutoPorCodigo'])
-    ->name('pdv.buscarProdutoPorCodigo');
-
-    // carregar orçamento no PDV
-    Route::get('/pdv/orcamento/{codigo}', [PdvController::class, 'carregarOrcamento']);
-    //buscar orcamentos no PDV    
     
-    Route::get('/orcamentos/buscar', [OrcamentoController::class, 'buscar'])
-        ->name('orcamentos.buscar')
+    // carregar orçamento no PDV
+        Route::get('/pdv/orcamento/{codigo}', [PdvController::class, 'carregarOrcamento']);
+    
+    //buscar orcamentos no PDV    
+    Route::get('/orcamentos/buscar', [OrcamentoController::class, 'buscar'])->name('orcamentos.buscar')
         ->middleware('auth');
-
 
     // Enviar orçamento por WhatsApp   
     Route::get('/orcamentos/{id}/whatsapp', [OrcamentoController::class, 'enviarWhatsApp'])
     ->name('orcamentos.whatsapp');
 
-    // web.php
+    // limpar edição de orçamentos e produtos
     Route::post('/orcamentos/{id}/limpar-edicao', [OrcamentoController::class, 'limparEdicao'])->name('orcamentos.limparEdicao');
-    Route::post('/orcamentos/{id}/limpar-edicao', [OrcamentoController::class, 'limparEdicao'])
-    ->name('orcamentos.limparEdicao');
-
+    
+    //Limpar edição de produtos
     Route::post('produtos/{id}/limpar-edicao', [ProdutoController::class, 'limparEdicao'])
     ->name('produtos.limparEdicao');
 
@@ -301,4 +287,21 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     ->name('promocoes.toggleStatus')
     ->middleware('can:gerenciar-promocoes');
 
+    // PDV
+        Route::get('/pdv', [PdvController::class, 'index'])->name('pdv.index');
+
+        ///Busca inteligente do PDV (produto, e orçamento)
+        Route::get('/pdv/buscar-produto', [PDVController::class, 'buscarProduto'])->name('pdv.buscarProduto');
+       
+        //Busca inteligente do PDV (NOME cliente e CPF)
+        Route::get('/pdv/buscar-cliente', [PDVController::class, 'buscarCliente'])->name('pdv.buscarCliente');
+
+        //Busca produto por codigo de barras
+        Route::get('/pdv/produto/{codigo}', [PDVController::class, 'buscarProdutoPorCodigo'])->name('pdv.buscarProdutoPorCodigo');
+        
+        //Busca orçamento por codigo
+        Route::get('/pdv/orcamento/{codigo}', [PdvController::class, 'buscarOrcamento']);
+
+    //PDV/OrcamentoPDVController
+        Route::get('/pdv/orcamento/{codigo}', [OrcamentoPDVController::class, 'buscar'])->name('pdv.orcamento.buscar');
 });
