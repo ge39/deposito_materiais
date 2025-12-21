@@ -167,21 +167,21 @@
         </div>
         <div class="col-md-2 fw-bold mb-0">
              <!-- <label>ID</label> -->
-            <input type="hidden" name="cliente_id">
+            <input type="hidden" id="cliente_id" name="cliente_id">
             <label>Cliente</label>
-            <input class="form-control" name="nome" required readonly>
+            <input class="form-control"   id="cliente_nome" name="nome" required readonly>
         </div>
          <div class="col-md-1 fw-bold mb-0">
             <label>Pessoa</label>
-            <input class="form-control" name="pessoa" required readonly>
+            <input class="form-control" id="cliente_cpf" name="pessoa" required readonly>
         </div>
         <div class="col-md-1 fw-bold mb-0">
             <label>Contato Local</label>
-            <input class="form-control" name="telefone" required >
+            <input class="form-control" id="cliente_telefone" name="telefone" required >
         </div>
          <div class="col-md-4 fw-bold mb-0">
             <label>Endereço para entrega</label>
-            <input class="form-control" name="endereco" required >
+            <input class="form-control" id="endereco" name="endereco" required >
         </div>
         <div class="col-md-2 fw-bold mb-0">
             <label>Op. de Caixa</label>
@@ -203,7 +203,7 @@
                     autofocus
                 >
             </div>
-                        <!-- descrição -->
+            <!-- descrição -->
             <div class="border p-2 mb-2 ">
                 <label class="fw-bold">Descrição</label>
                 <input class="form-control form-control-sm fs-1 fw-bold" id="descricao" readonly>
@@ -307,20 +307,7 @@
         <div class="col">
             <button class="btn btn-secondary w-100">F8 Local. Venda</button>
         </div>
-
-        <!-- <div class="col">
-            <button class="btn btn-secondary w-100">F9 Alt. Qtde</button>
-        </div> -->
-
-        <!-- <div class="col">
-            <button class="btn btn-secondary w-100">F10 Cad. Produto</button>
-        </div> -->
-
-        <!-- <div class="col">
-            <button class="btn btn-secondary w-100">Observ. na venda</button>
-        </div> -->
-         
-        <div class="col btn btn-dark w-100 fw-bold d-flex flex-column align-items-center justify-content-center">
+            <div class="col btn btn-dark w-100 fw-bold d-flex flex-column align-items-center justify-content-center">
             <span class="fw-bold fs-1 fw-bold text-uppercase">Total</span>
             <span id="totalGeral" class="fw-bold text-warning" style="font-size: 20px !important;">R$ 0.00</span>
         </div>

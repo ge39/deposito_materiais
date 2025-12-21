@@ -28,13 +28,13 @@ class ItemOrcamento extends Model
     // Relacionamento com o orçamento principal
     public function orcamento()
     {
-        return $this->belongsTo(Orcamento::class);
+        return $this->belongsTo(Orcamento::class, 'orcamento_id');
     }
 
     // Produto vinculado (opcional)
     public function produto()
     {
-        return $this->belongsTo(Produto::class);
+        return $this->belongsTo(Produto::class, 'produto_id');
     }
 
     // Fornecedor vinculado (opcional)

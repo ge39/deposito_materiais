@@ -34,9 +34,9 @@ class Orcamento extends Model
      ========================= */
 
     /** Cliente do orçamento */
-    public function cliente()
+   public function cliente()
     {
-        return $this->belongsTo(Cliente::class);
+        return $this->belongsTo(Cliente::class, 'cliente_id');
     }
 
     /** Usuário que está editando o orçamento */

@@ -14,7 +14,16 @@ use Carbon\Carbon;
 
 class OrcamentoController extends Controller
 {
-    /** LISTAGEM */
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class);
+    }
+
+    public function itens()
+    {
+        return $this->hasMany(ItemOrcamento::class);
+    }
+        /** LISTAGEM */
     public function index(Request $request)
     {
         $query = Orcamento::with('cliente');

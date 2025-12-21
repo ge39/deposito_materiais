@@ -10,7 +10,7 @@
             <div class="modal-body">
                 <label class="form-label">Código do Orçamento</label>
                 <input type="text"
-                       id="inputCodigoOrcamento"
+                       id="inputCodigoOrcamento" value="2025121632"
                        class="form-control form-control-lg"
                        autocomplete="off">
             </div>

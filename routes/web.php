@@ -300,8 +300,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/pdv/produto/{codigo}', [PDVController::class, 'buscarProdutoPorCodigo'])->name('pdv.buscarProdutoPorCodigo');
         
         //Busca orçamento por codigo
-        Route::get('/pdv/orcamento/{codigo}', [PdvController::class, 'buscarOrcamento']);
+        // Route::get('/pdv/orcamento/{codigo}', [PdvController::class, 'buscarOrcamento']);
 
-    //PDV/OrcamentoPDVController
-        Route::get('/pdv/orcamento/{codigo}', [OrcamentoPDVController::class, 'buscar'])->name('pdv.orcamento.buscar');
+        //PDV/OrcamentoPDVController
+        Route::get('/pdv/orcamento/{codigo}', [OrcamentoPDVController::class, 'buscar'])
+            ->name('pdv.orcamento.buscar');
 });

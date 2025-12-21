@@ -62,7 +62,11 @@ class Produto extends Model
 
     public function unidadeMedida()
     {
-        return $this->belongsTo(UnidadeMedida::class, 'unidade_medida_id');
+        return $this->belongsTo(
+            UnidadeMedida::class,
+            'unidade_medida_id', // FK na tabela produtos
+            'id'                 // PK em unidades_medida
+        );
     }
 
     public function categoria()
