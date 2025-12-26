@@ -1,5 +1,5 @@
 <?php
-
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     AuthController,
@@ -18,6 +18,7 @@ use App\Http\Controllers\{
     PosVendaController,
     MarcaController,
     UnidadeMedidaController,
+    Venda,
     LoteController,
     CepController,
     DevolucaoController,
@@ -305,4 +306,18 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         //PDV/OrcamentoPDVController
         Route::get('/pdv/orcamento/{codigo}', [OrcamentoPDVController::class, 'buscar'])
             ->name('pdv.orcamento.buscar');
+
+   
+
+
+Route::get('/pdv/ultimo-id-venda', function() {
+    try {
+        // Busca o último id diretamente via query builder
+        $ultimoId = DB::table('vendas')->max('id') ?? 0;
+        return response()->json(['ultimo_id' => $ultimoId]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
 });

@@ -3,8 +3,86 @@
 
 @extends('layouts.app')
 @section('content') 
-
 <style>
+    /* estilo pra bloqueio de caixa */
+:root {
+    --bordo: #6b0f1a;
+    --bordo-escuro: #4a0a12;
+    --bordo-claro: #8b1c2b;
+}
+
+/* ===== OVERLAY CAIXA BLOQUEADO ===== */
+#overlay-caixa-bloqueado {
+    position: fixed;
+    inset: 0;
+
+    background: rgba(107, 15, 26, 0.42);
+
+    z-index: 999999;
+
+    /* ⚠️ IMPORTANTE: desativado por padrão */
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+/* overlay só aparece quando o caixa está bloqueado */
+body.caixa-bloqueado #overlay-caixa-bloqueado {
+    display: flex;
+}
+
+/* CARIMBO */
+.carimbo-caixa {
+    position: absolute;
+    font-size: 56px;
+    font-weight: 900;
+
+    color: rgba(255, 255, 255, 0.75);
+
+    border: 6px solid rgba(255, 255, 255, 0.35);
+    padding: 18px 55px;
+
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    transform: rotate(-25deg);
+
+    user-select: none;
+    pointer-events: none;
+}
+
+/* BOTÃO — único elemento ativo */
+.btn-abrir-caixa {
+    background: #ffffff;
+    color: var(--bordo);
+    border: 3px solid var(--bordo);
+
+    padding: 16px 40px;
+    font-size: 22px;
+    font-weight: bold;
+
+    cursor: pointer;
+    z-index: 1;
+}
+
+.btn-abrir-caixa:hover {
+    background: #f5f5f5;
+}
+
+/* BLOQUEIA SCROLL */
+body.caixa-bloqueado {
+    overflow: hidden;
+}
+
+/* BLOQUEIO REAL DO PDV */
+body.caixa-bloqueado #pdv-app {
+    pointer-events: none;
+    filter: blur(1px) grayscale(60%);
+}
+
+/* fim estilo pra bloqueio de caixa */
+
     /* reset / box model */
     *, *::before, *::after { box-sizing: border-box !important; }
 
@@ -100,6 +178,13 @@
 
 </style>
 
+<!-- OVERLAY -->
+<div id="overlay-caixa-bloqueado">
+    <div class="carimbo-caixa">CAIXA BLOQUEADO</div>
+    <button id="btnAbrirCaixa" class="btn-abrir-caixa">
+        ABRIR CAIXA
+    </button>
+</div>
 <!-- ...aqui segue o resto da sua view (mantive o restante igual) -->
 <div class="container-fluid p-0"  style="background:#e6e6e6; width:100%; margin-top:-20 ; overflow-x:hidden;">
     <!-- TOPO -->
@@ -167,21 +252,21 @@
         </div>
         <div class="col-md-2 fw-bold mb-0">
              <!-- <label>ID</label> -->
-            <input type="hidden" id="cliente_id" name="cliente_id">
+            <input type="hidden" name="cliente_id">
             <label>Cliente</label>
-            <input class="form-control"   id="cliente_nome" name="nome" required readonly>
+            <input class="form-control" name="nome" required readonly>
         </div>
          <div class="col-md-1 fw-bold mb-0">
             <label>Pessoa</label>
-            <input class="form-control" id="cliente_cpf" name="pessoa" required readonly>
+            <input class="form-control" name="pessoa" required readonly>
         </div>
         <div class="col-md-1 fw-bold mb-0">
             <label>Contato Local</label>
-            <input class="form-control" id="cliente_telefone" name="telefone" required >
+            <input class="form-control" name="telefone" required >
         </div>
          <div class="col-md-4 fw-bold mb-0">
             <label>Endereço para entrega</label>
-            <input class="form-control" id="endereco" name="endereco" required >
+            <input class="form-control" name="endereco" required >
         </div>
         <div class="col-md-2 fw-bold mb-0">
             <label>Op. de Caixa</label>
@@ -203,7 +288,7 @@
                     autofocus
                 >
             </div>
-            <!-- descrição -->
+                        <!-- descrição -->
             <div class="border p-2 mb-2 ">
                 <label class="fw-bold">Descrição</label>
                 <input class="form-control form-control-sm fs-1 fw-bold" id="descricao" readonly>
@@ -307,13 +392,42 @@
         <div class="col">
             <button class="btn btn-secondary w-100">F8 Local. Venda</button>
         </div>
-            <div class="col btn btn-dark w-100 fw-bold d-flex flex-column align-items-center justify-content-center">
+
+        <!-- <div class="col">
+            <button class="btn btn-secondary w-100">F9 Alt. Qtde</button>
+        </div> -->
+
+        <!-- <div class="col">
+            <button class="btn btn-secondary w-100">F10 Cad. Produto</button>
+        </div> -->
+
+        <!-- <div class="col">
+            <button class="btn btn-secondary w-100">Observ. na venda</button>
+        </div> -->
+         
+        <div class="col btn btn-dark w-100 fw-bold d-flex flex-column align-items-center justify-content-center">
             <span class="fw-bold fs-1 fw-bold text-uppercase">Total</span>
             <span id="totalGeral" class="fw-bold text-warning" style="font-size: 20px !important;">R$ 0.00</span>
         </div>
     </div>
     
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        document.body.classList.add('caixa-bloqueado');
+
+        const overlay = document.getElementById('overlay-caixa-bloqueado');
+        const btnAbrir = document.getElementById('btnAbrirCaixa');
+
+        btnAbrir.addEventListener('click', function () {
+            overlay.style.display = 'none';
+            document.body.classList.remove('caixa-bloqueado');
+        });
+
+    });
+</script>
 @endsection
 
 <!-- Modals atahos -->

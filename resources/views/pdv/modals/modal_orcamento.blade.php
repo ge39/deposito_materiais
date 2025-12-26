@@ -12,7 +12,7 @@
                 <input type="text"
                        id="inputCodigoOrcamento" value="2025121632"
                        class="form-control form-control-lg"
-                       autocomplete="off">
+                       autocomplete="off" autofocus>
             </div>
 
             <div class="modal-footer">
