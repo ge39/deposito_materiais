@@ -6,6 +6,6 @@ import './atalhos';
 import './ui';
 
 // Inicializa quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('App PDV iniciado');
-});
+// document.addEventListener('DOMContentLoaded', () => {
+//     console.log('App PDV iniciado');
+// });

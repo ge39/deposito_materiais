@@ -17,7 +17,7 @@
             <a href="<?php echo e(route('produtos.index')); ?>" class="btn btn-primary w-100">Produtos</a>
         </div>
         <div class="col-md-3">
-            <a href="<?php echo e(route('vendas.index')); ?>" class="btn btn-primary w-100">Vendas</a>
+            <a href="<?php echo e(route('pdv.index')); ?>" class="btn btn-primary w-100">Vendas</a>
         </div>
     </div>
 </div>

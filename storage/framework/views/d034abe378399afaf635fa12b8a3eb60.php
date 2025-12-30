@@ -3,85 +3,98 @@
 
 
 <?php $__env->startSection('content'); ?> 
+
 <style>
     /* estilo pra bloqueio de caixa */
-:root {
-    --bordo: #6b0f1a;
-    --bordo-escuro: #4a0a12;
-    --bordo-claro: #8b1c2b;
-}
+    :root {
+        --bordo: #6b0f1a;
+        --bordo-escuro: #4a0a12;
+        --bordo-claro: #8b1c2b;
+    }
 
-/* ===== OVERLAY CAIXA BLOQUEADO ===== */
-#overlay-caixa-bloqueado {
-    position: fixed;
-    inset: 0;
+    /* ===== OVERLAY CAIXA BLOQUEADO ===== */
+    #modalBloquearCaixa {
+        position: fixed;
+        inset: 0;
 
-    background: rgba(107, 15, 26, 0.42);
+        background: rgba(107, 15, 26, 0.42);
 
-    z-index: 999999;
+        z-index: 999999;
 
-    /* ⚠️ IMPORTANTE: desativado por padrão */
-    display: none;
+        /* ⚠️ IMPORTANTE: desativado por padrão */
+        display: none;
 
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-}
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
 
-/* overlay só aparece quando o caixa está bloqueado */
-body.caixa-bloqueado #overlay-caixa-bloqueado {
-    display: flex;
-}
+    /* overlay só aparece quando o caixa está bloqueado */
+    body.caixa-bloqueado #modalBloquearCaixa {
+        display: flex;
+    }
+   
+    /* CARIMBO */
+    .carimbo-caixa {
+        position: absolute;
 
-/* CARIMBO */
-.carimbo-caixa {
-    position: absolute;
-    font-size: 56px;
-    font-weight: 900;
+        top: 50%;
+        left: 50%;
+        width: 65%;
+        transform: translate(-50%, -50%) rotate(-25deg);
 
-    color: rgba(255, 255, 255, 0.75);
+        font-size: 56px;
+        font-weight: 900;
 
-    border: 6px solid rgba(255, 255, 255, 0.35);
-    padding: 18px 55px;
+        color: rgba(255, 255, 255, 0.75);
+        border: 6px solid rgba(255, 255, 255, 0.35);
+        padding: 18px 55px;
 
-    text-transform: uppercase;
-    letter-spacing: 4px;
-    transform: rotate(-25deg);
+        text-transform: uppercase;
+        letter-spacing: 4px;
 
-    user-select: none;
-    pointer-events: none;
-}
+        user-select: none;
+        pointer-events: none;
+    }
 
-/* BOTÃO — único elemento ativo */
-.btn-abrir-caixa {
-    background: #ffffff;
-    color: var(--bordo);
-    border: 3px solid var(--bordo);
+    /* BOTÃO — único elemento ativo */
+    .btn-abrir-caixa {
+        position: absolute;
 
-    padding: 16px 40px;
-    font-size: 22px;
-    font-weight: bold;
+        top: 50%;
+        left: 50%;
 
-    cursor: pointer;
-    z-index: 1;
-}
+        transform: translate(-50%, calc(-50% + 120px));
 
-.btn-abrir-caixa:hover {
-    background: #f5f5f5;
-}
+        background: #ffffff;
+        color: var(--bordo);
+        border: 3px solid var(--bordo);
 
-/* BLOQUEIA SCROLL */
-body.caixa-bloqueado {
-    overflow: hidden;
-}
+        padding: 16px 40px;
+        font-size: 22px;
+        font-weight: bold;
 
-/* BLOQUEIO REAL DO PDV */
-body.caixa-bloqueado #pdv-app {
-    pointer-events: none;
-    filter: blur(1px) grayscale(60%);
-}
+        cursor: pointer;
+        z-index: 1;
+    }
 
-/* fim estilo pra bloqueio de caixa */
+
+    .btn-abrir-caixa:hover {
+        background: #f5f5f5;
+    }
+
+    /* BLOQUEIA SCROLL */
+    body.caixa-bloqueado {
+        overflow: hidden;
+    }
+
+    /* BLOQUEIO REAL DO PDV */
+    body.caixa-bloqueado #pdv-app {
+        pointer-events: none;
+        filter: blur(1px) grayscale(60%);
+    }
+
+    /* fim estilo pra bloqueio de caixa */
 
     /* reset / box model */
     *, *::before, *::after { box-sizing: border-box !important; }
@@ -154,42 +167,62 @@ body.caixa-bloqueado #pdv-app {
         gap: 10px;
     }
     #açoes-carrinho,
-   .pdv-area {
+  
+    .pdv-area {
     position: relative; /* cria o contexto do PDV */
     }
 
     .acoes-carrinho {
-    position: absolute; /* flutua DENTRO do PDV */
-    width:98.8%;
-    display: none;
-    cursor: move;
-    background: #ffffff;
-    border: 2px solid #ced4da;
-    border-radius: 10px;
-    padding: 10px;
-    z-index: 1000;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        position: absolute; /* flutua DENTRO do PDV */
+        width:98.8%;
+        display: none;
+        cursor: move;
+        background: #ffffff;
+        border: 2px solid #ced4da;
+        border-radius: 10px;
+        padding: 10px;
+        z-index: 1000;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
+
     .linha-selecionada {
-    background-color: #fff3cd !important;
-    outline: 3px solid #ffc107 !important;;
+        background-color: #fff3cd !important;
+        outline: 3px solid #ffc107 !important;;
     }
 
 
 </style>
 
-<!-- OVERLAY -->
-<div id="overlay-caixa-bloqueado">
-    <div class="carimbo-caixa">CAIXA BLOQUEADO</div>
-    <button id="btnAbrirCaixa" class="btn-abrir-caixa">
-        ABRIR CAIXA
-    </button>
-</div>
-<!-- ...aqui segue o resto da sua view (mantive o restante igual) -->
-<div class="container-fluid p-0"  style="background:#e6e6e6; width:100%; margin-top:-20 ; overflow-x:hidden;">
-    <!-- TOPO -->
-    <div class="row g-2 mb-2 align-items-center">
+    <!-- OVERLAY -->
+    <div id="modalBloquearCaixa" style="display: none;">
+        <div class="carimbo-caixa">CAIXA BLOQUEADO</div>
 
+        <button class="btn-abrir-caixa"
+            onclick="window.location.href='<?php echo e(route('caixa.abrir')); ?>'">
+            ABRIR CAIXA
+        </button>
+    </div>
+    <!-- FIM OVERLAY -->
+
+    <!-- ...aqui segue o resto da sua view (mantive o restante igual) -->
+    <div class="container-fluid p-0"  
+        style="background:#e6e6e6; width:60%; margin-top:-15px; overflow-x:hidden;">
+        <!-- TOPO -->
+        <div class="caixa-info mb-3 p-0  border rounded shadow-sm bg-light d-flex justify-content-start align-items-center" 
+            style="font-size:14px; gap:20px;">
+            <span ><strong>Terminal:</strong> <?php echo e($terminal->id); ?></span>
+            <span><strong>Operador:</strong> <?php echo e($operador); ?></span>
+            <span><strong>Status:</strong> 
+                <span class="<?php echo e($status === 'Aberto' ? 'text-success' : 'text-danger'); ?>">
+                    <?php echo e($status); ?>
+
+                </span>
+            </span>
+        </div>
+    </div>
+
+    <div class="row g-2 mb-2 align-items-center">
+        
         <!-- Venda -->
         <!-- <div class="col-md-1">
             <div class="d-flex align-items-center gap-2">
@@ -242,11 +275,11 @@ body.caixa-bloqueado #pdv-app {
     </div>
     <!-- CAMPOS DA VENDA -->
     <div class="row g-2 mb-2 p-2" style="background:#3a3a3a; color:white;">
-        <div class="col-md-1 fw-bold mb-0">
+        <!-- <div class="col-md-1 fw-bold mb-0">
             <label>Nº Venda</label>
             <input class="form-control">
-        </div>
-        <div class="col-md-1 fw-bold mb-0">
+        </div> -->
+        <div class="col-md-2 fw-bold mb-0">
             <label>Data Venda</label>
             <input class="form-control" type="date" value="<?php echo e(date('Y-m-d')); ?>" readonly>
         </div>
@@ -260,19 +293,19 @@ body.caixa-bloqueado #pdv-app {
             <label>Pessoa</label>
             <input class="form-control" name="pessoa" required readonly>
         </div>
-        <div class="col-md-1 fw-bold mb-0">
+        <div class="col-md-2 fw-bold mb-0">
             <label>Contato Local</label>
             <input class="form-control" name="telefone" required >
         </div>
-         <div class="col-md-4 fw-bold mb-0">
+         <div class="col-md-5 fw-bold mb-0">
             <label>Endereço para entrega</label>
             <input class="form-control" name="endereco" required >
         </div>
-        <div class="col-md-2 fw-bold mb-0">
+        <!-- <div class="col-md-2 fw-bold mb-0">
             <label>Op. de Caixa</label>
                 <input class="form-control" name="nome" required readonly>
         
-        </div>
+        </div> -->
 
     </div>
 
@@ -413,21 +446,69 @@ body.caixa-bloqueado #pdv-app {
     
 </div>
 
+<!-- <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('modalBloquearCaixa');
+
+        // ⚠️ Estado atual do caixa
+        // (futuramente isso vem do backend)
+        const caixaFechado = true;
+
+        if (caixaFechado) {
+            document.body.classList.add('caixa-bloqueado');
+
+            if (modalEl && window.bootstrap) {
+                const modal = new bootstrap.Modal(modalEl, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+
+                modal.show();
+            }
+        }
+    });
+</script> -->
+
+<script>
+    console.log('🔍 Terminal recebido no PDV:', <?php echo json_encode($terminal, 15, 512) ?>);
+    console.log('💰 Caixa aberto recebido no PDV:', <?php echo json_encode($caixaAberto, 15, 512) ?>);
+
+    if (<?php echo json_encode($caixaAberto, 15, 512) ?> === null) {
+        console.warn('⚠️ Nenhum caixa aberto encontrado para este terminal');
+    } else {
+        console.info('✅ Caixa aberto válido carregado no PDV');
+    }
+</script>
+
+<!-- Modal de bloqueio do caixa -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('modalBloquearCaixa');
 
-        document.body.classList.add('caixa-bloqueado');
+        // ⚠️ Estado real do caixa vindo do backend
+        const caixaFechado = <?php echo json_encode(is_null($caixaAberto), 15, 512) ?>;
 
-        const overlay = document.getElementById('overlay-caixa-bloqueado');
-        const btnAbrir = document.getElementById('btnAbrirCaixa');
+        console.log('🔍 Caixa fechado:', caixaFechado, 'Caixa:', <?php echo json_encode($caixaAberto, 15, 512) ?>);
 
-        btnAbrir.addEventListener('click', function () {
-            overlay.style.display = 'none';
-            document.body.classList.remove('caixa-bloqueado');
-        });
+        if (caixaFechado) {
+            document.body.classList.add('caixa-bloqueado');
 
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(modalEl, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+
+                modal.show();
+            } else {
+                console.warn('⚠️ Modal não encontrado ou Bootstrap não carregado');
+            }
+        }
     });
 </script>
+
+
+
 <?php $__env->stopSection(); ?>
 
 <!-- Modals atahos -->
@@ -445,14 +526,6 @@ body.caixa-bloqueado #pdv-app {
     'resources/js/pdv/ui.js',
     'resources/js/pdv/atalhos.js',
 ]); ?>
-
-
-
-
-
-
-
-
-
+<!-- Fim view completa do PDV -->
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>

@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Cliente;
 use App\Models\Produto;
 use App\Models\Venda;
-use App\Models\Caixa;
 
 class PDVController extends Controller
 {
@@ -16,42 +15,30 @@ class PDVController extends Controller
         $this->middleware('auth');
           
     }
-    
+
     /**
      * Exibe a tela principal do PDV
      */
-
-    public function index(Request $request)
+   public function index(Request $request)
     {
-        // 1️⃣ Pegar o terminal do middleware
         $terminal = $request->attributes->get('terminal');
+        $caixaAberto = $request->attributes->get('caixaAberto');
 
-        if (!$terminal) {
-            abort(500, 'Terminal não identificado no PDV.');
-        }
+        // 🔹 COMENTE OU REMOVA ESTE BLOCO
+        // if (!$caixaAberto) {
+        //     return redirect()->route('caixa.abrir');
+        // }
 
-        // 2️⃣ Pegar o caixa aberto mais recente deste terminal
-        $caixaAberto = \App\Models\Caixa::with('usuario')
-            ->where('terminal_id', $terminal->id)
-            ->where('status', 'aberto')
-            ->latest('data_abertura')
-            ->first();
-
-        // 3️⃣ Preparar dados complementares (opcional)
-        $operador = $caixaAberto?->usuario?->name ?? 'Nenhum';
-        $status = $caixaAberto ? 'Aberto' : 'Fechado';
-
-        // 4️⃣ Retornar a view mantendo as variáveis originais + extras
         return view('pdv.index', [
             'terminal' => $terminal,
             'caixaAberto' => $caixaAberto,
-            'operador' => $operador,
-            'status' => $status,
         ]);
     }
 
-   /**
-     * F2 – Buscar Cliente (Modal de cliente) */
+
+    /**
+     * F2 – Buscar Cliente (Modal de cliente)
+     */
     public function buscarCliente(Request $request)
     {
         $query = $request->input('query');
@@ -75,9 +62,12 @@ class PDVController extends Controller
 
         return response()->json($clientes);
     }
- 
+
+   
    /**
-     * F3 – Buscar Produto (Modal de produtos) */        
+     * F3 – Buscar Produto (Modal de produtos)
+     */
+        
     public function buscarProduto(Request $request)
     {
         $query = trim($request->input('query'));
@@ -143,7 +133,8 @@ class PDVController extends Controller
     }
 
     /**
-     *  Buscar Produto (Código de Barras) */
+     *  Buscar Produto (Código de Barras)
+     */
     public function buscarProdutoPorCodigo($codigo)
     {
         // 🔹 Validação básica
@@ -196,7 +187,8 @@ class PDVController extends Controller
     }
 
     /**
-     * F4 – Buscar Vendas do dia (Histórico)*/
+     * F4 – Buscar Vendas do dia (Histórico)
+     */
     public function buscarVendasDia()
     {
         $vendas = Venda::whereDate('created_at', now()->toDateString())
@@ -208,7 +200,8 @@ class PDVController extends Controller
     }
 
     /**
-     * F5 – Finalizar Venda */
+     * F5 – Finalizar Venda
+     */
     public function finalizarVenda(Request $request)
     {
         $validated = $request->validate([
@@ -223,7 +216,8 @@ class PDVController extends Controller
     }
 
     /**
-     * F6 – Cancelar Venda Atual */
+     * F6 – Cancelar Venda Atual
+     */
     public function cancelarVenda()
     {
         return response()->json([
@@ -233,7 +227,8 @@ class PDVController extends Controller
     }
 
     /**
-     * F7 – Consultar Preço Rápido */
+     * F7 – Consultar Preço Rápido
+     */
     public function consultarPreco(Request $request)
     {
         $codigo = $request->input('codigo');
@@ -262,7 +257,8 @@ class PDVController extends Controller
     }
 
     /**
-     * F9 – Descontos / Cupons */
+     * F9 – Descontos / Cupons
+     */
     public function aplicarDesconto(Request $request)
     {
         return response()->json([
@@ -271,7 +267,9 @@ class PDVController extends Controller
         ]);
     }
 
-    /**   * F10 – Pagamentos alternativos*/
+    /**
+     * F10 – Pagamentos alternativos
+     */
     public function pagamentosAlternativos(Request $request)
     {
         return response()->json([

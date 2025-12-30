@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
 
-    console.log('Atalhos do PDV carregados');
+    // console.log('Atalhos do PDV carregados');
 
     // Instâncias únicas dos modais
     const modalCliente = bootstrap.Modal.getOrCreateInstance(

@@ -17,7 +17,7 @@
             <a href="{{ route('produtos.index') }}" class="btn btn-primary w-100">Produtos</a>
         </div>
         <div class="col-md-3">
-            <a href="{{ route('vendas.index') }}" class="btn btn-primary w-100">Vendas</a>
+            <a href="{{ route('pdv.index') }}" class="btn btn-primary w-100">Vendas</a>
         </div>
     </div>
 </div>

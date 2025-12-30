@@ -5,83 +5,95 @@
 @section('content') 
 <style>
     /* estilo pra bloqueio de caixa */
-:root {
-    --bordo: #6b0f1a;
-    --bordo-escuro: #4a0a12;
-    --bordo-claro: #8b1c2b;
-}
+    :root {
+        --bordo: #6b0f1a;
+        --bordo-escuro: #4a0a12;
+        --bordo-claro: #8b1c2b;
+    }
 
-/* ===== OVERLAY CAIXA BLOQUEADO ===== */
-#overlay-caixa-bloqueado {
-    position: fixed;
-    inset: 0;
+    /* ===== OVERLAY CAIXA BLOQUEADO ===== */
+    #modalBloquearCaixa {
+        position: fixed;
+        inset: 0;
 
-    background: rgba(107, 15, 26, 0.42);
+        background: rgba(107, 15, 26, 0.42);
 
-    z-index: 999999;
+        z-index: 999999;
 
-    /* ⚠️ IMPORTANTE: desativado por padrão */
-    display: none;
+        /* ⚠️ IMPORTANTE: desativado por padrão */
+        display: none;
 
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-}
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
 
-/* overlay só aparece quando o caixa está bloqueado */
-body.caixa-bloqueado #overlay-caixa-bloqueado {
-    display: flex;
-}
+    /* overlay só aparece quando o caixa está bloqueado */
+    body.caixa-bloqueado #modalBloquearCaixa {
+        display: flex;
+    }
+   
+    /* CARIMBO */
+    .carimbo-caixa {
+        position: absolute;
 
-/* CARIMBO */
-.carimbo-caixa {
-    position: absolute;
-    font-size: 56px;
-    font-weight: 900;
+        top: 50%;
+        left: 50%;
+        width: 65%;
+        transform: translate(-50%, -50%) rotate(-25deg);
 
-    color: rgba(255, 255, 255, 0.75);
+        font-size: 56px;
+        font-weight: 900;
 
-    border: 6px solid rgba(255, 255, 255, 0.35);
-    padding: 18px 55px;
+        color: rgba(255, 255, 255, 0.75);
+        border: 6px solid rgba(255, 255, 255, 0.35);
+        padding: 18px 55px;
 
-    text-transform: uppercase;
-    letter-spacing: 4px;
-    transform: rotate(-25deg);
+        text-transform: uppercase;
+        letter-spacing: 4px;
 
-    user-select: none;
-    pointer-events: none;
-}
+        user-select: none;
+        pointer-events: none;
+    }
 
-/* BOTÃO — único elemento ativo */
-.btn-abrir-caixa {
-    background: #ffffff;
-    color: var(--bordo);
-    border: 3px solid var(--bordo);
+    /* BOTÃO — único elemento ativo */
+    .btn-abrir-caixa {
+        position: absolute;
 
-    padding: 16px 40px;
-    font-size: 22px;
-    font-weight: bold;
+        top: 50%;
+        left: 50%;
 
-    cursor: pointer;
-    z-index: 1;
-}
+        transform: translate(-50%, calc(-50% + 120px));
 
-.btn-abrir-caixa:hover {
-    background: #f5f5f5;
-}
+        background: #ffffff;
+        color: var(--bordo);
+        border: 3px solid var(--bordo);
 
-/* BLOQUEIA SCROLL */
-body.caixa-bloqueado {
-    overflow: hidden;
-}
+        padding: 16px 40px;
+        font-size: 22px;
+        font-weight: bold;
 
-/* BLOQUEIO REAL DO PDV */
-body.caixa-bloqueado #pdv-app {
-    pointer-events: none;
-    filter: blur(1px) grayscale(60%);
-}
+        cursor: pointer;
+        z-index: 1;
+    }
 
-/* fim estilo pra bloqueio de caixa */
+
+    .btn-abrir-caixa:hover {
+        background: #f5f5f5;
+    }
+
+    /* BLOQUEIA SCROLL */
+    body.caixa-bloqueado {
+        overflow: hidden;
+    }
+
+    /* BLOQUEIO REAL DO PDV */
+    body.caixa-bloqueado #pdv-app {
+        pointer-events: none;
+        filter: blur(1px) grayscale(60%);
+    }
+
+    /* fim estilo pra bloqueio de caixa */
 
     /* reset / box model */
     *, *::before, *::after { box-sizing: border-box !important; }
@@ -154,37 +166,42 @@ body.caixa-bloqueado #pdv-app {
         gap: 10px;
     }
     #açoes-carrinho,
-   .pdv-area {
+  
+    .pdv-area {
     position: relative; /* cria o contexto do PDV */
     }
 
     .acoes-carrinho {
-    position: absolute; /* flutua DENTRO do PDV */
-    width:98.8%;
-    display: none;
-    cursor: move;
-    background: #ffffff;
-    border: 2px solid #ced4da;
-    border-radius: 10px;
-    padding: 10px;
-    z-index: 1000;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        position: absolute; /* flutua DENTRO do PDV */
+        width:98.8%;
+        display: none;
+        cursor: move;
+        background: #ffffff;
+        border: 2px solid #ced4da;
+        border-radius: 10px;
+        padding: 10px;
+        z-index: 1000;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
+
     .linha-selecionada {
-    background-color: #fff3cd !important;
-    outline: 3px solid #ffc107 !important;;
+        background-color: #fff3cd !important;
+        outline: 3px solid #ffc107 !important;;
     }
 
 
 </style>
 
 <!-- OVERLAY -->
-<div id="overlay-caixa-bloqueado">
+<div id="modalBloquearCaixa">
     <div class="carimbo-caixa">CAIXA BLOQUEADO</div>
-    <button id="btnAbrirCaixa" class="btn-abrir-caixa">
+
+    <button class="btn-abrir-caixa"
+        onclick="window.location.href='{{ route('caixa.abrir') }}'">
         ABRIR CAIXA
     </button>
 </div>
+
 <!-- ...aqui segue o resto da sua view (mantive o restante igual) -->
 <div class="container-fluid p-0"  style="background:#e6e6e6; width:100%; margin-top:-20 ; overflow-x:hidden;">
     <!-- TOPO -->
@@ -415,19 +432,27 @@ body.caixa-bloqueado #pdv-app {
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('modalBloquearCaixa');
 
-        document.body.classList.add('caixa-bloqueado');
+        // ⚠️ Estado atual do caixa
+        // (futuramente isso vem do backend)
+        const caixaFechado = true;
 
-        const overlay = document.getElementById('overlay-caixa-bloqueado');
-        const btnAbrir = document.getElementById('btnAbrirCaixa');
+        if (caixaFechado) {
+            document.body.classList.add('caixa-bloqueado');
 
-        btnAbrir.addEventListener('click', function () {
-            overlay.style.display = 'none';
-            document.body.classList.remove('caixa-bloqueado');
-        });
+            if (modalEl && window.bootstrap) {
+                const modal = new bootstrap.Modal(modalEl, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
 
+                modal.show();
+            }
+        }
     });
 </script>
+
 @endsection
 
 <!-- Modals atahos -->
@@ -445,12 +470,4 @@ body.caixa-bloqueado #pdv-app {
     'resources/js/pdv/ui.js',
     'resources/js/pdv/atalhos.js',
 ])
-
-
-
-
-
-
-
-
-
+<!-- Fim view completa do PDV -->

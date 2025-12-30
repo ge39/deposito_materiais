@@ -179,24 +179,25 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Submenu flyout
-    var promoSubmenu = document.querySelector('.dropdown-submenu .dropdown-toggle');
+  document.addEventListener('DOMContentLoaded', function() {
+      // Submenus flyout
+      document.querySelectorAll('.dropdown-submenu .dropdown-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              let submenu = this.nextElementSibling;
+              if (submenu) {
+                  submenu.classList.toggle('show');
+              }
+          });
+      });
 
-    if (promoSubmenu) {
-        promoSubmenu.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var submenu = this.nextElementSibling;
-            submenu.classList.toggle('show');
-        });
-    }
-
-    document.addEventListener('click', function() {
-        var submenu = document.querySelector('.dropdown-submenu .dropdown-menu');
-        if(submenu) submenu.classList.remove('show');
-    });
-});
+      document.addEventListener('click', function() {
+          document.querySelectorAll('.dropdown-submenu .dropdown-menu').forEach(function(menu) {
+              menu.classList.remove('show');
+          });
+      });
+  });
 </script>
 
 </body>
