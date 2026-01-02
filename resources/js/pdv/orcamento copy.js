@@ -6,21 +6,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const inputCodigo = document.getElementById('inputCodigoOrcamento');
 
     if (modalEl && inputCodigo) {
+        // Foco automático quando modal abrir
         modalEl.addEventListener('shown.bs.modal', function () {
             inputCodigo.focus();
             inputCodigo.select();
         });
 
+        // Enter para buscar orçamento
         inputCodigo.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 const codigo = inputCodigo.value.trim();
-                if (codigo) window.confirmarOrcamentoFront();
+                if (codigo) {
+                    window.confirmarOrcamentoFront(); // função já existente
+                }
             }
         });
     }
-
-    /* =========================
+/* =========================
        FUNÇÕES AUXILIARES
        ========================= */
 
@@ -33,7 +36,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const response = await fetch(`/pdv/orcamento/${encodeURIComponent(codigo)}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
             });
 
             if (!response.ok) throw new Error('Orçamento não encontrado ou não aprovado');
@@ -41,34 +47,28 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
             if (!data.success || !data.orcamento) throw new Error(data.message || 'Resposta inválida do servidor.');
 
-            console.log('🔍 Orçamento recebido:', data.orcamento);
-
             // Preenche cliente e carrinho
             preencherCliente(data.orcamento.cliente);
             preencherCarrinho(data.orcamento.itens);
 
             // Fecha modal
-            const modal = bootstrap.Modal.getInstance(modalEl);
+            const modal   = bootstrap.Modal.getInstance(modalEl);
             if (modal) modal.hide();
-
         } catch (error) {
             console.error(error);
             alert(error.message);
         }
     };
 
-    // Função mínima e segura para preencher os inputs do cliente
-function preencherCliente(cliente) {
+    function preencherCliente(cliente) {
         if (!cliente) return;
-
-        document.querySelector('[name="cliente_id"]')?.setAttribute('value', cliente.id ?? '');
-        document.querySelector('[name="nome"]')?.setAttribute('value', cliente.nome ?? '');
-        document.querySelector('[name="pessoa"]')?.setAttribute('value', cliente.tipo === 'fisica' ? 'Física' : 'Jurídica');
-        document.querySelector('[name="telefone"]')?.setAttribute('value', cliente.telefone ?? '');
-        document.querySelector('[name="endereco"]')?.setAttribute('value', montarEndereco(cliente));
+        setValue('cliente_id', cliente.id);
+        setValue('cliente_nome', cliente.nome);
+        setValue('cliente_cpf', cliente.cpf_cnpj);
+        setValue('cliente_telefone', cliente.telefone);
+        setValue('endereco', montarEndereco(cliente));
     }
 
-    // Função auxiliar para montar o endereço
     function montarEndereco(cliente) {
         const partes = [];
         if (cliente.endereco) partes.push(cliente.endereco);
@@ -80,13 +80,6 @@ function preencherCliente(cliente) {
         return partes.join(' - ');
     }
 
-
-    function setValue(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.value = value ?? '';
-    }
-
-
     function setValue(id, value) {
         const el = document.getElementById(id);
         if (el) el.value = value ?? '';
@@ -96,7 +89,7 @@ function preencherCliente(cliente) {
         if (!Array.isArray(itens)) return;
 
         const tbody = document.getElementById('lista-itens');
-        if (!tbody) return console.warn('⚠️ Tbody lista-itens não encontrado.');
+        if (!tbody) return console.warn('Tbody lista-itens não encontrado.');
 
         tbody.innerHTML = '';
 
@@ -107,7 +100,7 @@ function preencherCliente(cliente) {
             const subtotal = parseFloat(item.subtotal ?? 0);
 
             tr.innerHTML = `
-                <td class="text-center item-numero"><strong>${index + 1}</strong></td>
+                <td class="text-center item-numero">${index + 1}</td>
                 <td class="text-left"><strong>${item.produto?.nome ?? ''}</strong></td>
                 <td class="text-center"><strong>${item.quantidade ?? 0}</strong></td>
                 <td class="text-center"><strong>${item.produto?.unidade_medida?.sigla ?? ''}</strong></td>
@@ -147,30 +140,37 @@ function preencherCliente(cliente) {
     }
 
     function limparCamposPDV() {
+        // Limpa campos do cliente
         setValue('cliente_id', '');
         setValue('cliente_nome', '');
         setValue('cliente_cpf', '');
         setValue('cliente_telefone', '');
         setValue('endereco', '');
 
+        // Limpa carrinho
         const tbody = document.getElementById('lista-itens');
         if (tbody) tbody.innerHTML = '';
 
+        // Zera total
         const totalEl = document.getElementById('totalGeral');
         if (totalEl) totalEl.textContent = '0,00';
     }
 
 });
 
-// Funções extras que já estavam funcionando
+// Função para atualizar o estado do carrinho
 function atualizarEstadoCarrinho() {
     const tbody = document.getElementById('lista-itens');
     return tbody ? tbody.querySelectorAll('tr').length > 0 : false;
 }
 
+// Função para carregar o próximo ID de venda
 async function carregarProximoIdVenda() {
     try {
-        const response = await fetch('/pdv/ultimo-id-venda', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const response = await fetch('/pdv/ultimo-id-venda', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
         if (!response.ok) throw new Error('Erro ao buscar último ID');
 
         const data = await response.json();
@@ -185,3 +185,12 @@ async function carregarProximoIdVenda() {
         console.error('Erro ao carregar próximo ID de venda:', error);
     }
 }
+
+
+
+
+
+
+
+
+

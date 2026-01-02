@@ -204,6 +204,7 @@ Route::middleware('auth')->group(function () {
     // ===============================
     // PDV
     // ===============================
+    Route::get('/pdv/caixas-esquecidos', [PdvController::class, 'caixasEsquecidos']);
     Route::prefix('pdv')->name('pdv.')->middleware(['auth', 'terminal'])->group(function () {
         Route::get('/', [PdvController::class, 'index'])->name('index');
         Route::get('buscar-produto', [PdvController::class, 'buscarProduto'])->name('buscarProduto');

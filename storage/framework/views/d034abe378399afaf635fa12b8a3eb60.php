@@ -77,23 +77,18 @@
         cursor: pointer;
         z-index: 1;
     }
-
-
     .btn-abrir-caixa:hover {
         background: #f5f5f5;
     }
-
     /* BLOQUEIA SCROLL */
     body.caixa-bloqueado {
         overflow: hidden;
     }
-
     /* BLOQUEIO REAL DO PDV */
     body.caixa-bloqueado #pdv-app {
         pointer-events: none;
         filter: blur(1px) grayscale(60%);
     }
-
     /* fim estilo pra bloqueio de caixa */
 
     /* reset / box model */
@@ -105,8 +100,7 @@
         margin-right: 0 !important;
         padding-left: 0 !important;
         padding-right: 0 !important;
-        width: 100% !important;
-        max-width: 100% !important;
+        max-width: 100% !important; 
         /* overflow-x: hidden !important; */
     }
 
@@ -146,7 +140,7 @@
 
     /* fonte conforme pedido */
     .container-fluid * {
-        font-size: 12px !important;
+        font-size: 16px !important;
     }
     input#descricao,
     input#codigo_barras,
@@ -180,7 +174,7 @@
         background: #ffffff;
         border: 2px solid #ced4da;
         border-radius: 10px;
-        padding: 10px;
+        /* padding: 10px; */
         z-index: 1000;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
@@ -190,12 +184,57 @@
         outline: 3px solid #ffc107 !important;;
     }
 
+       /* Estilo para toda a div de informações do caixa */
+    .caixa-info {
+         font-size: 16px !important; /* aumenta a fonte e garante prioridade */
+         gap: 50px;
+    }
 
+    /* Aumenta os títulos (strong) */
+    .caixa-info strong {
+          padding:10px;
+        font-size: 16px !important; /* aumenta a fonte e garante prioridade */
+    }
+    /* Cores para cada status do PDV */
+    .status-aberto {
+        color: green;
+        font-weight: bold;
+    }
+    .status-fechado {
+        color: red;
+        font-weight: bold;
+    }
+    .status-pendente {
+        color: orange;
+        font-weight: bold;
+    }
+    .status-inconsistente {
+        color: purple;
+        font-weight: bold;
+    }
+    .listaCaixasEsquecidos{
+        margin: 500px 20px 0;
+        list-style: none;
+        padding: 10; 
+        font-size:18px; 
+        font-weight:bold;
+        color:snow;
+        background-color: red;
+    }
 </style>
 
-    <!-- OVERLAY -->
+    
+   <!-- OVERLAY -->
     <div id="modalBloquearCaixa" style="display: none;">
         <div class="carimbo-caixa">CAIXA BLOQUEADO</div>
+
+        <!-- Lista de caixas esquecidos -->
+         <div class="listaCaixasEsquecidos" id="listaCaixasEsquecidos">
+            <h4>ERROR:</h4>
+            <h4 style="color:yellow">Este caixa nao pode ser aberto - informe o responsavel da loja</h4>
+            <ul>
+            </ul>
+        </div>
 
         <button class="btn-abrir-caixa"
             onclick="window.location.href='<?php echo e(route('caixa.abrir')); ?>'">
@@ -204,23 +243,31 @@
     </div>
     <!-- FIM OVERLAY -->
 
-    <!-- ...aqui segue o resto da sua view (mantive o restante igual) -->
+     <!-- Informações do status do Caixa -->
     <div class="container-fluid p-0"  
-        style="background:#e6e6e6; width:60%; margin-top:-15px; overflow-x:hidden;">
-        <!-- TOPO -->
-        <div class="caixa-info mb-3 p-0  border rounded shadow-sm bg-light d-flex justify-content-start align-items-center" 
-            style="font-size:14px; gap:20px;">
-            <span ><strong>Terminal:</strong> <?php echo e($terminal->id); ?></span>
-            <span><strong>Operador:</strong> <?php echo e($operador); ?></span>
-            <span><strong>Status:</strong> 
-                <span class="<?php echo e($status === 'Aberto' ? 'text-success' : 'text-danger'); ?>">
+         style="background:#e6e6e6; width:100%; margin-top:-18px; overflow-x:hidden;">
+       
+        <div class="caixa-info mb-3 p-0 border rounded shadow-sm bg-light d-flex justify-content-start align-items-center">
+            <span><strong>Terminal: 00<?php echo e($terminal->id); ?></strong></span>
+            <span><strong>Operador: <?php echo e($operador); ?></strong> </span>
+            <span><strong>Status:  
+                <span class="
+                    <?php echo e($status === 'Aberto' ? 'status-aberto' : ''); ?>
+
+                    <?php echo e($status === 'Fechado' ? 'status-fechado' : ''); ?>
+
+                    <?php echo e($status === 'Pendente' ? 'status-pendente' : ''); ?>
+
+                    <?php echo e($status === 'Inconsistente' ? 'status-inconsistente' : ''); ?>
+
+                "><strong>
                     <?php echo e($status); ?>
 
-                </span>
+                </strong></span>
             </span>
         </div>
     </div>
-
+    <!-- FILTROS DA VENDA -->
     <div class="row g-2 mb-2 align-items-center">
         
         <!-- Venda -->
@@ -275,10 +322,6 @@
     </div>
     <!-- CAMPOS DA VENDA -->
     <div class="row g-2 mb-2 p-2" style="background:#3a3a3a; color:white;">
-        <!-- <div class="col-md-1 fw-bold mb-0">
-            <label>Nº Venda</label>
-            <input class="form-control">
-        </div> -->
         <div class="col-md-2 fw-bold mb-0">
             <label>Data Venda</label>
             <input class="form-control" type="date" value="<?php echo e(date('Y-m-d')); ?>" readonly>
@@ -301,87 +344,80 @@
             <label>Endereço para entrega</label>
             <input class="form-control" name="endereco" required >
         </div>
-        <!-- <div class="col-md-2 fw-bold mb-0">
-            <label>Op. de Caixa</label>
-                <input class="form-control" name="nome" required readonly>
         
-        </div> -->
-
     </div>
 
     <!-- CORPO PRINCIPAL -->
     <div class="row g-2 ">
 
         <!-- LADO ESQUERDO -->
-        <div class="col-md-5 border border-2 p-2 " style="background:#3a3a3a; color:white;">
-            <div class="border p-2 mb-2">
-                <label class="fw-bold">Código Barras — (F3) Para pesquisar produtos</label>
-                <input
-                    type="text" class="form-control bg-warning" id="codigo_barras" name="codigo_barras" autocomplete="off"
+        <div class="col-md-5 border border-1 p-1  " style="background:#3a3a3a; color:white; font: size 12px;">
+            <div class="border p-1 mb-1 "style="font-size: 16px;">
+                <label class="fw-bold ">Código Barras — (F3) Para pesquisar produtos</label>
+                <input style="font-size: 16px !important;"
+                    type="text" class="form-control bg-warning " id="codigo_barras" name="codigo_barras" autocomplete="off"
                     autofocus
                 >
             </div>
                         <!-- descrição -->
-            <div class="border p-2 mb-2 ">
+            <div class="border p-1 mb-21">
                 <label class="fw-bold">Descrição</label>
-                <input class="form-control form-control-sm fs-1 fw-bold" id="descricao" readonly>
+                <input style="font-size: 16px !important;"class="form-control form-control-sm fs-1 fw-bold " id="descricao" readonly>
+                <small id="alerta-lote" class="fw-bold d-none"></small>
+
             </div>
 
            <div class="row mt-2 border ">
                 <!-- Quantidade -->
-                <div class="col-md-3">
+                <div class="col-md-2 p-1">
                     <label for="quantidade" class="form-label">Quantidade</label>
-                    <input class="form-control form-control-sm fw-bold"  type="number" name="quantidade" id="quantidade" value= "1" min="1" >
+                    <input style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  type="number" name="quantidade" id="quantidade" value= "1" min="1" >
                     <small id="msgEstoque" class="text-danger fw-bold"></small>
                 </div>
 
                 <!-- Unidade -->
-                <div class="col-md-4">
+                <div class="col-md-2 p-1">
                     <label for="unidade" class="form-label">Unidade</label>
-                    <input type="text" name="unidade" id="unidade" readOnly class="form-control form-control-sm fs-1 fw-bold">
+                    <input style="font-size: 16px !important;" type="text" name="unidade" id="unidade" readOnly class="form-control form-control-sm fs-1 fw-bold">
                 </div>
                 <!-- Preço venda -->
-                <div class="col-md-5">  
-                    <label for="preco_venda" class="form-label">Preço Venda</label>
-                    <input id="preco_venda" class="form-control form-control-sm fw-bold bg-warning" style="font-size: 20px;" readonly>
+                <div class="col-md-3 p-1">  
+                    <label for="preco_venda" class="form-label">Preço</label>
+                    <input style="font-size: 16px !important;" id="preco_venda" class="form-control form-control-sm fw-bold bg-warning"  readonly>
+                </div>
+                 <!-- Quantidade -->   
+                <div class="col-md-2 p-1">  
+                    <label for="preco_venda" class="form-label">Qtd.Disp</label>
+                    <input style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  name="qtd_disponivel" id="qtd_disponivel" type="text" min="1" step="1" readOnly>
+                </div>
+                <!-- Total Geral -->
+                <div class="col-md-3 p-1">
+                    <label for="total_geral" class="form-label">Sub Total</label>
+                    <input style="font-size: 16px !important;" class="form-control form-control-sm fw-bold bg-warning"  name="total_geral" id="total_geral" type="text" readOnly>
+                    
                 </div>
 
             </div>
-
-            <div class="row mt-2 border">
-                <!-- Quantidade -->
-                <div class="col-md-4">
-                    <label class="fw-bold">Qtd.Disponivel</label>
-                    <input class="form-control form-control-sm" name="qtd_disponivel" id="qtd_disponivel" type="text" min="1" step="1" readOnly>
-                </div>
-
-                    <!-- Total Geral -->
-                <div class="col-md-8">
-                    <label class="fw-bold">Sub Total</label>
-                    <input class="form-control form-control-sm bg-warning" style="font-size: 20px;" name="total_geral" id="total_geral" type="text" readOnly>
-                </div>
-            </div>
-
             <!-- CAMPO DE IMAGEM DO PRODUTO -->
-            <div class="border bg-white mt-1" style="height: 130px; display:flex; align-items:center; justify-content:center;">
-                <img id="produto-imagem" src="" alt="Imagem" style="max-width:100%; max-height:100%; object-fit:contain;">
+            <div class="border bg-white mt-1" style="height: 270px; display:flex; align-items:center; justify-content:center;">
+                <img id="produto-imagem" src="" alt="Imagem" style="max-width:100%; height:100%; object-fit:contain;">
             </div>
         </div>
 
         <!-- LADO DIREITO: LISTA DE ITENS -->
         <div id="pdv-area" class="pdv-area col-md-7" style="background:#3a3a3a; color:white;">
-            <table class="table table-bordered table-sm bg-white">
+            <table class="table table-bordered table-sm bg-white" style="font-size: 20px !important;">
                 <thead class="table-primary fw-bold text-center fs-10px">
-                    <tr>
+                    <tr style="font-size: 20px !important;">
                         <td class="text-center" style="width:50px">Item</td>
-                        <td class="text-center" style="width:250px">Descrição</td>
+                        <td class="text-center" style="width:250px;">Descrição</td>
                         <td class="text-center" style="width:70px">Qtde</td>
                         <td class="text-center" style="width:100px">Unid</td>
                         <td class="text-center" style="width:100px">Preço</td>
                         <td class="text-center" style="width:150px">SubTotal</td>
                     </tr>
                 </thead>  
-                <tbody id="lista-itens"></tbody> 
+                <tbody id="lista-itens" ></tbody> 
             </table>
 
              <!-- BOTÕES DE AÇÃO DO ITEM SELECIONADO -->
@@ -424,22 +460,9 @@
 
         <div class="col">
             <button class="btn btn-secondary w-100">F8 Local. Venda</button>
-        </div>
-
-        <!-- <div class="col">
-            <button class="btn btn-secondary w-100">F9 Alt. Qtde</button>
-        </div> -->
-
-        <!-- <div class="col">
-            <button class="btn btn-secondary w-100">F10 Cad. Produto</button>
-        </div> -->
-
-        <!-- <div class="col">
-            <button class="btn btn-secondary w-100">Observ. na venda</button>
-        </div> -->
-         
+        </div>        
         <div class="col btn btn-dark w-100 fw-bold d-flex flex-column align-items-center justify-content-center">
-            <span class="fw-bold fs-1 fw-bold text-uppercase">Total</span>
+            <!-- <span class="fw-bold fs-1 fw-bold text-uppercase" style="font-size: 20px !important;">Total</span> -->
             <span id="totalGeral" class="fw-bold text-warning" style="font-size: 20px !important;">R$ 0.00</span>
         </div>
     </div>
@@ -468,10 +491,10 @@
         }
     });
 </script> -->
-
+<!--  Verica caixa aberto -->
 <script>
-    console.log('🔍 Terminal recebido no PDV:', <?php echo json_encode($terminal, 15, 512) ?>);
-    console.log('💰 Caixa aberto recebido no PDV:', <?php echo json_encode($caixaAberto, 15, 512) ?>);
+    // console.log('🔍 Terminal recebido no PDV:', <?php echo json_encode($terminal, 15, 512) ?>);
+    // console.log('💰 Caixa aberto recebido no PDV:', <?php echo json_encode($caixaAberto, 15, 512) ?>);
 
     if (<?php echo json_encode($caixaAberto, 15, 512) ?> === null) {
         console.warn('⚠️ Nenhum caixa aberto encontrado para este terminal');
@@ -486,7 +509,8 @@
         const modalEl = document.getElementById('modalBloquearCaixa');
 
         // ⚠️ Estado real do caixa vindo do backend
-        const caixaFechado = <?php echo json_encode(is_null($caixaAberto), 15, 512) ?>;
+        // const caixaFechado = <?php echo json_encode(is_null($caixaAberto), 15, 512) ?>;
+        const caixaFechado = <?php echo json_encode($caixaAberto?->status !== 'aberto', 15, 512) ?>;
 
         console.log('🔍 Caixa fechado:', caixaFechado, 'Caixa:', <?php echo json_encode($caixaAberto, 15, 512) ?>);
 
@@ -507,7 +531,87 @@
     });
 </script>
 
+<!--caixas esquecidos abertos acima de 12 horas-->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/pdv/caixas-esquecidos')
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const lista = document.getElementById('listaCaixasEsquecidos');
+                    lista.innerHTML = ''; // limpa antes
 
+                    data.forEach(caixa => {
+                        const item = document.createElement('li');
+                        item.style.padding = '2px 0';
+                        item.style.borderBottom = '1px solid #fff';
+                       item.textContent =
+                        `Terminal: ${caixa.terminal_id} | ` +
+                        `Aberto em: ${caixa.data_abertura_br} | ` +
+                        `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
+                        `Fechado em: ${caixa.data_fechamento_br ?? '-'} | ` +
+                        `Operador: ${caixa.usuario.name}`;
+
+                        lista.appendChild(item);
+                    });
+
+                    // Exibe o overlay
+                    document.getElementById('modalBloquearCaixa').style.display = 'flex';
+                }
+            })
+            .catch(error => console.error('Erro ao verificar caixas esquecidos:', error));
+    });
+    
+</script>
+
+<!-- oculta ou mostra a div de caixas esquecidos -->
+<script>
+    
+    document.addEventListener('DOMContentLoaded', function () {
+
+    const listaDiv = document.getElementById('listaCaixasEsquecidos');
+
+    fetch('/pdv/caixas-esquecidos')
+        .then(response => response.json())
+        .then(data => {
+
+            // Se não existe caixa acima de 12h → OCULTA
+            if (!data || data.length === 0) {
+                listaDiv.style.display = 'none';
+                return;
+            }
+
+            // Existe caixa acima de 12h → MOSTRA
+            listaDiv.style.display = 'block';
+
+        })
+        .catch(() => {
+            // Em erro, por segurança, oculta
+            listaDiv.style.display = 'none';
+        });
+    });
+</script>
+
+<script>
+    const alerta = document.getElementById('alerta-lote');
+
+    alerta.classList.add('d-none');
+    alerta.textContent = '';
+    alerta.className = 'fw-bold';
+
+    if (data.lote_alerta?.tipo === 'vencido') {
+        alerta.textContent = data.lote_alerta.mensagem;
+        alerta.classList.add('text-danger');
+        alerta.classList.remove('d-none');
+    }
+
+    if (data.lote_alerta?.tipo === 'a_vencer') {
+        alerta.textContent = data.lote_alerta.mensagem;
+        alerta.classList.add('text-warning');
+        alerta.classList.remove('d-none');
+    }
+
+</script>
 
 <?php $__env->stopSection(); ?>
 

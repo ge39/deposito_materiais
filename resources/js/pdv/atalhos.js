@@ -1,35 +1,63 @@
 document.addEventListener('DOMContentLoaded', function () {
 
-    // console.log('Atalhos do PDV carregados');
-
     // Instâncias únicas dos modais
     const modalCliente = bootstrap.Modal.getOrCreateInstance(
         document.getElementById('modalCliente')
     );
+
     const modalProduto = bootstrap.Modal.getOrCreateInstance(
         document.getElementById('modalProduto')
     );
+
     const modalOrcamento = bootstrap.Modal.getOrCreateInstance(
         document.getElementById('modalOrcamento')
     );
 
+    const modalCaixasEsquecidosEl = document.getElementById('listaCaixasEsquecidos');
+    const modalCaixasEsquecidos = bootstrap.Modal.getOrCreateInstance(
+        modalCaixasEsquecidosEl
+    );
+
+    /**
+     * 🔒 CONTROLE DE BLOQUEIO DO PDV
+     */
+    function bloquearPDV() {
+        document.body.classList.add('caixa-bloqueado');
+    }
+
+    function desbloquearPDV() {
+        document.body.classList.remove('caixa-bloqueado');
+    }
+
+    /**
+     * Quando o modal de caixas esquecidos abrir → BLOQUEIA PDV
+     */
+    modalCaixasEsquecidosEl.addEventListener('shown.bs.modal', function () {
+        bloquearPDV();
+    });
+
+    /**
+     * Quando o modal fechar → DESBLOQUEIA PDV
+     */
+    modalCaixasEsquecidosEl.addEventListener('hidden.bs.modal', function () {
+        desbloquearPDV();
+    });
+
     /**
      * Verifica se o PDV está bloqueado
-     * Regra: body.caixa-bloqueado = teclado bloqueado
      */
     function pdvEstaBloqueado() {
         return document.body.classList.contains('caixa-bloqueado');
     }
 
+    /**
+     * 🔑 ATALHOS DO TECLADO
+     */
     document.addEventListener('keydown', function (e) {
 
-        // Evita repetição contínua
         if (e.repeat) return;
 
-        /**
-         * 🔒 BLOQUEIO GLOBAL DO TECLADO
-         * Se o PDV estiver bloqueado, nenhuma tecla funciona
-         */
+        // 🔒 BLOQUEIO TOTAL
         if (pdvEstaBloqueado()) {
             e.preventDefault();
             e.stopPropagation();
@@ -52,12 +80,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 e.preventDefault();
                 modalOrcamento.show();
                 break;
-
-            // Exemplo futuro:
-            // case 'F5':
-            //     e.preventDefault();
-            //     finalizarVenda();
-            //     break;
         }
     });
 });

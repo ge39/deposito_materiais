@@ -3,6 +3,7 @@
 
 @extends('layouts.app')
 @section('content') 
+
 <style>
     /* estilo pra bloqueio de caixa */
     :root {
@@ -189,24 +190,86 @@
         outline: 3px solid #ffc107 !important;;
     }
 
+       /* Estilo para toda a div de informações do caixa */
+    .caixa-info {
+         font-size: 20px !important; /* aumenta a fonte e garante prioridade */
+        gap: 50px;
+    }
 
+    /* Aumenta os títulos (strong) */
+    .caixa-info strong {
+        font-size: 18px !important; /* aumenta a fonte e garante prioridade */
+    }
+    /* Cores para cada status do PDV */
+    .status-aberto {
+        color: green;
+        font-weight: bold;
+    }
+    .status-fechado {
+        color: red;
+        font-weight: bold;
+    }
+    .status-pendente {
+        color: orange;
+        font-weight: bold;
+    }
+    .status-inconsistente {
+        color: purple;
+        font-weight: bold;
+    }
+    .listaCaixasEsquecidos{
+        margin: 500px 20px 0;
+        list-style: none;
+        padding: 10; 
+        font-size:18px; 
+        font-weight:bold;
+        color:snow;
+        background-color: red;
+    }
 </style>
 
-<!-- OVERLAY -->
-<div id="modalBloquearCaixa">
-    <div class="carimbo-caixa">CAIXA BLOQUEADO</div>
+    
+   <!-- OVERLAY -->
+    <div id="modalBloquearCaixa" style="display: none;">
+        <div class="carimbo-caixa">CAIXA BLOQUEADO</div>
 
-    <button class="btn-abrir-caixa"
-        onclick="window.location.href='{{ route('caixa.abrir') }}'">
-        ABRIR CAIXA
-    </button>
-</div>
+        <!-- Lista de caixas esquecidos -->
+         <div class="listaCaixasEsquecidos" id="listaCaixasEsquecidos">
+            <h4>ERROR:</h4>
+            <h4 style="color:yellow">Este caixa nao pode ser aberto - informe o responsavel da loja</h4>
+            <ul>
+            </ul>
+        </div>
 
-<!-- ...aqui segue o resto da sua view (mantive o restante igual) -->
-<div class="container-fluid p-0"  style="background:#e6e6e6; width:100%; margin-top:-20 ; overflow-x:hidden;">
-    <!-- TOPO -->
+        <button class="btn-abrir-caixa"
+            onclick="window.location.href='{{ route('caixa.abrir') }}'">
+            ABRIR CAIXA
+        </button>
+    </div>
+    <!-- FIM OVERLAY -->
+
+     <!-- Informações do status do Caixa -->
+    <div class="container-fluid p-0"  
+         style="background:#e6e6e6; width:60%; margin-top:-15px; overflow-x:hidden;">
+       
+        <div class="caixa-info mb-3 p-0 border rounded shadow-sm bg-light d-flex justify-content-start align-items-center">
+            <span><strong>Terminal: 00{{ $terminal->id }}</strong></span>
+            <span><strong>Operador: {{ $operador }}</strong> </span>
+            <span><strong>Status:  
+                <span class="
+                    {{ $status === 'Aberto' ? 'status-aberto' : '' }}
+                    {{ $status === 'Fechado' ? 'status-fechado' : '' }}
+                    {{ $status === 'Pendente' ? 'status-pendente' : '' }}
+                    {{ $status === 'Inconsistente' ? 'status-inconsistente' : '' }}
+                "><strong>
+                    {{ $status }}
+                </strong></span>
+            </span>
+        </div>
+    </div>
+    <!-- FILTROS DA VENDA -->
     <div class="row g-2 mb-2 align-items-center">
-
+        
         <!-- Venda -->
         <!-- <div class="col-md-1">
             <div class="d-flex align-items-center gap-2">
@@ -259,11 +322,7 @@
     </div>
     <!-- CAMPOS DA VENDA -->
     <div class="row g-2 mb-2 p-2" style="background:#3a3a3a; color:white;">
-        <div class="col-md-1 fw-bold mb-0">
-            <label>Nº Venda</label>
-            <input class="form-control">
-        </div>
-        <div class="col-md-1 fw-bold mb-0">
+        <div class="col-md-2 fw-bold mb-0">
             <label>Data Venda</label>
             <input class="form-control" type="date" value="{{ date('Y-m-d') }}" readonly>
         </div>
@@ -277,20 +336,15 @@
             <label>Pessoa</label>
             <input class="form-control" name="pessoa" required readonly>
         </div>
-        <div class="col-md-1 fw-bold mb-0">
+        <div class="col-md-2 fw-bold mb-0">
             <label>Contato Local</label>
             <input class="form-control" name="telefone" required >
         </div>
-         <div class="col-md-4 fw-bold mb-0">
+         <div class="col-md-5 fw-bold mb-0">
             <label>Endereço para entrega</label>
             <input class="form-control" name="endereco" required >
         </div>
-        <div class="col-md-2 fw-bold mb-0">
-            <label>Op. de Caixa</label>
-                <input class="form-control" name="nome" required readonly>
         
-        </div>
-
     </div>
 
     <!-- CORPO PRINCIPAL -->
@@ -307,8 +361,11 @@
             </div>
                         <!-- descrição -->
             <div class="border p-2 mb-2 ">
-                <label class="fw-bold">Descrição</label>
+                <label class="fw-bold">Descrição</label><small id="alerta-lote" class="fw-bold d-none"></small>
+
                 <input class="form-control form-control-sm fs-1 fw-bold" id="descricao" readonly>
+                <small id="alerta-lote" class="fw-bold d-none"></small>
+
             </div>
 
            <div class="row mt-2 border ">
@@ -354,18 +411,18 @@
 
         <!-- LADO DIREITO: LISTA DE ITENS -->
         <div id="pdv-area" class="pdv-area col-md-7" style="background:#3a3a3a; color:white;">
-            <table class="table table-bordered table-sm bg-white">
+            <table class="table table-bordered table-sm bg-white" style="font-size: 20px !important;">
                 <thead class="table-primary fw-bold text-center fs-10px">
-                    <tr>
+                    <tr style="font-size: 20px !important;">
                         <td class="text-center" style="width:50px">Item</td>
-                        <td class="text-center" style="width:250px">Descrição</td>
+                        <td class="text-center" style="width:250px;">Descrição</td>
                         <td class="text-center" style="width:70px">Qtde</td>
                         <td class="text-center" style="width:100px">Unid</td>
                         <td class="text-center" style="width:100px">Preço</td>
                         <td class="text-center" style="width:150px">SubTotal</td>
                     </tr>
                 </thead>  
-                <tbody id="lista-itens"></tbody> 
+                <tbody id="lista-itens" ></tbody> 
             </table>
 
              <!-- BOTÕES DE AÇÃO DO ITEM SELECIONADO -->
@@ -408,29 +465,16 @@
 
         <div class="col">
             <button class="btn btn-secondary w-100">F8 Local. Venda</button>
-        </div>
-
-        <!-- <div class="col">
-            <button class="btn btn-secondary w-100">F9 Alt. Qtde</button>
-        </div> -->
-
-        <!-- <div class="col">
-            <button class="btn btn-secondary w-100">F10 Cad. Produto</button>
-        </div> -->
-
-        <!-- <div class="col">
-            <button class="btn btn-secondary w-100">Observ. na venda</button>
-        </div> -->
-         
+        </div>        
         <div class="col btn btn-dark w-100 fw-bold d-flex flex-column align-items-center justify-content-center">
-            <span class="fw-bold fs-1 fw-bold text-uppercase">Total</span>
+            <span class="fw-bold fs-1 fw-bold text-uppercase" style="font-size: 20px !important;">Total</span>
             <span id="totalGeral" class="fw-bold text-warning" style="font-size: 20px !important;">R$ 0.00</span>
         </div>
     </div>
     
 </div>
 
-<script>
+<!-- <script>
     document.addEventListener('DOMContentLoaded', function () {
         const modalEl = document.getElementById('modalBloquearCaixa');
 
@@ -451,6 +495,123 @@
             }
         }
     });
+</script> -->
+<!--  Verica caixa aberto -->
+<script>
+    console.log('🔍 Terminal recebido no PDV:', @json($terminal));
+    console.log('💰 Caixa aberto recebido no PDV:', @json($caixaAberto));
+
+    if (@json($caixaAberto) === null) {
+        console.warn('⚠️ Nenhum caixa aberto encontrado para este terminal');
+    } else {
+        console.info('✅ Caixa aberto válido carregado no PDV');
+    }
+</script>
+
+<!-- Modal de bloqueio do caixa -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('modalBloquearCaixa');
+
+        // ⚠️ Estado real do caixa vindo do backend
+        // const caixaFechado = @json(is_null($caixaAberto));
+        const caixaFechado = @json($caixaAberto?->status !== 'aberto');
+
+        console.log('🔍 Caixa fechado:', caixaFechado, 'Caixa:', @json($caixaAberto));
+
+        if (caixaFechado) {
+            document.body.classList.add('caixa-bloqueado');
+
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(modalEl, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+
+                modal.show();
+            } else {
+                console.warn('⚠️ Modal não encontrado ou Bootstrap não carregado');
+            }
+        }
+    });
+</script>
+
+<!-- caixas esquecidos abertos -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+    const listaDiv = document.getElementById('listaCaixasEsquecidos');
+
+    fetch('/pdv/caixas-esquecidos')
+        .then(response => response.json())
+        .then(data => {
+
+            // NÃO há caixas acima de 12h → PDV LIBERADO
+            if (!data || data.length === 0) {
+                listaDiv.style.display = 'none';
+                document.body.classList.remove('caixa-bloqueado');
+                return;
+            }
+
+            // HÁ caixas acima de 12h → PDV BLOQUEADO
+            listaDiv.style.display = 'block';
+            document.body.classList.add('caixa-bloqueado');
+
+        })
+        .catch(() => {
+            // Em erro, por segurança, mantém bloqueado
+            document.body.classList.add('caixa-bloqueado');
+        });
+    });
+</script>
+
+//  //oculta ou mostra a div de caixas esquecidos
+<script>
+    //oculta ou mostra a div de caixas esquecidos
+    document.addEventListener('DOMContentLoaded', function () {
+
+    const listaDiv = document.getElementById('listaCaixasEsquecidos');
+
+    fetch('/pdv/caixas-esquecidos')
+        .then(response => response.json())
+        .then(data => {
+
+            // Se não existe caixa acima de 12h → OCULTA
+            if (!data || data.length === 0) {
+                listaDiv.style.display = 'none';
+                return;
+            }
+
+            // Existe caixa acima de 12h → MOSTRA
+            listaDiv.style.display = 'block';
+
+        })
+        .catch(() => {
+            // Em erro, por segurança, oculta
+            listaDiv.style.display = 'none';
+        });
+    });
+</script>
+
+<script>
+    const alerta = document.getElementById('alerta-lote');
+
+    alerta.classList.add('d-none');
+    alerta.textContent = '';
+    alerta.className = 'fw-bold';
+
+    if (data.lote_alerta?.tipo === 'vencido') {
+        alerta.textContent = data.lote_alerta.mensagem;
+        alerta.classList.add('text-danger');
+        alerta.classList.remove('d-none');
+    }
+
+    if (data.lote_alerta?.tipo === 'a_vencer') {
+        alerta.textContent = data.lote_alerta.mensagem;
+        alerta.classList.add('text-warning');
+        alerta.classList.remove('d-none');
+    }
+
 </script>
 
 @endsection

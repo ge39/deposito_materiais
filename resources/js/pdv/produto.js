@@ -133,6 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error(e);
             alert("Erro ao buscar produto.");
         }
+       
     }
 
     // ===============================
@@ -177,12 +178,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const subtotal = quantidade * preco;
         tabelaItens.insertAdjacentHTML("beforeend", `
             <tr class="linha-carrinho" data-produto-id="${produto.id}" data-lote-id="${loteId}">
-                <td class="item-numero text-center" style="font-size:32px; font-weight:bold;"></td>
-                <td class="text-center" style="font-size:32px; font-weight:bold;">${produto.nome}</td>
-                <td class="item-quantidade text-center" style="font-size:32px; font-weight:bold;">${quantidade}</td>
-                <td class="text-center" style="font-size:32px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
-                <td class="item-preco text-end" style="font-size:32px; font-weight:bold;">${preco.toFixed(2)}</td>
-                <td class="subtotal text-end subtotal" style="font-size:32px; font-weight:bold;">${subtotal.toFixed(2)}</td>
+                <td class="item-numero text-center" style="font-size:20px; font-weight:bold;"></td>
+                <td class="text-center" style="font-size:20px; font-weight:bold;">${produto.nome}</td>
+                <td class="item-quantidade text-center" style="font-size:20px; font-weight:bold;">${quantidade}</td>
+                <td class="text-center" style="font-size:20px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
+                <td class="item-preco text-end" style="font-size:20px; font-weight:bold;">${preco.toFixed(2)}</td>
+                <td class="subtotal text-end subtotal" style="font-size:20px; font-weight:bold;">${subtotal.toFixed(2)}</td>
             </tr>
         `);
 

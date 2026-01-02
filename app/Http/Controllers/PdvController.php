@@ -7,6 +7,7 @@ use App\Models\Cliente;
 use App\Models\Produto;
 use App\Models\Venda;
 use App\Models\Caixa;
+ use Carbon\Carbon;
 
 class PDVController extends Controller
 {
@@ -21,6 +22,35 @@ class PDVController extends Controller
      * Exibe a tela principal do PDV
      */
 
+    // public function index(Request $request)
+    // {
+    //     // 1️⃣ Pegar o terminal do middleware
+    //     $terminal = $request->attributes->get('terminal');
+
+    //     if (!$terminal) {
+    //         abort(500, 'Terminal não identificado no PDV.');
+    //     }
+
+    //     // 2️⃣ Pegar o caixa aberto mais recente deste terminal
+    //     $caixaAberto = \App\Models\Caixa::with('usuario')
+    //         ->where('terminal_id', $terminal->id)
+    //         ->where('status', 'aberto')
+    //         ->latest('data_abertura')
+    //         ->first();
+
+    //     // 3️⃣ Preparar dados complementares (opcional)
+    //     $operador = $caixaAberto?->usuario?->name ?? 'Nenhum';
+    //     $status = $caixaAberto ? 'Aberto' : 'Fechado';
+
+    //     // 4️⃣ Retornar a view mantendo as variáveis originais + extras
+    //     return view('pdv.index', [
+    //         'terminal' => $terminal,
+    //         'caixaAberto' => $caixaAberto,
+    //         'operador' => $operador,
+    //         'status' => $status,
+    //     ]);
+    // }
+
     public function index(Request $request)
     {
         // 1️⃣ Pegar o terminal do middleware
@@ -30,18 +60,36 @@ class PDVController extends Controller
             abort(500, 'Terminal não identificado no PDV.');
         }
 
-        // 2️⃣ Pegar o caixa aberto mais recente deste terminal
+        // 2️⃣ Pegar o caixa aberto mais recente deste terminal (mantendo a regra de bloqueio)
         $caixaAberto = \App\Models\Caixa::with('usuario')
             ->where('terminal_id', $terminal->id)
-            ->where('status', 'aberto')
+            // ->where('status', 'aberto') // mantém a validação original
             ->latest('data_abertura')
             ->first();
 
-        // 3️⃣ Preparar dados complementares (opcional)
+        // 3️⃣ Preparar dados complementares
         $operador = $caixaAberto?->usuario?->name ?? 'Nenhum';
-        $status = $caixaAberto ? 'Aberto' : 'Fechado';
 
-        // 4️⃣ Retornar a view mantendo as variáveis originais + extras
+        // 4️⃣ Determinar status considerando múltiplos casos do PDV
+        $status = 'Fechado'; // padrão
+        if ($caixaAberto) {
+            switch ($caixaAberto->status) {
+                case 'aberto':
+                    $status = 'Aberto';
+                    break;
+                case 'pendente':
+                    $status = 'Pendente';
+                    break;
+                case 'inconsistente':
+                    $status = 'Inconsistente';
+                    break;
+                case 'fechado':
+                default:
+                    $status = 'Fechado';
+            }
+        }
+
+        // 5️⃣ Retornar a view com todas as variáveis
         return view('pdv.index', [
             'terminal' => $terminal,
             'caixaAberto' => $caixaAberto,
@@ -49,7 +97,7 @@ class PDVController extends Controller
             'status' => $status,
         ]);
     }
-
+        
    /**
      * F2 – Buscar Cliente (Modal de cliente) */
     public function buscarCliente(Request $request)
@@ -144,6 +192,57 @@ class PDVController extends Controller
 
     /**
      *  Buscar Produto (Código de Barras) */
+    // public function buscarProdutoPorCodigo($codigo)
+    // {
+    //     // 🔹 Validação básica
+    //     if (empty($codigo)) {
+    //         return response()->json([
+    //             'status' => 'erro',
+    //             'mensagem' => 'Código de produto não informado.'
+    //         ], 400);
+    //     }
+
+    //     // 🔹 Autenticação (se necessário)
+    //     if (!auth()->check()) {
+    //         return response()->json([
+    //             'status' => 'erro',
+    //             'mensagem' => 'Usuário não autorizado.'
+    //         ], 401);
+    //     }
+
+    //     // 🔹 Buscar produto ativo com lotes válidos
+    //     $produto = Produto::with([
+    //         'categoria',
+    //         'marca',
+    //         'unidadeMedida',
+    //         'lotes' => function ($q) {
+    //             $q->where('status', 1)
+    //             ->where('quantidade_disponivel', '>', 0)
+    //             ->whereDate('validade_lote', '>=', now());
+    //         }
+    //     ])->where('ativo', 1)
+    //     ->where('codigo_barras', $codigo)
+    //     ->first();
+
+    //     if (!$produto) {
+    //         return response()->json([
+    //             'status' => 'erro',
+    //             'mensagem' => 'Produto não encontrado.'
+    //         ], 404);
+    //     }
+
+    //     // Adiciona a sigla da unidade diretamente no objeto
+    //     $produto->unidade_sigla = $produto->unidadeMedida->sigla ?? null;
+
+    //     // 🔹 Soma quantidade total disponível (opcional)
+    //     $produto->quantidade_total_disponivel = $produto->lotes->sum('quantidade_disponivel');
+
+    //     return response()->json([
+    //         'status' => 'ok',
+    //         'produto' => $produto
+    //     ]);
+    // }
+
     public function buscarProdutoPorCodigo($codigo)
     {
         // 🔹 Validação básica
@@ -172,7 +271,8 @@ class PDVController extends Controller
                 ->where('quantidade_disponivel', '>', 0)
                 ->whereDate('validade_lote', '>=', now());
             }
-        ])->where('ativo', 1)
+        ])
+        ->where('ativo', 1)
         ->where('codigo_barras', $codigo)
         ->first();
 
@@ -183,12 +283,36 @@ class PDVController extends Controller
             ], 404);
         }
 
-        // Adiciona a sigla da unidade diretamente no objeto
+        // 🔹 Unidade
         $produto->unidade_sigla = $produto->unidadeMedida->sigla ?? null;
 
-        // 🔹 Soma quantidade total disponível (opcional)
+        // 🔹 Soma quantidade total disponível
         $produto->quantidade_total_disponivel = $produto->lotes->sum('quantidade_disponivel');
 
+        /*
+        |--------------------------------------------------------------------------
+        | 🔔 INFORMAÇÃO DE VALIDADE (APENAS INFORMATIVA)
+        |--------------------------------------------------------------------------
+        */
+        $produto->alerta_validade = null;
+
+        if ($produto->lotes->count() > 0) {
+
+            // Lote com validade mais próxima
+            $loteMaisProximo = $produto->lotes->sortBy('validade_lote')->first();
+
+            $diasParaVencer = now()->startOfDay()
+                ->diffInDays(\Carbon\Carbon::parse($loteMaisProximo->validade_lote), false);
+
+            if ($diasParaVencer < 0) {
+                $produto->alerta_validade = 'Produto com lote vencido';
+            } elseif ($diasParaVencer === 0) {
+                $produto->alerta_validade = 'Produto vence hoje';
+            } elseif ($diasParaVencer <= 30) {
+                $produto->alerta_validade = "Produto vence em {$diasParaVencer} dias";
+            }
+        }
+        
         return response()->json([
             'status' => 'ok',
             'produto' => $produto
@@ -279,4 +403,44 @@ class PDVController extends Controller
             'message' => 'Pagamento alternativo recebido.'
         ]);
     }
+
+    /**
+     * Retorna todos os caixas abertos esquecidos
+     * @param int $diasLimite Quantos dias considerar para "esquecido"
+     * @return \Illuminate\Support\Collection
+     */
+       
+    public function caixasEsquecidos(int $horasLimite = 12)
+    {
+        $agora = Carbon::now('America/Sao_Paulo');
+        $limite = (clone $agora)->subHours($horasLimite);
+
+        $caixas = Caixa::where('status', 'aberto')
+            ->where('data_abertura', '<', $limite)
+            ->with('usuario')
+            ->get()
+            ->map(function ($caixa) use ($agora) {
+
+                $abertura = Carbon::parse($caixa->data_abertura)
+                    ->setTimezone('America/Sao_Paulo');
+
+                // ⚠️ FORÇANDO horas inteiras (não existe decimal aqui)
+                $caixa->pdv_horas_aberto = (int) $abertura->diffInHours($agora);
+
+                // Datas formatadas PT-BR
+                $caixa->data_abertura_br = $abertura->format('d/m/Y H:i');
+                $caixa->data_fechamento_br = $caixa->data_fechamento
+                    ? Carbon::parse($caixa->data_fechamento)
+                        ->setTimezone('America/Sao_Paulo')
+                        ->format('d/m/Y H:i')
+                    : null;
+
+                return $caixa;
+            });
+
+        return response()->json($caixas);
+    }
+    
 }
+
+
