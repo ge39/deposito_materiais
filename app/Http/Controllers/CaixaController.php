@@ -149,5 +149,19 @@ class CaixaController extends Controller
                         ->with('success', 'Caixa aberto com sucesso.')
                         ->with('caixa_id', $caixa->id);
     }
+    public function auditarCaixa($caixaId)
+    {
+        // lógica de auditoria
+    }
+
+    public function consolidarPagamentos($caixaId)
+    {
+        // lógica de consolidação por forma de pagamento
+    }
+
+    public function fecharCaixa(Request $request, $caixaId)
+    {
+        // lógica de fechamento com divergências
+    }
 
 }

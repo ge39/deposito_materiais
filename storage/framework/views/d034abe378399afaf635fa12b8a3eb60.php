@@ -38,9 +38,9 @@
     .carimbo-caixa {
         position: absolute;
 
-        top: 50%;
+        top: 40%;
         left: 50%;
-        width: 65%;
+        width: 55%;
         transform: translate(-50%, -50%) rotate(-25deg);
 
         font-size: 56px;
@@ -60,20 +60,34 @@
     /* BOTÃO — único elemento ativo */
     .btn-abrir-caixa {
         position: absolute;
-
         top: 50%;
-        left: 50%;
-
+        left: 40%;
         transform: translate(-50%, calc(-50% + 120px));
-
-        background: #ffffff;
+        /* background: #ffffff; */
         color: var(--bordo);
+        border-radius: 10px;
         border: 3px solid var(--bordo);
-
-        padding: 16px 40px;
+        padding: 14px 20px;
+        gap:30px;
         font-size: 22px;
         font-weight: bold;
-
+        cursor: pointer;
+        z-index: 1;
+    }
+    .btn-sair-caixa {
+        position: absolute;
+        top: 50%;
+        left: 55%;
+        border-radius: 10px;
+        transform: translate(-50%, calc(-50% + 120px));
+        /* background: #ffffff; */
+        color: var(--bordo);
+        border: 3px solid var(--bordo);
+        padding: 14px 20px;
+        width:180px;
+        gap:30px;
+        font-size: 22px;
+        font-weight: bold;
         cursor: pointer;
         z-index: 1;
     }
@@ -230,16 +244,21 @@
 
         <!-- Lista de caixas esquecidos -->
          <div class="listaCaixasEsquecidos" id="listaCaixasEsquecidos">
-            <h4>ERROR:</h4>
-            <h4 style="color:yellow">Este caixa nao pode ser aberto - informe o responsavel da loja</h4>
-            <ul>
-            </ul>
+            <ul></ul>
         </div>
 
-        <button class="btn-abrir-caixa"
-            onclick="window.location.href='<?php echo e(route('caixa.abrir')); ?>'">
-            ABRIR CAIXA
-        </button>
+       <div class="d-flex mb-5 justify-content-between p-3 w-100 bg-lavender">
+            <button class="btn-abrir-caixa btn-primary btn-sm px-4"
+                onclick="window.location.href='<?php echo e(route('caixa.abrir')); ?>'">
+                ABRIR CAIXA
+            </button>
+            
+            <button class="btn-sair-caixa btn-warning btn-sm px-4"
+                onclick="window.location.href='<?php echo e(route('dashboard')); ?>'">
+                SAIR
+            </button>
+        </div>
+
     </div>
     <!-- FIM OVERLAY -->
 
@@ -435,35 +454,34 @@
     <div class="col-md-12 row mt-1 d-flex flex-wrap gap-1">
 
         <div class="col">
-            <button class="btn btn-primary w-100" >F1 Inicio Venda</button>
+            <button class="btn btn-warning fs-6 w-100 md-1 p-2" id="btnF2" >F2 - Cliente</button>
         </div>
 
         <div class="col">
-            <button class="btn btn-warning w-100" id="btnF2" >F2 Cliente</button>
+            <button class="btn btn-danger fs-6 w-100 md-1 p-2">F3 - Produto</button>
         </div>
 
         <div class="col">
-            <button class="btn btn-danger w-100">F3 Produto</button>
+            <button  class="btn btn-primary fs-6 w-100 md-1 p-2">F4 - Orçamento</button>
         </div>
 
         <div class="col">
-            <button  class="btn btn-primary w-100">F4 Orçamento</button>
+            <button class="btn btn-success fs-6 w-100 md-1 p-2">F5 - Inicio Venda</button>
         </div>
 
         <div class="col">
-            <button class="btn btn-secondary w-100">F5 Fin. Venda</button>
+            <button class="btn btn-warning fs-6 w-100 md-1 p-2">F6 - Final. Venda</button>
         </div>
 
         <div class="col">
-            <button class="btn btn-secondary w-100">F6 Cancel. Venda</button>
-        </div>
-
+            <button class="btn btn-danger fs-6  w-100 md-1 p-2">F8 Fecham. Caixa</button>
+        </div> 
         <div class="col">
-            <button class="btn btn-secondary w-100">F8 Local. Venda</button>
-        </div>        
-        <div class="col btn btn-dark w-100 fw-bold d-flex flex-column align-items-center justify-content-center">
+            <button class="btn btn-secondary fs-6 w-100 md-1 p-2">F11 - Tela Cheia</button>
+        </div>       
+        <div class="col btn btn-dark w-100 md-1 p-2 fw-bold d-flex flex-column align-items-center justify-content-center">
             <!-- <span class="fw-bold fs-1 fw-bold text-uppercase" style="font-size: 20px !important;">Total</span> -->
-            <span id="totalGeral" class="fw-bold text-warning" style="font-size: 20px !important;">R$ 0.00</span>
+            <span id="totalGeral" class="fw-bold text-warning " style="font-size: 18px !important;">Total Geral</span>
         </div>
     </div>
     
@@ -547,6 +565,7 @@
                         item.style.borderBottom = '1px solid #fff';
                        item.textContent =
                         `Terminal: ${caixa.terminal_id} | ` +
+                        `Caixa ID: ${caixa.id} | ` +
                         `Aberto em: ${caixa.data_abertura_br} | ` +
                         `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
                         `Fechado em: ${caixa.data_fechamento_br ?? '-'} | ` +
@@ -556,7 +575,8 @@
                     });
 
                     // Exibe o overlay
-                    document.getElementById('modalBloquearCaixa').style.display = 'flex';
+                     document.getElementById('modalBloquearCaixa').style.display = 'flex';
+                    //  document.getElementById('listaCaixasEsquecidos').style.display = 'flex';
                 }
             })
             .catch(error => console.error('Erro ao verificar caixas esquecidos:', error));

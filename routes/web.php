@@ -14,6 +14,7 @@ use App\Http\Controllers\{
     PDV\OrcamentoPDVController,
     PdvController,
     ItensVendaController,
+    FechamentoCaixaController,
     FrotaController,
     EntregaController,
     PosVendaController,
@@ -227,5 +228,38 @@ Route::middleware('auth')->group(function () {
     // Painel de Promoção
     // ===============================
     Route::get('/painel_promocao', [PainelPromocaoController::class, 'index'])->name('painel_promocao.index');
+
+    // Auditoria e fechamento de caixa
+      // Lista caixas (GET)
+    Route::get('/fechamento_caixa', [FechamentoCaixaController::class, 'listaCaixas'])
+        ->name('fechamento.lista')
+        ->middleware('auth');
+
+    Route::prefix('fechamento_caixa')->middleware('auth')->group(function () {
+        // Auditar caixa
+        Route::get('/auditar/{caixa}', [FechamentoCaixaController::class, 'index'])
+            ->name('fechamento.auditar');
+
+        // Consolidar pagamentos
+        Route::get('/consolidar/{caixa}', [FechamentoCaixaController::class, 'consolidarPagamentos'])
+            ->name('fechamento.consolidar');
+
+        // Fechar caixa (POST) - já processa os valores manuais
+        Route::post('/fechar/{caixa}', [FechamentoCaixaController::class, 'fechar'])
+            ->name('fechamento.fechar');
+
+        // Abrir view de lançamento de valores manuais
+        // Route::get(
+        //     '/fechamento_caixa/lancar_valores/{caixa}',
+        //     [FechamentoCaixaController::class, 'lancar_valores']
+        // )->name('fechamento.lancar_valores');
+            });
+
+            Route::prefix('fechamento_caixa')->group(function () {
+            Route::get('/lancar_valores/{caixa}', 
+                [FechamentoCaixaController::class, 'lancarValores']
+            )->name('fechamento.lancar_valores');
+});
+
 
 });

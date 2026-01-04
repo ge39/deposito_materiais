@@ -123,7 +123,27 @@
             <li><a class="dropdown-item" href="<?php echo e(route('fornecedores.index')); ?>"><i class="bi bi-truck me-2"></i>Fornecedores</a></li>
             <li><a class="dropdown-item" href="<?php echo e(route('funcionarios.index')); ?>"><i class="bi bi-person-badge me-2"></i>Funcionários</a></li>
     	<li><hr class="dropdown-divider"></li>
-
+       <li class="dropdown-submenu">
+        <a class="dropdown-item dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#">
+            <i class="bi bi-tag me-2"></i>Financeiro
+        </a>
+        <ul class="dropdown-menu">
+             <li>
+                <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
+                   href="<?php echo e($canAccessAdmin ? route('fechamento.lista') : '#'); ?>">
+                   <i class="bi bi-list-stars me-2"></i>Fechamento de Caixa
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
+                   href="<?php echo e($canAccessAdmin ? route('fechamento.auditar', ['caixa' => 0]) : '#'); ?>">
+                   <i class="bi bi-list-stars me-2"></i>Auditoria de Caixa
+                </a>
+            </li>
+           
+        </ul>
+    </li>
+      <li><hr class="dropdown-divider"></li>
     <li class="dropdown-submenu">
         <a class="dropdown-item dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#">
             <i class="bi bi-tag me-2"></i>Promoções & Descontos

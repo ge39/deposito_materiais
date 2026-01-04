@@ -82,4 +82,30 @@ class Caixa extends Model
     {
         return $this->status === 'aberto';
     }
+    public function totalEsperado(): float
+    {
+        $entradas = $this->movimentacoes->whereIn('tipo', ['abertura', 'venda', 'entrada_manual'])->sum('valor');
+        $saidas   = $this->movimentacoes->whereIn('tipo', ['saida_manual', 'cancelamento_venda'])->sum('valor');
+        return $this->valor_abertura + $entradas - $saidas;
+    }
+    public function totaisPorFormaPagamento(): array
+    {
+        $totais = [];
+
+        foreach($this->vendas as $venda) {
+            foreach($venda->pagamentos as $pag) {
+                if(!isset($totais[$pag->forma_pagamento])) $totais[$pag->forma_pagamento] = 0;
+                $totais[$pag->forma_pagamento] += $pag->valor;
+            }
+        }
+
+        return $totais;
+    }
+    public function divergencia(float $valorFisico): float
+    {
+        return $valorFisico - $this->totalEsperado();
+    }
+
+
+
 }
