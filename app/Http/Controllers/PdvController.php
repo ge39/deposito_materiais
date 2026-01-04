@@ -53,6 +53,13 @@ class PDVController extends Controller
 
     public function index(Request $request)
     {
+        //carrega cliente padrao "VENDA BALCAO"
+        $clienteBalcao = Cliente::where('nome', 'VENDA BALCAO')
+        ->where('ativo', 1)
+        ->firstOrFail();
+
+        return view('pdv.index', compact('clienteBalcao'));
+
         // 1️⃣ Pegar o terminal do middleware
         $terminal = $request->attributes->get('terminal');
 

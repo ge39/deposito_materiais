@@ -21,6 +21,12 @@ class PDVController extends Controller
      */
    public function index(Request $request)
     {
+        $clienteBalcao = Cliente::where('nome', 'VENDA BALCAO')
+        ->where('ativo', 1)
+        ->firstOrFail();
+
+        return view('pdv.index', compact('clienteBalcao'));
+        
         $terminal = $request->attributes->get('terminal');
         $caixaAberto = $request->attributes->get('caixaAberto');
 

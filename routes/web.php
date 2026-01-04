@@ -20,7 +20,7 @@ use App\Http\Controllers\{
     PosVendaController,
     MarcaController,
     UnidadeMedidaController,
-    Venda,
+    VendaController,
     LoteController,
     CepController,
     DevolucaoController,
@@ -247,19 +247,11 @@ Route::middleware('auth')->group(function () {
         // Fechar caixa (POST) - já processa os valores manuais
         Route::post('/fechar/{caixa}', [FechamentoCaixaController::class, 'fechar'])
             ->name('fechamento.fechar');
+        });
 
-        // Abrir view de lançamento de valores manuais
-        // Route::get(
-        //     '/fechamento_caixa/lancar_valores/{caixa}',
-        //     [FechamentoCaixaController::class, 'lancar_valores']
-        // )->name('fechamento.lancar_valores');
-            });
-
-            Route::prefix('fechamento_caixa')->group(function () {
+        Route::prefix('fechamento_caixa')->group(function () {
             Route::get('/lancar_valores/{caixa}', 
                 [FechamentoCaixaController::class, 'lancarValores']
             )->name('fechamento.lancar_valores');
-});
-
-
+        });
 });
