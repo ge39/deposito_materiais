@@ -220,6 +220,12 @@
   });
 </script>
 
+    <!-- JS do Bootstrap e app.js -->
+        <script src="<?php echo e(asset('js/app.js')); ?>"></script>
+
+        <!-- Aqui serão inseridos os scripts específicos de cada página -->
+    <?php echo $__env->yieldPushContent('scripts'); ?>
+    
 </body>
 </html>
 <?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/layouts/app.blade.php ENDPATH**/ ?>

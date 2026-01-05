@@ -219,5 +219,11 @@
   });
 </script>
 
+    <!-- JS do Bootstrap e app.js -->
+        <script src="{{ asset('js/app.js') }}"></script>
+
+        <!-- Aqui serão inseridos os scripts específicos de cada página -->
+    @stack('scripts')
+    
 </body>
 </html>

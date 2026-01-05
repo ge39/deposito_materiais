@@ -12,7 +12,7 @@ window.PDV = (function () {
         UI.init();
         Atalhos.init();
         regras.init();
-        console.log('PDV iniciado');
+        // console.log('PDV iniciado');
     }
 
     return { init };

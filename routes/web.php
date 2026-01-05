@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Models\Venda;
+use App\Models\Caixa;
+
 use App\Http\Controllers\{
     AuthController,
     DashboardController,
@@ -205,15 +208,21 @@ Route::middleware('auth')->group(function () {
     // ===============================
     // PDV
     // ===============================
-    Route::get('/pdv/caixas-esquecidos', [PdvController::class, 'caixasEsquecidos']);
     Route::prefix('pdv')->name('pdv.')->middleware(['auth', 'terminal'])->group(function () {
+
         Route::get('/', [PdvController::class, 'index'])->name('index');
+
+        Route::post('/venda', [PdvController::class, 'storeVenda'])
+            ->name('venda.store');
+
         Route::get('buscar-produto', [PdvController::class, 'buscarProduto'])->name('buscarProduto');
         Route::get('buscar-cliente', [PdvController::class, 'buscarCliente'])->name('buscarCliente');
         Route::get('produto/{codigo}', [PdvController::class, 'buscarProdutoPorCodigo'])->name('buscarProdutoPorCodigo');
         Route::get('orcamento/{codigo}', [OrcamentoPDVController::class, 'buscar'])->name('orcamento.buscar');
+       
     });
 
+    
     // ===============================
     // Abertura de Caixa
     // ===============================
@@ -248,6 +257,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/fechar/{caixa}', [FechamentoCaixaController::class, 'fechar'])
             ->name('fechamento.fechar');
         });
+
+        Route::prefix('pdv')->group(function () {
+            Route::get('/caixas-esquecidos', [PDVController::class, 'caixasEsquecidos']);
+        });
+
 
         Route::prefix('fechamento_caixa')->group(function () {
             Route::get('/lancar_valores/{caixa}', 

@@ -11,7 +11,7 @@ window.Carrinho = (function () {
     function limpar() {
         console.log('Carrinho limpo');
     }
-
+    
     return {
         init,
         limpar

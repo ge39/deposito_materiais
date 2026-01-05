@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
     /* =========================
        INPUT CÓDIGO DO ORÇAMENTO
        ========================= */
+       limparCamposPDV();
     const modalEl = document.getElementById('modalOrcamento');
     const inputCodigo = document.getElementById('inputCodigoOrcamento');
 
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
        ========================= */
 
     window.confirmarOrcamentoFront = async function () {
+        
         const inputCodigo = document.getElementById('inputCodigoOrcamento');
         if (!inputCodigo) return alert('Input do código do orçamento não encontrado.');
 
@@ -59,14 +61,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Função mínima e segura para preencher os inputs do cliente
 function preencherCliente(cliente) {
-        if (!cliente) return;
+    if (!cliente) return;
 
-        document.querySelector('[name="cliente_id"]')?.setAttribute('value', cliente.id ?? '');
-        document.querySelector('[name="nome"]')?.setAttribute('value', cliente.nome ?? '');
-        document.querySelector('[name="pessoa"]')?.setAttribute('value', cliente.tipo === 'fisica' ? 'Física' : 'Jurídica');
-        document.querySelector('[name="telefone"]')?.setAttribute('value', cliente.telefone ?? '');
-        document.querySelector('[name="endereco"]')?.setAttribute('value', montarEndereco(cliente));
-    }
+    const map = {
+        cliente_id: cliente.id ?? '',
+        nome: cliente.nome ?? '',
+        pessoa: cliente.tipo === 'fisica' ? 'Física' : 'Jurídica',
+        telefone: cliente.telefone ?? '',
+        endereco: montarEndereco(cliente)
+    };
+
+    Object.entries(map).forEach(([name, value]) => {
+        const el = document.querySelector(`[name="${name}"]`);
+        if (el) el.value = value;
+    });
+}
+
 
     // Função auxiliar para montar o endereço
     function montarEndereco(cliente) {
@@ -80,6 +90,7 @@ function preencherCliente(cliente) {
         return partes.join(' - ');
     }
 
+   
 
     function setValue(id, value) {
         const el = document.getElementById(id);
@@ -116,7 +127,7 @@ function preencherCliente(cliente) {
             `;
             tbody.appendChild(tr);
         });
-
+ 
         bloquearAlteracoesCarrinho();
         atualizarTotalVenda();
     }
@@ -151,7 +162,7 @@ function preencherCliente(cliente) {
         setValue('cliente_nome', '');
         setValue('cliente_cpf', '');
         setValue('cliente_telefone', '');
-        setValue('endereco', '');
+        setValue('cliente_endereco', '');
 
         const tbody = document.getElementById('lista-itens');
         if (tbody) tbody.innerHTML = '';

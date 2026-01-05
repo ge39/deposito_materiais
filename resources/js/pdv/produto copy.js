@@ -19,23 +19,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnOcultar         = document.getElementById("btnOcultar");
 
     window.produtoAtual = null;
-
-    // ===============================
-    // ARRASTAR DIV DE AÇÕES
-    // ===============================
+    // JS para arrastar a div
+    const acoes = document.getElementById("acoes-carrinho");
     let isDragging = false;
     let offsetX = 0, offsetY = 0;
-    acoesCarrinho?.addEventListener("mousedown", (e) => {
+
+    acoes.addEventListener("mousedown", (e) => {
         isDragging = true;
-        offsetX = e.clientX - acoesCarrinho.offsetLeft;
-        offsetY = e.clientY - acoesCarrinho.offsetTop;
-        acoesCarrinho.style.transition = "none";
+        offsetX = e.clientX - acoes.offsetLeft;
+        offsetY = e.clientY - acoes.offsetTop;
+        acoes.style.transition = "none"; // remove animação enquanto arrasta
     });
+
     document.addEventListener("mousemove", (e) => {
         if (!isDragging) return;
-        acoesCarrinho.style.left = `${e.clientX - offsetX}px`;
-        acoesCarrinho.style.top  = `${e.clientY - offsetY}px`;
+        acoes.style.left = `${e.clientX - offsetX}px`;
+        acoes.style.top  = `${e.clientY - offsetY}px`;
     });
+
     document.addEventListener("mouseup", () => {
         if (isDragging) isDragging = false;
     });
@@ -111,6 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const produto = data.produto;
             window.produtoAtual = produto;
 
+            // Preenche inputs
             inputDescricao.value  = produto.nome;
             inputPrecoVenda.value = Number(produto.preco_venda).toFixed(2);
             const qtdDisponivel = produto.quantidade_total_disponivel || 1;
@@ -131,6 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error(e);
             alert("Erro ao buscar produto.");
         }
+       
     }
 
     // ===============================
@@ -175,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const subtotal = quantidade * preco;
         tabelaItens.insertAdjacentHTML("beforeend", `
             <tr class="linha-carrinho" data-produto-id="${produto.id}" data-lote-id="${loteId}">
-                <td class="item-numero text-center" style="font-size:18px; font-weight:bold;"></td>
+                <td class="item-numero text-center" style="font-size:18px; font-weight:strong;font-weight:bold;"></td>
                 <td class="item-descricao" style="font-size:18px; font-weight:bold;">${produto.nome}</td>
                 <td class="item-quantidade text-center" style="font-size:18px; font-weight:bold;">${quantidade}</td>
                 <td class="text-center" style="font-size:18px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
@@ -226,37 +229,64 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===============================
     // EDIÇÃO DO CARRINHO
     // ===============================
-    acoesCarrinho.classList.add("d-none");
-
+   
+    // Inicialmente oculta os botões
+    
+     acoesCarrinho.classList.add("d-none");
+  // Ocultar os botões ao clicar fora do carrinho
     document.addEventListener("click", (e) => {
         const linhaSelecionada = getLinhaSelecionada();
+
+        // Se existe uma linha selecionada e o clique NÃO foi nela nem na div de ações
         if (linhaSelecionada && !linhaSelecionada.contains(e.target) && !acoesCarrinho.contains(e.target)) {
+            // Remove destaque da linha
             linhaSelecionada.classList.remove("selecionada", "table-warning");
+            // Oculta os botões
             atualizarVisibilidadeBotoes();
         }
     });
 
+    // Função para pegar a linha selecionada visível
     function getLinhaSelecionada() {
         return tabelaItens.querySelector("tr.table-warning:not(.d-none)");
     }
 
+    // Atualiza visibilidade dos botões
     function atualizarVisibilidadeBotoes() {
         const linha = getLinhaSelecionada();
         if (linha) acoesCarrinho.classList.remove("d-none");
         else acoesCarrinho.classList.add("d-none");
     }
 
+    // Evento click na linha do carrinho
     tabelaItens?.addEventListener("click", e => {
         const linha = e.target.closest("tr");
         if(!linha || linha.classList.contains("d-none")) return;
+
+        // Remove seleção das outras linhas
         tabelaItens.querySelectorAll('tr.linha-carrinho').forEach(l => l.classList.remove('selecionada'));
-        linha.classList.add('selecionada', "table-warning");
+        linha.classList.add('selecionada');
+
+        // Marca a linha clicada
+        linha.classList.add("table-warning");
+
+        // Exibe os botões
         atualizarVisibilidadeBotoes();
+
+        // Se existe uma linha selecionada e o clique NÃO foi nela nem na div de ações
+        if (linhaSelecionada && !linhaSelecionada.contains(e.target) && !acoesCarrinho.contains(e.target)) {
+            // Remove destaque da linha
+            linhaSelecionada.classList.remove("selecionada", "table-warning");
+            // Oculta os botões
+            atualizarVisibilidadeBotoes();
+        }
     });
 
+    // Diminuir quantidade
     btnDiminuir?.addEventListener("click", () => {
         const linha = getLinhaSelecionada();
         if(!linha) return;
+
         const tdQtd = linha.children[2];
         let qtd = parseInt(tdQtd.textContent);
         if(qtd > 1) {
@@ -270,9 +300,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Remover item
     btnRemover?.addEventListener("click", () => {
         const linha = getLinhaSelecionada();
         if(!linha) return;
+
         if(confirm("Deseja remover o item selecionado?")) {
             linha.remove();
             atualizarTotalVenda();
@@ -281,13 +313,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Ocultar item (apenas esconde os botões, não remove a linha)
     btnOcultar?.addEventListener("click", () => {
         const linha = getLinhaSelecionada();
         if (!linha) return;
+
+        // Remove destaque da linha
         linha.classList.remove("selecionada", "table-warning");
+
+        // Oculta os botões
         atualizarVisibilidadeBotoes();
     });
 
+
+    // Atualizar subtotal da linha
     function atualizarSubTotal(linha) {
         const qtd = parseInt(linha.children[2].textContent);
         const preco = parseFloat(linha.children[4].textContent.replace('R$', '').replace(',', '.'));
@@ -295,6 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
         atualizarTotalVenda();
     }
 
+    // Atualizar total da venda
     function atualizarTotalVenda() {
         let total = 0;
         tabelaItens.querySelectorAll("tr:not(.d-none)").forEach(linha => {
@@ -304,12 +344,30 @@ document.addEventListener("DOMContentLoaded", () => {
         if(totalVenda) totalVenda.textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
     }
 
+    // Reordenar coluna Item
     function reordenarItens() {
         let contador = 1;
         tabelaItens.querySelectorAll("tr:not(.d-none)").forEach(linha => {
             linha.children[0].textContent = contador++;
         });
     }
+    
+    //marcar linha selecionada no modal de produtos
+    document.addEventListener('keydown', function (e) {
+
+    const modal = document.getElementById('modalProdutos');
+    if (!modal || !modal.classList.contains('show')) return;
+
+    if (e.key === 'Enter') {
+        const linhas = document.querySelectorAll('#modalProdutos tbody tr');
+        const linha = linhas[linhaSelecionadaIndex];
+        if (!linha) return;
+
+        linha.click(); // ou chama sua função de selecionar produto
+    }
+
+
+});
 
 });
 

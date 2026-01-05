@@ -28,7 +28,7 @@
         justify-content: center;
         flex-direction: column;
     }
-
+    
     /* overlay só aparece quando o caixa está bloqueado */
     body.caixa-bloqueado #modalBloquearCaixa {
         display: flex;
@@ -263,13 +263,13 @@
     <!-- FIM OVERLAY -->
 
      <!-- Informações do status do Caixa -->
-    <div class="container-fluid p-0"  
+    <div class="container-fluid p-0" id="pdv-app" 
          style="background:#e6e6e6; width:100%; margin-top:-18px; overflow-x:hidden;">
        
         <div class="caixa-info mb-3 p-0 border rounded shadow-sm bg-light d-flex justify-content-start align-items-center">
             <span><strong>Terminal: 00{{ $terminal->id }}</strong></span>
             <span><strong>Operador: {{ $operador }}</strong> </span>
-            <span><strong>Status:  
+            <span><strong>Status Caixa:  
                 <span class="
                     {{ $status === 'Aberto' ? 'status-aberto' : '' }}
                     {{ $status === 'Fechado' ? 'status-fechado' : '' }}
@@ -338,25 +338,25 @@
     <div class="row g-2 mb-2 p-2" style="background:#3a3a3a; color:white;">
         <div class="col-md-2 fw-bold mb-0">
             <label>Data Venda</label>
-            <input class="form-control" type="date" value="{{ date('Y-m-d') }}" readonly>
+            <input class="form-control fs-6 fw-bold text-center" type="date" value="{{ date('Y-m-d') }}" readonly>
         </div>
         <div class="col-md-2 fw-bold mb-0">
              <!-- <label>ID</label> -->
             <input type="hidden" name="cliente_id">
             <label>Cliente</label>
-            <input class="form-control" name="nome" required readonly>
+            <input class="form-control  fs-6 fw-bold text-center" name="nome" required readonly>
         </div>
          <div class="col-md-1 fw-bold mb-0">
             <label>Pessoa</label>
-            <input class="form-control" name="pessoa" required readonly>
+            <input class="form-control  fs-6 fw-bold text-center" name="pessoa" required readonly>
         </div>
         <div class="col-md-2 fw-bold mb-0">
             <label>Contato Local</label>
-            <input class="form-control" name="telefone" required >
+            <input class="form-control fs-6 fw-bold text-center" name="telefone" required >
         </div>
          <div class="col-md-5 fw-bold mb-0">
             <label>Endereço para entrega</label>
-            <input class="form-control" name="endereco" required >
+            <input class="form-control  fs-6 fw-bold text-center" name="endereco" required >
         </div>
         
     </div>
@@ -413,16 +413,16 @@
 
             </div>
             <!-- CAMPO DE IMAGEM DO PRODUTO -->
-            <div class="border bg-white mt-1" style="height: 270px; display:flex; align-items:center; justify-content:center;">
+            <div class="border bg-white mt-1" style="height: 360px; display:flex; align-items:center; justify-content:center;">
                 <img id="produto-imagem" src="" alt="Imagem" style="max-width:100%; height:100%; object-fit:contain;">
             </div>
         </div>
 
         <!-- LADO DIREITO: LISTA DE ITENS -->
         <div id="pdv-area" class="pdv-area col-md-7" style="background:#3a3a3a; color:white;">
-            <table class="table table-bordered table-sm bg-white" style="font-size: 20px !important;">
-                <thead class="table-primary fw-bold text-center fs-10px">
-                    <tr style="font-size: 20px !important;">
+            <table class="table table-bordered table-sm bg-white" style="font-size: 18px !important;">
+                <thead class="table-primary fw-bold text-center" style="font-size: 18px !important;">
+                    <tr>
                         <td class="text-center" style="width:50px">Item</td>
                         <td class="text-center" style="width:250px;">Descrição</td>
                         <td class="text-center" style="width:70px">Qtde</td>
@@ -472,16 +472,64 @@
             <button class="btn btn-danger fs-6  w-100 md-1 p-2">F8 Fecham. Caixa</button>
         </div> 
         <div class="col">
-            <button class="btn btn-secondary fs-6 w-100 md-1 p-2">F11 - Tela Cheia</button>
+            <!-- <button class="btn btn-secondary fs-6 w-100 md-1 p-2">F11 - Tela Cheia</button> -->
+             <button id="btnF6" class="btn btn-warning fs-6 w-100 md-1 p-2">F6 - Final. Venda</button>
+
         </div>       
+        
         <div class="col btn btn-dark w-100 md-1 p-2 fw-bold d-flex flex-column align-items-center justify-content-center">
             <!-- <span class="fw-bold fs-1 fw-bold text-uppercase" style="font-size: 20px !important;">Total</span> -->
-            <span id="totalGeral" class="fw-bold text-warning " style="font-size: 18px !important;">Total Geral</span>
+            <div class="col btn btn-dark w-100 md-1 p-2 fw-bold d-flex flex-column align-items-center justify-content-center">
+                <!-- Label que mostra o total na tela do PDV -->
+                <label id="totalGeral" class="fw-bold text-warning" style="margin-top: -18px; margin-bottom: -15px; font-size: 32px !important;">R$ 0,00</label>
+                <!-- Input escondido que armazena o valor numérico para JS -->
+                <input type="hidden" id="inputTotalGeral" value="0,00">
+            </div>
+
+
         </div>
     </div>
     
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnF6 = document.getElementById('btnF6');
+        const totalGeralLabel = document.getElementById('totalGeral');
+
+        btnF6.addEventListener('click', function() {
+            if(totalGeralLabel){
+                console.log('💰 Total exibido antes de F6:', totalGeralLabel.textContent);
+            } else {
+                console.warn('⚠️ Elemento #totalGeral não encontrado');
+            }
+
+            // Aqui você pode chamar sua função de abrir modal_finalizar
+            // ex: abrirModalFinalizar();
+            document.addEventListener('DOMContentLoaded', function() {
+        const btnFinalizar = document.getElementById("btnF6"); // botão que abre o modal
+        const totalInput = document.getElementById("inputTotalGeral");
+        const modalTotal = document.getElementById("total-venda-modal"); // input do modal
+
+        btnFinalizar.addEventListener("click", function() {
+            if(totalInput && modalTotal){
+                modalTotal.value = totalInput.value; // preenche o modal
+            } else {
+                console.warn("Elemento de total não encontrado!");
+            }
+
+            // abre o modal
+            const modalEl = document.getElementById('modalFinalizar');
+            if(modalEl && typeof bootstrap !== 'undefined'){
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        });
+    });
+        });
+    });
+
+</script>
 <!-- <script>
     document.addEventListener('DOMContentLoaded', function () {
         const modalEl = document.getElementById('modalBloquearCaixa');
@@ -506,8 +554,8 @@
 </script> -->
 <!--  Verica caixa aberto -->
 <script>
-    // console.log('🔍 Terminal recebido no PDV:', @json($terminal));
-    // console.log('💰 Caixa aberto recebido no PDV:', @json($caixaAberto));
+    console.log('🔍 Terminal recebido no PDV:', @json($terminal));
+    console.log('💰 Caixa aberto recebido no PDV:', @json($caixaAberto));
 
     if (@json($caixaAberto) === null) {
         console.warn('⚠️ Nenhum caixa aberto encontrado para este terminal');
@@ -607,6 +655,7 @@
     });
 </script>
 
+<!-controle dos lotes vencidos-!>
 <script>
     const alerta = document.getElementById('alerta-lote');
 
@@ -628,21 +677,72 @@
 
 </script>
 
+<!--carrega o usuario padrao, "VENDA BALCAO"--!>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const clienteBalcao = @json($clienteBalcao);
+
+        if (!clienteBalcao) return;
+
+        document.querySelector('input[name="cliente_id"]').value = clienteBalcao.id ?? '';
+        document.querySelector('input[name="nome"]').value       = clienteBalcao.nome ?? '';
+        document.querySelector('input[name="pessoa"]').value     = clienteBalcao.tipo ?? '';
+        document.querySelector('input[name="telefone"]').value   = clienteBalcao.telefone ?? '';
+        document.querySelector('input[name="endereco"]').value   = clienteBalcao.endereco_entrega 
+                                                                    ?? clienteBalcao.endereco 
+                                                                    ?? '';
+
+    });
+</script>
+
+<!-- Armazena total da venda globalmente e passa para view de finalizar -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnFinalizar = document.getElementById("btnF6"); // botão que abre o modal
+        const totalInput = document.getElementById("inputTotalGeral");
+        const modalTotal = document.getElementById("total-venda-modal"); // input do modal
+
+        btnFinalizar.addEventListener("click", function() {
+            if(totalInput && modalTotal){
+                modalTotal.value = totalInput.value; // preenche o modal
+            } else {
+                console.warn("Elemento de total não encontrado!");
+            }
+
+            // abre o modal
+            const modalEl = document.getElementById('modalFinalizar');
+            if(modalEl && typeof bootstrap !== 'undefined'){
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        });
+    });
+
+</script>
+
+{{-- No final da view pdv.index --}}
+@push('scripts')
+<script src="{{ asset('js/modal_finalizar.js') }}"></script>
+@endpush
+
 @endsection
 
 <!-- Modals atahos -->
 @include('pdv.modals.modal_cliente_pdv')
 @include('pdv.modals.modal_produto_pdv')
 @include('pdv.modals.modal_orcamento')
-
+@include('pdv.modals.modal_finalizar')
 
 @vite([
-    'resources/js/pdv/app.js',      {{-- BOOT --}}
+    'resources/js/pdv/app.js',
     'resources/js/pdv/produto.js',
     'resources/js/pdv/carrinho.js',
     'resources/js/pdv/regras.js',
     'resources/js/pdv/orcamento.js',
     'resources/js/pdv/ui.js',
-    'resources/js/pdv/atalhos.js',
+    'resources/js/pdv/modal_finalizar.js', {{-- mover antes --}}
+    'resources/js/pdv/atalhos.js',          {{-- para depois --}}
 ])
+
 <!-- Fim view completa do PDV -->

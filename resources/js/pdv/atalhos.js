@@ -17,6 +17,30 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalCaixasEsquecidos = bootstrap.Modal.getOrCreateInstance(
         modalCaixasEsquecidosEl
     );
+    document.addEventListener('keydown', function(e) {
+        if (e.code === 'F6') {
+            e.preventDefault();
+
+            // Pega o total exibido
+            const total = document.getElementById('totalGeral')?.textContent || '0';
+            console.log('💰 Total exibido antes de F6:', total);
+            window.carrinhoTotal = total;
+
+            // Abre modal finalizador
+            const modalEl = document.getElementById('modalFinalizarVenda');
+            if (modalEl) {
+                const modal = new bootstrap.Modal(modalEl, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                modal.show();
+                console.log('F6 OK - modal finalizador aberto');
+            } else {
+                console.error('❌ Modal #modalFinalizar não encontrado no DOM');
+            }
+        }
+
+    });
 
     /**
      * 🔒 CONTROLE DE BLOQUEIO DO PDV
@@ -79,7 +103,10 @@ document.addEventListener('DOMContentLoaded', function () {
             case 'F4':
                 e.preventDefault();
                 modalOrcamento.show();
-                break;
+                break;              
         }
+            
     });
+
+   
 });

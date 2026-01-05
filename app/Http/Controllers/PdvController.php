@@ -7,6 +7,10 @@ use App\Models\Cliente;
 use App\Models\Produto;
 use App\Models\Venda;
 use App\Models\Caixa;
+use App\Models\ItemVenda;
+use App\Models\PagamentoVenda;
+use App\Models\MovimentacaoCaixa;
+use App\Models\Lote;
  use Carbon\Carbon;
 
 class PDVController extends Controller
@@ -51,34 +55,31 @@ class PDVController extends Controller
     //     ]);
     // }
 
-    public function index(Request $request)
+   public function index(Request $request)
     {
-        //carrega cliente padrao "VENDA BALCAO"
+        // 1️⃣ Cliente padrão "VENDA BALCAO"
         $clienteBalcao = Cliente::where('nome', 'VENDA BALCAO')
-        ->where('ativo', 1)
-        ->firstOrFail();
+            ->where('ativo', 1)
+            ->firstOrFail();
 
-        return view('pdv.index', compact('clienteBalcao'));
-
-        // 1️⃣ Pegar o terminal do middleware
+        // 2️⃣ Terminal identificado pelo middleware
         $terminal = $request->attributes->get('terminal');
 
         if (!$terminal) {
             abort(500, 'Terminal não identificado no PDV.');
         }
 
-        // 2️⃣ Pegar o caixa aberto mais recente deste terminal (mantendo a regra de bloqueio)
+        // 3️⃣ Caixa mais recente deste terminal
         $caixaAberto = \App\Models\Caixa::with('usuario')
             ->where('terminal_id', $terminal->id)
-            // ->where('status', 'aberto') // mantém a validação original
             ->latest('data_abertura')
             ->first();
 
-        // 3️⃣ Preparar dados complementares
+        // 4️⃣ Operador
         $operador = $caixaAberto?->usuario?->name ?? 'Nenhum';
 
-        // 4️⃣ Determinar status considerando múltiplos casos do PDV
-        $status = 'Fechado'; // padrão
+        // 5️⃣ Status do caixa
+        $status = 'Fechado';
         if ($caixaAberto) {
             switch ($caixaAberto->status) {
                 case 'aberto':
@@ -90,20 +91,21 @@ class PDVController extends Controller
                 case 'inconsistente':
                     $status = 'Inconsistente';
                     break;
-                case 'fechado':
                 default:
                     $status = 'Fechado';
             }
         }
 
-        // 5️⃣ Retornar a view com todas as variáveis
+        // 6️⃣ ÚNICO return
         return view('pdv.index', [
-            'terminal' => $terminal,
-            'caixaAberto' => $caixaAberto,
-            'operador' => $operador,
-            'status' => $status,
+            'clienteBalcao' => $clienteBalcao,
+            'terminal'      => $terminal,
+            'caixaAberto'   => $caixaAberto,
+            'operador'      => $operador,
+            'status'        => $status,
         ]);
     }
+
         
    /**
      * F2 – Buscar Cliente (Modal de cliente) */
@@ -338,19 +340,83 @@ class PDVController extends Controller
         return response()->json($vendas);
     }
 
-    /**
-     * F5 – Finalizar Venda */
-    public function finalizarVenda(Request $request)
+    // Exibe a tela de finalizar (F6)
+    public function finalizar(Request $request)
     {
-        $validated = $request->validate([
-            'cliente_id' => 'nullable|integer',
-            'itens'      => 'required|array',
+        $cliente = session('pdv_cliente'); // Cliente selecionado no PDV
+        $carrinho = session('pdv_carrinho', []); // Carrinho com produtos e quantidades
+        $total = 0;
+
+        foreach ($carrinho as $item) {
+            $total += $item['preco'] * $item['quantidade'];
+        }
+
+        // return view('pdv.index', [
+        //     'cliente' => $cliente,
+        //     'carrinho' => $carrinho,
+        //     'total' => $total,
+        // ]);
+    }
+
+    // Salva a venda no banco
+    public function storeVenda(Request $request)
+    {
+        $request->validate([
+            'forma_pagamento' => 'required|string',
+            'observacoes' => 'nullable|string',
         ]);
 
-        return response()->json([
-            'status' => 'ok',
-            'message' => 'Venda finalizada (estrutura básica criada).'
-        ]);
+        $cliente = session('pdv_cliente');
+        $carrinho = session('pdv_carrinho', []);
+
+        if (empty($carrinho)) {
+            return redirect()->back()->withErrors('O carrinho está vazio.');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // Cria a venda
+            $venda = Venda::create([
+                'cliente_id' => $cliente['id'] ?? null,
+                'user_id' => auth()->id(),
+                'total' => array_sum(array_map(fn($i) => $i['preco'] * $i['quantidade'], $carrinho)),
+                'forma_pagamento' => $request->forma_pagamento,
+                'observacoes' => $request->observacoes,
+                'status' => 'Concluida',
+                'data_venda' => Carbon::now(),
+            ]);
+
+            // Cria os itens da venda
+            foreach ($carrinho as $item) {
+                ItemVenda::create([
+                    'venda_id' => $venda->id,
+                    'produto_id' => $item['id'],
+                    'quantidade' => $item['quantidade'],
+                    'preco' => $item['preco'],
+                    'subtotal' => $item['preco'] * $item['quantidade'],
+                ]);
+
+                // Atualiza o estoque
+                $produto = Produto::find($item['id']);
+                if ($produto) {
+                    $produto->estoque -= $item['quantidade'];
+                    $produto->save();
+                }
+            }
+
+            DB::commit();
+
+            // Limpa sessão PDV
+            session()->forget(['pdv_cliente', 'pdv_carrinho']);
+
+            return redirect()->route('pdv.success', ['venda' => $venda->id])
+                             ->with('success', 'Venda concluída com sucesso!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors('Erro ao finalizar a venda: ' . $e->getMessage());
+        }
     }
 
     /**
