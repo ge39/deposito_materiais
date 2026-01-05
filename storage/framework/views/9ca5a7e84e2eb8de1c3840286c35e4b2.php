@@ -9,8 +9,24 @@
       <div class="modal-body">
 
         
-        <div class="alert alert-secondary fs-5 text-center">
-            Total a pagar: <strong id="total-venda-modal">R$ 0,00</strong>
+        <div class="alert alert-secondary fs-4 text-center">
+            <span >Total a pagar:</span></br> <strong id="total-venda-modal"> 0,00</strong>
+        </div>
+        
+        <div class="alert alert-light text-center mb-3">
+            <div class="fw-semibold">
+                Restante a pagar:
+                <span id="valor-restante" class="text-danger fw-bold">
+                    R$ 0,00
+                </span>
+            </div>
+
+            <div class="fw-bold fs-5 mt-1">
+                Troco:
+                <span id="valor-troco" class="text-success">
+                    R$ 0,00
+                </span>
+            </div>
         </div>
 
         
@@ -32,62 +48,21 @@
                     <label class="form-label fw-semibold"><?php echo e($label); ?></label>
                 </div>
                 <div class="col-7">
-                    <input type="number" step="0.01" class="form-control pagamento-modal" data-forma="<?php echo e($key); ?>" placeholder="0,00">
+                    <input  type="number" step="0.01"  class="form-control pagamento-modal" data-forma="<?php echo e($key); ?>" placeholder="0,00" min="0" autofocus style="max-width: 150px; font-weight:bold">
                 </div>
             </div>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-
+                
           </div>
         </div>
 
       </div>
-      <div class="modal-footer d-grid gap-2">
-        <button type="button" class="btn btn-success btn-lg" id="btnFinalizarVendaModal">F6 - Finalizar Venda</button>
+      <div class="modal-footer d-grid gap-2 md-2">
+        <button type="button" class="btn btn-success btn-lg" id="btnFinalizar">Finalizar Venda</button>
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-
-    const labelTotalPDV = document.getElementById('totalGeral');
-    const totalModalEl = document.getElementById('total-venda-modal');
-
-    function abrirModalFinalizar() {
-        let total = 0;
-        if(labelTotalPDV) {
-            const texto = labelTotalPDV.textContent.replace(/[^\d,]/g,'');
-            total = parseFloat(texto.replace(',', '.')) || 0;
-        }
-
-        if(totalModalEl) {
-            totalModalEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
-
-        const modalEl = document.getElementById('modalFinalizarVenda');
-        if(modalEl && typeof bootstrap !== 'undefined'){
-            const modal = new bootstrap.Modal(modalEl);
-            modal.show();
-        } else {
-            console.warn('⚠️ Modal de finalizar venda não encontrado ou Bootstrap não carregado.');
-        }
-
-        console.log('💰 Total exibido no modal:', total);
-    }
-
-    // Tecla F6
-    document.addEventListener('keydown', function(e){
-        if(e.code === 'F6'){
-            e.preventDefault();
-            abrirModalFinalizar();
-            console.log('F6 OK - modal finalizador aberto');
-        }
-    });
-
-    window.abrirModalFinalizar = abrirModalFinalizar;
-
-});
-</script>
 <?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/modals/modal_finalizar.blade.php ENDPATH**/ ?>

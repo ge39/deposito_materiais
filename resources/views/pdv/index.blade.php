@@ -471,14 +471,8 @@
         <div class="col">
             <button class="btn btn-danger fs-6  w-100 md-1 p-2">F8 Fecham. Caixa</button>
         </div> 
-        <div class="col">
-            <!-- <button class="btn btn-secondary fs-6 w-100 md-1 p-2">F11 - Tela Cheia</button> -->
-             <button id="btnF6" class="btn btn-warning fs-6 w-100 md-1 p-2">F6 - Final. Venda</button>
-
-        </div>       
-        
-        <div class="col btn btn-dark w-100 md-1 p-2 fw-bold d-flex flex-column align-items-center justify-content-center">
-            <!-- <span class="fw-bold fs-1 fw-bold text-uppercase" style="font-size: 20px !important;">Total</span> -->
+        <div class="col btn btn-dark w-100 md-1 p-1 fw-bold d-flex flex-column align-items-center justify-content-center">
+            
             <div class="col btn btn-dark w-100 md-1 p-2 fw-bold d-flex flex-column align-items-center justify-content-center">
                 <!-- Label que mostra o total na tela do PDV -->
                 <label id="totalGeral" class="fw-bold text-warning" style="margin-top: -18px; margin-bottom: -15px; font-size: 32px !important;">R$ 0,00</label>
@@ -492,44 +486,6 @@
     
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const btnF6 = document.getElementById('btnF6');
-        const totalGeralLabel = document.getElementById('totalGeral');
-
-        btnF6.addEventListener('click', function() {
-            if(totalGeralLabel){
-                console.log('💰 Total exibido antes de F6:', totalGeralLabel.textContent);
-            } else {
-                console.warn('⚠️ Elemento #totalGeral não encontrado');
-            }
-
-            // Aqui você pode chamar sua função de abrir modal_finalizar
-            // ex: abrirModalFinalizar();
-            document.addEventListener('DOMContentLoaded', function() {
-        const btnFinalizar = document.getElementById("btnF6"); // botão que abre o modal
-        const totalInput = document.getElementById("inputTotalGeral");
-        const modalTotal = document.getElementById("total-venda-modal"); // input do modal
-
-        btnFinalizar.addEventListener("click", function() {
-            if(totalInput && modalTotal){
-                modalTotal.value = totalInput.value; // preenche o modal
-            } else {
-                console.warn("Elemento de total não encontrado!");
-            }
-
-            // abre o modal
-            const modalEl = document.getElementById('modalFinalizar');
-            if(modalEl && typeof bootstrap !== 'undefined'){
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
-            }
-        });
-    });
-        });
-    });
-
-</script>
 <!-- <script>
     document.addEventListener('DOMContentLoaded', function () {
         const modalEl = document.getElementById('modalBloquearCaixa');
@@ -721,9 +677,10 @@
 
 </script>
 
+
 {{-- No final da view pdv.index --}}
 @push('scripts')
-<script src="{{ asset('js/modal_finalizar.js') }}"></script>
+<script src="{{ asset('/js/pdv/modal_finalizar.js') }}"></script>
 @endpush
 
 @endsection

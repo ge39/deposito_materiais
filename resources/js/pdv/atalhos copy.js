@@ -42,7 +42,18 @@ document.addEventListener('DOMContentLoaded', function () {
             const modal = document.getElementById('modalOrcamento');
             if (modal) new bootstrap.Modal(modal).show();
         }
+         
+        if (e.code === 'F6') {
 
+            // Se já existe um modal aberto, NÃO faz nada
+            if (document.querySelector('.modal.show')) {
+                return;
+            }
+
+            e.preventDefault();
+            abrirModalFinalizar();
+        }
+    
     }, true); // capture=true (fundamental)
 
     /**

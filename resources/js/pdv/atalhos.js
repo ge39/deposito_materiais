@@ -13,35 +13,15 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('modalOrcamento')
     );
 
+    const modalFinalizar = bootstrap.Modal.getOrCreateInstance(
+        document.getElementById('modalFinalizarVenda')
+);
+
     const modalCaixasEsquecidosEl = document.getElementById('listaCaixasEsquecidos');
     const modalCaixasEsquecidos = bootstrap.Modal.getOrCreateInstance(
         modalCaixasEsquecidosEl
     );
-    document.addEventListener('keydown', function(e) {
-        if (e.code === 'F6') {
-            e.preventDefault();
-
-            // Pega o total exibido
-            const total = document.getElementById('totalGeral')?.textContent || '0';
-            console.log('💰 Total exibido antes de F6:', total);
-            window.carrinhoTotal = total;
-
-            // Abre modal finalizador
-            const modalEl = document.getElementById('modalFinalizarVenda');
-            if (modalEl) {
-                const modal = new bootstrap.Modal(modalEl, {
-                    backdrop: 'static',
-                    keyboard: false
-                });
-                modal.show();
-                console.log('F6 OK - modal finalizador aberto');
-            } else {
-                console.error('❌ Modal #modalFinalizar não encontrado no DOM');
-            }
-        }
-
-    });
-
+   
     /**
      * 🔒 CONTROLE DE BLOQUEIO DO PDV
      */
@@ -51,6 +31,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function desbloquearPDV() {
         document.body.classList.remove('caixa-bloqueado');
+    }
+
+    // Verifica se o PDV deve iniciar bloqueado
+    function caixaAbertoHaMaisDe12Horas() {
+        if (!window.PDV_STATE?.caixa_aberto_em) return false;
+
+        const abertoEm = new Date(window.PDV_STATE.caixa_aberto_em);
+        const agora = new Date();
+
+        const diffHoras = (agora - abertoEm) / (1000 * 60 * 60);
+
+        return diffHoras >= 12;
+    }
+
+    function pdvEstaBloqueadoPorRegra() {
+        const status = window.PDV_STATE?.caixa_status;
+
+        // 🔒 Status inválido
+        if (status === 'bloqueado' || status === 'fechado') {
+            return true;
+        }
+
+        // ⏰ Aberto há mais de 12h
+        if (status === 'aberto' && caixaAbertoHaMaisDe12Horas()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -81,12 +89,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (e.repeat) return;
 
-        // 🔒 BLOQUEIO TOTAL
-        if (pdvEstaBloqueado()) {
+        // 🔒 BLOQUEIO TOTAL (STATUS, 12H OU UI)
+        if (pdvEstaBloqueado() || pdvEstaBloqueadoPorRegra()) {
             e.preventDefault();
             e.stopPropagation();
             return;
         }
+
 
         switch (e.key) {
 
@@ -103,10 +112,14 @@ document.addEventListener('DOMContentLoaded', function () {
             case 'F4':
                 e.preventDefault();
                 modalOrcamento.show();
-                break;              
+                break;  
+
+            case 'F6':
+                 e.preventDefault();
+                 modalFinalizar.show();
+                break;             
         }
             
     });
-
-   
+       
 });
