@@ -2,16 +2,11 @@
 
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Cliente;
 use App\Models\Produto;
 use App\Models\Venda;
 use App\Models\Caixa;
-use App\Models\ItemVenda;
-use App\Models\PagamentoVenda;
-use App\Models\MovimentacaoCaixa;
-use App\Models\Lote;
- use Carbon\Carbon;
+use Carbon\Carbon;
 
 class PDVController extends Controller
 {
@@ -328,19 +323,7 @@ class PDVController extends Controller
         ]);
     }
 
-    /**
-     * F4 – Buscar Vendas do dia (Histórico)*/
-    public function buscarVendasDia()
-    {
-        $vendas = Venda::whereDate('created_at', now()->toDateString())
-            ->orderBy('id', 'DESC')
-            ->limit(30)
-            ->get();
-
-        return response()->json($vendas);
-    }
-
-    // Exibe a tela de finalizar (F6)
+        // Exibe a tela de finalizar (F6)
     public function finalizar(Request $request)
     {
         $cliente = session('pdv_cliente'); // Cliente selecionado no PDV
@@ -350,106 +333,11 @@ class PDVController extends Controller
         foreach ($carrinho as $item) {
             $total += $item['preco'] * $item['quantidade'];
         }
-
-        // return view('pdv.index', [
-        //     'cliente' => $cliente,
-        //     'carrinho' => $carrinho,
-        //     'total' => $total,
-        // ]);
     }
 
-    // Salva a venda no banco
-    public function storeVenda(Request $request)
-    {
-        $request->validate([
-            'forma_pagamento' => 'required|string',
-            'observacoes' => 'nullable|string',
-        ]);
+      
 
-        $cliente = session('pdv_cliente');
-        $carrinho = session('pdv_carrinho', []);
-
-        if (empty($carrinho)) {
-            return redirect()->back()->withErrors('O carrinho está vazio.');
-        }
-
-        DB::beginTransaction();
-
-        try {
-            // Cria a venda
-            $venda = Venda::create([
-                'cliente_id' => $cliente['id'] ?? null,
-                'user_id' => auth()->id(),
-                'total' => array_sum(array_map(fn($i) => $i['preco'] * $i['quantidade'], $carrinho)),
-                'forma_pagamento' => $request->forma_pagamento,
-                'observacoes' => $request->observacoes,
-                'status' => 'Concluida',
-                'data_venda' => Carbon::now(),
-            ]);
-
-            // Cria os itens da venda
-            foreach ($carrinho as $item) {
-                ItemVenda::create([
-                    'venda_id' => $venda->id,
-                    'produto_id' => $item['id'],
-                    'quantidade' => $item['quantidade'],
-                    'preco' => $item['preco'],
-                    'subtotal' => $item['preco'] * $item['quantidade'],
-                ]);
-
-                // Atualiza o estoque
-                $produto = Produto::find($item['id']);
-                if ($produto) {
-                    $produto->estoque -= $item['quantidade'];
-                    $produto->save();
-                }
-            }
-
-            DB::commit();
-
-            // Limpa sessão PDV
-            session()->forget(['pdv_cliente', 'pdv_carrinho']);
-
-            return redirect()->route('pdv.success', ['venda' => $venda->id])
-                             ->with('success', 'Venda concluída com sucesso!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->withErrors('Erro ao finalizar a venda: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * F6 – Cancelar Venda Atual */
-    public function cancelarVenda()
-    {
-        return response()->json([
-            'status' => 'ok',
-            'message' => 'Venda cancelada.'
-        ]);
-    }
-
-    /**
-     * F7 – Consultar Preço Rápido */
-    public function consultarPreco(Request $request)
-    {
-        $codigo = $request->input('codigo');
-
-        $produto = Produto::where(function($q) use ($codigo) {
-                $q->where('codigo_barras', $codigo)
-                  ->orWhere('sku', $codigo);
-            })
-            ->where('ativo', 1)
-            ->whereHas('lotes', function($q) {
-                $q->where('status', 1)
-                  ->where('quantidade_disponivel', '>', 0)
-                  ->whereDate('validade_lote', '>=', now());
-            })
-            ->first();
-
-        return response()->json($produto);
-    }
-
+    
     /**
      * F8 – Abrir Gaveta (apenas backend registra)
      */

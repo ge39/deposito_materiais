@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ItemVenda extends Model
@@ -11,15 +12,19 @@ class ItemVenda extends Model
     protected $table = 'item_vendas';
 
     protected $fillable = [
-        'venda_id',
-        'produto_id',
-        'lote_id',
-        'quantidade',
-        'preco_unitario',
-        'desconto',
+        'venda_id', 'produto_id', 'lote_id',
+        'quantidade', 'preco_unitario', 'desconto', 'subtotal'
     ];
 
-     public function venda()
+    protected $casts = [
+        'quantidade' => 'integer',
+        'preco_unitario' => 'decimal:2',
+        'desconto' => 'decimal:2',
+        'subtotal' => 'decimal:2'
+    ];
+
+    // RELACIONAMENTOS
+    public function venda()
     {
         return $this->belongsTo(Venda::class, 'venda_id');
     }
@@ -31,15 +36,6 @@ class ItemVenda extends Model
 
     public function lote()
     {
-         return $this->belongsTo(Lote::class, 'lote_id');
+        return $this->belongsTo(Lote::class, 'lote_id');
     }
-
-    public function devolucoes() {
-        return $this->hasMany(Devolucao::class, 'venda_item_id'); // <- isso está errado
-    }
-   
-
-
-
 }
-

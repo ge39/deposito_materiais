@@ -3,6 +3,37 @@
 @section('title', 'Lançamento Manual de Valores - Caixa #'.$caixa->id)
 
 @section('content')
+<!-- Modal de Confirmação Visual -->
+<div class="modal fade" id="modalConfirmarFechamento" tabindex="-1" aria-labelledby="modalConfirmarFechamentoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning shadow-lg">
+      
+      <div class="modal-header bg-warning text-dark d-flex align-items-center">
+        <i class="bi bi-exclamation-triangle-fill fs-3 me-2"></i>
+        <h5 class="modal-title fw-bold" id="modalConfirmarFechamentoLabel">Atenção: Fechamento de Caixa</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      
+      <div class="modal-body fs-6">
+        <p>
+          Você está prestes a fechar o caixa. <strong>Valores incorretos ou duvidosos</strong> lançados podem acarretar o bloqueio do caixa e <strong>passível de Auditoria</strong>.
+        </p>
+        <p class="text-danger fw-bold mb-0">
+          Confirme apenas se os valores estiverem corretos.
+        </p>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Não, cancelar</button>
+        <button type="button" class="btn btn-warning btn-sm fw-bold" id="confirmarFechamento">
+          Sim, fechar caixa
+        </button>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
 <div class="container">
     <h2 class="mb-4">Fechamento de Caixa  - Caixa #{{ $caixa->id }}</h2>
    <div class="card mb-4 shadow-sm">
@@ -187,17 +218,37 @@
     <!-- =============================== -->
     <div class="row mt-4">
         <div class="col-md-12 text-end">
-            <button type="submit" class="btn btn-success">
-                Fechar Caixa
-            </button>
+            <button type="button" id="btnFecharCaixa" class="btn btn-success">
+                    Fechar Caixa
+                </button>
             <a href="{{ route('fechamento.lista') }}" class="btn btn-secondary">
                 Cancelar
             </a>
         </div>
     </div>
+    
+  
 
 </form>
 
-        
-
 @endsection
+
+  <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[action="{{ route('fechamento.fechar', $caixa->id) }}"]');
+    const btnFechar = document.getElementById('btnFecharCaixa'); // botão original
+    const btnConfirmar = document.getElementById('confirmarFechamento');
+    const modal = new bootstrap.Modal(document.getElementById('modalConfirmarFechamento'));
+
+    btnFechar.addEventListener('click', function(e) {
+        e.preventDefault(); // impede envio direto
+        modal.show();
+    });
+
+    btnConfirmar.addEventListener('click', function() {
+        form.submit(); // envia o form apenas se confirmar
+    });
+});
+</script>
+
+

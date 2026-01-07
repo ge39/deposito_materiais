@@ -29,4 +29,12 @@
         </div>
     </div>
 </div>
-<?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/modals/modal_orcamento.blade.php ENDPATH**/ ?>
+
+<script>
+    document.getElementById('modalOrcamento')
+    .addEventListener('hidden.bs.modal', function () {
+        document.body.classList.remove('modal-open');
+        document.querySelectorAll('.modal-backdrop')
+            .forEach(el => el.remove());
+    });
+</script><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/modals/modal_orcamento.blade.php ENDPATH**/ ?>

@@ -29,3 +29,12 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.getElementById('modalOrcamento')
+    .addEventListener('hidden.bs.modal', function () {
+        document.body.classList.remove('modal-open');
+        document.querySelectorAll('.modal-backdrop')
+            .forEach(el => el.remove());
+    });
+</script>

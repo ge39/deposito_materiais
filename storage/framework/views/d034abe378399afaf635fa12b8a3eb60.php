@@ -16,14 +16,10 @@
     #modalBloquearCaixa {
         position: fixed;
         inset: 0;
-
         background: rgba(107, 15, 26, 0.42);
-
         z-index: 999999;
-
         /* ⚠️ IMPORTANTE: desativado por padrão */
         display: none;
-
         align-items: center;
         justify-content: center;
         flex-direction: column;
@@ -37,22 +33,16 @@
     /* CARIMBO */
     .carimbo-caixa {
         position: absolute;
-
         top: 40%;
         left: 50%;
-        width: 55%;
         transform: translate(-50%, -50%) rotate(-25deg);
-
-        font-size: 56px;
+        font-size: 48px;
         font-weight: 900;
-
         color: rgba(255, 255, 255, 0.75);
         border: 6px solid rgba(255, 255, 255, 0.35);
         padding: 18px 55px;
-
         text-transform: uppercase;
         letter-spacing: 4px;
-
         user-select: none;
         pointer-events: none;
     }
@@ -68,8 +58,9 @@
         border-radius: 10px;
         border: 3px solid var(--bordo);
         padding: 14px 20px;
+        width:160px;
         gap:30px;
-        font-size: 22px;
+        font-size: 14px;
         font-weight: bold;
         cursor: pointer;
         z-index: 1;
@@ -77,16 +68,16 @@
     .btn-sair-caixa {
         position: absolute;
         top: 50%;
-        left: 55%;
+        left: 60%;
         border-radius: 10px;
         transform: translate(-50%, calc(-50% + 120px));
         /* background: #ffffff; */
         color: var(--bordo);
         border: 3px solid var(--bordo);
         padding: 14px 20px;
-        width:180px;
+        width:150px;
         gap:30px;
-        font-size: 22px;
+        font-size: 14px;
         font-weight: bold;
         cursor: pointer;
         z-index: 1;
@@ -154,7 +145,7 @@
 
     /* fonte conforme pedido */
     .container-fluid * {
-        font-size: 16px !important;
+        /* font-size: 16px !important; */
     }
     input#descricao,
     input#codigo_barras,
@@ -237,13 +228,14 @@
     }
 </style>
 
-    
+<div class="container-fluid p-0">   
    <!-- OVERLAY -->
     <div id="modalBloquearCaixa" style="display: none;">
+
         <div class="carimbo-caixa">CAIXA BLOQUEADO</div>
 
         <!-- Lista de caixas esquecidos -->
-         <div class="listaCaixasEsquecidos" id="listaCaixasEsquecidos">
+        <div class="listaCaixasEsquecidos" id="listaCaixasEsquecidos">
             <ul></ul>
         </div>
 
@@ -263,8 +255,8 @@
     <!-- FIM OVERLAY -->
 
      <!-- Informações do status do Caixa -->
-    <div class="container-fluid p-0" id="pdv-app" 
-         style="background:#e6e6e6; width:100%; margin-top:-18px; overflow-x:hidden;">
+    <div class="container-fluid p-0" 
+         style="background:#e6e6e6; margin-top:-18px; overflow-x:hidden;">
        
         <div class="caixa-info mb-3 p-0 border rounded shadow-sm bg-light d-flex justify-content-start align-items-center">
             <span><strong>Terminal: 00<?php echo e($terminal->id); ?></strong></span>
@@ -418,7 +410,7 @@
 
             </div>
             <!-- CAMPO DE IMAGEM DO PRODUTO -->
-            <div class="border bg-white mt-1" style="height: 360px; display:flex; align-items:center; justify-content:center;">
+            <div class="border bg-white mt-1" style="height: 250px; display:flex; align-items:center; justify-content:center;">
                 <img id="produto-imagem" src="" alt="Imagem" style="max-width:100%; height:100%; object-fit:contain;">
             </div>
         </div>
@@ -429,11 +421,11 @@
                 <thead class="table-primary fw-bold text-center" style="font-size: 18px !important;">
                     <tr>
                         <td class="text-center" style="width:50px">Item</td>
-                        <td class="text-center" style="width:250px;">Descrição</td>
-                        <td class="text-center" style="width:70px">Qtde</td>
-                        <td class="text-center" style="width:100px">Unid</td>
-                        <td class="text-center" style="width:100px">Preço</td>
-                        <td class="text-center" style="width:150px">SubTotal</td>
+                        <td class="text-center" style="width:200px;">Descrição</td>
+                        <td class="text-center" style="width:50px">Qtde</td>
+                        <td class="text-center" style="width:50px">Unid</td>
+                        <td class="text-center" style="width:90px">Preço</td>
+                        <td class="text-center" style="width:90px">SubTotal</td>
                     </tr>
                 </thead>  
                 <tbody id="lista-itens" ></tbody> 
@@ -491,28 +483,7 @@
     
 </div>
 
-<!-- <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const modalEl = document.getElementById('modalBloquearCaixa');
 
-        // ⚠️ Estado atual do caixa
-        // (futuramente isso vem do backend)
-        const caixaFechado = true;
-
-        if (caixaFechado) {
-            document.body.classList.add('caixa-bloqueado');
-
-            if (modalEl && window.bootstrap) {
-                const modal = new bootstrap.Modal(modalEl, {
-                    backdrop: 'static',
-                    keyboard: false
-                });
-
-                modal.show();
-            }
-        }
-    });
-</script> -->
 <!--  Verica caixa aberto -->
 <script>
     console.log('🔍 Terminal recebido no PDV:', <?php echo json_encode($terminal, 15, 512) ?>);
@@ -572,7 +543,7 @@
                         `Caixa ID: ${caixa.id} | ` +
                         `Aberto em: ${caixa.data_abertura_br} | ` +
                         `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
-                        `Fechado em: ${caixa.data_fechamento_br ?? '-'} | ` +
+                        // `Fechado em: ${caixa.data_fechamento_br ?? '-'} | ` +
                         `Operador: ${caixa.usuario.name}`;
 
                         lista.appendChild(item);

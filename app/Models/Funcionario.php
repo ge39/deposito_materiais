@@ -9,16 +9,17 @@ class Funcionario extends Model
 {
     use HasFactory;
 
-    // Nome da tabela no banco (evita problemas de pluralização)
+    // Nome da tabela no banco
     protected $table = 'funcionarios';
 
-    // Campos que podem ser preenchidos via mass assignment
+    // Campos permitidos para mass assignment
     protected $fillable = [
         'nome',
+        'cpf',
         'funcao',
         'telefone',
+        'salario',
         'email',
-        'cpf',
         'cep',
         'endereco',
         'numero',
@@ -26,17 +27,49 @@ class Funcionario extends Model
         'cidade',
         'estado',
         'observacoes',
-        'data_admissao'
+        'data_admissao',
+        'ativo',
     ];
-     protected $dates = [
+
+    // Campos que devem ser tratados como datas
+    protected $dates = [
+        'data_admissao',
         'created_at',
         'updated_at',
     ];
-    protected $casts = [
-    'data_admissao' => 'date', // Laravel vai converter para Carbon
-     'cpf','nome','funcao','telefone','email',
-    'cep','endereco','cidade','estado','numero','bairro',
-    'observacoes','data_admissao','ativo'
+
+    // Casts para tipos específicos
+     protected $casts = [
+        'data_admissao' => 'date', // Laravel vai converter para Carbon
+        'cpf','nome','funcao','telefone','email',
+        'cep','endereco','cidade','estado','numero','bairro',
+        'observacoes','data_admissao','ativo'
     ];
 
+    // Enum de funções válidas
+    public const FUNCOES = [
+        'vendedor',
+        'supervisor',
+        'motorista',
+        'estoquista',
+        'operador de caixa',
+        'ADM-TI',
+        'gerente',
+    ];
+
+    /**
+     * Relacionamentos úteis
+     */
+
+    // Vendas realizadas pelo funcionário
+    public function vendas()
+    {
+        return $this->hasMany(Venda::class, 'funcionario_id');
+    }
+
+    // Movimentações de caixa realizadas pelo funcionário
+    public function movimentacoesCaixa()
+    {
+        return $this->hasMany(MovimentacaoCaixa::class, 'user_id');
+    }
 }

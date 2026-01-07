@@ -16,7 +16,9 @@ class MovimentacaoCaixa extends Model
         'user_id',
         'tipo',
         'valor',
-        'origem_id',
+        'forma_pagamento',   // novo
+        'bandeira',          // novo
+        'origem_id',         // novo
         'observacao',
         'data_movimentacao',
     ];
@@ -25,6 +27,9 @@ class MovimentacaoCaixa extends Model
         'valor' => 'decimal:2',
         'data_movimentacao' => 'datetime',
     ];
+
+    //Se quiser que data_movimentacao seja tratada como Carbon
+    protected $dates = ['created_at','updated_at','data_movimentacao'];
 
     public $timestamps = true;
 
@@ -50,4 +55,11 @@ class MovimentacaoCaixa extends Model
     {
         return $this->belongsTo(Venda::class, 'origem_id');
     }
+
+    // vincular uma movimentação a uma venda, sangria ou ajuste:
+    public function origem()
+    {
+        return $this->morphTo(); // ou belongsTo dependendo do caso
+    }   
+
 }

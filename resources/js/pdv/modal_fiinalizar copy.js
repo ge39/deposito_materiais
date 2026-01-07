@@ -1,37 +1,161 @@
-// resources/js/pdv/modal_finalizar.js
+document.addEventListener('DOMContentLoaded', function () {
 
-// Função que abre o modal de finalizar venda
-function abrirModalFinalizar() {
-    // Pega o label que mostra o total na tela do PDV
-    const labelTotal = document.getElementById('totalGeral');
-    let total = 0;
+    const totalGeralEl   = document.getElementById('totalGeral');
+    const totalModalEl   = document.getElementById('total-venda-modal');
+    const modalEl        = document.getElementById('modalFinalizarVenda');
+    const restanteEl     = document.getElementById('valor-restante');
+    const trocoEl        = document.getElementById('valor-troco');
+    const btnFinalizar   = document.getElementById('btnFinalizar');
+    const inputsPagamento = modalEl.querySelectorAll('.pagamento-modal');
 
-    if(labelTotal){
-        // Remove tudo que não seja número ou vírgula
-        const texto = labelTotal.textContent.replace(/[^\d,]/g,'');
-        // Converte para float
-        total = parseFloat(texto.replace(',', '.')) || 0;
+    if (!totalGeralEl || !totalModalEl || !modalEl) {
+        console.warn('Modal finalizar: elementos não encontrados');
+        return;
     }
 
-    console.log('💰 Total convertido para JS no modal_finalizar:', total);
+    const modal = new bootstrap.Modal(modalEl);
 
-    // Atualiza o input escondido do modal
-    const inputTotalGeral = document.getElementById('inputTotalGeral');
-    if(inputTotalGeral){
-        // Converte para string com vírgula
-        inputTotalGeral.value = total.toFixed(2).replace('.', ',');
+    function obterTotalVenda() {
+        return parseFloat(totalGeralEl.textContent.replace(/\D/g, '')) / 100 || 0;
     }
 
-    // Abre o modal usando Bootstrap 5
-    const modalEl = document.getElementById('modalFinalizarVenda'); // certifique-se que esse é o id do modal
-    
-    if(modalEl && typeof bootstrap !== 'undefined'){
-        const modal = new bootstrap.Modal(modalEl);
+    function atualizarResumo() {
+        const totalVenda = obterTotalVenda();
+
+        let soma = 0;
+        inputsPagamento.forEach(i => {
+            soma += parseFloat(i.value) || 0;
+        });
+
+        let restante = totalVenda - soma;
+        let troco = 0;
+
+        if (restante < 0) {
+            troco = Math.abs(restante);
+            restante = 0;
+        }
+
+        restanteEl.textContent = restante.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+
+        trocoEl.textContent = troco.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+    }
+
+    function abrirModalFinalizar() {
+        const total = obterTotalVenda();
+
+        totalModalEl.textContent = total.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+
+        inputsPagamento.forEach(i => i.value = '');
+        atualizarResumo();
+
         modal.show();
-    } else {
-        console.warn('⚠️ Modal de finalizar venda não encontrado ou Bootstrap não carregado.');
+        inputsPagamento[0].focus();
     }
-}
 
-// Exporta a função caso queira chamar de outro arquivo
-export { abrirModalFinalizar };
+    // =========================
+    // ENTER: preencher próximo
+    // =========================
+    inputsPagamento.forEach((input, index) => {
+
+        input.addEventListener('input', atualizarResumo);
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+
+            e.preventDefault();
+
+            const totalVenda = obterTotalVenda();
+            let soma = 0;
+
+            inputsPagamento.forEach(i => {
+                soma += parseFloat(i.value) || 0;
+            });
+
+            const restante = parseFloat((totalVenda - soma).toFixed(2));
+
+            if (restante > 0) {
+                const proximo = Array.from(inputsPagamento)
+                    .slice(index + 1)
+                    .find(i => !i.value || parseFloat(i.value) === 0);
+
+                if (proximo) {
+                    proximo.value = restante.toFixed(2);
+                    proximo.focus();
+                    atualizarResumo();
+                    return;
+                }
+            }
+
+            btnFinalizar.focus();
+        });
+    });
+
+    // ATALHOS + FOCO + VALOR TOTAL
+    // =========================
+    document.addEventListener('keydown', function (e) {
+
+        const modalEl = document.getElementById('modalFinalizarVenda');
+
+        // só funciona com o modal aberto
+        if (!modalEl || !modalEl.classList.contains('show')) return;
+
+        const tecla = e.key.toLowerCase();
+
+        // buffer para teclas compostas (dd, cc, cd, pi, ca)
+        window.__pdvBufferForma = (window.__pdvBufferForma || '') + tecla;
+        window.__pdvBufferForma = window.__pdvBufferForma.slice(-2);
+
+        let forma = null;
+
+        switch (window.__pdvBufferForma) {
+            case 'dd': forma = 'dinheiro'; break;
+            case 'cc': forma = 'cartao_credito'; break;
+            case 'cd': forma = 'cartao_debito'; break;
+            case 'pi': forma = 'pix'; break;
+            case 'ca': forma = 'carteira'; break;
+        }
+
+        if (!forma) return;
+
+        const input = modalEl.querySelector(
+            `.pagamento-modal[data-forma="${forma}"]`
+        );
+
+        if (!input) return;
+
+        e.preventDefault();
+
+        // 👉 usa SUA função existente
+        const total = obterTotalVenda();
+
+        input.focus();
+        input.value = total.toFixed(2);
+        input.select();
+
+        // força atualização de restante/troco
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        window.__pdvBufferForma = '';
+    });
+
+
+    // =========================
+    // Tecla F6 abre modal
+    // =========================
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'F6') {
+            e.preventDefault();
+            abrirModalFinalizar();
+        }
+    });
+
+});

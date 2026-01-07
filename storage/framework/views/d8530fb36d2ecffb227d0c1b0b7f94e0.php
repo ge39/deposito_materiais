@@ -123,6 +123,16 @@
     });
     });
 </script>
+
+<script>
+    document.getElementById('modalProduto')
+    .addEventListener('hidden.bs.modal', function () {
+        document.body.classList.remove('modal-open');
+        document.querySelectorAll('.modal-backdrop')
+            .forEach(el => el.remove());
+    });
+</script>
+
 <!--  FUNÇÃO FINAL E ÚNICA: SELECIONAR PRODUTO NO PDV -->
 <script>
     // ======================================================================

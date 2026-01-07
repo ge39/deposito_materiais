@@ -12,18 +12,13 @@ class Lote extends Model
     protected $table = 'lotes';
 
     protected $fillable = [
-        'numero_lote',
-        'pedido_compra_id',
-        'produto_id',
-        'fornecedor_id',
-        'quantidade',
-        'quantidade_disponivel',
-        'preco_compra',
-        'data_compra',
-        'validade_lote',
-        'lancado_por',
-        'status', // 1 = ativo, 0 = inativo
+    'numero_lote', 'pedido_compra_id', 'produto_id', 'fornecedor_id',
+    'quantidade', 'quantidade_disponivel', 'preco_compra', 'data_compra',
+    'lancado_por', 'validade_lote',
+    'status', // 1 = ativo, 0 = inativo
     ];
+
+    protected $dates = ['created_at','updated_at','data_compra','validade_lote'];
 
     protected $casts = [
         'data_compra' => 'date',
@@ -40,9 +35,9 @@ class Lote extends Model
     {
         return $this->belongsTo(User::class, 'lancado_por');
     }
-        public function produto()
-    {
-        return $this->belongsTo(Produto::class);
+    public function produto(){
+
+        return $this->belongsTo(Produto::class, 'produto_id');
     }
 
     public function fornecedor()

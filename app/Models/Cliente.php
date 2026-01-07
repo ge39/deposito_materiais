@@ -11,25 +11,9 @@ class Cliente extends Model
     protected $table = 'clientes';
 
     protected $fillable = [
-        'nome',
-        'tipo',
-        'cpf_cnpj',
-        'rg_ie',
-        'orgao_emissor',
-        'data_emissao',
-        'data_nascimento',
-        'sexo',
-        'telefone',
-        'email',
-        'cep',
-        'endereco',
-        'numero',
-        'bairro',
-        'cidade',
-        'estado',
-        'limite_credito',
-        'observacoes',
-        'ativo',
+        'nome','tipo','data_nascimento','sexo','cpf_cnpj','rg_ie','orgao_emissor','data_emissao',
+        'telefone','email','cep','endereco','numero','bairro','cidade','estado','endereco_entrega',
+        'limite_credito','observacoes','ativo'
     ];
 
     protected $casts = [

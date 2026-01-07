@@ -1,125 +1,84 @@
 document.addEventListener('DOMContentLoaded', function () {
+    
+    // FUNÇÃO PARA ABRIR MODAL DE FINALIZAR VENDA
+   window.abrirModalFinalizar = function () {
+    const modal = document.getElementById('modalFinalizarVenda');
+    if (!modal) return;
 
-    // Instâncias únicas dos modais
-    const modalCliente = bootstrap.Modal.getOrCreateInstance(
-        document.getElementById('modalCliente')
-    );
-
-    const modalProduto = bootstrap.Modal.getOrCreateInstance(
-        document.getElementById('modalProduto')
-    );
-
-    const modalOrcamento = bootstrap.Modal.getOrCreateInstance(
-        document.getElementById('modalOrcamento')
-    );
-
-    const modalFinalizar = bootstrap.Modal.getOrCreateInstance(
-        document.getElementById('modalFinalizarVenda')
-);
-
-    const modalCaixasEsquecidosEl = document.getElementById('listaCaixasEsquecidos');
-    const modalCaixasEsquecidos = bootstrap.Modal.getOrCreateInstance(
-        modalCaixasEsquecidosEl
-    );
-   
+    const instancia = bootstrap.Modal.getOrCreateInstance(modal);
+    instancia.show();
+};
     /**
-     * 🔒 CONTROLE DE BLOQUEIO DO PDV
+     * CONTROLE GLOBAL DO ESTADO DO CAIXA
+     * true  = caixa bloqueado
+     * false = caixa liberado
      */
-    function bloquearPDV() {
-        document.body.classList.add('caixa-bloqueado');
-    }
-
-    function desbloquearPDV() {
-        document.body.classList.remove('caixa-bloqueado');
-    }
-
-    // Verifica se o PDV deve iniciar bloqueado
-    function caixaAbertoHaMaisDe12Horas() {
-        if (!window.PDV_STATE?.caixa_aberto_em) return false;
-
-        const abertoEm = new Date(window.PDV_STATE.caixa_aberto_em);
-        const agora = new Date();
-
-        const diffHoras = (agora - abertoEm) / (1000 * 60 * 60);
-
-        return diffHoras >= 12;
-    }
-
-    function pdvEstaBloqueadoPorRegra() {
-        const status = window.PDV_STATE?.caixa_status;
-
-        // 🔒 Status inválido
-        if (status === 'bloqueado' || status === 'fechado') {
-            return true;
-        }
-
-        // ⏰ Aberto há mais de 12h
-        if (status === 'aberto' && caixaAbertoHaMaisDe12Horas()) {
-            return true;
-        }
-
-        return false;
-    }
+    window.caixaBloqueado = false;
 
     /**
-     * Quando o modal de caixas esquecidos abrir → BLOQUEIA PDV
-     */
-    modalCaixasEsquecidosEl.addEventListener('shown.bs.modal', function () {
-        bloquearPDV();
-    });
-
-    /**
-     * Quando o modal fechar → DESBLOQUEIA PDV
-     */
-    modalCaixasEsquecidosEl.addEventListener('hidden.bs.modal', function () {
-        desbloquearPDV();
-    });
-
-    /**
-     * Verifica se o PDV está bloqueado
-     */
-    function pdvEstaBloqueado() {
-        return document.body.classList.contains('caixa-bloqueado');
-    }
-
-    /**
-     * 🔑 ATALHOS DO TECLADO
+     * LISTENER GLOBAL DE TECLADO (CAPTURE)
+     * BLOQUEIA QUALQUER TECLA QUANDO CAIXA FECHADO
      */
     document.addEventListener('keydown', function (e) {
 
-        if (e.repeat) return;
-
-        // 🔒 BLOQUEIO TOTAL (STATUS, 12H OU UI)
-        if (pdvEstaBloqueado() || pdvEstaBloqueadoPorRegra()) {
+        if (window.caixaBloqueado) {
             e.preventDefault();
-            e.stopPropagation();
+            e.stopImmediatePropagation();
             return;
         }
 
+        if (e.repeat) return;
 
-        switch (e.key) {
+        // ===== ATALHOS LIBERADOS =====
 
-            case 'F2':
-                e.preventDefault();
-                modalCliente.show();
-                break;
-
-            case 'F3':
-                e.preventDefault();
-                modalProduto.show();
-                break;
-
-            case 'F4':
-                e.preventDefault();
-                modalOrcamento.show();
-                break;  
-
-            case 'F6':
-                 e.preventDefault();
-                 modalFinalizar.show();
-                break;             
+        if (e.key === 'F2') {
+            e.preventDefault();
+            const modal = document.getElementById('modalCliente');
+            if (modal) new bootstrap.Modal(modal).show();
         }
-            
-    });
-       
+
+        if (e.key === 'F3') {
+            e.preventDefault();
+            const modal = document.getElementById('modalProduto');
+            if (modal) new bootstrap.Modal(modal).show();
+        }
+
+        if (e.key === 'F4') {
+            e.preventDefault();
+            const modal = document.getElementById('modalOrcamento');
+            if (modal) new bootstrap.Modal(modal).show();
+        }
+         
+        if (e.code === 'F6') {
+
+            // Se já existe um modal aberto, NÃO faz nada
+            if (document.querySelector('.modal.show')) {
+                return;
+            }
+
+            e.preventDefault();
+            abrirModalFinalizar();
+        }
+    
+    }, true); // capture=true (fundamental)
+
+    /**
+     * BOTÃO ABRIR CAIXA (ÚNICO ELEMENTO ATIVO)
+     */
+    const btnAbrirCaixa = document.querySelector('.btn-abrir-caixa');
+
+    if (btnAbrirCaixa) {
+        btnAbrirCaixa.addEventListener('click', function () {
+
+            console.log('Caixa aberto');
+
+            window.caixaBloqueado = false;
+
+            document.body.classList.remove('caixa-bloqueado');
+
+            const overlay = document.getElementById('overlay-caixa-bloqueado');
+            if (overlay) overlay.style.display = 'none';
+        });
+    }
+
 });

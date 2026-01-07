@@ -19,6 +19,8 @@ class Venda extends Model
         'status',
     ];
 
+    protected $dates = ['created_at','updated_at','data_venda'];
+
     protected $casts = [
         'data_venda' => 'datetime',
     ];
@@ -44,4 +46,10 @@ class Venda extends Model
     {
         return $this->belongsTo(Caixa::class, 'caixa_id');
     }
+    
+    public function funcionario()
+    {
+        return $this->belongsTo(Funcionario::class, 'funcionario_id');
+    }
+
 }

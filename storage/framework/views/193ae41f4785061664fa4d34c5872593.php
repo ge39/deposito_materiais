@@ -1,5 +1,5 @@
 <div class="modal fade" id="modalCliente" tabindex="-1" >
-    <div class="modal-dialog modal-xl"> <!-- corrigido para XL -->
+    <div class="modal-dialog modal-bg"> <!-- corrigido para XL -->
         <div class="modal-content " style="width: 1400px; max-height: 400px;margin-left:-150px; overflow-y: auto;">
 
             <div class="modal-header" >
@@ -44,13 +44,14 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-    var modalCliente = document.getElementById('modalCliente');
+        var modalCliente = document.getElementById('modalCliente');
 
-    modalCliente.addEventListener('shown.bs.modal', function () {
-        document.getElementById('buscaClientePDV').focus();
+        modalCliente.addEventListener('shown.bs.modal', function () {
+            document.getElementById('buscaClientePDV').focus();
+        });
     });
-    });
-
+    
+    
     document.getElementById('buscaClientePDV').addEventListener('keyup', function () {
 
     let query = this.value;
@@ -97,6 +98,26 @@
     });
 </script>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        var modalCliente = document.getElementById('modalCliente');
+
+        // foco no input (já existente)
+        modalCliente.addEventListener('shown.bs.modal', function () {
+            document.getElementById('buscaClientePDV').focus();
+        });
+
+        // LIMPEZA DO BACKDROP AO FECHAR
+        modalCliente.addEventListener('hidden.bs.modal', function () {
+            document.body.classList.remove('modal-open');
+            document.querySelectorAll('.modal-backdrop')
+                .forEach(el => el.remove());
+        });
+
+    });
+</script>
+
 <script>    
     function selecionarClientePDV(  
     id, nome, pessoa, telefone = '', endereco = '', numero = '',
@@ -117,8 +138,15 @@
 
     // Fecha o modal
     const modalElement = document.getElementById('modalCliente');
-    const modal = bootstrap.Modal.getInstance(modalElement);
+
+    let modal = bootstrap.Modal.getInstance(modalElement);
+    if (!modal) {
+        modal = new bootstrap.Modal(modalElement);
+    }
+
     modal.hide();
+
+    
     }
 </script>
 

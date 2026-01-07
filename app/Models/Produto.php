@@ -12,29 +12,15 @@ class Produto extends Model
     use HasFactory;
 
     protected $fillable = [
-        'nome',
-        'codigo_barras',
-        'sku',
-        'descricao',
-        'categoria_id',
-        'fornecedor_id',
-        'unidade_medida_id',
-        'marca_id',
-        'estoque_minimo',
-        'preco_venda',
-        'validade_produto',
-        'em_promocao',
-        'peso',
-        'largura',
-        'altura',
-        'profundidade',
-        'localizacao_estoque',
-        'imagem',
-        'ativo',
-        'editando_por', 
-        'editando_em',
+        'nome', 'descricao', 'categoria_id', 'fornecedor_id', 'unidade_medida_id',
+        'marca_id', 'estoque_minimo', 'preco_compra_atual', 'preco_venda', 'peso',
+        'largura', 'altura', 'profundidade', 'localizacao_estoque', 'imagem',
+        'ativo', 'codigo_barras', 'sku', 'em_promocao', 'validade_produto',
+        'editando_por', 'editando_em'
     ];
-   
+    
+    protected $dates = ['created_at','updated_at','validade_produto','editando_em'];
+
     protected $casts = [
         'preco_venda' => 'decimal:2',
         'promocao_inicio' => 'date',
@@ -57,9 +43,14 @@ class Produto extends Model
 
     public function lotes()
     {
-        return $this->hasMany(Lote::class);
+        return $this->hasMany(Lote::class,'produto_id');
     }
 
+    public function itemVendas()
+    {
+        return $this->hasMany(ItemVenda::class, 'produto_id');
+    }
+    
     public function unidadeMedida()
     {
         return $this->belongsTo(

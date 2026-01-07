@@ -1,3 +1,49 @@
+<style>
+.tabela-movimentacoes {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+/* Overflow controlado e texto cortado */
+.tabela-movimentacoes th,
+.tabela-movimentacoes td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 10px 8px;
+}
+
+/* Larguras das colunas */
+.tabela-movimentacoes th:nth-child(1),
+.tabela-movimentacoes td:nth-child(1) { width: 50px; }   /* ID */
+.tabela-movimentacoes th:nth-child(2),
+.tabela-movimentacoes td:nth-child(2) { width: 150px; }  /* Tipo */
+.tabela-movimentacoes th:nth-child(3),
+.tabela-movimentacoes td:nth-child(3) { width: 180px; }  /* Valor */
+.tabela-movimentacoes th:nth-child(4),
+.tabela-movimentacoes td:nth-child(4) { width: 100px; }   /* Origem */
+.tabela-movimentacoes th:nth-child(5),
+.tabela-movimentacoes td:nth-child(5) { width: 150px; }  /* Data */
+.tabela-movimentacoes th:nth-child(6),
+.tabela-movimentacoes td:nth-child(6) { width: auto; }   /* Observação */
+
+/* Zebra striping suave */
+.tabela-movimentacoes tbody tr:nth-child(odd) {
+    background-color: #f9f9f9; /* linha clara */
+}
+
+.tabela-movimentacoes tbody tr:nth-child(even) {
+    background-color: #ffffff; /* linha branca */
+}
+
+/* Efeito hover */
+.tabela-movimentacoes tbody tr:hover {
+    background-color: #e0f3ff; /* destaque suave */
+}
+
+</style>
+
 
 
 <?php $__env->startSection('content'); ?>
@@ -7,7 +53,8 @@
     
     <div class="row mb-3">
         <div class="col-md-4">
-            <div class="card p-2">
+            <div class="card p-2 ">
+                <div class="card-header fs-5 bg-primary text-white fw-bold"> Abertura:</div>
                 <strong>Abertura:</strong> R$ <?php echo e(number_format($caixa->valor_abertura, 2, ',', '.')); ?><br>
                 <strong>Fundo de Troco:</strong> R$ <?php echo e(number_format($caixa->fundo_troco, 2, ',', '.')); ?><br>
                 <strong>Data Abertura:</strong> <?php echo e($caixa->data_abertura->format('d/m/Y H:i')); ?><br>
@@ -18,6 +65,7 @@
 
         <div class="col-md-4">
             <div class="card p-2">
+                <div class="card-header fs-5 bg-primary text-white fw-bold"> Total Entradas:</div>
                 <strong>Total Entradas:</strong> R$ <?php echo e(number_format($total_entradas, 2, ',', '.')); ?><br>
                 <strong>Total Saídas:</strong> R$ <?php echo e(number_format($total_saidas, 2, ',', '.')); ?><br>
                 <strong>Total Esperado:</strong> R$ <?php echo e(number_format($total_esperado, 2, ',', '.')); ?><br>
@@ -31,7 +79,8 @@
 
         <div class="col-md-4">
             <div class="card p-2">
-                <strong>Totais por Forma de Pagamento (Sistema):</strong>
+                <div class="card-header fs-5 bg-primary text-white fw-bold">Formas Pagamento (Sistema):</div>
+                <strong>-</strong>
                 <ul class="list-unstyled mb-0">
                     <?php $__currentLoopData = ['dinheiro','pix','carteira','cartao_debito','cartao_credito']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $forma): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li><?php echo e(ucfirst(str_replace('_',' ',$forma))); ?>: 
@@ -88,9 +137,9 @@
     
     <div class="row mt-4">
         <div class="col-12">
-            <h5>Movimentações do Caixa</h5>
-            <table class="table table-sm table-striped">
-                <thead>
+            <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações do Caixa</div>
+            <table class="table table-bg table-striped tabela-movimentacoes">
+                <thead class="table-light">
                     <tr>
                         <th>ID</th>
                         <th>Tipo</th>
@@ -100,12 +149,12 @@
                         <th>Observação</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody >
                     <?php $__currentLoopData = $caixa->movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <tr>
+                    <tr >
                         <td><?php echo e($mov->id); ?></td>
                         <td><?php echo e(ucfirst($mov->tipo)); ?></td>
-                        <td>R$ <?php echo e(number_format($mov->valor, 2, ',', '.')); ?></td>
+                        <td style="width:600px">R$ <?php echo e(number_format($mov->valor, 2, ',', '.')); ?></td>
                         <td><?php echo e($mov->origem_id ?? '-'); ?></td>
                         <td><?php echo e($mov->data_movimentacao->format('d/m/Y H:i')); ?></td>
                         <td><?php echo e($mov->observacao ?? '-'); ?></td>
@@ -117,8 +166,11 @@
             </table>
                 <div class="mt-3">
                     <a href="<?php echo e(route('fechamento.lancar_valores', $caixa->id)); ?>"
-                    class="btn btn-primary btn-sm">
+                    class="btn btn-primary">
                         Lançamento de Valores Manuais
+                    </a>
+                    <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary ">
+                        Cancelar
                     </a>
                 </div>
 

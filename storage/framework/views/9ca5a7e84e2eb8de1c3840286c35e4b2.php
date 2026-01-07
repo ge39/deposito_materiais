@@ -34,11 +34,11 @@
           <div class="card-body">
             <?php
                 $formas = [
-                    'dinheiro' => 'Dinheiro',
-                    'cartao_credito' => 'Cartão de Crédito',
-                    'cartao_debito' => 'Cartão de Débito',
-                    'pix' => 'PIX',
-                    'carteira' => 'Carteira'
+                    'dinheiro' => ' DD - Dinheiro',
+                    'cartao_credito' => 'CC - Cartão de Crédito',
+                    'cartao_debito' => 'CD - Cartão de Débito',
+                    'pix' => ' Pi - PIX',
+                    'carteira' => 'CA - Carteira'
                 ];
             ?>
 
