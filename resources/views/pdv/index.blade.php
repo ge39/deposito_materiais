@@ -4,6 +4,9 @@
 @extends('layouts.app')
 @section('content') 
 
+// Quando abrir o PDV
+<?php  session(['terminal_id' => $terminal->id])?>;
+
 <style>
     /* estilo pra bloqueio de caixa */
     :root {
@@ -38,13 +41,16 @@
         transform: translate(-50%, -50%) rotate(-25deg);
         font-size: 48px;
         font-weight: 900;
+        border-radius:15px;
         color: rgba(255, 255, 255, 0.75);
+        background:snow;
         border: 6px solid rgba(255, 255, 255, 0.35);
         padding: 18px 55px;
         text-transform: uppercase;
         letter-spacing: 4px;
         user-select: none;
         pointer-events: none;
+
     }
 
     /* BOTÃO — único elemento ativo */
@@ -231,9 +237,16 @@
 <div class="container-fluid p-0">   
    <!-- OVERLAY -->
     <div id="modalBloquearCaixa" style="display: none;">
-
-        <div class="carimbo-caixa">CAIXA BLOQUEADO</div>
-
+        <div class="carimbo-caixa">
+            <span class="
+                {{ $status === 'Aberto' ? 'status-aberto' : '' }}
+                {{ $status === 'Fechado' ? 'status-fechado' : '' }}
+                {{ $status === 'Pendente' ? 'status-pendente' : '' }}
+                {{ $status === 'Inconsistente' ? 'status-inconsistente' : '' }}
+            " style="padding: 5px 10px; border-radius: 5px; font-weight: bold">
+              CAIXA {{ $status }}
+            </span>
+        </div>
         <!-- Lista de caixas esquecidos -->
         <div class="listaCaixasEsquecidos" id="listaCaixasEsquecidos">
             <ul></ul>
@@ -261,6 +274,7 @@
         <div class="caixa-info mb-3 p-0 border rounded shadow-sm bg-light d-flex justify-content-start align-items-center">
             <span><strong>Terminal: 00{{ $terminal->id }}</strong></span>
             <span><strong>Operador: {{ $operador }}</strong> </span>
+             <span><strong>ID: {{ $operadorId }}</strong> </span>
             <span><strong>Status Caixa:  
                 <span class="
                     {{ $status === 'Aberto' ? 'status-aberto' : '' }}
@@ -330,25 +344,29 @@
     <div class="row g-2 mb-2 p-2" style="background:#3a3a3a; color:white;">
         <div class="col-md-2 fw-bold mb-0">
             <label>Data Venda</label>
-            <input class="form-control fs-6 fw-bold text-center" type="date" value="{{ date('Y-m-d') }}" readonly>
+            <input class="form-control fs-6 fw-bold text-center" type="datetime-local" value="{{ date('Y-m-d\TH:i') }}" readonly>
         </div>
         <div class="col-md-2 fw-bold mb-0">
              <!-- <label>ID</label> -->
             <input type="hidden" name="cliente_id">
             <label>Cliente</label>
-            <input class="form-control  fs-6 fw-bold text-center" name="nome" required readonly>
+            <input  class="form-control  fs-6 fw-bold text-center" name="nome">
+            <input  type="hidden" name="cliente_id" value="{{  $clienteBalcao->id }}">
+            <input  type="hidden" name="operador_id" value="{{  $operadorId }}">
+            <input  type="hidden" name="terminal_id" value="{{  $terminal->id }}">
+            <input  type="hidden" id="dataVenda"  type="datetime-local" value="{{ date('Y-m-d\TH:i') }}">
         </div>
          <div class="col-md-1 fw-bold mb-0">
             <label>Pessoa</label>
             <input class="form-control  fs-6 fw-bold text-center" name="pessoa" required readonly>
         </div>
-        <div class="col-md-2 fw-bold mb-0">
+        <div class="col-md-1 fw-bold mb-0">
             <label>Contato Local</label>
             <input class="form-control fs-6 fw-bold text-center" name="telefone" required >
         </div>
          <div class="col-md-5 fw-bold mb-0">
             <label>Endereço para entrega</label>
-            <input class="form-control  fs-6 fw-bold text-center" name="endereco" required >
+            <input id="endereco" class="form-control  fs-6 fw-bold text-center" name="endereco" required >
         </div>
         
     </div>
@@ -377,7 +395,7 @@
                 <!-- Quantidade -->
                 <div class="col-md-2 p-1">
                     <label for="quantidade" class="form-label">Quantidade</label>
-                    <input style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  type="number" name="quantidade" id="quantidade" value= "1" min="1" >
+                    <input id="quantidade" style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  type="number" name="quantidade"  value= "1" min="1" >
                     <small id="msgEstoque" class="text-danger fw-bold"></small>
                 </div>
 
@@ -389,7 +407,7 @@
                 <!-- Preço venda -->
                 <div class="col-md-3 p-1">  
                     <label for="preco_venda" class="form-label">Preço</label>
-                    <input style="font-size: 16px !important;" id="preco_venda" class="form-control form-control-sm fw-bold bg-warning"  readonly>
+                    <input style="font-size: 16px !important;" id="preco_venda" name="preco_venda" class="form-control form-control-sm fw-bold bg-warning"readOnly>
                 </div>
                  <!-- Quantidade -->   
                 <div class="col-md-2 p-1">  
@@ -416,11 +434,14 @@
                 <thead class="table-primary fw-bold text-center" style="font-size: 18px !important;">
                     <tr>
                         <td class="text-center" style="width:50px">Item</td>
+                        <td class="text-center" style="width:90px">Lote</td>
                         <td class="text-center" style="width:200px;">Descrição</td>
                         <td class="text-center" style="width:50px">Qtde</td>
                         <td class="text-center" style="width:50px">Unid</td>
                         <td class="text-center" style="width:90px">Preço</td>
                         <td class="text-center" style="width:90px">SubTotal</td>
+                        
+
                     </tr>
                 </thead>  
                 <tbody id="lista-itens" ></tbody> 
@@ -479,16 +500,16 @@
 </div>
 
 
-<!--  Verica caixa aberto -->
+<!--  Verifica caixa aberto -->
 <script>
-    console.log('🔍 Terminal recebido no PDV:', @json($terminal));
-    console.log('💰 Caixa aberto recebido no PDV:', @json($caixaAberto));
+    // console.log('🔍 Terminal recebido no PDV:', @json($terminal));
+    // console.log('💰 Caixa aberto recebido no PDV:', @json($caixaAberto));
 
-    if (@json($caixaAberto) === null) {
-        console.warn('⚠️ Nenhum caixa aberto encontrado para este terminal');
-    } else {
-        console.info('✅ Caixa aberto válido carregado no PDV');
-    }
+    // if (@json($caixaAberto) === null) {
+        // console.warn('⚠️ Nenhum caixa aberto encontrado para este terminal');
+    // } else {
+        // console.info('✅ Caixa aberto válido carregado no PDV');
+    // }
 </script>
 
 <!-- Modal de bloqueio do caixa -->
@@ -500,7 +521,7 @@
         // const caixaFechado = @json(is_null($caixaAberto));
         const caixaFechado = @json($caixaAberto?->status !== 'aberto');
 
-        console.log('🔍 Caixa fechado:', caixaFechado, 'Caixa:', @json($caixaAberto));
+        // console.log('🔍 Caixa fechado:', caixaFechado, 'Caixa:', @json($caixaAberto));
 
         if (caixaFechado) {
             document.body.classList.add('caixa-bloqueado');
@@ -584,6 +605,7 @@
 
 <!-controle dos lotes vencidos-!>
 <script>
+    const data = @json($data ?? []);
     const alerta = document.getElementById('alerta-lote');
 
     alerta.classList.add('d-none');
@@ -649,11 +671,6 @@
 </script>
 
 
-{{-- No final da view pdv.index --}}
-@push('scripts')
-<script src="{{ asset('/js/pdv/modal_finalizar.js') }}"></script>
-@endpush
-
 @endsection
 
 <!-- Modals atahos -->
@@ -664,13 +681,6 @@
 
 @vite([
     'resources/js/pdv/app.js',
-    'resources/js/pdv/produto.js',
-    'resources/js/pdv/carrinho.js',
-    'resources/js/pdv/regras.js',
-    'resources/js/pdv/orcamento.js',
-    'resources/js/pdv/ui.js',
-    'resources/js/pdv/modal_finalizar.js', {{-- mover antes --}}
-    'resources/js/pdv/atalhos.js',          {{-- para depois --}}
 ])
 
 <!-- Fim view completa do PDV -->

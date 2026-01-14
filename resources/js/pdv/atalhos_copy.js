@@ -1,13 +1,19 @@
 document.addEventListener('DOMContentLoaded', function () {
+    
+    // FUNÇÃO PARA ABRIR MODAL DE FINALIZAR VENDA
+   window.abrirModalFinalizar = function () {
+    const modal = document.getElementById('modalFinalizarVenda');
+    if (!modal) return;
 
-    console.log('Atalhos do PDV carregados');
-
+    const instancia = bootstrap.Modal.getOrCreateInstance(modal);
+    instancia.show();
+};
     /**
      * CONTROLE GLOBAL DO ESTADO DO CAIXA
      * true  = caixa bloqueado
      * false = caixa liberado
      */
-    window.caixaBloqueado = true;
+    window.caixaBloqueado = false;
 
     /**
      * LISTENER GLOBAL DE TECLADO (CAPTURE)

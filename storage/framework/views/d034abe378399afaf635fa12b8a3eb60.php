@@ -4,6 +4,9 @@
 
 <?php $__env->startSection('content'); ?> 
 
+// Quando abrir o PDV
+<?php  session(['terminal_id' => $terminal->id])?>;
+
 <style>
     /* estilo pra bloqueio de caixa */
     :root {
@@ -38,13 +41,16 @@
         transform: translate(-50%, -50%) rotate(-25deg);
         font-size: 48px;
         font-weight: 900;
+        border-radius:15px;
         color: rgba(255, 255, 255, 0.75);
+        background:snow;
         border: 6px solid rgba(255, 255, 255, 0.35);
         padding: 18px 55px;
         text-transform: uppercase;
         letter-spacing: 4px;
         user-select: none;
         pointer-events: none;
+
     }
 
     /* BOTÃO — único elemento ativo */
@@ -231,9 +237,21 @@
 <div class="container-fluid p-0">   
    <!-- OVERLAY -->
     <div id="modalBloquearCaixa" style="display: none;">
+        <div class="carimbo-caixa">
+            <span class="
+                <?php echo e($status === 'Aberto' ? 'status-aberto' : ''); ?>
 
-        <div class="carimbo-caixa">CAIXA BLOQUEADO</div>
+                <?php echo e($status === 'Fechado' ? 'status-fechado' : ''); ?>
 
+                <?php echo e($status === 'Pendente' ? 'status-pendente' : ''); ?>
+
+                <?php echo e($status === 'Inconsistente' ? 'status-inconsistente' : ''); ?>
+
+            " style="padding: 5px 10px; border-radius: 5px; font-weight: bold">
+              CAIXA <?php echo e($status); ?>
+
+            </span>
+        </div>
         <!-- Lista de caixas esquecidos -->
         <div class="listaCaixasEsquecidos" id="listaCaixasEsquecidos">
             <ul></ul>
@@ -261,6 +279,7 @@
         <div class="caixa-info mb-3 p-0 border rounded shadow-sm bg-light d-flex justify-content-start align-items-center">
             <span><strong>Terminal: 00<?php echo e($terminal->id); ?></strong></span>
             <span><strong>Operador: <?php echo e($operador); ?></strong> </span>
+             <span><strong>ID: <?php echo e($operadorId); ?></strong> </span>
             <span><strong>Status Caixa:  
                 <span class="
                     <?php echo e($status === 'Aberto' ? 'status-aberto' : ''); ?>
@@ -335,25 +354,29 @@
     <div class="row g-2 mb-2 p-2" style="background:#3a3a3a; color:white;">
         <div class="col-md-2 fw-bold mb-0">
             <label>Data Venda</label>
-            <input class="form-control fs-6 fw-bold text-center" type="date" value="<?php echo e(date('Y-m-d')); ?>" readonly>
+            <input class="form-control fs-6 fw-bold text-center" type="datetime-local" value="<?php echo e(date('Y-m-d\TH:i')); ?>" readonly>
         </div>
         <div class="col-md-2 fw-bold mb-0">
              <!-- <label>ID</label> -->
             <input type="hidden" name="cliente_id">
             <label>Cliente</label>
-            <input class="form-control  fs-6 fw-bold text-center" name="nome" required readonly>
+            <input  class="form-control  fs-6 fw-bold text-center" name="nome">
+            <input  type="hidden" name="cliente_id" value="<?php echo e($clienteBalcao->id); ?>">
+            <input  type="hidden" name="operador_id" value="<?php echo e($operadorId); ?>">
+            <input  type="hidden" name="terminal_id" value="<?php echo e($terminal->id); ?>">
+            <input  type="hidden" id="dataVenda"  type="datetime-local" value="<?php echo e(date('Y-m-d\TH:i')); ?>">
         </div>
          <div class="col-md-1 fw-bold mb-0">
             <label>Pessoa</label>
             <input class="form-control  fs-6 fw-bold text-center" name="pessoa" required readonly>
         </div>
-        <div class="col-md-2 fw-bold mb-0">
+        <div class="col-md-1 fw-bold mb-0">
             <label>Contato Local</label>
             <input class="form-control fs-6 fw-bold text-center" name="telefone" required >
         </div>
          <div class="col-md-5 fw-bold mb-0">
             <label>Endereço para entrega</label>
-            <input class="form-control  fs-6 fw-bold text-center" name="endereco" required >
+            <input id="endereco" class="form-control  fs-6 fw-bold text-center" name="endereco" required >
         </div>
         
     </div>
@@ -382,7 +405,7 @@
                 <!-- Quantidade -->
                 <div class="col-md-2 p-1">
                     <label for="quantidade" class="form-label">Quantidade</label>
-                    <input style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  type="number" name="quantidade" id="quantidade" value= "1" min="1" >
+                    <input id="quantidade" style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  type="number" name="quantidade"  value= "1" min="1" >
                     <small id="msgEstoque" class="text-danger fw-bold"></small>
                 </div>
 
@@ -394,7 +417,7 @@
                 <!-- Preço venda -->
                 <div class="col-md-3 p-1">  
                     <label for="preco_venda" class="form-label">Preço</label>
-                    <input style="font-size: 16px !important;" id="preco_venda" class="form-control form-control-sm fw-bold bg-warning"  readonly>
+                    <input style="font-size: 16px !important;" id="preco_venda" name="preco_venda" class="form-control form-control-sm fw-bold bg-warning"readOnly>
                 </div>
                  <!-- Quantidade -->   
                 <div class="col-md-2 p-1">  
@@ -421,11 +444,14 @@
                 <thead class="table-primary fw-bold text-center" style="font-size: 18px !important;">
                     <tr>
                         <td class="text-center" style="width:50px">Item</td>
+                        <td class="text-center" style="width:90px">Lote</td>
                         <td class="text-center" style="width:200px;">Descrição</td>
                         <td class="text-center" style="width:50px">Qtde</td>
                         <td class="text-center" style="width:50px">Unid</td>
                         <td class="text-center" style="width:90px">Preço</td>
                         <td class="text-center" style="width:90px">SubTotal</td>
+                        
+
                     </tr>
                 </thead>  
                 <tbody id="lista-itens" ></tbody> 
@@ -484,16 +510,16 @@
 </div>
 
 
-<!--  Verica caixa aberto -->
+<!--  Verifica caixa aberto -->
 <script>
-    console.log('🔍 Terminal recebido no PDV:', <?php echo json_encode($terminal, 15, 512) ?>);
-    console.log('💰 Caixa aberto recebido no PDV:', <?php echo json_encode($caixaAberto, 15, 512) ?>);
+    // console.log('🔍 Terminal recebido no PDV:', <?php echo json_encode($terminal, 15, 512) ?>);
+    // console.log('💰 Caixa aberto recebido no PDV:', <?php echo json_encode($caixaAberto, 15, 512) ?>);
 
-    if (<?php echo json_encode($caixaAberto, 15, 512) ?> === null) {
-        console.warn('⚠️ Nenhum caixa aberto encontrado para este terminal');
-    } else {
-        console.info('✅ Caixa aberto válido carregado no PDV');
-    }
+    // if (<?php echo json_encode($caixaAberto, 15, 512) ?> === null) {
+        // console.warn('⚠️ Nenhum caixa aberto encontrado para este terminal');
+    // } else {
+        // console.info('✅ Caixa aberto válido carregado no PDV');
+    // }
 </script>
 
 <!-- Modal de bloqueio do caixa -->
@@ -505,7 +531,7 @@
         // const caixaFechado = <?php echo json_encode(is_null($caixaAberto), 15, 512) ?>;
         const caixaFechado = <?php echo json_encode($caixaAberto?->status !== 'aberto', 15, 512) ?>;
 
-        console.log('🔍 Caixa fechado:', caixaFechado, 'Caixa:', <?php echo json_encode($caixaAberto, 15, 512) ?>);
+        // console.log('🔍 Caixa fechado:', caixaFechado, 'Caixa:', <?php echo json_encode($caixaAberto, 15, 512) ?>);
 
         if (caixaFechado) {
             document.body.classList.add('caixa-bloqueado');
@@ -589,6 +615,7 @@
 
 <!-controle dos lotes vencidos-!>
 <script>
+    const data = <?php echo json_encode($data ?? [], 15, 512) ?>;
     const alerta = document.getElementById('alerta-lote');
 
     alerta.classList.add('d-none');
@@ -654,11 +681,6 @@
 </script>
 
 
-
-<?php $__env->startPush('scripts'); ?>
-<script src="<?php echo e(asset('/js/pdv/modal_finalizar.js')); ?>"></script>
-<?php $__env->stopPush(); ?>
-
 <?php $__env->stopSection(); ?>
 
 <!-- Modals atahos -->
@@ -669,13 +691,6 @@
 
 <?php echo app('Illuminate\Foundation\Vite')([
     'resources/js/pdv/app.js',
-    'resources/js/pdv/produto.js',
-    'resources/js/pdv/carrinho.js',
-    'resources/js/pdv/regras.js',
-    'resources/js/pdv/orcamento.js',
-    'resources/js/pdv/ui.js',
-    'resources/js/pdv/modal_finalizar.js', 
-    'resources/js/pdv/atalhos.js',          
 ]); ?>
 
 <!-- Fim view completa do PDV -->

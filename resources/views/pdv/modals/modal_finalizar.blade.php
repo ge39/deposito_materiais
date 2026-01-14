@@ -10,8 +10,10 @@
 
         {{-- Total --}}
         <div class="alert alert-secondary fs-4 text-center">
-            <span >Total a pagar:</span></br> <strong id="total-venda-modal"> 0,00</strong>
+            <span>Total a pagar:</span></br> 
+            <strong id="total-venda-modal">0,00</strong>
         </div>
+
         {{-- Resumo de valores --}}
         <div class="alert alert-light text-center mb-3">
             <div class="fw-semibold">
@@ -48,11 +50,20 @@
                     <label class="form-label fw-semibold">{{ $label }}</label>
                 </div>
                 <div class="col-7">
-                    <input  type="number" step="0.01"  class="form-control pagamento-modal" data-forma="{{ $key }}" placeholder="0,00" min="0" autofocus style="max-width: 150px; font-weight:bold">
+                    <input  
+                        type="number" 
+                        step="0.01"  
+                        class="form-control pagamento-modal" 
+                        name="{{ $key }}" 
+                        data-forma="{{ $key }}" 
+                        placeholder="0,00" 
+                        min="0" 
+                        style="max-width: 150px; font-weight:bold"
+                        @if($loop->first) autofocus @endif
+                    >
                 </div>
             </div>
             @endforeach
-                
           </div>
         </div>
 
@@ -64,4 +75,7 @@
     </div>
   </div>
 </div>
+
+
+
 

@@ -119,6 +119,7 @@ function preencherCliente(cliente) {
 
             tr.innerHTML = `
                 <td class="text-center item-numero"><strong>${index + 1}</strong></td>
+                <td class="text-center item-lote"><strong>${item.lote_id ?? '0'}</strong></td>
                 <td class="text-left"><strong>${item.produto?.nome ?? ''}</strong></td>
                 <td class="text-center"><strong>${item.quantidade ?? 0}</strong></td>
                 <td class="text-center"><strong>${item.produto?.unidade_medida?.sigla ?? ''}</strong></td>

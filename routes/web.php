@@ -212,9 +212,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/', [PdvController::class, 'index'])->name('index');
 
-        Route::post('/venda', [PdvController::class, 'storeVenda'])
-            ->name('venda.store');
-
+        // Route::post('/venda', [PdvController::class, 'store'])->name('venda.store');
         Route::get('buscar-produto', [PdvController::class, 'buscarProduto'])->name('buscarProduto');
         Route::get('buscar-cliente', [PdvController::class, 'buscarCliente'])->name('buscarCliente');
         Route::get('produto/{codigo}', [PdvController::class, 'buscarProdutoPorCodigo'])->name('buscarProdutoPorCodigo');
@@ -222,7 +220,9 @@ Route::middleware('auth')->group(function () {
        
     });
 
-    
+        //Vendas
+        Route::post('/vendas', [VendaController::class, 'store'])->name('vendas.store');
+
     // ===============================
     // Abertura de Caixa
     // ===============================

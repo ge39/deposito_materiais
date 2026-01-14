@@ -1,5 +1,7 @@
-document.addEventListener('DOMContentLoaded', function () {
+window.carrinho = window.carrinho || [];
 
+document.addEventListener('DOMContentLoaded', function () {
+    const token = document.querySelector('meta[name="csrf-token"]').content;
     const totalGeralEl   = document.getElementById('totalGeral');
     const totalModalEl   = document.getElementById('total-venda-modal');
     const modalEl        = document.getElementById('modalFinalizarVenda');
@@ -8,6 +10,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnFinalizar   = document.getElementById('btnFinalizar');
     const inputsPagamento = modalEl.querySelectorAll('.pagamento-modal');
 
+    const clienteId   = document.querySelector('input[name="cliente_id"]').value;
+    const operadorId  = document.querySelector('input[name="operador_id"]').value;
+    const terminalId  = document.querySelector('input[name="terminal_id"]').value;
+    const preco_venda  = document.querySelector('input[name="preco_venda"]').value;
+    
+    const dataVenda   = document.querySelector('#dataVenda').value;
+    const endereco = document.querySelector('#endereco').value;
+
+    // console.log(clienteId, operadorId, terminalId, dataVenda,endereco);
+
+   
     if (!totalGeralEl || !totalModalEl || !modalEl) {
         console.warn('Modal finalizar: elementos não encontrados');
         return;
@@ -286,5 +299,232 @@ inputsPagamento.forEach(input => {
             abrirModalFinalizar();
         }
     });
+
+    // Certifique-se de declarar a variável fora de qualquer função
+    let carrinhoAtual = [];
+
+    // Função para adicionar itens (exemplo)
+    function adicionarAoCarrinho(item) {
+        carrinhoAtual.push(item);
+    }
+   
+   
+    //Fetch do botão Finalizar (VendaController)
+     // BOTÃO FINALIZAR VENDA
+     // ===============================
+    // BOTÃO FINALIZAR VENDA - MODAL
+    // ===============================
+    // document.addEventListener('click', async function(e) {
+    // if (e.target && e.target.id === 'btnFinalizar') {
+    //     e.preventDefault();
+
+    //     console.log('🔹 Botão Finalizar clicado');
+
+    //     // Recupera todos os itens do carrinho do DOM
+    //     const tabelaItens = document.getElementById('lista-itens');
+    //     if (!tabelaItens) {
+    //         console.warn('⚠️ Tabela do carrinho não encontrada.');
+    //         return;
+    //     }
+
+    //     const trs = tabelaItens.querySelectorAll('tr:not(.d-none)');
+    //     if (!trs.length) {
+    //         alert('Carrinho vazio');
+    //         return;
+    //     }
+
+    //     const itens = Array.from(trs).map(tr => {
+    //         return {
+    //             produto_id: tr.dataset.produto,
+    //             lote_id: tr.dataset.lote || null,
+    //             quantidade: parseFloat(tr.children[3].textContent) || 0,
+    //             valor_unitario: parseFloat(tr.children[5].textContent.replace(',', '.')) || 0
+    //         };
+    //     });
+
+    //     console.log('Itens a enviar:', itens);
+
+    //     // Coleta pagamentos (assumindo inputs do modal com class pagamento-modal)
+    //     const modalEl = document.getElementById('modalFinalizarVenda');
+    //     const inputsPagamento = modalEl ? modalEl.querySelectorAll('.pagamento-modal') : [];
+    //     const pagamentos = [];
+
+    //     inputsPagamento.forEach(input => {
+    //         const valor = parseFloat(input.value.replace(',', '.')) || 0;
+    //         if (valor > 0) {
+    //             pagamentos.push({ forma: input.dataset.forma, valor });
+    //         }
+    //     });
+
+    //     if (!pagamentos.length) {
+    //         alert('Informe ao menos uma forma de pagamento');
+    //         return;
+    //     }
+       
+    //     // Monta payload
+    //     const payload = {
+    //         cliente_id: clienteId,
+    //         // caixa_id: caixaId,
+    //         terminal_id: terminalId,
+    //         funcionario_id: operadorId,
+    //         dataVenda: dataVenda,
+    //         endereco: endereco,
+
+    //         itens: carrinhoAtual.map(i => ({
+    //             produto_id: i.id,
+    //             quantidade: i.quantidade,
+    //             valor_unitario: i.preco,
+    //             lote_id: i.lote_id || null
+    //         })),
+    //         pagamentos
+    //     };
+
+    //     console.log('Payload a ser enviado:', payload);
+
+    //     try {
+    //         const response = await fetch('/vendas', {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+    //             },
+    //             body: JSON.stringify(payload)
+    //         });
+
+    //         const data = await response.json();
+    //         console.log('Resposta do servidor:', data);
+
+    //         if (!response.ok || !data.success) {
+    //             throw new Error(data.message || 'Erro ao finalizar venda');
+    //         }
+
+    //         alert(`Venda finalizada com sucesso (#${data.venda_id})`);
+
+    //         // Limpa carrinho do DOM
+    //         trs.forEach(tr => tr.remove());
+
+    //         // Limpa inputs de pagamento
+    //         inputsPagamento.forEach(i => i.value = '');
+
+    //         // Atualiza total
+    //         const totalVenda = document.getElementById('totalGeral');
+    //         if (totalVenda) totalVenda.textContent = 'R$ 0,00';
+
+            
+    //     } catch (err) {
+    //         console.error('Erro no fetch de finalizar venda:', err);
+    //         alert(err.message);
+    //     }
+    // }
+    // });
+
+    // BOTÃO FINALIZAR VENDA - MODAL
+// ===============================
+document.addEventListener('click', async function(e) {
+    if (e.target && e.target.id === 'btnFinalizar') {
+        e.preventDefault();
+
+        console.log('🔹 Botão Finalizar clicado');
+
+        // Recupera todos os itens do carrinho do DOM
+        const tabelaItens = document.getElementById('lista-itens');
+        if (!tabelaItens) {
+            console.warn('⚠️ Tabela do carrinho não encontrada.');
+            return;
+        }
+
+        const trs = tabelaItens.querySelectorAll('tr:not(.d-none)');
+        if (!trs.length) {
+            alert('Carrinho vazio');
+            return;
+        }
+
+        const itens = Array.from(trs).map(tr => {
+            return {
+                produto_id: tr.dataset.produto,
+                lote_id: tr.dataset.lote || null,
+                quantidade: parseFloat(tr.children[3].textContent) || 0,
+                valor_unitario: parseFloat(tr.children[5].textContent.replace(',', '.')) || 0
+            };
+        });
+
+        console.log('Itens a enviar:', itens);
+
+        // Coleta pagamentos (assumindo inputs do modal com class pagamento-modal)
+        const modalEl = document.getElementById('modalFinalizarVenda');
+        const inputsPagamento = modalEl ? modalEl.querySelectorAll('.pagamento-modal') : [];
+        const pagamentos = [];
+
+        inputsPagamento.forEach(input => {
+            const valor = parseFloat(input.value.replace(',', '.')) || 0;
+            if (valor > 0) {
+                pagamentos.push({ forma: input.dataset.forma, valor });
+            }
+        });
+
+        if (!pagamentos.length) {
+            alert('Informe ao menos uma forma de pagamento');
+            return;
+        }
+
+        // Monta payload
+        const payload = {
+            cliente_id: clienteId,
+            // caixa_id: caixaId, // se necessário, pode descomentar depois
+            terminal_id: terminalId,
+            funcionario_id: operadorId,
+            dataVenda: dataVenda,
+            endereco: endereco,
+
+            itens: itens.map(i => ({
+                produto_id: i.id,
+                quantidade: i.quantidade,
+                valor_unitario: i.preco,
+                lote_id: i.lote_id || null
+            })),
+            pagamentos
+        };
+
+        console.log('Payload a ser enviado:', payload);
+
+        try {
+            const response = await fetch('/vendas', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json', // 🔹 força Laravel a retornar JSON
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json(); // 🔹 parse seguro do JSON
+
+            console.log('Resposta do servidor:', data);
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Erro ao finalizar venda');
+            }
+
+            alert(`Venda finalizada com sucesso (#${data.venda_id})`);
+
+            // Limpa carrinho do DOM
+            trs.forEach(tr => tr.remove());
+
+            // Limpa inputs de pagamento
+            inputsPagamento.forEach(i => i.value = '');
+
+            // Atualiza total
+            const totalVenda = document.getElementById('totalGeral');
+            if (totalVenda) totalVenda.textContent = 'R$ 0,00';
+
+        } catch (err) {
+            console.error('Erro no fetch de finalizar venda:', err);
+            alert(err.message);
+        }
+    }
+});
+
+        
 
 });

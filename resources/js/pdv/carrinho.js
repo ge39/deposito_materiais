@@ -1,20 +1,17 @@
-window.addItemCarrinho = function (dados) {}
-window.removerLinha = function (tr) {}
-window.recalcularTotal = function () {}
+window.Carrinho = (function() {
+    let itens = [];
 
-window.Carrinho = (function () {
+    function init() { itens = []; }
 
-    function init() {
-        console.log('Carrinho iniciado');
+    function adicionar(item) {
+        itens.push(item);
+        console.log('Item adicionado:', item);
+        console.log('Carrinho atual:', itens);
     }
 
-    function limpar() {
-        console.log('Carrinho limpo');
-    }
-    
-    return {
-        init,
-        limpar
-    };
+    function listar() { return itens; }
+    function remover(index) { itens.splice(index, 1); }
+    function limpar() { itens = []; }
 
+    return { init, adicionar, listar, remover, limpar };
 })();

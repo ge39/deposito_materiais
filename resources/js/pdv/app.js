@@ -1,11 +1,14 @@
+// Fluxos principais
+
 // resources/js/pdv/app.js
-
-// Import dos módulos
+import './carrinho';
+import './produto';
+import './modal_finalizar';
+import './regras';
 import './orcamento';
-import './atalhos';
 import './ui';
+import './atalhos';
+// Fim resources/js/pdv/app.js
 
-// Inicializa quando o DOM estiver pronto
-// document.addEventListener('DOMContentLoaded', () => {
-//     console.log('App PDV iniciado');
-// });
+
+

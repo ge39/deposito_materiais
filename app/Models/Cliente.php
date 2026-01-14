@@ -10,7 +10,7 @@ class Cliente extends Model
 
     protected $table = 'clientes';
 
-    protected $fillable = [
+    protected $fillable = ['id',
         'nome','tipo','data_nascimento','sexo','cpf_cnpj','rg_ie','orgao_emissor','data_emissao',
         'telefone','email','cep','endereco','numero','bairro','cidade','estado','endereco_entrega',
         'limite_credito','observacoes','ativo'

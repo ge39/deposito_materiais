@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function atualizarTotalCarrinho() {
         let total = 0;
         tabelaItens.querySelectorAll("tr:not(.d-none)").forEach(linha => {
-            const subtotal = parseFloat(linha.children[5].textContent.replace('R$', '').replace(',', '.')) || 0;
+            const subtotal = parseFloat(linha.children[6].textContent.replace('R$', '').replace(',', '.')) || 0;
             total += subtotal;
         });
         atualizarTotalGeral(total);
@@ -136,58 +136,158 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===============================
     // ADICIONAR AO CARRINHO
     // ===============================
+    // window.adicionarItemCarrinho = function(produto) {
+    //     const quantidade = Number(inputQuantidade.value);
+    //     const preco = Number(produto.preco_venda);
+    //     const loteId = produto.lotes?.[0]?.numero_lote ?? "";
+
+    //     if(quantidade <= 0) {
+    //         alert("Informe uma quantidade válida.");
+    //         inputQuantidade.focus();
+    //         return;
+    //     }
+    //     if(preco <= 0) {
+    //         alert("Produto sem preço de venda.");
+    //         return;
+    //     }
+
+    //     // Verifica se o produto já existe
+    //     const linhas = tabelaItens.querySelectorAll("tr");
+    //     for(let linha of linhas) {
+    //         if(linha.dataset.produtoId == produto.id && linha.dataset.loteId == loteId) {
+    //             const tdQtd = linha.querySelector(".item-quantidade");
+    //             const tdSubtotal = linha.querySelector(".subtotal");
+    //             const novaQtd = Number(tdQtd.textContent) + quantidade;
+    //             if(novaQtd > Number(inputQuantidade.max)) {
+    //                 alert("Estoque insuficiente.");
+    //                 return;
+    //             }
+    //             tdQtd.textContent = novaQtd;
+    //             tdSubtotal.textContent = (novaQtd * preco).toFixed(2);
+    //             atualizarNumeroItens();
+    //             atualizarTotalCarrinho();
+    //             resetarProdutoAtual();
+    //             limparCamposProduto();
+    //             return;
+    //         }
+    //     }
+
+    //     const subtotal = quantidade * preco;
+    //     tabelaItens.insertAdjacentHTML("beforeend", `
+    //         <tr class="item-carrinho"
+    //             data-produto="${produto.id}"
+    //             data-lote="${loteId}"
+    //             data-qtd="${quantidade}"
+    //             data-valor="${preco}">
+    //             <td class="item-numero text-center" style="font-size:18px; font-weight:bold;"></td>
+    //             <td class="item-lote" style="font-size:18px; font-weight:bold;">${loteId}</td>
+    //             <td class="item-descricao" style="font-size:18px; font-weight:bold;">${produto.nome}</td>
+    //             <td class="item-quantidade text-center" style="font-size:18px; font-weight:bold;">${quantidade}</td>
+    //             <td class="text-center" style="font-size:18px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
+    //             <td class="item-preco text-end" style="font-size:18px; font-weight:bold;">${preco.toFixed(2)}</td>
+    //             <td class="subtotal text-end" style="font-size:18px; font-weight:bold;">${subtotal.toFixed(2)}</td>
+    //         </tr>
+    //     `);
+
+
+    //     atualizarNumeroItens();
+    //     atualizarTotalCarrinho();
+    //     resetarProdutoAtual();
+    //     limparCamposProduto();
+    // }
     window.adicionarItemCarrinho = function(produto) {
-        const quantidade = Number(inputQuantidade.value);
-        const preco = Number(produto.preco_venda);
-        const loteId = produto.lotes?.[0]?.numero_lote ?? "";
+    const quantidade = Number(inputQuantidade.value);
+    const preco = Number(produto.preco_venda);
 
-        if(quantidade <= 0) {
-            alert("Informe uma quantidade válida.");
-            inputQuantidade.focus();
-            return;
-        }
-        if(preco <= 0) {
-            alert("Produto sem preço de venda.");
-            return;
-        }
+    if(quantidade <= 0) {
+        alert("Informe uma quantidade válida.");
+        inputQuantidade.focus();
+        return;
+    }
+    if(preco <= 0) {
+        alert("Produto sem preço de venda.");
+        return;
+    }
 
-        // Verifica se o produto já existe
-        const linhas = tabelaItens.querySelectorAll("tr");
-        for(let linha of linhas) {
-            if(linha.dataset.produtoId == produto.id && linha.dataset.loteId == loteId) {
-                const tdQtd = linha.querySelector(".item-quantidade");
-                const tdSubtotal = linha.querySelector(".subtotal");
-                const novaQtd = Number(tdQtd.textContent) + quantidade;
-                if(novaQtd > Number(inputQuantidade.max)) {
-                    alert("Estoque insuficiente.");
-                    return;
-                }
-                tdQtd.textContent = novaQtd;
-                tdSubtotal.textContent = (novaQtd * preco).toFixed(2);
-                atualizarNumeroItens();
-                atualizarTotalCarrinho();
-                resetarProdutoAtual();
-                limparCamposProduto();
+    // ===============================
+    // SELECIONAR LOTE VÁLIDO
+    // ===============================
+    let loteSelecionado = null;
+    if(Array.isArray(produto.lotes)) {
+        // Prioriza lotes com quantidade disponível > 0 e não vencidos
+        loteSelecionado = produto.lotes.find(lote => {
+            const quantidadeLote = Number(lote.quantidade_disponivel || 0);
+            const vencimento = lote.data_vencimento ? new Date(lote.data_vencimento) : null;
+            const hoje = new Date();
+            return quantidadeLote > 0 && (!vencimento || vencimento >= hoje);
+        });
+    }
+
+    if(!loteSelecionado) {
+        alert("Nenhum lote disponível para este produto, Precisa criar um lote antes de adicionar ao carrinho.");
+        return;
+    }
+
+    const loteId = loteSelecionado.id; // usa ID interno do lote
+    const qtdDisponivelLote = Number(loteSelecionado.quantidade_disponivel);
+
+    if(quantidade > qtdDisponivelLote) {
+        alert(`Quantidade solicitada excede o lote disponível (${qtdDisponivelLote}).`);
+        inputQuantidade.focus();
+        return;
+    }
+
+    // ===============================
+    // VERIFICA SE PRODUTO + LOTE JÁ EXISTE NO CARRINHO
+    // ===============================
+    const linhas = tabelaItens.querySelectorAll("tr");
+    for(let linha of linhas) {
+        if(linha.dataset.produto == produto.id && linha.dataset.lote == loteId) {
+
+            const tdQtd = linha.querySelector(".item-quantidade");
+            const tdSubtotal = linha.querySelector(".subtotal");
+            const novaQtd = Number(tdQtd.textContent) + quantidade;
+
+            if(novaQtd > qtdDisponivelLote) {
+                alert("Estoque insuficiente neste lote.");
                 return;
             }
+
+            tdQtd.textContent = novaQtd;
+            tdSubtotal.textContent = (novaQtd * preco).toFixed(2);
+            atualizarNumeroItens();
+            atualizarTotalCarrinho();
+            resetarProdutoAtual();
+            limparCamposProduto();
+            return;
         }
+    }
 
-        const subtotal = quantidade * preco;
-        tabelaItens.insertAdjacentHTML("beforeend", `
-            <tr class="linha-carrinho" data-produto-id="${produto.id}" data-lote-id="${loteId}">
-                <td class="item-numero text-center" style="font-size:18px; font-weight:bold;"></td>
-                <td class="item-descricao" style="font-size:18px; font-weight:bold;">${produto.nome}</td>
-                <td class="item-quantidade text-center" style="font-size:18px; font-weight:bold;">${quantidade}</td>
-                <td class="text-center" style="font-size:18px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
-                <td class="item-preco text-end" style="font-size:18px; font-weight:bold;">${preco.toFixed(2)}</td>
-                <td class="subtotal text-end subtotal" style="font-size:18px; font-weight:bold;">${subtotal.toFixed(2)}</td>
-            </tr>
-        `);
+    // ===============================
+    // ADICIONAR NOVO ITEM NO CARRINHO
+    // ===============================
+    const subtotal = quantidade * preco;
+    tabelaItens.insertAdjacentHTML("beforeend", `
+        <tr class="item-carrinho"
+            data-produto="${produto.id}"
+            data-lote="${loteId}"
+            data-qtd="${quantidade}"
+            data-valor="${preco}">
+            <td class="item-numero text-center" style="font-size:18px; font-weight:bold;"></td>
+             <td class="item-lote" style="font-size:18px; font-weight:bold;">${loteId}</td>
+            <td class="item-descricao" style="font-size:18px; font-weight:bold;">${produto.nome}</td>
+            <td class="item-quantidade text-center" style="font-size:18px; font-weight:bold;">${quantidade}</td>
+            <td class="text-center" style="font-size:18px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
+            <td class="item-preco text-end" style="font-size:18px; font-weight:bold;">${preco.toFixed(2)}</td>
+            <td class="subtotal text-end" style="font-size:18px; font-weight:bold;">${subtotal.toFixed(2)}</td>
+        </tr>
+    `);
 
-        atualizarNumeroItens();
-        atualizarTotalCarrinho();
-        resetarProdutoAtual();
-        limparCamposProduto();
+    atualizarNumeroItens();
+    atualizarTotalCarrinho();
+    resetarProdutoAtual();
+    limparCamposProduto();
+    
     }
 
     // ===============================
@@ -206,15 +306,21 @@ document.addEventListener("DOMContentLoaded", () => {
         calcularTotalProduto();
     });
 
+
     inputQuantidade?.addEventListener("keydown", e => {
-        if(e.key !== "Enter") return;
+        if (e.key !== "Enter") return;
         e.preventDefault();
-        if(!window.produtoAtual) {
-            alert("Nenhum produto carregado. Leia o código de barras.");
-            return;
+
+        const produto = window.produtoAtual; // captura o estado uma vez
+
+        if (!produto) {
+            return; // NÃO alertar aqui
         }
-        adicionarItemCarrinho(window.produtoAtual);
+
+        adicionarItemCarrinho(produto);
     });
+
+
 
     document.addEventListener("keydown", e => {
         if(e.key === "F3") {

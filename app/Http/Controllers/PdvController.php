@@ -56,6 +56,8 @@ class PDVController extends Controller
         $clienteBalcao = Cliente::where('nome', 'VENDA BALCAO')
             ->where('ativo', 1)
             ->firstOrFail();
+            $clienteId   = $clienteBalcao->id;
+
 
         // 2️⃣ Terminal identificado pelo middleware
         $terminal = $request->attributes->get('terminal');
@@ -71,7 +73,9 @@ class PDVController extends Controller
             ->first();
 
         // 4️⃣ Operador
+        $operadorId   = $caixaAberto?->usuario?->id ?? null;
         $operador = $caixaAberto?->usuario?->name ?? 'Nenhum';
+
 
         // 5️⃣ Status do caixa
         $status = 'Fechado';
@@ -98,6 +102,7 @@ class PDVController extends Controller
             'caixaAberto'   => $caixaAberto,
             'operador'      => $operador,
             'status'        => $status,
+            'operadorId'    => $operadorId,
         ]);
     }
 

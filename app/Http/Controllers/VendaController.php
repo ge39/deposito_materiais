@@ -1,105 +1,417 @@
 <?php
 
 namespace App\Http\Controllers;
-
-use App\Models\Venda;
+use Illuminate\Validation\ValidationException;
+use App\Services\CaixaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
- use Carbon\Carbon;
 
 class VendaController extends Controller
 {
-    public function index()
-    {
-        $vendas = Venda::with(['cliente','funcionario'])
-            ->orderByDesc('data_venda')
-            ->paginate(20);
-
-        return view('vendas.index', compact('vendas'));
-    }
-
-    public function show(Venda $venda)
-    {
-        $venda->load(['itens.produto','pagamentos']);
-        return view('vendas.show', compact('venda'));
-    }
-
     /**
-     * F4 – Buscar Vendas do dia (Histórico)*/
-    public function buscarVendasDia()
-    {
-        $vendas = Venda::whereDate('created_at', now()->toDateString())
-            ->orderBy('id', 'DESC')
-            ->limit(30)
-            ->get();
-
-        return response()->json($vendas);
-    }
+     * Store da venda (PDV)
+     * Responsabilidade TOTAL do backend
+     */
     
-    // Salva a venda no banco
-    public function storeVenda(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
-            'forma_pagamento' => 'required|string',
-            'observacoes' => 'nullable|string',
+            'cliente_id' => 'required|exists:clientes,id',
+            'itens'      => 'required|array|min:1',
+            'pagamentos' => 'required|array|min:1',
         ]);
 
-        $cliente = session('pdv_cliente');
-        $carrinho = session('pdv_carrinho', []);
+        DB::transaction(function () use ($request) {
 
-        if (empty($carrinho)) {
-            return redirect()->back()->withErrors('O carrinho está vazio.');
+        // pegar caixa aberto
+        $caixa = DB::table('caixas')
+            ->where('terminal_id', session('terminal_id'))
+            ->whereNull('data_fechamento')
+            ->lockForUpdate()
+            ->first();
+
+        if (!$caixa) {
+            throw ValidationException::withMessages([
+                'caixa' => 'Nenhum caixa aberto para este terminal.'
+            ]);
         }
 
-        DB::beginTransaction();
+        // calcular total da venda
+        $totalVenda = 0;
+        foreach ($request->itens as $item) {
+            $totalVenda += $item['quantidade'] * $item['preco_venda'];
+        }
 
-        try {
-            // Cria a venda
-            $venda = Venda::create([
-                'cliente_id' => $cliente['id'] ?? null,
-                'user_id' => auth()->id(),
-                'total' => array_sum(array_map(fn($i) => $i['preco'] * $i['quantidade'], $carrinho)),
-                'forma_pagamento' => $request->forma_pagamento,
-                'observacoes' => $request->observacoes,
-                'status' => 'Concluida',
-                'data_venda' => Carbon::now(),
+        // criar venda
+        $vendaId = DB::table('vendas')->insertGetId([
+            'cliente_id'     => $request->cliente_id,
+            'caixa_id'       => $caixa->id,
+            'terminal_id'    => session('terminal_id'),
+            'funcionario_id' => auth()->id(),
+            'total'          => $totalVenda,
+            'created_at'     => now(),
+            'updated_at'     => now(),
+        ]);
+
+        // registrar movimentação no caixa **após criar a venda**
+        foreach ($request->pagamentos as $pagamento) {
+            \App\Services\CaixaService::registrarMovimentacaoCaixa([
+                'caixa_id'        => $caixa->id,
+                'user_id'         => auth()->id(),
+                'tipo'            => 'venda',
+                'valor'           => $pagamento['valor'],
+                'forma_pagamento' => $pagamento['forma_pagamento'] ?? $pagamento['forma'],
+                'bandeira'        => $pagamento['bandeira'] ?? null,
+                'origem_id'       => $vendaId,
+                'observacao'      => 'Venda PDV #' . $vendaId,
+            ]);
+        }
+
+        // demais passos: inserir itens, atualizar estoque, etc.
+
+        return response()->json([
+            'success' => true,
+            'venda_id' => $vendaId
+        ]);
+    });
+
+    }
+
+    public function fecharCaixa(Request $request)
+    {
+        return DB::transaction(function () use ($request) {
+
+            /** ============================
+             * 1. CAIXA ABERTO
+             * ============================ */
+            $caixa = DB::table('caixas')
+                ->where('terminal_id', session('terminal_id'))
+                ->whereNull('data_fechamento')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$caixa) {
+                throw ValidationException::withMessages([
+                    'caixa' => 'Nenhum caixa aberto para este terminal.'
+                ]);
+            }
+
+            /** ============================
+             * 2. SOMAR MOVIMENTAÇÕES
+             * ============================ */
+            $entradas = DB::table('movimentacoes_caixa')
+                ->where('caixa_id', $caixa->id)
+                ->whereIn('tipo', ['abertura', 'venda', 'entrada_manual'])
+                ->sum('valor');
+
+            $saidas = DB::table('movimentacoes_caixa')
+                ->where('caixa_id', $caixa->id)
+                ->whereIn('tipo', ['saida_manual', 'cancelamento_venda'])
+                ->sum('valor');
+
+            $saldoSistema = $entradas - $saidas;
+
+            /** ============================
+             * 3. MOVIMENTAÇÃO DE FECHAMENTO
+             * ============================ */
+            DB::table('movimentacoes_caixa')->insert([
+                'caixa_id'          => $caixa->id,
+                'user_id'           => auth()->id(),
+                'tipo'              => 'fechamento',
+                'valor'             => $saldoSistema,
+                'origem_id'         => null,
+                'observacao'        => $request->observacao ?? 'Fechamento de caixa',
+                'data_movimentacao' => now(),
+                'created_at'        => now(),
+                'updated_at'        => now(),
             ]);
 
-            // Cria os itens da venda
-            foreach ($carrinho as $item) {
-                ItemVenda::create([
-                    'venda_id' => $venda->id,
-                    'produto_id' => $item['id'],
-                    'quantidade' => $item['quantidade'],
-                    'preco' => $item['preco'],
-                    'subtotal' => $item['preco'] * $item['quantidade'],
+            /** ============================
+             * 4. FECHAR CAIXA
+             * ============================ */
+            DB::table('caixas')
+                ->where('id', $caixa->id)
+                ->update([
+                    'data_fechamento' => now(),
+                    'updated_at'      => now(),
                 ]);
 
-                // Atualiza o estoque
-                $produto = Produto::find($item['id']);
-                if ($produto) {
-                    $produto->estoque -= $item['quantidade'];
-                    $produto->save();
+            /** ============================
+             * 5. RETORNO
+             * ============================ */
+            return response()->json([
+                'success' => true,
+                'saldo'   => $saldoSistema
+            ]);
+        });
+    }
+    // Registrar diferença, se houver (positivo ou negativo)
+
+    public function fecharCaixaComConferencia(Request $request)
+    {
+        $request->validate([
+            'formas'                 => 'required|array|min:1',
+            'formas.*.forma'         => 'required|string',
+            'formas.*.valor_informado'=> 'required|numeric|min:0',
+        ]);
+
+        return DB::transaction(function () use ($request) {
+
+            /** ============================
+             * 1. CAIXA ABERTO
+             * ============================ */
+            $caixa = DB::table('caixas')
+                ->where('terminal_id', session('terminal_id'))
+                ->whereNull('data_fechamento')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$caixa) {
+                throw ValidationException::withMessages([
+                    'caixa' => 'Nenhum caixa aberto para este terminal.'
+                ]);
+            }
+
+            /** ============================
+             * 2. TOTAL SISTEMA POR FORMA
+             * ============================ */
+            $pagamentosSistema = DB::table('pagamentos_venda')
+                ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
+                ->where('caixa_id', $caixa->id)
+                ->where('status', 'confirmado')
+                ->groupBy('forma_pagamento')
+                ->get()
+                ->keyBy('forma_pagamento');
+
+            $saldoFinal = 0;
+
+            /** ============================
+             * 3. CONFERÊNCIA POR FORMA
+             * ============================ */
+            foreach ($request->formas as $forma) {
+
+                $formaNome = $forma['forma'];
+                $valorInformado = (float) $forma['valor_informado'];
+                $valorSistema = (float) ($pagamentosSistema[$formaNome]->total ?? 0);
+
+                $diferenca = $valorInformado - $valorSistema;
+                $saldoFinal += $valorInformado;
+
+                DB::table('movimentacoes_caixa')->insert([
+                    'caixa_id'          => $caixa->id,
+                    'user_id'           => auth()->id(),
+                    'tipo'              => 'fechamento',
+                    'valor'             => $valorInformado,
+                    'origem_id'         => null,
+                    'observacao'        => "Fechamento {$formaNome} | Sistema: {$valorSistema} | Diferença: {$diferenca}",
+                    'data_movimentacao' => now(),
+                    'created_at'        => now(),
+                    'updated_at'        => now(),
+                ]);
+            }
+
+            /** ============================
+             * 4. FECHAR CAIXA
+             * ============================ */
+            DB::table('caixas')
+                ->where('id', $caixa->id)
+                ->update([
+                    'data_fechamento' => now(),
+                    'updated_at'      => now(),
+                ]);
+
+            /** ============================
+             * 5. RETORNO
+             * ============================ */
+            return response()->json([
+                'success' => true,
+                'saldo_final' => $saldoFinal
+            ]);
+        });
+    }
+
+    // Uma movimentação por forma (valor informado)
+    // Uma movimentação adicional por divergência, quando existir:
+    // tipo = entrada_manual → sobra
+    // tipo = saida_manual → falta
+    // Nada é recalculado.
+    // Auditoria clara e rastreável.
+
+    public function fecharCaixaComDivergencia(Request $request)
+    {
+        $request->validate([
+            'formas'                  => 'required|array|min:1',
+            'formas.*.forma'          => 'required|string',
+            'formas.*.valor_informado'=> 'required|numeric|min:0',
+            'observacao'              => 'nullable|string'
+        ]);
+
+        return DB::transaction(function () use ($request) {
+
+            /** ============================
+             * 1. CAIXA ABERTO
+             * ============================ */
+            $caixa = DB::table('caixas')
+                ->where('terminal_id', session('terminal_id'))
+                ->whereNull('data_fechamento')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$caixa) {
+                throw ValidationException::withMessages([
+                    'caixa' => 'Nenhum caixa aberto para este terminal.'
+                ]);
+            }
+
+            /** ============================
+             * 2. TOTAL DO SISTEMA POR FORMA
+             * ============================ */
+            $sistema = DB::table('pagamentos_venda')
+                ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
+                ->where('caixa_id', $caixa->id)
+                ->where('status', 'confirmado')
+                ->groupBy('forma_pagamento')
+                ->get()
+                ->keyBy('forma_pagamento');
+
+            $saldoFinal = 0;
+
+            /** ============================
+             * 3. CONFERÊNCIA + DIVERGÊNCIA
+             * ============================ */
+            foreach ($request->formas as $forma) {
+
+                $nomeForma = $forma['forma'];
+                $valorInformado = (float) $forma['valor_informado'];
+                $valorSistema = (float) ($sistema[$nomeForma]->total ?? 0);
+                $diferenca = $valorInformado - $valorSistema;
+
+                $saldoFinal += $valorInformado;
+
+                // Registro do valor informado
+                DB::table('movimentacoes_caixa')->insert([
+                    'caixa_id'          => $caixa->id,
+                    'user_id'           => auth()->id(),
+                    'tipo'              => 'fechamento',
+                    'valor'             => $valorInformado,
+                    'observacao'        => "Fechamento {$nomeForma}",
+                    'data_movimentacao' => now(),
+                    'created_at'        => now(),
+                    'updated_at'        => now(),
+                ]);
+
+                // Registro da divergência (se existir)
+                if ($diferenca != 0) {
+                    DB::table('movimentacoes_caixa')->insert([
+                        'caixa_id'          => $caixa->id,
+                        'user_id'           => auth()->id(),
+                        'tipo'              => $diferenca > 0 ? 'entrada_manual' : 'saida_manual',
+                        'valor'             => abs($diferenca),
+                        'observacao'        => "Divergência {$nomeForma} | Sistema: {$valorSistema}",
+                        'data_movimentacao' => now(),
+                        'created_at'        => now(),
+                        'updated_at'        => now(),
+                    ]);
                 }
             }
 
-            DB::commit();
+            /** ============================
+             * 4. FECHAR CAIXA
+             * ============================ */
+            DB::table('caixas')
+                ->where('id', $caixa->id)
+                ->update([
+                    'data_fechamento' => now(),
+                    'updated_at'      => now(),
+                ]);
 
-            // Limpa sessão PDV
-            session()->forget(['pdv_cliente', 'pdv_carrinho']);
-
-            return redirect()->route('pdv.success', ['venda' => $venda->id])
-                             ->with('success', 'Venda concluída com sucesso!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->withErrors('Erro ao finalizar a venda: ' . $e->getMessage());
-        }
+            /** ============================
+             * 5. RETORNO
+             * ============================ */
+            return response()->json([
+                'success'     => true,
+                'saldo_final' => $saldoFinal
+            ]);
+        });
     }
 
-    /**
-     * IMPORTANTE:
-     * store completo (estoque, caixa, pagamento)
-     * será tratado depois — este controller está pronto estruturalmente.
-     */
+    public function relatorioCaixa($caixaId)
+    {
+        /** ============================
+         * 1. CAIXA
+         * ============================ */
+        $caixa = DB::table('caixas')
+            ->where('id', $caixaId)
+            ->first();
+
+        if (!$caixa) {
+            abort(404, 'Caixa não encontrado');
+        }
+
+        /** ============================
+         * 2. MOVIMENTAÇÕES
+         * ============================ */
+        $movimentacoes = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->orderBy('data_movimentacao')
+            ->get();
+
+        /** ============================
+         * 3. TOTAIS POR TIPO
+         * ============================ */
+        $totaisPorTipo = $movimentacoes->groupBy('tipo')->map(function ($grupo) {
+            return $grupo->sum('valor');
+        });
+
+        /** ============================
+         * 4. PAGAMENTOS POR FORMA
+         * ============================ */
+        $pagamentosPorForma = DB::table('pagamentos_venda')
+            ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
+            ->where('caixa_id', $caixaId)
+            ->where('status', 'confirmado')
+            ->groupBy('forma_pagamento')
+            ->get();
+
+        /** ============================
+         * 5. SALDO FINAL DO SISTEMA
+         * ============================ */
+        $entradas = $movimentacoes->whereIn('tipo', [
+            'abertura',
+            'venda',
+            'entrada_manual',
+            'fechamento'
+        ])->sum('valor');
+
+        $saidas = $movimentacoes->whereIn('tipo', [
+            'saida_manual',
+            'cancelamento_venda'
+        ])->sum('valor');
+
+        $saldoSistema = $entradas - $saidas;
+
+        /** ============================
+         * 6. RETORNO
+         * ============================ */
+        return response()->json([
+            'caixa'               => $caixa,
+            'totais_por_tipo'     => $totaisPorTipo,
+            'pagamentos_por_forma'=> $pagamentosPorForma,
+            'saldo_sistema'       => $saldoSistema,
+            'movimentacoes'       => $movimentacoes,
+        ]);
+    }
+
+    public function finalizar(Request $request)
+{
+    // validação, persistência, etc.
+
+    return response()->json([
+        'success' => true,
+        'mensagem' => 'Venda finalizada com sucesso!'
+    ]);
+}
+
+
 }

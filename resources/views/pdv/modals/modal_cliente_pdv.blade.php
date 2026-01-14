@@ -1,6 +1,6 @@
 <div class="modal fade" id="modalCliente" tabindex="-1" >
-    <div class="modal-dialog modal-bg"> <!-- corrigido para XL -->
-        <div class="modal-content " style="width: 1400px; max-height: 400px;margin-left:-150px; overflow-y: auto;">
+    <div class="modal-dialog modal-sm"> <!-- corrigido para XL -->
+        <div class="modal-content " style=" width: 1300px; max-height: 400px;margin-left:-500px; overflow-y: auto;">
 
             <div class="modal-header" >
                 <h5 class="modal-title">Selecionar Cliente (F2)</h5>
