@@ -28,6 +28,14 @@ class ItemVenda extends Model
     {
         return $this->belongsTo(Venda::class, 'venda_id');
     }
+   
+  
+    public function devolucoes()
+    {
+        return $this->hasMany(Devolucao::class, 'venda_id');
+    }
+    
+
 
     public function produto()
     {

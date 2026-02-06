@@ -81,4 +81,20 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'F10') {
+            e.preventDefault();
+
+            if (!CAIXA_ID) {
+                alert('Nenhum caixa aberto.');
+                return;
+            }
+
+            window.location.href =
+                `/fechamento_caixa/fechamento/${CAIXA_ID}`;
+        }
+    });
+
+
+
 });

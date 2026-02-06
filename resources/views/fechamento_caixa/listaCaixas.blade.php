@@ -32,7 +32,12 @@
                         <a href="{{ route('fechamento.auditar', $caixa->id) }}" class="btn btn-primary btn-sm">
                             Auditar / Fechar
                         </a>
-                    </td>
+                            @if($caixa->status === 'inconsistente')
+                                <a href="{{ route('fechamento.divergencias', $caixa->id) }}" class="btn btn-sm btn-warning">
+                                    Corrigir Divergências
+                                </a>
+                            @endif
+                        </td>
                 </tr>
                 @endforeach
             </tbody>

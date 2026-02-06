@@ -16,7 +16,7 @@ class CaixaController extends Controller
     {
         $this->middleware('auth');
     }
-
+    
     /**
      * Exibe a tela de abertura de caixa
      */
@@ -54,6 +54,7 @@ class CaixaController extends Controller
      */
     public function store(Request $request)
     {
+
         $user = Auth::user();
         $terminal = $request->attributes->get('terminal');
 
@@ -67,11 +68,12 @@ class CaixaController extends Controller
 
         if ($caixaAberto) {
             return redirect()->route('pdv.index')
-                            ->with('warning', 'Caixa já aberto para este terminal.');
+                ->with('warning', 'Caixa já aberto para este terminal.');
         }
 
         $valorFundoAnterior = $request->input('valor_fundo_anterior', 0.00);
-        $fundoTroco = $request->input('fundo_troco', 0.00);
+        $fundoTroco         = $request->input('fundo_troco', 0.00);
+        $valorAbertura      = $request->input('fundo_troco', 0.00);
 
         $caixa = Caixa::create([
             'user_id' => $user->id,
@@ -80,23 +82,25 @@ class CaixaController extends Controller
             'valor_fundo_anterior' => $valorFundoAnterior,
             'fundo_troco' => $fundoTroco,
             'divergencia_abertura' => $fundoTroco - $valorFundoAnterior,
-            'valor_abertura' => $fundoTroco,
+            'valor' => $fundoTroco,
             'status' => 'aberto',
-            'observacao' => $request->input('observacao', null),
+            'observacao' => $request->input('observacao'),
         ]);
 
-        // Aqui chamamos o CaixaService para registrar a movimentação
-        CaixaService::registrarMovimentacaoCaixa([
-            'caixa_id' => $caixa->id,
-            'user_id'  => $user->id,
-            'tipo'     => 'abertura',
-            'valor'    => $fundoTroco,
-            'observacao' => 'Abertura de caixa',
-        ]);
+            // Aqui chamamos o CaixaService para registrar a movimentação
+            CaixaService::registrarMovimentacaoCaixa([
+                'caixa_id'   => $caixa->id,
+                'user_id'    => $user->id,
+                'tipo'       => 'abertura',          
+                'valor'      => $valorAbertura,
+                'origem_id'  => $caixa->id,  // VÍNCULO CORRETO
+                'observacao' => 'Abertura de caixa',
+            ]);
 
-        return redirect()->route('pdv.index')
-                        ->with('success', 'Caixa aberto com sucesso.')
-                        ->with('caixa_id', $caixa->id);
+
+            return redirect()->route('pdv.index')
+                            ->with('success', 'Caixa aberto com sucesso.')
+                            ->with('caixa_id', $caixa->id);
     }
 
     /**

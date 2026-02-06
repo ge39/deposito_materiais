@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ELEMENTOS
     // ===============================
     const inputCodigo        = document.getElementById("codigo_barras");
+    const inputId_produto = document.getElementById("id_produto");
     const inputDescricao     = document.getElementById("descricao");
     const inputQuantidade    = document.getElementById("quantidade");
     const inputPrecoVenda    = document.getElementById("preco_venda");
@@ -17,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnDiminuir        = document.getElementById("btnDiminuir");
     const btnRemover         = document.getElementById("btnRemover");
     const btnOcultar         = document.getElementById("btnOcultar");
+    const vendaId = data.venda_id; // vai ter valor real
 
     window.produtoAtual = null;
 
@@ -44,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // FUNÇÕES AUXILIARES
     // ===============================
     function limparCamposProduto() {
+        if(inputId_produto) inputId_produto.value = "";
         if(inputDescricao) inputDescricao.value = "";
         if(inputPrecoVenda) inputPrecoVenda.value = "";
         if(inputTotalGeral) inputTotalGeral.value = "";
@@ -110,7 +113,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const produto = data.produto;
             window.produtoAtual = produto;
-
+            // Preenche o input
+            const inputId_produto = document.getElementById("id_produto");
+                if (inputId_produto) {
+                    inputId_produto.value = produto.id;
+                }
             inputDescricao.value  = produto.nome;
             inputPrecoVenda.value = Number(produto.preco_venda).toFixed(2);
             const qtdDisponivel = produto.quantidade_total_disponivel || 1;
@@ -133,68 +140,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // ===============================
-    // ADICIONAR AO CARRINHO
-    // ===============================
-    // window.adicionarItemCarrinho = function(produto) {
-    //     const quantidade = Number(inputQuantidade.value);
-    //     const preco = Number(produto.preco_venda);
-    //     const loteId = produto.lotes?.[0]?.numero_lote ?? "";
-
-    //     if(quantidade <= 0) {
-    //         alert("Informe uma quantidade válida.");
-    //         inputQuantidade.focus();
-    //         return;
-    //     }
-    //     if(preco <= 0) {
-    //         alert("Produto sem preço de venda.");
-    //         return;
-    //     }
-
-    //     // Verifica se o produto já existe
-    //     const linhas = tabelaItens.querySelectorAll("tr");
-    //     for(let linha of linhas) {
-    //         if(linha.dataset.produtoId == produto.id && linha.dataset.loteId == loteId) {
-    //             const tdQtd = linha.querySelector(".item-quantidade");
-    //             const tdSubtotal = linha.querySelector(".subtotal");
-    //             const novaQtd = Number(tdQtd.textContent) + quantidade;
-    //             if(novaQtd > Number(inputQuantidade.max)) {
-    //                 alert("Estoque insuficiente.");
-    //                 return;
-    //             }
-    //             tdQtd.textContent = novaQtd;
-    //             tdSubtotal.textContent = (novaQtd * preco).toFixed(2);
-    //             atualizarNumeroItens();
-    //             atualizarTotalCarrinho();
-    //             resetarProdutoAtual();
-    //             limparCamposProduto();
-    //             return;
-    //         }
-    //     }
-
-    //     const subtotal = quantidade * preco;
-    //     tabelaItens.insertAdjacentHTML("beforeend", `
-    //         <tr class="item-carrinho"
-    //             data-produto="${produto.id}"
-    //             data-lote="${loteId}"
-    //             data-qtd="${quantidade}"
-    //             data-valor="${preco}">
-    //             <td class="item-numero text-center" style="font-size:18px; font-weight:bold;"></td>
-    //             <td class="item-lote" style="font-size:18px; font-weight:bold;">${loteId}</td>
-    //             <td class="item-descricao" style="font-size:18px; font-weight:bold;">${produto.nome}</td>
-    //             <td class="item-quantidade text-center" style="font-size:18px; font-weight:bold;">${quantidade}</td>
-    //             <td class="text-center" style="font-size:18px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
-    //             <td class="item-preco text-end" style="font-size:18px; font-weight:bold;">${preco.toFixed(2)}</td>
-    //             <td class="subtotal text-end" style="font-size:18px; font-weight:bold;">${subtotal.toFixed(2)}</td>
-    //         </tr>
-    //     `);
-
-
-    //     atualizarNumeroItens();
-    //     atualizarTotalCarrinho();
-    //     resetarProdutoAtual();
-    //     limparCamposProduto();
-    // }
     window.adicionarItemCarrinho = function(produto) {
     const quantidade = Number(inputQuantidade.value);
     const preco = Number(produto.preco_venda);

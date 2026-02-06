@@ -222,6 +222,7 @@ Route::middleware('auth')->group(function () {
 
         //Vendas
         Route::post('/vendas', [VendaController::class, 'store'])->name('vendas.store');
+        Route::post('/venda/finalizar/{venda}', [VendaController::class, 'finalizar']);
 
     // ===============================
     // Abertura de Caixa
@@ -268,4 +269,26 @@ Route::middleware('auth')->group(function () {
                 [FechamentoCaixaController::class, 'lancarValores']
             )->name('fechamento.lancar_valores');
         });
-});
+        Route::get('fechamento/caixa/{caixa}/corrigir', [FechamentoCaixaController::class, 'corrigirDivergencias'])->name('fechamento.corrigir');
+        Route::post('fechamento/caixa/{caixa}/ajustar', [FechamentoCaixaController::class, 'ajustarDivergencias'])->name('fechamento.ajustar');
+        // Rota
+        Route::get('/fechamento/{caixa}/divergencias', [FechamentoCaixaController::class, 'divergencias'])
+        ->name('fechamento.divergencias');
+
+        Route::get(
+            '/fechamento_caixa/fechamento/{caixa}',
+            [FechamentoCaixaController::class, 'fechamento']
+        )->name('fechamento.view');
+
+        Route::post(
+            '/fechamento_caixa/fechar/{caixa}',
+            [FechamentoCaixaController::class, 'fechar']
+        )->name('fechamento.fechar');
+
+        Route::post(
+            '/fechamento/{caixa}/divergencias/atualizar',
+            [FechamentoCaixaController::class, 'atualizarValoresAjustados']
+        )->name('fechamento.divergencias.atualizar');
+
+
+    });

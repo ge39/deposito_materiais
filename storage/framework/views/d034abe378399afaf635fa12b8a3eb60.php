@@ -279,7 +279,9 @@
         <div class="caixa-info mb-3 p-0 border rounded shadow-sm bg-light d-flex justify-content-start align-items-center">
             <span><strong>Terminal: 00<?php echo e($terminal->id); ?></strong></span>
             <span><strong>Operador: <?php echo e($operador); ?></strong> </span>
-             <span><strong>ID: <?php echo e($operadorId); ?></strong> </span>
+            <span><strong>ID: <?php echo e($operadorId); ?></strong> </span>
+            <span><strong>Caixa: <?php echo e($caixa_id); ?></strong> </span>
+            <input type="hidden" name="caixa_id" value="<?php echo e($caixa_id); ?>">
             <span><strong>Status Caixa:  
                 <span class="
                     <?php echo e($status === 'Aberto' ? 'status-aberto' : ''); ?>
@@ -396,6 +398,7 @@
                         <!-- descrição -->
             <div class="border p-1 mb-21">
                 <label class="fw-bold">Descrição</label>
+                <input type="hidden" id="id_produto" name="id_produto">
                 <input style="font-size: 16px !important;"class="form-control form-control-sm fs-1 fw-bold " id="descricao" readonly>
                 <small id="alerta-lote" class="fw-bold d-none"></small>
 
@@ -433,7 +436,7 @@
 
             </div>
             <!-- CAMPO DE IMAGEM DO PRODUTO -->
-            <div class="border bg-white mt-1" style="height: 250px; display:flex; align-items:center; justify-content:center;">
+            <div class="border bg-white mt-1" style="height: 233px; display:flex; align-items:center; justify-content:center;">
                 <img id="produto-imagem" src="" alt="Imagem" style="max-width:100%; height:100%; object-fit:contain;">
             </div>
         </div>
@@ -492,7 +495,7 @@
         </div>
 
         <div class="col">
-            <button class="btn btn-danger fs-6  w-100 md-1 p-2">F8 Fecham. Caixa</button>
+            <button class="btn btn-danger fs-6  w-100 md-1 p-2">F10 Fecham. Caixa</button>
         </div> 
         <div class="col btn btn-dark w-100 md-1 p-1 fw-bold d-flex flex-column align-items-center justify-content-center">
             
@@ -680,6 +683,12 @@
 
 </script>
 
+<!-- armazendo id do caia para o fechamento--!>
+<script>
+    const CAIXA_ID = <?php echo e($caixaAberto->id ?? 'null'); ?>;
+</script>
+
+<script src="<?php echo e(asset('js/atalho.js')); ?>"></script>
 
 <?php $__env->stopSection(); ?>
 
@@ -693,5 +702,4 @@
     'resources/js/pdv/app.js',
 ]); ?>
 
-<!-- Fim view completa do PDV -->
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>

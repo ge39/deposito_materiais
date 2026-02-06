@@ -17,39 +17,6 @@ class PDVController extends Controller
           
     }
     
-    /**
-     * Exibe a tela principal do PDV
-     */
-
-    // public function index(Request $request)
-    // {
-    //     // 1️⃣ Pegar o terminal do middleware
-    //     $terminal = $request->attributes->get('terminal');
-
-    //     if (!$terminal) {
-    //         abort(500, 'Terminal não identificado no PDV.');
-    //     }
-
-    //     // 2️⃣ Pegar o caixa aberto mais recente deste terminal
-    //     $caixaAberto = \App\Models\Caixa::with('usuario')
-    //         ->where('terminal_id', $terminal->id)
-    //         ->where('status', 'aberto')
-    //         ->latest('data_abertura')
-    //         ->first();
-
-    //     // 3️⃣ Preparar dados complementares (opcional)
-    //     $operador = $caixaAberto?->usuario?->name ?? 'Nenhum';
-    //     $status = $caixaAberto ? 'Aberto' : 'Fechado';
-
-    //     // 4️⃣ Retornar a view mantendo as variáveis originais + extras
-    //     return view('pdv.index', [
-    //         'terminal' => $terminal,
-    //         'caixaAberto' => $caixaAberto,
-    //         'operador' => $operador,
-    //         'status' => $status,
-    //     ]);
-    // }
-
    public function index(Request $request)
     {
         // 1️⃣ Cliente padrão "VENDA BALCAO"
@@ -58,7 +25,6 @@ class PDVController extends Controller
             ->firstOrFail();
             $clienteId   = $clienteBalcao->id;
 
-
         // 2️⃣ Terminal identificado pelo middleware
         $terminal = $request->attributes->get('terminal');
 
@@ -66,16 +32,23 @@ class PDVController extends Controller
             abort(500, 'Terminal não identificado no PDV.');
         }
 
-        // 3️⃣ Caixa mais recente deste terminal
-        $caixaAberto = \App\Models\Caixa::with('usuario')
-            ->where('terminal_id', $terminal->id)
+        // 2️⃣ Busca o CAIXA ABERTO vinculado ao terminal
+        $caixaAberto = Caixa::where('terminal_id', $terminal->id)
+            ->where('status', 'aberto')
             ->latest('data_abertura')
             ->first();
 
+        if (!$caixaAberto) {
+        // Nenhum caixa aberto: redireciona para abertura de caixa
+        return redirect()->route('caixa.abrir')
+                            ->with('info', 'Nenhum caixa aberto. Abra um caixa para continuar.');
+        }
+
+        // Continua normalmente com o PDV
         // 4️⃣ Operador
         $operadorId   = $caixaAberto?->usuario?->id ?? null;
         $operador = $caixaAberto?->usuario?->name ?? 'Nenhum';
-
+        $caixa_id = $caixaAberto->id;
 
         // 5️⃣ Status do caixa
         $status = 'Fechado';
@@ -100,6 +73,7 @@ class PDVController extends Controller
             'clienteBalcao' => $clienteBalcao,
             'terminal'      => $terminal,
             'caixaAberto'   => $caixaAberto,
+            'caixa_id'      => $caixa_id,
             'operador'      => $operador,
             'status'        => $status,
             'operadorId'    => $operadorId,
@@ -199,59 +173,6 @@ class PDVController extends Controller
         return response()->json($resultado);
     }
 
-    /**
-     *  Buscar Produto (Código de Barras) */
-    // public function buscarProdutoPorCodigo($codigo)
-    // {
-    //     // 🔹 Validação básica
-    //     if (empty($codigo)) {
-    //         return response()->json([
-    //             'status' => 'erro',
-    //             'mensagem' => 'Código de produto não informado.'
-    //         ], 400);
-    //     }
-
-    //     // 🔹 Autenticação (se necessário)
-    //     if (!auth()->check()) {
-    //         return response()->json([
-    //             'status' => 'erro',
-    //             'mensagem' => 'Usuário não autorizado.'
-    //         ], 401);
-    //     }
-
-    //     // 🔹 Buscar produto ativo com lotes válidos
-    //     $produto = Produto::with([
-    //         'categoria',
-    //         'marca',
-    //         'unidadeMedida',
-    //         'lotes' => function ($q) {
-    //             $q->where('status', 1)
-    //             ->where('quantidade_disponivel', '>', 0)
-    //             ->whereDate('validade_lote', '>=', now());
-    //         }
-    //     ])->where('ativo', 1)
-    //     ->where('codigo_barras', $codigo)
-    //     ->first();
-
-    //     if (!$produto) {
-    //         return response()->json([
-    //             'status' => 'erro',
-    //             'mensagem' => 'Produto não encontrado.'
-    //         ], 404);
-    //     }
-
-    //     // Adiciona a sigla da unidade diretamente no objeto
-    //     $produto->unidade_sigla = $produto->unidadeMedida->sigla ?? null;
-
-    //     // 🔹 Soma quantidade total disponível (opcional)
-    //     $produto->quantidade_total_disponivel = $produto->lotes->sum('quantidade_disponivel');
-
-    //     return response()->json([
-    //         'status' => 'ok',
-    //         'produto' => $produto
-    //     ]);
-    // }
-
     public function buscarProdutoPorCodigo($codigo)
     {
         // 🔹 Validação básica
@@ -339,10 +260,7 @@ class PDVController extends Controller
             $total += $item['preco'] * $item['quantidade'];
         }
     }
-
-      
-
-    
+   
     /**
      * F8 – Abrir Gaveta (apenas backend registra)
      */

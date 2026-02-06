@@ -169,4 +169,5 @@ class Produto extends Model
 
         return round($preco, 2);
     }
+    
 }

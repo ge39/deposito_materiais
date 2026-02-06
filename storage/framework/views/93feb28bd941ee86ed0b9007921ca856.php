@@ -32,7 +32,12 @@
                         <a href="<?php echo e(route('fechamento.auditar', $caixa->id)); ?>" class="btn btn-primary btn-sm">
                             Auditar / Fechar
                         </a>
-                    </td>
+                            <?php if($caixa->status === 'inconsistente'): ?>
+                                <a href="<?php echo e(route('fechamento.divergencias', $caixa->id)); ?>" class="btn btn-sm btn-warning">
+                                    Corrigir Divergências
+                                </a>
+                            <?php endif; ?>
+                        </td>
                 </tr>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </tbody>

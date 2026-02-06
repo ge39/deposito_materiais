@@ -17,6 +17,7 @@ class Caixa extends Model
         'terminal',
         'valor_fundo_anterior',
         'fundo_troco',
+        'fechado_por',
         'divergencia_abertura',
         'valor_abertura',
         'valor_fechamento',
@@ -59,6 +60,18 @@ class Caixa extends Model
     {
         return $this->hasMany(Venda::class, 'caixa_id');
     }
+
+    public function possuiVendas(): bool
+    {
+        return $this->vendas()
+            ->whereHas('pagamentos', function ($q) {
+                $q->where('status', 'confirmado');
+            })
+            ->exists();
+    }
+
+
+
 
     /* =======================
      * SCOPES ÚTEIS

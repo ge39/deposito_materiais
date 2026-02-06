@@ -1,46 +1,46 @@
 <style>
-.tabela-movimentacoes {
-    width: 100%;
-    table-layout: fixed;
-    border-collapse: collapse;
-}
+    .tabela-movimentacoes {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
 
-/* Overflow controlado e texto cortado */
-.tabela-movimentacoes th,
-.tabela-movimentacoes td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding: 10px 8px;
-}
+    /* Overflow controlado e texto cortado */
+    .tabela-movimentacoes th,
+    .tabela-movimentacoes td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 10px 8px;
+    }
 
-/* Larguras das colunas */
-.tabela-movimentacoes th:nth-child(1),
-.tabela-movimentacoes td:nth-child(1) { width: 50px; }   /* ID */
-.tabela-movimentacoes th:nth-child(2),
-.tabela-movimentacoes td:nth-child(2) { width: 150px; }  /* Tipo */
-.tabela-movimentacoes th:nth-child(3),
-.tabela-movimentacoes td:nth-child(3) { width: 180px; }  /* Valor */
-.tabela-movimentacoes th:nth-child(4),
-.tabela-movimentacoes td:nth-child(4) { width: 100px; }   /* Origem */
-.tabela-movimentacoes th:nth-child(5),
-.tabela-movimentacoes td:nth-child(5) { width: 150px; }  /* Data */
-.tabela-movimentacoes th:nth-child(6),
-.tabela-movimentacoes td:nth-child(6) { width: auto; }   /* Observação */
+    /* Larguras das colunas */
+    .tabela-movimentacoes th:nth-child(1),
+    .tabela-movimentacoes td:nth-child(1) { width: 50px; }   /* ID */
+    .tabela-movimentacoes th:nth-child(2),
+    .tabela-movimentacoes td:nth-child(2) { width: 150px; }  /* Tipo */
+    .tabela-movimentacoes th:nth-child(3),
+    .tabela-movimentacoes td:nth-child(3) { width: 180px; }  /* Valor */
+    .tabela-movimentacoes th:nth-child(4),
+    .tabela-movimentacoes td:nth-child(4) { width: 100px; }   /* Origem */
+    .tabela-movimentacoes th:nth-child(5),
+    .tabela-movimentacoes td:nth-child(5) { width: 150px; }  /* Data */
+    .tabela-movimentacoes th:nth-child(6),
+    .tabela-movimentacoes td:nth-child(6) { width: auto; }   /* Observação */
 
-/* Zebra striping suave */
-.tabela-movimentacoes tbody tr:nth-child(odd) {
-    background-color: #f9f9f9; /* linha clara */
-}
+    /* Zebra striping suave */
+    .tabela-movimentacoes tbody tr:nth-child(odd) {
+        background-color: #f9f9f9; /* linha clara */
+    }
 
-.tabela-movimentacoes tbody tr:nth-child(even) {
-    background-color: #ffffff; /* linha branca */
-}
+    .tabela-movimentacoes tbody tr:nth-child(even) {
+        background-color: #ffffff; /* linha branca */
+    }
 
-/* Efeito hover */
-.tabela-movimentacoes tbody tr:hover {
-    background-color: #e0f3ff; /* destaque suave */
-}
+    /* Efeito hover */
+    .tabela-movimentacoes tbody tr:hover {
+        background-color: #e0f3ff; /* destaque suave */
+    }
 
 </style>
 
@@ -55,7 +55,7 @@
         <div class="col-md-4">
             <div class="card p-2 ">
                 <div class="card-header fs-5 bg-primary text-white fw-bold"> Abertura:</div>
-                <strong>Abertura:</strong> R$ <?php echo e(number_format($caixa->valor_abertura, 2, ',', '.')); ?><br>
+                <strong>✅ Abertura:</strong> R$ <?php echo e(number_format($caixa->valor_abertura, 2, ',', '.')); ?><br>
                 <strong>Fundo de Troco:</strong> R$ <?php echo e(number_format($caixa->fundo_troco, 2, ',', '.')); ?><br>
                 <strong>Data Abertura:</strong> <?php echo e($caixa->data_abertura->format('d/m/Y H:i')); ?><br>
                 <strong>Status:</strong> <?php echo e(ucfirst($caixa->status)); ?>
@@ -66,9 +66,9 @@
         <div class="col-md-4">
             <div class="card p-2">
                 <div class="card-header fs-5 bg-primary text-white fw-bold"> Total Entradas:</div>
-                <strong>Total Entradas:</strong> R$ <?php echo e(number_format($total_entradas, 2, ',', '.')); ?><br>
+                <strong>✅ Total Entradas:</strong> R$ <?php echo e(number_format($total_entradas, 2, ',', '.')); ?><br>
                 <strong>Total Saídas:</strong> R$ <?php echo e(number_format($total_saidas, 2, ',', '.')); ?><br>
-                <strong>Total Esperado:</strong> R$ <?php echo e(number_format($total_esperado, 2, ',', '.')); ?><br>
+                <strong>Total  Esperado Dinheiro:</strong> R$ <?php echo e(number_format($total_esperado  , 2, ',', '.')); ?><br>
                 <strong>Divergência:</strong> 
                 <span class="<?php echo e($divergencia != 0 ? 'text-danger fw-bold' : 'text-success fw-bold'); ?>">
                     R$ <?php echo e(number_format($divergencia, 2, ',', '.')); ?>
@@ -80,7 +80,7 @@
         <div class="col-md-4">
             <div class="card p-2">
                 <div class="card-header fs-5 bg-primary text-white fw-bold">Formas Pagamento (Sistema):</div>
-                <strong>-</strong>
+                <strong>✅  Sistema</strong>
                 <ul class="list-unstyled mb-0">
                     <?php $__currentLoopData = ['dinheiro','pix','carteira','cartao_debito','cartao_credito']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $forma): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li><?php echo e(ucfirst(str_replace('_',' ',$forma))); ?>: 
@@ -88,6 +88,15 @@
 
                         </li>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </ul>
+                <ul class="list-unstyled mb-0">
+                     ✅ 
+                       <strong>Total Sistema:</strong>
+                        R$ <?php echo e(number_format($totalGeralSistema, 2, ',', '.')); ?>
+
+
+
+                   
                 </ul>
             </div>
         </div>
@@ -129,6 +138,19 @@
                        value="<?php echo e(number_format($totaisPorForma['cartao_credito'] ?? 0, 2, ',', '.')); ?>">
             </div>
         </div>
+           <?php if($vm->semMovimento): ?>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Motivo do fechamento sem movimento
+                    </label>
+                    <textarea name="motivo_fechamento"
+                            class="form-control"
+                            required
+                            placeholder="Ex.: falha no terminal, pinpad inoperante, abertura indevida..."></textarea>
+                </div>
+            <?php endif; ?>
+
+
 
         <button type="submit" class="btn btn-success">Fechar Caixa</button>
     </form>
@@ -165,13 +187,21 @@
                 
             </table>
                 <div class="mt-3">
-                    <a href="<?php echo e(route('fechamento.lancar_valores', $caixa->id)); ?>"
-                    class="btn btn-primary">
-                        Lançamento de Valores Manuais
-                    </a>
-                    <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary ">
-                        Cancelar
-                    </a>
+                        <?php if($caixa->estaAberto()): ?>
+                            <a href="<?php echo e(route('fechamento.lancar_valores', $caixa->id)); ?>"
+                            class="btn btn-primary">
+                                Lançamento de Valores Manuais
+                            </a>
+                        <?php else: ?>
+                            <button class="btn btn-primary" disabled
+                                    title="Caixa já fechado">
+                                Lançamento de Valores Manuais
+                            </button>
+                        <?php endif; ?>
+
+                        <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary ">
+                            Cancelar
+                        </a>
                 </div>
 
         </div>
