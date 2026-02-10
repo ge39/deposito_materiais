@@ -91,7 +91,8 @@ class CaixaController extends Controller
             CaixaService::registrarMovimentacaoCaixa([
                 'caixa_id'   => $caixa->id,
                 'user_id'    => $user->id,
-                'tipo'       => 'abertura',          
+                'tipo'       => 'abertura',  
+                'forma_pagamento' => 'abertura',         
                 'valor'      => $valorAbertura,
                 'origem_id'  => $caixa->id,  // VÍNCULO CORRETO
                 'observacao' => 'Abertura de caixa',

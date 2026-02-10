@@ -155,81 +155,7 @@ class FechamentoCaixaController extends Controller
             ->with('success', 'Movimentações lançadas com sucesso!');
     }
 
-    
-    //  public function fechar(Request $request, $caixaId)
-    // {
-    //     $request->validate([
-    //         'dinheiro' => 'required|numeric|min:0',
-    //         'pix' => 'required|numeric|min:0',
-    //         'carteira' => 'required|numeric|min:0',
-    //         'cartao_debito' => 'required|numeric|min:0',
-    //         'cartao_credito' => 'required|numeric|min:0',
-    //     ]);
-
-    //     $valoresFisicos = $request->only(['dinheiro','pix','carteira','cartao_debito','cartao_credito']);
-
-    //     DB::transaction(function () use ($caixaId, $valoresFisicos, $request) {
-
-    //         // 1️⃣ Bloqueio pessimista para concorrência
-    //         $caixa = Caixa::with(['vendas.pagamentos'])->lockForUpdate()->findOrFail($caixaId);
-
-    //         if (!$caixa->estaAberto()) {
-    //             throw new \Exception("Caixa já foi fechado por outro operador.");
-    //         }
-
-    //         // 2️⃣ Totais por forma de pagamento do sistema
-    //         $formas = ['dinheiro','pix','carteira','cartao_debito','cartao_credito'];
-    //         $totaisSistema = [];
-    //         foreach ($formas as $f) {
-    //             $totaisSistema[$f] = $caixa->vendas->flatMap->pagamentos
-    //                 ->where('forma_pagamento',$f)
-    //                 ->where('status','confirmado')
-    //                 ->sum('valor');
-    //         }
-
-    //         // 3️⃣ Calcula divergências
-    //         $divergencias = [];
-    //         foreach ($formas as $f) {
-    //             $dif = $valoresFisicos[$f] - ($totaisSistema[$f] ?? 0);
-    //             if ($dif != 0) {
-    //                 MovimentacaoCaixa::create([
-    //                     'caixa_id' => $caixa->id,
-    //                     'user_id' => auth()->id(),
-    //                     'tipo' => $dif > 0 ? 'entrada_manual' : 'saida_manual',
-    //                     'valor' => abs($dif),
-    //                     'origem_id' => null,
-    //                     'observacao' => "Ajuste manual no fechamento: $f",
-    //                 ]);
-    //                 $divergencias[$f] = $dif;
-    //             }
-    //         }
-
-    //         // 4️⃣ Movimentação de fechamento
-    //         MovimentacaoCaixa::create([
-    //             'caixa_id' => $caixa->id,
-    //             'user_id' => auth()->id(),
-    //             'tipo' => 'fechamento',
-    //             'valor' => array_sum($valoresFisicos),
-    //             'valor_auditado' => 0,
-    //             'origem_id' => null,
-    //             'observacao' => !empty($divergencias) ? json_encode($divergencias) : null,
-    //         ]);
-
-    //         // 5️⃣ Atualiza caixa
-    //         $caixa->update([
-    //             'valor_fechamento' => array_sum($valoresFisicos),
-    //             'status' => empty($divergencias) ? 'fechado' : 'inconsistente',
-    //             'data_fechamento' => now(),
-    //             'fechado_por' => auth()->id(),
-    //             'observacao_divergencia' => !empty($divergencias) ? json_encode($divergencias) : null,
-    //         ]);
-
-    //     });
-
-    //     return redirect()->route('fechamento.lista')
-    //         ->with('success', 'Caixa fechado com sucesso.');
-    // }
-
+    //Fechamento caixa com lançamento manual de valores e auditoria
     // public function fechar(Request $request, $caixaId)
     // {
     //     $request->validate([
@@ -262,10 +188,11 @@ class FechamentoCaixaController extends Controller
 
     //         /*
     //         |--------------------------------------------------------------------------
-    //         | 1️⃣ Totais do sistema (somente vendas)
+    //         | 1️⃣ Totais do sistema (somente vendas confirmadas)
     //         |--------------------------------------------------------------------------
     //         */
     //         $totaisSistema = [];
+
     //         foreach ($valoresFisicos as $forma => $_) {
     //             $totaisSistema[$forma] = $caixa->vendas
     //                 ->flatMap->pagamentos
@@ -276,11 +203,23 @@ class FechamentoCaixaController extends Controller
 
     //         /*
     //         |--------------------------------------------------------------------------
-    //         | 2️⃣ Lançamento dos valores informados pelo usuário
+    //         | 2️⃣ Lançamento dos valores informados (SEM DUPLICAR)
     //         |--------------------------------------------------------------------------
     //         */
     //         foreach ($valoresFisicos as $forma => $valor) {
+
     //             if ($valor <= 0) {
+    //                 continue;
+    //             }
+
+    //             // 🔒 impede relançamento da mesma forma no fechamento
+    //             $jaLancado = MovimentacaoCaixa::where('caixa_id', $caixa->id)
+    //                 ->where('tipo', 'entrada_manual')
+    //                 ->where('forma_pagamento', $forma)
+    //                 ->where('observacao', 'Valor informado no fechamento')
+    //                 ->exists();
+
+    //             if ($jaLancado) {
     //                 continue;
     //             }
 
@@ -289,7 +228,7 @@ class FechamentoCaixaController extends Controller
     //                 'user_id'         => $userId,
     //                 'tipo'            => 'entrada_manual',
     //                 'forma_pagamento' => $forma,
-    //                 'valor'           => $valor,
+    //                 'valor'           => $valor, // 🔴 exatamente o valor digitado
     //                 'origem_id'       => null,
     //                 'observacao'      => 'Valor informado no fechamento',
     //             ]);
@@ -297,67 +236,35 @@ class FechamentoCaixaController extends Controller
 
     //         /*
     //         |--------------------------------------------------------------------------
-    //         | 3️⃣ Ajustes de divergência (somente diferença)
+    //         | 3️⃣ Divergências (APENAS CÁLCULO – SEM MOVIMENTAÇÃO)
     //         |--------------------------------------------------------------------------
     //         */
     //         $divergencias = [];
 
-    //         // foreach ($valoresFisicos as $forma => $valorInformado) {
-    //         //     $valorSistema = $totaisSistema[$forma] ?? 0;
-    //         //     $dif = $valorInformado - $valorSistema;
+    //         foreach ($valoresFisicos as $forma => $valorInformado) {
+    //             $valorSistema = $totaisSistema[$forma] ?? 0;
+    //             $dif = $valorInformado - $valorSistema;
 
-    //         //     if ($dif == 0) {
-    //         //         continue;
-    //         //     }
-
-    //         //     MovimentacaoCaixa::create([
-    //         //         'caixa_id'        => $caixa->id,
-    //         //         'user_id'         => $userId,
-    //         //         'tipo'            => $dif > 0 ? 'entrada_manual' : 'saida_manual',
-    //         //         'forma_pagamento' => $forma,
-    //         //         'valor'           => abs($dif),
-    //         //         'origem_id'       => null,
-    //         //         'observacao'      => "Ajuste manual no fechamento: {$forma}",
-    //         //     ]);
-
-    //         //     $divergencias[$forma] = $dif;
-    //         // }
+    //             if ($dif != 0) {
+    //                 $divergencias[$forma] = $dif;
+    //             }
+    //         }
 
     //         /*
     //         |--------------------------------------------------------------------------
-    //         | 4️⃣ Fechamento (SEM fundo de caixa)
+    //         | 4️⃣ Atualiza status do caixa
     //         |--------------------------------------------------------------------------
     //         */
-    //         // $totalSistema   = array_sum($totaisSistema);
-    //         // $totalInformado = array_sum($valoresFisicos);
+    //         $totalSistema = array_sum($totaisSistema);
 
-    //         // MovimentacaoCaixa::create([
-    //         //     'caixa_id'       => $caixa->id,
-    //         //     'user_id'        => $userId,
-    //         //     'tipo'           => 'fechamento',
-    //         //     'valor'          => $totalSistema,
-    //         //     'valor_auditado' => $totalSistema,
-    //         //     'origem_id'      => null,
-    //         //     'observacao'     => !empty($divergencias)
-    //         //         ? json_encode($divergencias)
-    //         //         : 'Fechamento sem divergências',
-    //         // ]);
-
-    //         /*
-    //         |--------------------------------------------------------------------------
-    //         | 5️⃣ Atualiza status do caixa
-    //         |--------------------------------------------------------------------------
-    //         */
-    //         $totalSistema   = array_sum($totaisSistema);
     //         $caixa->update([
-    //             'valor_fechamento'       => $totalSistema,
-    //             'status'                 => empty($divergencias) ? 'fechado' : 'inconsistente',
-    //             'data_fechamento'        => now(),
-    //             'fechado_por'            => $userId,
-    //             // 'observacao_divergencia' => !empty($divergencias)
-    //             //     ? json_encode($divergencias)
-    //             //     : null,
-    //             'observacao' => !empty($divergencias) ? json_encode($divergencias) : null,
+    //             'valor_fechamento' => $totalSistema,
+    //             'status'           => empty($divergencias) ? 'fechado' : 'inconsistente',
+    //             'data_fechamento'  => now(),
+    //             'fechado_por'      => $userId,
+    //             'observacao'       => !empty($divergencias)
+    //                 ? json_encode($divergencias)
+    //                 : null,
     //         ]);
     //     });
 
@@ -366,125 +273,35 @@ class FechamentoCaixaController extends Controller
     //         ->with('success', 'Caixa fechado com sucesso.');
     // }
 
-        public function fechar(Request $request, $caixaId)
-{
-    $request->validate([
-        'dinheiro'        => 'required|numeric|min:0',
-        'pix'             => 'required|numeric|min:0',
-        'carteira'        => 'required|numeric|min:0',
-        'cartao_debito'   => 'required|numeric|min:0',
-        'cartao_credito'  => 'required|numeric|min:0',
-    ]);
-
-    $valoresFisicos = $request->only([
-        'dinheiro',
-        'pix',
-        'carteira',
-        'cartao_debito',
-        'cartao_credito'
-    ]);
-
-    DB::transaction(function () use ($caixaId, $valoresFisicos) {
-
-        $caixa = Caixa::with(['vendas.pagamentos'])
-            ->lockForUpdate()
-            ->findOrFail($caixaId);
-
+     public function fechar(Request $request, Caixa $caixa)
+    {
         if (!$caixa->estaAberto()) {
-            throw new \Exception('Caixa já fechado.');
+            return back()->withErrors('Caixa já está fechado.');
         }
 
-        $userId = auth()->id();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 1️⃣ Totais do sistema (somente vendas confirmadas)
-        |--------------------------------------------------------------------------
-        */
-        $totaisSistema = [];
-
-        foreach ($valoresFisicos as $forma => $_) {
-            $totaisSistema[$forma] = $caixa->vendas
-                ->flatMap->pagamentos
-                ->where('forma_pagamento', $forma)
-                ->where('status', 'confirmado')
-                ->sum('valor');
+        if (!$caixa->possuiVendas()) {
+            return $this->fecharSemMovimento($request, $caixa);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | 2️⃣ Lançamento dos valores informados (SEM DUPLICAR)
-        |--------------------------------------------------------------------------
-        */
-        foreach ($valoresFisicos as $forma => $valor) {
+        return $this->fecharMovimentoComAuditoria($request, $caixa);
+           
 
-            if ($valor <= 0) {
-                continue;
-            }
+    
+    }
 
-            // 🔒 impede relançamento da mesma forma no fechamento
-            $jaLancado = MovimentacaoCaixa::where('caixa_id', $caixa->id)
-                ->where('tipo', 'entrada_manual')
-                ->where('forma_pagamento', $forma)
-                ->where('observacao', 'Valor informado no fechamento')
-                ->exists();
-
-            if ($jaLancado) {
-                continue;
-            }
-
-            MovimentacaoCaixa::create([
-                'caixa_id'        => $caixa->id,
-                'user_id'         => $userId,
-                'tipo'            => 'entrada_manual',
-                'forma_pagamento' => $forma,
-                'valor'           => $valor, // 🔴 exatamente o valor digitado
-                'origem_id'       => null,
-                'observacao'      => 'Valor informado no fechamento',
-            ]);
+    //rota padrao para mostrar a confirmação do fechamento, seja com ou sem movimento
+   public function confirmacao(Caixa $caixa)
+    {
+        if ($caixa->status === 'inconsistente') {
+            return view('fechamento_caixa.confirmacao_inconsistente', compact('caixa'));
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | 3️⃣ Divergências (APENAS CÁLCULO – SEM MOVIMENTAÇÃO)
-        |--------------------------------------------------------------------------
-        */
-        $divergencias = [];
+        return view('fechamento_caixa.confirmacao', compact('caixa'));
+    }
 
-        foreach ($valoresFisicos as $forma => $valorInformado) {
-            $valorSistema = $totaisSistema[$forma] ?? 0;
-            $dif = $valorInformado - $valorSistema;
 
-            if ($dif != 0) {
-                $divergencias[$forma] = $dif;
-            }
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 4️⃣ Atualiza status do caixa
-        |--------------------------------------------------------------------------
-        */
-        $totalSistema = array_sum($totaisSistema);
-
-        $caixa->update([
-            'valor_fechamento' => $totalSistema,
-            'status'           => empty($divergencias) ? 'fechado' : 'inconsistente',
-            'data_fechamento'  => now(),
-            'fechado_por'      => $userId,
-            'observacao'       => !empty($divergencias)
-                ? json_encode($divergencias)
-                : null,
-        ]);
-    });
-
-    return redirect()
-        ->route('fechamento.lista')
-        ->with('success', 'Caixa fechado com sucesso.');
-}
-
-       
-    private function fecharSemMovimentoAuditoria(Request $request, Caixa $caixa)
+ 
+    private function fecharSemMovimento(Request $request, Caixa $caixa)
     {
         $request->validate([
             'motivo_fechamento' => 'required|string|max:255',
@@ -502,6 +319,7 @@ class FechamentoCaixaController extends Controller
             MovimentacaoCaixa::create([
                 'caixa_id' => $caixa->id,
                 'user_id' => $userId,
+                'forma_pagamento' => 'fechamento',
                 'tipo' => 'fechamento_sem_movimento',
                 'valor' => $caixa->fundo_troco,
                 'observacao' => $request->motivo_fechamento,
@@ -517,10 +335,84 @@ class FechamentoCaixaController extends Controller
             ]);
         });
 
+        // return redirect()
+        //     ->route('fechamento.lista')
+        //     ->with('success', 'Caixa fechado sem movimentação.');
         return redirect()
-            ->route('fechamento.lista')
+            ->route('fechamento.confirmacao', $caixa->id)
             ->with('success', 'Caixa fechado sem movimentação.');
     }
+    
+
+    public function fecharMovimentoComAuditoria(Request $request, Caixa $caixa)
+    {
+        $request->validate([
+            'dinheiro'        => 'required|numeric|min:0',
+            'pix'             => 'required|numeric|min:0',
+            'carteira'        => 'required|numeric|min:0',
+            'cartao_debito'   => 'required|numeric|min:0',
+            'cartao_credito'  => 'required|numeric|min:0',
+        ]);
+
+        $userId = Auth::id();
+
+        $valoresFisicos = $request->only([
+            'dinheiro','pix','carteira','cartao_debito','cartao_credito'
+        ]);
+
+        DB::transaction(function () use ($caixa, $userId, $valoresFisicos) {
+
+            $caixa->lockForUpdate();
+
+            /** ===============================
+             * 1️⃣ Entradas manuais (operador)
+             * =============================== */
+            foreach ($valoresFisicos as $forma => $valor) {
+                MovimentacaoCaixa::create([
+                    'caixa_id'        => $caixa->id,
+                    'user_id'         => $userId,
+                    'tipo'            => 'entrada_manual',
+                    'forma_pagamento' => $forma,
+                    'valor'           => $valor,
+                    'observacao'      => 'Valor físico informado no fechamento',
+                    'data_movimentacao' => now(),
+                ]);
+            }
+
+            /** ===============================
+             * 2️⃣ Fechamento consolidado
+             * =============================== */
+            $totalSistema = $caixa->vendas
+                ->flatMap->pagamentos
+                ->where('status','confirmado')
+                ->sum('valor');
+
+            $totalFisico = array_sum($valoresFisicos) + $caixa->fundo_troco;
+
+            MovimentacaoCaixa::create([
+                'caixa_id'        => $caixa->id,
+                'user_id'         => $userId,
+                'tipo'            => 'fechamento',
+                'valor'           => $totalSistema,
+                'valor_auditado'  => $totalFisico,
+                'observacao'      => 'Fechamento realizado pelo operador',
+                'data_movimentacao' => now(),
+            ]);
+
+            $caixa->update([
+                // 'status'           => 'aguardando_auditoria',
+                'status'           => 'inconsistente',
+                'valor_fechamento' => $totalFisico,
+                'data_fechamento'  => now(),
+                'fechado_por'      => $userId,
+            ]);
+        });
+
+         return redirect()
+            ->route('fechamento.confirmacao', ['caixa' => $caixa->id])
+            ->with('success', 'Caixa fechado com auditoria.');
+    }
+
 
     //VALIDAÇÕES
     private function validarRequestFechamento(Request $request): void
@@ -696,54 +588,6 @@ class FechamentoCaixaController extends Controller
         ]);
     }
 
-    
-//    public function ajustarDivergencias(Request $request, int $caixaId)
-//     {
-//         $request->validate([
-//             'formas'   => 'required|array|min:1',
-//             'formas.*' => 'required',
-//         ]);
-
-//         DB::transaction(function () use ($request, $caixaId) {
-
-//             $caixa = Caixa::lockForUpdate()->findOrFail($caixaId);
-
-//             if ($caixa->status !== 'inconsistente') {
-//                 throw new \Exception('Caixa não está inconsistente para auditoria.');
-//             }
-
-//             $userId = auth()->id();
-
-//             // Soma FINAL auditada vinda da view
-//             $totalAuditado = 0;
-
-//             foreach ($request->formas as $forma => $valorStr) {
-//                 $totalAuditado += $this->parseValorBR($valorStr);
-//             }
-
-//             // 🔒 ÚNICO LUGAR ONDE valor_auditado É PERMITIDO
-//             MovimentacaoCaixa::where('caixa_id', $caixa->id)
-//                 ->where('tipo', 'fechamento')
-//                 ->latest('id')
-//                 ->update([
-//                     'valor_auditado' => $totalAuditado,
-//                     'observacao'     => 'Auditoria concluída por forma de pagamento',
-//                     'user_id'        => $userId,
-//                     'updated_at'     => now(),
-//                 ]);
-
-//             // Fecha o caixa
-//             $caixa->update([
-//                 'status'          => 'fechado',
-//                 'data_fechamento' => now(),
-//                 'fechado_por'     => $userId,
-//             ]);
-//         });
-
-//         return redirect()
-//             ->route('fechamento.lista')
-//             ->with('success', 'Auditoria concluída e caixa fechado com sucesso.');
-//     }
     public function ajustarDivergencias(Request $request, int $caixaId)
     {
         $request->validate([
@@ -860,8 +704,6 @@ class FechamentoCaixaController extends Controller
             ->route('fechamento.lista')
             ->with('success', 'Auditoria concluída e caixa fechado com sucesso.');
     }
-
-
 
     public function divergencias($caixaId)
     {

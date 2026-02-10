@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Mao tem rodapé -->
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
@@ -228,11 +229,5 @@
     <?php echo $__env->yieldPushContent('scripts'); ?>
     
 </body>
-<footer class="mt-5 py-3 border-top bg-light text-center text-muted">
-    <small>
-        © <?php echo e(date('Y')); ?> <?php echo e(config('app.name') .' -  JMFSoftware2017'); ?> — Todos os direitos reservados.
-    </small>
-</footer>
-
 </html>
-<?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/layouts/app.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/layouts/app2.blade.php ENDPATH**/ ?>

@@ -683,12 +683,17 @@
 
 </script>
 
-<!-- armazendo id do caia para o fechamento--!>
+<!-- armazendo id do caixa para o fechamento--!>
 <script>
     const CAIXA_ID = <?php echo e($caixaAberto->id ?? 'null'); ?>;
 </script>
 
 <script src="<?php echo e(asset('js/atalho.js')); ?>"></script>
+
+<script>
+    const CAIXA_ID = <?php echo json_encode($caixa->id ?? null, 15, 512) ?>;
+    const CAIXA_POSSUI_VENDAS = <?php echo json_encode($caixa->possui_vendas ?? false, 15, 512) ?>;
+</script
 
 <?php $__env->stopSection(); ?>
 
@@ -702,4 +707,6 @@
     'resources/js/pdv/app.js',
 ]); ?>
 
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>
+
+>
+<?php echo $__env->make('layouts.app2', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>

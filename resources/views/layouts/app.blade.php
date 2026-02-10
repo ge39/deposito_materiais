@@ -227,4 +227,10 @@
     @stack('scripts')
     
 </body>
+<footer class="mt-5 py-3 border-top bg-light text-center text-muted">
+    <small>
+        © {{ date('Y') }} {{ config('app.name') .' -  JMFSoftware2017' }} — Todos os direitos reservados.
+    </small>
+</footer>
+
 </html>

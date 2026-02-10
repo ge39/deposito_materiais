@@ -91,10 +91,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             window.location.href =
+            //utiliza o mesmo endpoint para lançar os valores, mas o controller 
+            // irá redirecionar para a página de fechamento ou divergências 
+            // conforme o caso
+                // `/fechamento_caixa/lancar_valores/${CAIXA_ID}`;
                 `/fechamento_caixa/fechamento/${CAIXA_ID}`;
         }
-    });
-
+   });
 
 
 });

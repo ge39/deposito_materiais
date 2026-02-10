@@ -1,7 +1,7 @@
 <!-- View completa do PDV gerada conforme layout solicitado -->
 <!-- Você pode ajustar rota, ids e classes conforme sua lógica -->
 
-@extends('layouts.app')
+@extends('layouts.app2')
 @section('content') 
 
 // Quando abrir o PDV
@@ -673,12 +673,17 @@
 
 </script>
 
-<!-- armazendo id do caia para o fechamento--!>
+<!-- armazendo id do caixa para o fechamento--!>
 <script>
     const CAIXA_ID = {{ $caixaAberto->id ?? 'null' }};
 </script>
 
 <script src="{{ asset('js/atalho.js') }}"></script>
+
+<script>
+    const CAIXA_ID = @json($caixa->id ?? null);
+    const CAIXA_POSSUI_VENDAS = @json($caixa->possui_vendas ?? false);
+</script
 
 @endsection
 
@@ -691,3 +696,6 @@
 @vite([
     'resources/js/pdv/app.js',
 ])
+
+
+>

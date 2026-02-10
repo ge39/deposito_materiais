@@ -280,15 +280,25 @@ Route::middleware('auth')->group(function () {
             [FechamentoCaixaController::class, 'fechamento']
         )->name('fechamento.view');
 
-        Route::post(
-            '/fechamento_caixa/fechar/{caixa}',
-            [FechamentoCaixaController::class, 'fechar']
-        )->name('fechamento.fechar');
+        // Route::post(
+        //     '/fechamento_caixa/confirmacao/{caixa}',
+        //     [FechamentoCaixaController::class, 'fechar']
+        // )->name('fechamento.fechar');
+
+        //rota da mensagem de confirmação para fechamento do caixa com ou sem auditoria
+        Route::get(
+            '/fechamento_caixa/confirmacao/{caixa}',
+            [FechamentoCaixaController::class, 'confirmacao']
+        )->name('fechamento.confirmacao');
+
+
 
         Route::post(
             '/fechamento/{caixa}/divergencias/atualizar',
             [FechamentoCaixaController::class, 'atualizarValoresAjustados']
         )->name('fechamento.divergencias.atualizar');
+
+
 
 
     });

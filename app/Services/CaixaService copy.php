@@ -216,5 +216,4 @@ class CaixaService
 
         return $divergencias;
     }
-
 }
