@@ -15,7 +15,7 @@
     @elseif ($caixa->status === 'inconsistente')
         <div class="alert alert-warning p-4 fs-5">
             <h3 class="alert-heading">⚠️ Caixa fechado com inconsistências</h3>
-            <p class="mb-0">
+            <p class="mb-0 text-danger">
                 Foram identificadas divergências.
                 Este caixa será encaminhado para <strong>auditoria fiscal</strong>.
             </p>
@@ -75,12 +75,15 @@
                 🔁 Abrir novo caixa
             </a>
 
-            <a href="{{ route('logout') }}"
+            <!-- <a href="{{ route('logout') }}"
                class="btn btn-outline-secondary btn-lg"
                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                 🚪 Sair
+            </a> -->
+            <a href="{{ route('pdv.index') }}"
+               class="btn btn-success btn-lg">
+                🚪 Sair
             </a>
-
             <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                 @csrf
             </form>

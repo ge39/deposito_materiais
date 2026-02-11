@@ -30,6 +30,12 @@ class MovimentacaoCaixa extends Model
         'data_movimentacao' => 'datetime',
     ];
 
+    public function auditoria()
+    {
+        return $this->belongsTo(AuditoriaCaixa::class);
+    }
+
+
     // protected static function booted()
     // {
     //     static::saving(function ($mov) {
@@ -51,26 +57,7 @@ class MovimentacaoCaixa extends Model
 
     protected static function booted()
     {
-        // static::saving(function ($mov) {
-
-        //     // valor_auditado só pode existir em auditoria
-        //     if ($mov->valor_auditado !== null) {
-
-        //         if ($mov->tipo !== 'auditoria') {
-        //             throw new \Exception(
-        //                 'Valor auditado só pode ser usado em movimentações de auditoria.'
-        //             );
-        //         }
-
-        //         if (empty($mov->forma_pagamento)) {
-        //             throw new \Exception(
-        //                 'Auditoria exige forma de pagamento.'
-        //             );
-        //         }
-        //     }
-        // });
-
-        
+              
         static::saving(function ($mov) {
 
             if ($mov->tipo === 'fechamento') {

@@ -290,13 +290,11 @@ Route::middleware('auth')->group(function () {
             '/fechamento_caixa/confirmacao/{caixa}',
             [FechamentoCaixaController::class, 'confirmacao']
         )->name('fechamento.confirmacao');
+        
+        //rota para correção do caixa com inconsistencia
+         Route::get('/fechamento/{caixa}/confirmacao_auditoria', [FechamentoCaixaController::class, 'auditoria'])
+         ->name('fechamento.auditoria');
 
-
-
-        Route::post(
-            '/fechamento/{caixa}/divergencias/atualizar',
-            [FechamentoCaixaController::class, 'atualizarValoresAjustados']
-        )->name('fechamento.divergencias.atualizar');
 
 
 

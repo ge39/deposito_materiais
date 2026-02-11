@@ -42,6 +42,41 @@
         background-color: #e0f3ff; /* destaque suave */
     }
 
+    .movimentacoes-container {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        font-size: 0.95rem;
+    }
+
+    .movimentacao-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .movimentacoes-container .row {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    .movimentacoes-container .col-1,
+    .movimentacoes-container .col-2 {
+        padding: 0.5rem;
+        border-right: 1px solid #dee2e6;
+    }
+
+    .movimentacoes-container .col-2:last-child,
+    .movimentacoes-container .col-1:last-child {
+        border-right: none;
+    }
+
+    .bg-light {
+        background-color: #f1f3f5 !important;
+    }
+
+    .fw-bold {
+        font-weight: 600;
+    }
 </style>
 
 @extends('layouts.app')
@@ -162,32 +197,34 @@
     <div class="row mt-4">
         <div class="col-12">
             <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações do Caixa</div>
-            <table class="table table-bg table-striped tabela-movimentacoes">
-                <thead class="table-light">
-                    <tr>
-                        <th>ID</th>
-                        <th>Tipo</th>
-                        <th>Valor</th>
-                        <th>Origem</th>
-                        <th>Data</th>
-                        <th>Observação</th>
-                    </tr>
-                </thead>
-                <tbody >
-                    @foreach($caixa->movimentacoes as $mov)
-                    <tr >
-                        <td>{{ $mov->id }}</td>
-                        <td>{{ ucfirst($mov->tipo) }}</td>
-                        <td style="width:600px">R$ {{ number_format($mov->valor, 2, ',', '.') }}</td>
-                        <td>{{ $mov->origem_id ?? '-' }}</td>
-                        <td>{{ $mov->data_movimentacao->format('d/m/Y H:i') }}</td>
-                        <td>{{ $mov->observacao ?? '-' }}</td>
-                    </tr>
-                    
-                    @endforeach
-                </tbody>
-                
-            </table>
+            <div class="movimentacoes-container">
+
+            {{-- Cabeçalho --}}
+            <div class="row bg-light fw-bold py-2 px-3 border-bottom">
+                <div class="col-1">ID</div>
+                <div class="col-2">Tipo</div>
+                <div class="col-2">Forma</div>
+                <div class="col-2">Valor</div>
+                <div class="col-1">Origem</div>
+                <div class="col-2">Data</div>
+                <div class="col-2">Observação</div>
+            </div>
+
+            {{-- Linhas de movimentação --}}
+            @foreach($caixa->movimentacoes as $mov)
+                <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
+                    <div class="col-1">{{ $mov->id }}</div>
+                    <div class="col-2">{{ ucfirst($mov->tipo) }}</div>
+                    <div class="col-2">{{ ucfirst(str_replace('_',' ',$mov->forma_pagamento)) }}</div>
+                    <div class="col-2">R$ {{ number_format($mov->valor, 2, ',', '.') }}</div>
+                    <div class="col-1">{{ $mov->origem_id ?? '-' }}</div>
+                    <div class="col-2">{{ $mov->data_movimentacao->format('d/m/Y H:i') }}</div>
+                    <div class="col-2">{{ $mov->observacao ?? '-' }}</div>
+                </div>
+            @endforeach
+
+        </div>
+
                 <div class="mt-3">
                         @if($caixa->estaAberto())
                             <a href="{{ route('fechamento.lancar_valores', $caixa->id) }}"

@@ -15,7 +15,7 @@
     <?php elseif($caixa->status === 'inconsistente'): ?>
         <div class="alert alert-warning p-4 fs-5">
             <h3 class="alert-heading">⚠️ Caixa fechado com inconsistências</h3>
-            <p class="mb-0">
+            <p class="mb-0 text-danger">
                 Foram identificadas divergências.
                 Este caixa será encaminhado para <strong>auditoria fiscal</strong>.
             </p>
@@ -79,12 +79,15 @@
                 🔁 Abrir novo caixa
             </a>
 
-            <a href="<?php echo e(route('logout')); ?>"
+            <!-- <a href="<?php echo e(route('logout')); ?>"
                class="btn btn-outline-secondary btn-lg"
                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                 🚪 Sair
+            </a> -->
+            <a href="<?php echo e(route('pdv.index')); ?>"
+               class="btn btn-success btn-lg">
+                🚪 Sair
             </a>
-
             <form id="logout-form" action="<?php echo e(route('logout')); ?>" method="POST" class="d-none">
                 <?php echo csrf_field(); ?>
             </form>
@@ -94,5 +97,7 @@
 
 </div>
 <?php $__env->stopSection(); ?>
+
+
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/fechamento_caixa/confirmacao_inconsistente.blade.php ENDPATH**/ ?>

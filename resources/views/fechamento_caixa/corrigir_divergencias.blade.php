@@ -7,7 +7,7 @@
     {{-- ===================== TÍTULO E CONTEXTO ===================== --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-1">Correção de Divergências de Caixa</h2>
+            <h2 class="mb-1">Correção de Divergências de Caixa #{{ $caixa->id }}</h2>
             <small class="text-muted">
                 Caixa #{{ $caixa->id }} • Operador: {{ $caixa->usuario->name ?? '-' }}
             </small>

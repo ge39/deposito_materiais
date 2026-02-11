@@ -7,7 +7,7 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-1">Correção de Divergências de Caixa</h2>
+            <h2 class="mb-1">Correção de Divergências de Caixa #<?php echo e($caixa->id); ?></h2>
             <small class="text-muted">
                 Caixa #<?php echo e($caixa->id); ?> • Operador: <?php echo e($caixa->usuario->name ?? '-'); ?>
 
