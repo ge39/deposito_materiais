@@ -136,9 +136,9 @@
                 </a>
             </li>
             <li>
-                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
-                   href="{{ $canAccessAdmin ? route('fechamento.auditar', ['caixa' => 0]) : '#' }}">
-                   <i class="bi bi-list-stars me-2"></i>Auditoria de Caixa
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
+                  href="{{ $canAccessAdmin ? route('auditoria_caixa.index') : '#' }}">
+                  <i class="bi bi-list-stars me-2"></i>Relatório Auditoria de Caixa
                 </a>
             </li>
            

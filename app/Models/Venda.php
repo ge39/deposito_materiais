@@ -25,6 +25,36 @@ class Venda extends Model
         'data_venda' => 'datetime',
     ];
 
+    protected static function booted()
+    {
+        $bloquearSeCaixaFechado = function ($venda, $mensagem) {
+
+            $venda->loadMissing('caixa');
+
+            if (!$venda->caixa) {
+                return;
+            }
+
+            if (in_array($venda->caixa->status, ['fechado','inconsistente'])) {
+                throw new \Exception($mensagem);
+            }
+        };
+
+        static::updating(function ($venda) use ($bloquearSeCaixaFechado) {
+            $bloquearSeCaixaFechado(
+                $venda,
+                'Não é permitido alterar vendas de um caixa já fechado.'
+            );
+        });
+
+        static::deleting(function ($venda) use ($bloquearSeCaixaFechado) {
+            $bloquearSeCaixaFechado(
+                $venda,
+                'Não é permitido excluir vendas de um caixa já fechado.'
+            );
+        });
+    }
+
     /* Relacionamentos */
 
     public function itens()

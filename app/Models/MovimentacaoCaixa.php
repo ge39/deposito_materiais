@@ -13,6 +13,7 @@ class MovimentacaoCaixa extends Model
 
     protected $fillable = [
         'caixa_id',
+        'auditoria_id', // novo campo para vincular à auditoria
         'user_id',
         'tipo',
         'valor',
@@ -100,7 +101,7 @@ class MovimentacaoCaixa extends Model
         return $this->belongsTo(Caixa::class, 'caixa_id');
     }
 
-    public function user()
+    public function usuario()
     {
         return $this->belongsTo(User::class, 'user_id');
     }

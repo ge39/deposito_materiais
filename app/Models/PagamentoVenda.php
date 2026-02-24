@@ -14,7 +14,6 @@ class PagamentoVenda extends Model
     protected $fillable = [
         'user_id',
         'venda_id',
-        'caixa_id',
         'forma_pagamento',
         'bandeira',
         'valor',
@@ -22,13 +21,46 @@ class PagamentoVenda extends Model
         'status',
     ];
 
+    protected static function booted()
+    {
+        $bloquearSeCaixaFechado = function ($pagamento, $mensagem) {
+
+            $pagamento->loadMissing('venda.caixa');
+
+            if (!$pagamento->venda || !$pagamento->venda->caixa) {
+                return;
+            }
+
+            if (in_array($pagamento->venda->caixa->status, ['fechado','inconsistente'])) {
+                throw new \Exception($mensagem);
+            }
+        };
+
+        static::creating(function ($pagamento) use ($bloquearSeCaixaFechado) {
+            $bloquearSeCaixaFechado(
+                $pagamento,
+                'Não é permitido adicionar pagamentos a um caixa já fechado.'
+            );
+        });
+
+        static::updating(function ($pagamento) use ($bloquearSeCaixaFechado) {
+            $bloquearSeCaixaFechado(
+                $pagamento,
+                'Não é permitido alterar pagamentos de um caixa já fechado.'
+            );
+        });
+
+        static::deleting(function ($pagamento) use ($bloquearSeCaixaFechado) {
+            $bloquearSeCaixaFechado(
+                $pagamento,
+                'Não é permitido excluir pagamentos de um caixa já fechado.'
+            );
+        });
+    }
+
     public function venda()
     {
         return $this->belongsTo(Venda::class, 'venda_id');
     }
 
-    public function caixa()
-    {
-        return $this->belongsTo(Caixa::class, 'caixa_id');
-    }
 }

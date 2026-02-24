@@ -25,6 +25,6 @@ class AuditoriaDetalhe extends Model
 
     public function auditoria()
     {
-        return $this->belongsTo(AuditoriaCaixa::class);
+        return $this->belongsTo(\App\Models\AuditoriaCaixa::class, 'auditoria_id', 'id');
     }
 }

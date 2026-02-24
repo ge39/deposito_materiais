@@ -6,6 +6,7 @@ use App\Models\Caixa;
 
 use App\Http\Controllers\{
     AuthController,
+    AuditoriaCaixaController,
     DashboardController,
     CaixaController,
     CategoriaController,
@@ -296,7 +297,25 @@ Route::middleware('auth')->group(function () {
          ->name('fechamento.auditoria');
 
 
-
-
+        
 
     });
+
+    //Auditoria do caixa
+        Route::prefix('auditoria-caixa')
+        ->name('auditoria_caixa.')
+        ->group(function () {
+
+            Route::get('/', [AuditoriaCaixaController::class, 'index'])
+                ->name('index');
+
+            Route::get('/{auditoria}', [AuditoriaCaixaController::class, 'show'])
+                ->name('show');
+
+            // Route::get('/{auditoria}/exportar', [AuditoriaCaixaController::class, 'exportar'])
+            //     ->name('exportar');
+            
+                // web.php
+            Route::get('/auditoria-caixa/{auditoria}/exportar', [AuditoriaCaixaController::class,
+             'exportar'])->name('auditoria_caixa.exportar');
+             });

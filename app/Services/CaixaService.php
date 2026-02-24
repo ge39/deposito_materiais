@@ -90,7 +90,7 @@ class CaixaService
     public static function totalEntradasDinheiro(int $caixaId): float
     {
         return (float) DB::table('pagamentos_venda')
-            ->where('caixa_id', $caixaId)
+            // ->where('caixa_id', $caixaId)
             ->where('status', 'confirmado')
             ->where('forma_pagamento', 'dinheiro')
             ->sum('valor');

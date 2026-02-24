@@ -96,10 +96,12 @@
                 </div>
 
                 {{-- Linhas --}}
-                @foreach($divergencias as $forma => $dif)
+                @foreach($totaisPorForma as $forma => $valorSistema)
+
                     @php
-                        $valorSistema = $totaisPorForma[$forma] ?? 0;
-                        $valorInformado = $valorSistema + $dif;
+                        $valorSistema = $valorSistema ?? 0;
+                        $valorInformado = $totaisInformados[$forma] ?? 0;
+                        $dif = $valorInformado - $valorSistema;
                     @endphp
 
                     <div class="row row-forma align-items-center mb-3 p-2 border rounded bg-light">
@@ -109,7 +111,9 @@
                         </div>
 
                         <div class="col-2">
-                            <input type="hidden" class="valor-sistema" value="{{ $valorSistema }}">
+                            <input type="hidden"
+                                class="valor-sistema"
+                                value="{{ $valorSistema }}">
                             R$ {{ number_format($valorSistema,2,',','.') }}
                         </div>
 
@@ -117,19 +121,20 @@
                             R$ {{ number_format($valorInformado,2,',','.') }}
                         </div>
 
-                        <div class="col-2 {{ $dif == 0 ? 'text-success' : 'text-danger' }} font-weight-bold">
+                        <div class="col-2 {{ $dif == 0 ? 'text-success' : 'text-danger' }} font-weight-bold diferenca">
                             R$ {{ number_format($dif,2,',','.') }}
                         </div>
 
                         <div class="col-4">
                             <input type="number"
-                                   step="0.01"
-                                   min="0"
-                                   class="form-control ajuste-corrigido"
-                                   name="formas[{{ $forma }}]"
-                                   value="{{ $valorInformado }}">
+                                step="0.01"
+                                min="0"
+                                class="form-control ajuste-corrigido"
+                                name="formas[{{ $forma }}]"
+                                value="{{ $valorInformado }}">
                         </div>
                     </div>
+
                 @endforeach
 
                 <div id="mensagemValidacao" class="alert alert-danger mt-3">
@@ -140,8 +145,13 @@
                     <button type="submit" class="btn btn-success px-4" id="btnSalvar" disabled>
                         ✔ Salvar Ajustes
                     </button>
-                </div>
+                
             </form>
+           
+                  <a href="{{ route('fechamento.lista') }}" class="btn btn-outline-secondary">
+                    ← Voltar
+                </a>
+            </div>
         </div>
     </div>
 
@@ -182,50 +192,122 @@
 @endsection
 
  <!-- Formata float para R$ BR -->
-<script>
-document.addEventListener('DOMContentLoaded', function () {
+<!-- <script>
+    document.addEventListener('DOMContentLoaded', function () {
 
-    const botao = document.getElementById('btnSalvar');
-    const mensagem = document.getElementById('mensagemValidacao');
+        const botao = document.getElementById('btnSalvar');
+        const mensagem = document.getElementById('mensagemValidacao');
 
-    function validarAjustes() {
-        let todosIguais = true;
+        function validarAjustes() {
+            let todosIguais = true;
 
-        document.querySelectorAll('.row-forma').forEach(row => {
-            const valorSistema = Number(
-                row.querySelector('.valor-sistema').value
-            );
+            document.querySelectorAll('.row-forma').forEach(row => {
+                const valorSistema = Number(
+                    row.querySelector('.valor-sistema').value
+                );
 
-            const valorAjustado = Number(
-                row.querySelector('.ajuste-corrigido').value
-            );
+                const valorAjustado = Number(
+                    row.querySelector('.ajuste-corrigido').value
+                );
 
-            if (isNaN(valorSistema) || isNaN(valorAjustado)) {
-                todosIguais = false;
-                return;
-            }
+                if (isNaN(valorSistema) || isNaN(valorAjustado)) {
+                    todosIguais = false;
+                    return;
+                }
 
-            if (valorSistema !== valorAjustado) {
-                todosIguais = false;
-            }
+                if (valorSistema !== valorAjustado) {
+                    todosIguais = false;
+                }
+            });
+
+            botao.disabled = !todosIguais;
+
+            mensagem.className = todosIguais
+                ? 'alert alert-success mt-3'
+                : 'alert alert-warning mt-3';
+
+            mensagem.innerText = todosIguais
+                ? 'Todos os valores conferem com o sistema. Você já pode salvar os ajustes.'
+                : 'Ainda existem divergências. Ajuste todos os campos para que fiquem iguais ao valor do sistema.';
+        }
+
+        document.querySelectorAll('.ajuste-corrigido').forEach(input => {
+            input.addEventListener('input', validarAjustes);
         });
 
-        botao.disabled = !todosIguais;
-
-        mensagem.className = todosIguais
-            ? 'alert alert-success mt-3'
-            : 'alert alert-warning mt-3';
-
-        mensagem.innerText = todosIguais
-            ? 'Todos os valores conferem com o sistema. Você já pode salvar os ajustes.'
-            : 'Ainda existem divergências. Ajuste todos os campos para que fiquem iguais ao valor do sistema.';
-    }
-
-    document.querySelectorAll('.ajuste-corrigido').forEach(input => {
-        input.addEventListener('input', validarAjustes);
+        validarAjustes();
     });
+</script> -->
 
-    validarAjustes();
-});
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const botao = document.getElementById('btnSalvar');
+        const mensagem = document.getElementById('mensagemValidacao');
+        const linhas = document.querySelectorAll('.row-forma');
+
+        const TOLERANCIA = 0.009; // evita problema de float (centavos)
+
+        function parseValor(valor) {
+            const numero = parseFloat(valor);
+            return isNaN(numero) ? 0 : numero;
+        }
+
+        function valoresSaoIguais(a, b) {
+            return Math.abs(a - b) <= TOLERANCIA;
+        }
+
+        function atualizarStatusLinha(row, confere) {
+            row.classList.remove('border-success', 'border-danger');
+
+            if (confere) {
+                row.classList.add('border-success');
+            } else {
+                row.classList.add('border-danger');
+            }
+        }
+
+        function validarAjustes() {
+            let todosConferem = true;
+
+            linhas.forEach(row => {
+                const valorSistema = parseValor(
+                    row.querySelector('.valor-sistema').value
+                );
+
+                const valorAjustado = parseValor(
+                    row.querySelector('.ajuste-corrigido').value
+                );
+
+                const confere = valoresSaoIguais(valorSistema, valorAjustado);
+
+                atualizarStatusLinha(row, confere);
+
+                if (!confere) {
+                    todosConferem = false;
+                }
+            });
+
+            botao.disabled = !todosConferem;
+
+            if (todosConferem) {
+                mensagem.className = 'alert alert-success mt-3';
+                mensagem.innerText =
+                    'Todos os valores conferem com o sistema. Você já pode salvar os ajustes.';
+            } else {
+                mensagem.className = 'alert alert-warning mt-3';
+                mensagem.innerText =
+                    'Ainda existem divergências. Ajuste todos os campos para que fiquem iguais ao valor do sistema.';
+            }
+        }
+
+        // Escuta alterações
+        document.querySelectorAll('.ajuste-corrigido').forEach(input => {
+            input.addEventListener('input', validarAjustes);
+        });
+
+        // Executa na carga inicial
+        validarAjustes();
+    });
 </script>
 

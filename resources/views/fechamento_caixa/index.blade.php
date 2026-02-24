@@ -101,10 +101,10 @@
 
         <div class="col-md-4">
             <div class="card p-2">
-                <div class="card-header fs-5 bg-primary text-white fw-bold"> Total Entradas:</div>
+                <div class="card-header fs-5 bg-primary text-white fw-bold"> Total Entradas / Saidas:</div>
                 <strong>✅ Total Entradas:</strong> R$ {{ number_format($total_entradas, 2, ',', '.') }}<br>
                 <strong>Total Saídas:</strong> R$ {{ number_format($total_saidas, 2, ',', '.') }}<br>
-                <strong>Total  Esperado Dinheiro:</strong> R$ {{ number_format($total_esperado  , 2, ',', '.') }}<br>
+                <strong>Total  Esperado Dinheiro:</strong> R$ {{ number_format($caixa->fundo_troco + ($totaisPorForma['dinheiro'] ?? 0), 2, ',', '.') }}<br>
                 <strong>Divergência:</strong> 
                 <span class="{{ $divergencia != 0 ? 'text-danger fw-bold' : 'text-success fw-bold' }}">
                     R$ {{ number_format($divergencia, 2, ',', '.') }}
