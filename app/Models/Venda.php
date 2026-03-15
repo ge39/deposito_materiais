@@ -56,7 +56,7 @@ class Venda extends Model
     }
 
     /* Relacionamentos */
-
+    
     public function itens()
     {
         return $this->hasMany(ItemVenda::class, 'venda_id');
@@ -67,9 +67,9 @@ class Venda extends Model
         return $this->hasMany(PagamentoVenda::class, 'venda_id');
     }
 
-    public function cliente()
+   public function cliente()
     {
-        return $this->belongsTo(Cliente::class, 'cliente_id');
+    return $this->belongsTo(\App\Models\Cliente::class, 'cliente_id');
     }
 
     public function caixa()

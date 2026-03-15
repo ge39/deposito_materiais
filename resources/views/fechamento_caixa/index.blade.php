@@ -138,10 +138,14 @@
     {{-- =======================
         FORMULÁRIO DE FECHAMENTO
     ======================== --}}
+     {{ $caixa->status }}
+
     @if($caixa->estaAberto() && auth()->user()->can('fechar-caixa'))
+   
+
     <form method="POST" action="{{ route('fechamento.fechar', $caixa->id) }}">
         @csrf
-        <h5>Valores Físicos Conferidos</h5>
+        <h5>Valores Físicos Conferidos caixa </h5>
 
         <div class="row mb-3">
             <div class="col-md-4">
@@ -227,7 +231,7 @@
 
                 <div class="mt-3">
                         @if($caixa->estaAberto())
-                            <a href="{{ route('fechamento.lancar_valores', $caixa->id) }}"
+                            <a href="{{ route('fechamento.view', $caixa->id) }}"
                             class="btn btn-primary">
                                 Lançamento de Valores Manuais
                             </a>

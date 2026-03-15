@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Cliente;
 use App\Models\Produto;
-use App\Models\Venda;
+use App\Models\Empresa;
 use App\Models\Caixa;
 use Carbon\Carbon;
 
-class PDVController extends Controller
+class PdvController extends Controller
 {
     public function __construct()
     {
@@ -16,70 +16,147 @@ class PDVController extends Controller
         $this->middleware('auth');
           
     }
-    
-   public function index(Request $request)
+   
+//    public function index(Request $request)
+//     {
+//         // 1️⃣ Cliente padrão "VENDA BALCAO"
+//         $clienteBalcao = Cliente::where('nome', 'VENDA BALCAO')
+//             ->where('ativo', 1)
+//             ->firstOrFail();
+//             $clienteId   = $clienteBalcao->id;
+
+//         // 2️⃣ Terminal identificado pelo middleware
+//         $terminal = $request->attributes->get('terminal');
+
+//         if (!$terminal) {
+//             abort(500, 'Terminal não identificado no PDV.');
+//         }
+
+//         // 2️⃣ Busca o CAIXA ABERTO vinculado ao terminal
+//         $caixaAberto = Caixa::where('terminal_id', $terminal->id)
+//             ->where('status', 'aberto')
+//             ->latest('data_abertura')
+//             ->first();
+
+//         if (!$caixaAberto) {
+//         // Nenhum caixa aberto: redireciona para abertura de caixa
+//         return redirect()->route('caixa.abrir')
+//                             ->with('info', 'Nenhum caixa aberto. Abra um caixa para continuar.');
+//         }
+
+//         // Continua normalmente com o PDV
+//         // 4️⃣ Operador
+//         $operadorId   = $caixaAberto?->usuario?->id ?? null;
+//         $operador = $caixaAberto?->usuario?->name ?? 'Nenhum';
+//         $caixa_id = $caixaAberto->id;
+
+//         // 5️⃣ Status do caixa
+//         $status = 'Fechado';
+//         if ($caixaAberto) {
+//             switch ($caixaAberto->status) {
+//                 case 'aberto':
+//                     $status = 'Aberto';
+//                     break;
+//                 case 'pendente':
+//                     $status = 'Pendente';
+//                     break;
+//                 case 'inconsistente':
+//                     $status = 'Inconsistente';
+//                     break;
+//                 default:
+//                     $status = 'Fechado';
+//             }
+//         }
+
+//         // 6️⃣ ÚNICO return
+//         return view('pdv.index', [
+//             'clienteBalcao' => $clienteBalcao,
+//             'terminal'      => $terminal,
+//             'caixaAberto'   => $caixaAberto,
+//             'caixa'         => $caixaAberto, // ✅ agora $caixa também está disponível
+//             'caixa_id'      => $caixa_id,
+//             'operador'      => $operador,
+//             'status'        => $status,
+//             'operadorId'    => $operadorId,
+//         ]);
+//     }
+
+     public function index(Request $request)
     {
-        // 1️⃣ Cliente padrão "VENDA BALCAO"
-        $clienteBalcao = Cliente::where('nome', 'VENDA BALCAO')
-            ->where('ativo', 1)
-            ->firstOrFail();
-            $clienteId   = $clienteBalcao->id;
+        // 1️⃣ Cliente padrão
+        $clienteBalcao = Cliente::select(
+            'id','nome','tipo','telefone','endereco','endereco_entrega'
+        )->where('nome','VENDA BALCAO')
+        ->where('ativo',1)
+        ->first();
+
+        if (!$clienteBalcao) {
+            abort(403, 'O cliente "VENDA BALCAO" precisa estar ativo.');
+        }
 
         // 2️⃣ Terminal identificado pelo middleware
         $terminal = $request->attributes->get('terminal');
 
         if (!$terminal) {
-            abort(500, 'Terminal não identificado no PDV.');
+            abort(403, 'Terminal não identificado.');
         }
 
-        // 2️⃣ Busca o CAIXA ABERTO vinculado ao terminal
-        $caixaAberto = Caixa::where('terminal_id', $terminal->id)
+        // 3️⃣ Busca caixa aberto no terminal
+        $caixa = Caixa::where('terminal_id', $terminal->id)
             ->where('status', 'aberto')
             ->latest('data_abertura')
             ->first();
 
-        if (!$caixaAberto) {
-        // Nenhum caixa aberto: redireciona para abertura de caixa
-        return redirect()->route('caixa.abrir')
-                            ->with('info', 'Nenhum caixa aberto. Abra um caixa para continuar.');
+        if (!$caixa) {
+            return redirect()
+                ->route('caixa.abrir')
+                ->with('info', 'Nenhum caixa aberto. Abra um caixa para continuar.');
         }
 
-        // Continua normalmente com o PDV
         // 4️⃣ Operador
-        $operadorId   = $caixaAberto?->usuario?->id ?? null;
-        $operador = $caixaAberto?->usuario?->name ?? 'Nenhum';
-        $caixa_id = $caixaAberto->id;
+        $operadorId = $caixa->usuario?->id;
+        $operador   = $caixa->usuario?->name ?? 'Nenhum';
 
-        // 5️⃣ Status do caixa
-        $status = 'Fechado';
-        if ($caixaAberto) {
-            switch ($caixaAberto->status) {
-                case 'aberto':
-                    $status = 'Aberto';
-                    break;
-                case 'pendente':
-                    $status = 'Pendente';
-                    break;
-                case 'inconsistente':
-                    $status = 'Inconsistente';
-                    break;
-                default:
-                    $status = 'Fechado';
-            }
+        // 5️⃣ Status formatado
+        $status = match ($caixa->status) {
+            'aberto'        => 'Aberto',
+            'pendente'      => 'Pendente',
+            'inconsistente' => 'Inconsistente',
+            default         => 'Fechado',
+        };
+
+        // 6️⃣ Verificação de sangria
+        $verificacao = $caixa->verificarSangria();
+
+        $saldoAtual         = $verificacao['saldoAtual'];
+        $limiteSangria      = $verificacao['limiteSangria'];
+        $avisarSangria      = $verificacao['avisarSangria'];
+        $bloquearPDV        = $verificacao['bloquearPDV'];
+
+        if ($bloquearPDV) {
+            return redirect()
+                ->route('caixa.sangria.form', ['caixa' => $caixa->id])
+                ->with('error', 'Limite de dinheiro excedido. Realize a sangria para continuar.');
         }
 
-        // 6️⃣ ÚNICO return
+        // 7️⃣ Retorna view
         return view('pdv.index', [
-            'clienteBalcao' => $clienteBalcao,
-            'terminal'      => $terminal,
-            'caixaAberto'   => $caixaAberto,
-            'caixa_id'      => $caixa_id,
-            'operador'      => $operador,
-            'status'        => $status,
-            'operadorId'    => $operadorId,
+            'clienteBalcao'  => $clienteBalcao,
+            'tipo'          => $clienteBalcao->tipo,
+            'telefone'       => $clienteBalcao->telefone,
+            'terminal'       => $terminal,
+            'caixaAberto'    => $caixa,
+            'caixa'          => $caixa,
+            'caixa_id'       => $caixa->id,
+            'operador'       => $operador,
+            'operadorId'     => $operadorId,
+            'status'         => $status,
+            'saldoAtual'     => $saldoAtual,
+            'limiteSangria'  => $limiteSangria,
+            'avisarSangria'  => $avisarSangria,
+            'bloquearPDV'    => $bloquearPDV,
         ]);
     }
-
         
    /**
      * F2 – Buscar Cliente (Modal de cliente) */
@@ -89,16 +166,16 @@ class PDVController extends Controller
 
         $clientes = Cliente::where('ativo', 1)
             ->when($query, function ($q) use ($query) {
-                $q->where('nome', 'LIKE', "%{$query}%")
+                $q->where('bairro', 'LIKE', "%{$query}%")
                   ->orWhere('tipo', 'LIKE', "%{$query}%")
                   ->orWhere('cpf_cnpj', 'LIKE', "%{$query}%")
                   ->orWhere('telefone', 'LIKE', "%{$query}%")
                   ->orWhere('endereco', 'LIKE', "%{$query}%")
                   ->orWhere('numero', 'LIKE', "%{$query}%")
                   ->orWhere('cep', 'LIKE', "%{$query}%")
-                  ->orWhere('bairro', 'LIKE', "%{$query}%")
+                 ->orWhere('estado', 'LIKE', "%{$query}%")
                   ->orWhere('cidade', 'LIKE', "%{$query}%")
-                  ->orWhere('estado', 'LIKE', "%{$query}%");
+                  ->orWhere('nome', 'LIKE', "%{$query}%");
             })
             ->orderBy('nome')
             ->limit(20)
@@ -106,6 +183,7 @@ class PDVController extends Controller
 
         return response()->json($clientes);
     }
+    
  
    /**
      * F3 – Buscar Produto (Modal de produtos) */        
@@ -324,7 +402,44 @@ class PDVController extends Controller
 
         return response()->json($caixas);
     }
-    
+
+    public function verificarSangria(): array
+    {
+        $empresa = $this->empresa()->with('configuracaoCaixa')->first();
+
+        $limite = $empresa?->configuracaoCaixa?->limite_sangria ?? 0;
+
+        if (!$empresa || !$empresa->configuracaoCaixa) {
+            return [
+                'saldoAtual'     => 0.0,
+                'limiteSangria'  => 0.0,
+                'limiteBloqueio' => 0.0,
+                'avisarSangria'  => false,
+                'bloquearPDV'    => false,
+                
+            ];
+        }
+
+        $config = $empresa->configuracaoCaixa;
+        $limite        = (float) $config->limite_sangria;      // 500
+        $percentual    = (float) $config->percentual_bloqueio; // 50
+        $bloqueioAtivo = (bool)  $config->bloqueio_ativo;      // 1
+        $saldoAtual = $this->saldoDinheiroAtual(); // Deve retornar 850
+        $valorSugeridoSangria = max(0, $saldoAtual - $limite);
+        $limiteBloqueio = $limite * (1 + ($percentual / 100)); // 750
+
+        
+             
+        return [
+            'saldoAtual'     => $saldoAtual,
+            'limiteSangria'  => $limite,
+            'limiteBloqueio' => $limiteBloqueio,
+            'avisarSangria'  => $saldoAtual >= $limite,
+            'bloquearPDV'    => $bloqueioAtivo && $saldoAtual >= $limiteBloqueio,
+            'valorSugeridoSangria' =>$valorSugeridoSangria,
+            
+        ];
+    }
 }
 
 

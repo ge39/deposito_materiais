@@ -47,7 +47,8 @@ class AuditoriaCaixaController extends Controller
         */
         $lancamentosManuais = MovimentacaoCaixa::with('usuario')
             ->where('caixa_id', $auditoria->caixa_id)
-            ->whereIn('tipo', ['entrada_manual', 'saida_manual'])
+            ->whereIn('tipo', ['entrada_manual', 'saida_manual'])->whereIn('tipo', ['entrada_manual', 'saida_manual'])
+            ->whereIn('tipo', ['saida_manual'])
             ->get();
 
         /*
@@ -61,10 +62,16 @@ class AuditoriaCaixaController extends Controller
             ->where('pv.status', 'confirmado')
             ->select(
                 'pv.forma_pagamento',
-                DB::raw('SUM(pv.valor) as total')
+                 DB::raw('SUM(pv.valor) as total')
             )
             ->groupBy('pv.forma_pagamento')
             ->get();
+
+         $total_sangrias = DB::table('movimentacoes_caixa')
+        ->where('caixa_id', $auditoria->caixa_id)
+        ->where('tipo', 'sangria')
+        ->where('forma_pagamento', 'sangria')
+        ->sum('valor');
 
         /*
         |--------------------------------------------------------------------------
@@ -72,26 +79,24 @@ class AuditoriaCaixaController extends Controller
         |--------------------------------------------------------------------------
         */
         $movimentacoesAuditoria = MovimentacaoCaixa::with('usuario')
-        ->where('auditoria_id', $auditoria->id)
-        ->where('valor', '>', 0) // ✅ somente valores maiores que zero
+         ->where('caixa_id', $auditoria->caixa_id)
+         ->where('valor', '>', 0) // ✅ somente valores maiores que zero
         ->where('tipo', 'auditoria') // 🔹 garantir que é correção de auditoria
         ->orderBy('data_movimentacao')
         ->get();
 
         return view('auditoria_caixa.show', compact(
             'auditoria',
-            'lancamentosManuais',
-            'pagamentosSistema',
+             'lancamentosManuais',
+             'pagamentosSistema',
+            'total_sangrias',
             'movimentacoesAuditoria'
         ));
     }
 
-   // app/Http/Controllers/AuditoriaCaixaController.php
-
-
-
 public function exportar(AuditoriaCaixa $auditoria)
-{
+
+    {
     // Carrega relacionamentos necessários
     $auditoria->load([
         'caixa',
@@ -116,7 +121,7 @@ public function exportar(AuditoriaCaixa $auditoria)
     ))->setPaper('a4', 'portrait');
 
     return $pdf->download('auditoria_'.$auditoria->codigo_auditoria.'.pdf');
-}
+    }
     /**
      * Iniciar auditoria de um caixa
      */

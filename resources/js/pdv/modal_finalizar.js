@@ -309,264 +309,137 @@ inputsPagamento.forEach(input => {
         carrinhoAtual.push(item);
     }
    
-   
-    //Fetch do botão Finalizar (VendaController)
-     // BOTÃO FINALIZAR VENDA
-     // BOTÃO FINALIZAR VENDA - MODAL
-// ===============================
-// document.addEventListener('click', async function(e) {
-//     if (e.target && e.target.id === 'btnFinalizar') {
-//         e.preventDefault();
+    // BOTÃO FINALIZAR VENDA - MODAL
+    document.addEventListener('click', async function(e) {
+        if (e.target && e.target.id === 'btnFinalizar') {
+            e.preventDefault();
 
-//         console.log('🔹 Botão Finalizar clicado');
+            console.log('🔹 Botão Finalizar clicado');
 
-//         // Recupera todos os itens do carrinho do DOM
-//         const tabelaItens = document.getElementById('lista-itens');
-//         if (!tabelaItens) {
-//             console.warn('⚠️ Tabela do carrinho não encontrada.');
-//             return;
-//         }
+            const token = document.querySelector('meta[name="csrf-token"]').content;
 
-//         const trs = tabelaItens.querySelectorAll('tr:not(.d-none)');
-//         if (!trs.length) {
-//             alert('Carrinho vazio');
-//             return;
-//         }
-
-//         const itens = Array.from(trs).map(tr => {
-//             return {
-//                 produto_id: tr.dataset.produto,
-//                 lote_id: tr.dataset.lote || null,
-//                 quantidade: parseFloat(tr.children[3].textContent) || 0,
-//                 valor_unitario: parseFloat(tr.children[5].textContent.replace(',', '.')) || 0
-//             };
-//         });
-
-//         console.log('Itens a enviar:', itens);
-
-//         // Coleta pagamentos (assumindo inputs do modal com class pagamento-modal)
-//         const modalEl = document.getElementById('modalFinalizarVenda');
-//         const inputsPagamento = modalEl ? modalEl.querySelectorAll('.pagamento-modal') : [];
-//         const pagamentos = [];
-
-//         inputsPagamento.forEach(input => {
-//             const valor = parseFloat(input.value.replace(',', '.')) || 0;
-//             if (valor > 0) {
-//                 pagamentos.push({ forma: input.dataset.forma, valor });
-//             }
-//         });
-
-//         if (!pagamentos.length) {
-//             alert('Informe ao menos uma forma de pagamento');
-//             return;
-//         }
-
-//         // Monta payload
-//         const payload = {
-//             cliente_id: clienteId,
-//             caixa_id: caixaId, 
-//             terminal_id: terminalId,
-//             funcionario_id: operadorId,
-//             dataVenda: dataVenda,
-//             endereco: endereco,
-
-//            itens: itens.map(i => ({
-//         produto_id: i.produto_id,          // usar exatamente a chave criada acima
-//         quantidade: i.quantidade,
-//         valor_unitario: i.valor_unitario,  // não usar i.preco ou i.id_produto
-//         lote_id: i.lote_id || null
-//     })),
-//     pagamentos
-//         };
-
-//         console.log('Payload a ser enviado:', payload);
-
-//         try {
-//             const response = await fetch('/vendas', {
-//                 method: 'POST',
-//                 headers: {
-//                     'Content-Type': 'application/json',
-//                     'Accept': 'application/json', // 🔹 força Laravel a retornar JSON
-//                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-//                 },
-//                 body: JSON.stringify(payload)
-//             });
-
-//             const data = await response.json(); // 🔹 parse seguro do JSON
-
-//             console.log('Resposta do servidor:', data);
-
-//             // Após o fetch de store
-     
-//         if (!response.ok || !data.success) {
-//             throw new Error(data.message || 'Erro ao criar venda');
-//         }
-
-//         // ✅ 1️⃣ Venda criada, agora chamar finalizar
-//         const vendaId = data.venda_id;
-
-//         const responseFinalizar = await fetch(`/venda/finalizar/${vendaId}`, {
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//                 'Accept': 'application/json',
-//                 'X-CSRF-TOKEN': token
-//             },
-//             body: JSON.stringify({ pagamentos })
-//         });
-
-//         const dataFinalizar = await responseFinalizar.json();
-
-//         if (!responseFinalizar.ok || !dataFinalizar.success) {
-//             throw new Error(dataFinalizar.erro || 'Erro ao finalizar venda');
-//         }
-
-//         alert(`Venda finalizada com sucesso! Total: ${dataFinalizar.total}`);
-
-
-//             // Limpa carrinho do DOM
-//             trs.forEach(tr => tr.remove());
-
-//             // Limpa inputs de pagamento
-//             inputsPagamento.forEach(i => i.value = '');
-
-//             // Atualiza total
-//             const totalVenda = document.getElementById('totalGeral');
-//             if (totalVenda) totalVenda.textContent = 'R$ 0,00';
-
-//         } catch (err) {
-//             console.error('Erro no fetch de finalizar venda:', err);
-//             alert(err.message);
-//         }
-//     }
-// });
-
-// BOTÃO FINALIZAR VENDA - MODAL
-document.addEventListener('click', async function(e) {
-    if (e.target && e.target.id === 'btnFinalizar') {
-        e.preventDefault();
-
-        console.log('🔹 Botão Finalizar clicado');
-
-        const token = document.querySelector('meta[name="csrf-token"]').content;
-
-        // Recupera todos os itens do carrinho do DOM
-        const tabelaItens = document.getElementById('lista-itens');
-        if (!tabelaItens) {
-            console.warn('⚠️ Tabela do carrinho não encontrada.');
-            return;
-        }
-
-        const trs = tabelaItens.querySelectorAll('tr:not(.d-none)');
-        if (!trs.length) {
-            alert('Carrinho vazio');
-            return;
-        }
-
-        // Monta array de itens
-        const itens = Array.from(trs).map(tr => ({
-            produto_id: tr.dataset.produto,
-            lote_id: tr.dataset.lote || null,
-            quantidade: parseFloat(tr.children[3].textContent) || 0,
-            valor_unitario: parseFloat(tr.children[5].textContent.replace(',', '.')) || 0
-        }));
-
-        console.log('Itens a enviar:', itens);
-
-        // Coleta pagamentos
-        const modalEl = document.getElementById('modalFinalizarVenda');
-        const inputsPagamento = modalEl ? modalEl.querySelectorAll('.pagamento-modal') : [];
-        const pagamentos = [];
-
-        inputsPagamento.forEach(input => {
-            const valor = parseFloat(input.value.replace(',', '.')) || 0;
-            if (valor > 0) {
-                pagamentos.push({ forma: input.dataset.forma, valor });
+            // Recupera todos os itens do carrinho do DOM
+            const tabelaItens = document.getElementById('lista-itens');
+            if (!tabelaItens) {
+                console.warn('⚠️ Tabela do carrinho não encontrada.');
+                return;
             }
-        });
 
-        if (!pagamentos.length) {
-            alert('Informe ao menos uma forma de pagamento');
-            return;
-        }
+            const trs = tabelaItens.querySelectorAll('tr:not(.d-none)');
+            if (!trs.length) {
+                alert('Carrinho vazio');
+                return;
+            }
 
-        // Monta payload
-        const payload = {
-            cliente_id: clienteId,
-            caixa_id: caixaId,
-            terminal_id: terminalId,
-            funcionario_id: operadorId,
-            dataVenda: dataVenda,
-            endereco: endereco,
-            itens,
-            pagamentos
-        };
+            // Monta array de itens
+            const itens = Array.from(trs).map(tr => ({
+                produto_id: tr.dataset.produto,
+                lote_id: tr.dataset.lote || null,
+                quantidade: parseFloat(tr.children[3].textContent) || 0,
+                valor_unitario: parseFloat(tr.children[5].textContent.replace(',', '.')) || 0
+            }));
 
-        console.log('Payload a ser enviado:', payload);
+            console.log('Itens a enviar:', itens);
 
-        try {
-            // 1️⃣ Cria a venda
-            const response = await fetch('/vendas', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': token
-                },
-                body: JSON.stringify(payload)
+            // Coleta pagamentos
+            const modalEl = document.getElementById('modalFinalizarVenda');
+            const inputsPagamento = modalEl ? modalEl.querySelectorAll('.pagamento-modal') : [];
+            const pagamentos = [];
+
+            inputsPagamento.forEach(input => {
+                const valor = parseFloat(input.value.replace(',', '.')) || 0;
+                if (valor > 0) {
+                    pagamentos.push({ forma: input.dataset.forma, valor });
+                }
             });
 
-            const data = await response.json();
-            console.log('Resposta do servidor (store):', data);
-
-            if (!response.ok || !data.success) {
-                throw new Error(data.message || 'Erro ao criar venda');
+            if (!pagamentos.length) {
+                alert('Informe ao menos uma forma de pagamento');
+                return;
             }
 
-            // 2️⃣ Recupera o ID da venda criado
-            const vendaId = data.venda_id;
-            if (!vendaId) {
-                throw new Error('ID da venda não retornado pelo servidor.');
+            // Monta payload
+            const payload = {
+                cliente_id: clienteId,
+                caixa_id: caixaId,
+                terminal_id: terminalId,
+                funcionario_id: operadorId,
+                dataVenda: dataVenda,
+                endereco: endereco,
+                itens,
+                pagamentos
+            };
+
+            console.log('Payload a ser enviado:', payload);
+
+            try {
+                // 1️⃣ Cria a venda
+                const response = await fetch('/vendas', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                console.log('Resposta do servidor (store):', data);
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Erro ao criar venda');
+                }
+
+                // 2️⃣ Recupera o ID da venda criado
+                const vendaId = data.venda_id;
+                if (!vendaId) {
+                    throw new Error('ID da venda não retornado pelo servidor.');
+                }
+
+                // 3️⃣ Chama o endpoint de finalizar venda
+                const responseFinalizar = await fetch(`/venda/finalizar/${vendaId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({ pagamentos })
+                });
+
+                const dataFinalizar = await responseFinalizar.json();
+                console.log('Resposta do servidor (finalizar):', dataFinalizar);
+
+                if (!responseFinalizar.ok || !dataFinalizar.success) {
+                    throw new Error(dataFinalizar.erro || 'Erro ao finalizar venda');
+                }
+
+                // alert(`Venda finalizada com sucesso! Total: ${dataFinalizar.total}`);
+                
+                // abrir cupom
+                window.open(`/venda/${vendaId}/cupom`, '_blank');
+                
+                //Esconde o modal de formas de pagamento
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // ✅ Limpa carrinho do DOM
+                trs.forEach(tr => tr.remove());
+
+                // ✅ Limpa inputs de pagamento
+                inputsPagamento.forEach(i => i.value = '');
+
+                // Atualiza total
+                const totalVenda = document.getElementById('totalGeral');
+                if (totalVenda) totalVenda.textContent = 'R$ 0,00';
+
+            } catch (err) {
+                console.error('Erro no fetch de finalizar venda:', err);
+                alert(err.message);
             }
-
-            // 3️⃣ Chama o endpoint de finalizar venda
-            const responseFinalizar = await fetch(`/venda/finalizar/${vendaId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': token
-                },
-                body: JSON.stringify({ pagamentos })
-            });
-
-            const dataFinalizar = await responseFinalizar.json();
-            console.log('Resposta do servidor (finalizar):', dataFinalizar);
-
-            if (!responseFinalizar.ok || !dataFinalizar.success) {
-                throw new Error(dataFinalizar.erro || 'Erro ao finalizar venda');
-            }
-
-            alert(`Venda finalizada com sucesso! Total: ${dataFinalizar.total}`);
-
-            // ✅ Limpa carrinho do DOM
-            trs.forEach(tr => tr.remove());
-
-            // ✅ Limpa inputs de pagamento
-            inputsPagamento.forEach(i => i.value = '');
-
-            // Atualiza total
-            const totalVenda = document.getElementById('totalGeral');
-            if (totalVenda) totalVenda.textContent = 'R$ 0,00';
-
-        } catch (err) {
-            console.error('Erro no fetch de finalizar venda:', err);
-            alert(err.message);
         }
-    }
-});
-
-
-        
+    });
 
 });

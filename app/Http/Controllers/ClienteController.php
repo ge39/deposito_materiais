@@ -128,9 +128,21 @@ class ClienteController extends Controller
     }
 
     // Visualizar cliente
-    public function show(Cliente $cliente)
+   public function show(Cliente $cliente)
     {
-        return view('clientes.show', compact('cliente'));
+        // Saldo atual via ContaCorrenteService
+        $saldo = app(\App\Services\ContaCorrenteService::class)->saldoAtual($cliente->id);
+
+        // Movimentações paginadas (extrato)
+        $movimentacoes = \App\Models\ClienteContaCorrente::where('cliente_id', $cliente->id)
+            ->orderBy('id', 'desc')
+            ->paginate(20);
+
+        return view('clientes.show', compact(
+            'cliente',
+            'saldo',
+            'movimentacoes'
+        ));
     }
 
     // Ativar cliente
@@ -148,4 +160,6 @@ class ClienteController extends Controller
         $cliente->save();
         return redirect()->route('clientes.index')->with('success', 'Cliente desativado.');
     }
+
+   
 }

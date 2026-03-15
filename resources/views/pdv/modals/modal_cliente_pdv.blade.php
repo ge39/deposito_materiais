@@ -72,7 +72,7 @@
                     <tr class="pointer" style="width: 1000px; max-height: 400px; overflow-y: auto;">
                         <td style="font-size: 18px;">${c.id}</td>
                         <td style="font-size: 18px;">${c.nome}</td>
-                        <td style="font-size: 18px;">${c.pessoa}</td>
+                        <td style="font-size: 18px;">${c.tipo}</td>
                         <td style="font-size: 18px;">${c.cpf_cnpj ?? ''}</td>
                         <td style="font-size: 18px;">${c.telefone ?? ''}</td>
                         <td style="font-size: 18px;">${c.endereco ?? ''}</td>
@@ -120,7 +120,7 @@
 
 <script>    
     function selecionarClientePDV(  
-    id, nome, pessoa, telefone = '', endereco = '', numero = '',
+    id, nome, tipo, telefone = '', endereco = '', numero = '',
     cep = '', bairro = '', cidade = '', estado = ''
     ){
     // Preenche o campo HIDDEN
@@ -129,7 +129,7 @@
 
     // Preenche os campos visíveis
     document.querySelector('input[name="nome"]').value = nome;
-    document.querySelector('input[name="pessoa"]').value = pessoa;
+    document.querySelector('input[name="pessoa"]').value = tipo;
     document.querySelector('input[name="telefone"]').value = telefone;
 
     const enderecoCompleto =

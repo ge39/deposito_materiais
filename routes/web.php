@@ -9,6 +9,7 @@ use App\Http\Controllers\{
     AuditoriaCaixaController,
     DashboardController,
     CaixaController,
+    ContaCorrenteController,
     CategoriaController,
     ClienteController,
     FornecedorController,
@@ -32,7 +33,8 @@ use App\Http\Controllers\{
     PedidoCompraController,
     OrcamentoController,
     PromocaoController,
-    PainelPromocaoController
+    PainelPromocaoController,
+    SangriaController,
 };
 
 // ===============================
@@ -212,18 +214,18 @@ Route::middleware('auth')->group(function () {
     Route::prefix('pdv')->name('pdv.')->middleware(['auth', 'terminal'])->group(function () {
 
         Route::get('/', [PdvController::class, 'index'])->name('index');
-
-        // Route::post('/venda', [PdvController::class, 'store'])->name('venda.store');
         Route::get('buscar-produto', [PdvController::class, 'buscarProduto'])->name('buscarProduto');
         Route::get('buscar-cliente', [PdvController::class, 'buscarCliente'])->name('buscarCliente');
         Route::get('produto/{codigo}', [PdvController::class, 'buscarProdutoPorCodigo'])->name('buscarProdutoPorCodigo');
         Route::get('orcamento/{codigo}', [OrcamentoPDVController::class, 'buscar'])->name('orcamento.buscar');
-       
+        Route::get('/caixas-esquecidos', [PdvController::class, 'caixasEsquecidos']);
+        
     });
 
-        //Vendas
+         //Vendas
         Route::post('/vendas', [VendaController::class, 'store'])->name('vendas.store');
         Route::post('/venda/finalizar/{venda}', [VendaController::class, 'finalizar']);
+        Route::get('/venda/{id}/cupom', [VendaController::class, 'cupom'])->name('venda.cupom');
 
     // ===============================
     // Abertura de Caixa
@@ -241,6 +243,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/painel_promocao', [PainelPromocaoController::class, 'index'])->name('painel_promocao.index');
 
     // Auditoria e fechamento de caixa
+
       // Lista caixas (GET)
     Route::get('/fechamento_caixa', [FechamentoCaixaController::class, 'listaCaixas'])
         ->name('fechamento.lista')
@@ -260,31 +263,14 @@ Route::middleware('auth')->group(function () {
             ->name('fechamento.fechar');
         });
 
-        Route::prefix('pdv')->group(function () {
-            Route::get('/caixas-esquecidos', [PDVController::class, 'caixasEsquecidos']);
-        });
-
-
-        Route::prefix('fechamento_caixa')->group(function () {
-            Route::get('/lancar_valores/{caixa}', 
-                [FechamentoCaixaController::class, 'lancarValores']
-            )->name('fechamento.lancar_valores');
-        });
+        
+     //Fechamento Caixa
+        Route::prefix('fechamento_caixa')->group(function () 
+        { Route::get('/lancar_valores/{caixa}', [FechamentoCaixaController::class, 'lancarValores'])->name('fechamento.lancar_valores'); });
         Route::get('fechamento/caixa/{caixa}/corrigir', [FechamentoCaixaController::class, 'corrigirDivergencias'])->name('fechamento.corrigir');
         Route::post('fechamento/caixa/{caixa}/ajustar', [FechamentoCaixaController::class, 'ajustarDivergencias'])->name('fechamento.ajustar');
-        // Rota
-        Route::get('/fechamento/{caixa}/divergencias', [FechamentoCaixaController::class, 'divergencias'])
-        ->name('fechamento.divergencias');
-
-        Route::get(
-            '/fechamento_caixa/fechamento/{caixa}',
-            [FechamentoCaixaController::class, 'fechamento']
-        )->name('fechamento.view');
-
-        // Route::post(
-        //     '/fechamento_caixa/confirmacao/{caixa}',
-        //     [FechamentoCaixaController::class, 'fechar']
-        // )->name('fechamento.fechar');
+        Route::get('/fechamento/{caixa}/divergencias', [FechamentoCaixaController::class, 'divergencias'])->name('fechamento.divergencias');
+        Route::get('/fechamento_caixa/fechamento/{caixa}', [FechamentoCaixaController::class, 'fechamento'])->name('fechamento.view');
 
         //rota da mensagem de confirmação para fechamento do caixa com ou sem auditoria
         Route::get(
@@ -296,26 +282,54 @@ Route::middleware('auth')->group(function () {
          Route::get('/fechamento/{caixa}/confirmacao_auditoria', [FechamentoCaixaController::class, 'auditoria'])
          ->name('fechamento.auditoria');
 
-
-        
-
     });
 
+
     //Auditoria do caixa
-        Route::prefix('auditoria-caixa')
-        ->name('auditoria_caixa.')
-        ->group(function () {
+    Route::prefix('auditoria-caixa')
+    ->name('auditoria_caixa.')
+    ->group(function () {
 
-            Route::get('/', [AuditoriaCaixaController::class, 'index'])
-                ->name('index');
+        Route::get('/', [AuditoriaCaixaController::class, 'index'])
+            ->name('index');
 
-            Route::get('/{auditoria}', [AuditoriaCaixaController::class, 'show'])
-                ->name('show');
+        Route::get('/{auditoria}/exportar', 
+            [AuditoriaCaixaController::class, 'exportar']
+        )->name('exportar');
 
-            // Route::get('/{auditoria}/exportar', [AuditoriaCaixaController::class, 'exportar'])
-            //     ->name('exportar');
+        Route::get('/{auditoria}', 
+            [AuditoriaCaixaController::class, 'show']
+        )->name('show');
+    });
+
+    //Sangria
+    Route::prefix('pdv')->group(function() {
+        // Formulário de sangria para um caixa específico
+        Route::get('caixa/{caixa}/sangria', [SangriaController::class, 'criarForm'])
+            ->name('caixa.sangria.form');
+
+        // Registrar a sangria
+        Route::post('caixa/{caixa}/sangria', [SangriaController::class, 'registrar'])
+            ->name('caixa.sangria.registrar');
+
+        // Imprimir comprovante
+        Route::get('sangria/{sangria}/imprimir', [SangriaController::class, 'imprimir'])
+            ->name('sangria.imprimir');
             
-                // web.php
-            Route::get('/auditoria-caixa/{auditoria}/exportar', [AuditoriaCaixaController::class,
-             'exportar'])->name('auditoria_caixa.exportar');
-             });
+    });
+
+    // conta corrente
+    Route::get('/clientes/{id}/conta-corrente', 
+        [ContaCorrenteController::class, 'extrato']
+    )->name('clientes.conta_corrente');
+
+    Route::post('/clientes/{id}/conta-corrente/pagar',
+        [ContaCorrenteController::class, 'pagar']
+    )->name('clientes.conta_corrente.pagar');
+
+    Route::get(
+        '/clientes/{cliente}/conta-corrente',
+        [ContaCorrenteController::class, 'show']
+    )->name('clientes.conta_corrente.show');
+
+   

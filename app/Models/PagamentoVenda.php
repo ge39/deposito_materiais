@@ -58,9 +58,9 @@ class PagamentoVenda extends Model
         });
     }
 
-    public function venda()
+   public function venda()
     {
-        return $this->belongsTo(Venda::class, 'venda_id');
+        return $this->belongsTo(\App\Models\Venda::class, 'venda_id');
     }
 
 }

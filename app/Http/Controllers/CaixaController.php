@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use App\Models\Empresa;
 use App\Models\Caixa;
 use App\Models\MovimentacaoCaixa;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Services\CaixaService;
+
 
 class CaixaController extends Controller
 {
@@ -62,6 +64,7 @@ class CaixaController extends Controller
             return redirect()->back()->withErrors('Terminal não identificado.');
         }
 
+              
         $caixaAberto = Caixa::where('terminal_id', $terminal->id)
             ->where('status', 'aberto')
             ->first();
@@ -75,8 +78,16 @@ class CaixaController extends Controller
         $fundoTroco         = $request->input('fundo_troco', 0.00);
         $valorAbertura      = $request->input('fundo_troco', 0.00);
 
+        // Pega o primeiro ID da tabela empresa
+        $empresaId = Empresa::query()->first()?->id;
+
+        if (!$empresaId) {
+            return redirect()->back()->withErrors('Não existe nenhuma empresa cadastrada.');
+        }
+
         $caixa = Caixa::create([
             'user_id' => $user->id,
+            'empresa_id' => $empresaId,
             'terminal_id' => $terminal->id,
             'terminal' => $terminal->identificador,
             'valor_fundo_anterior' => $valorFundoAnterior,

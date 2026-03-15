@@ -7,20 +7,22 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Orcamento;
 use App\Models\Promocao; // <-- IMPORTAR AQUI
 use App\Observers\PromocaoObserver;
+use App\Models\PagamentoVenda;
+use App\Models\Venda;
+use App\Observers\PagamentoVendaObserver;
+use App\Observers\VendaObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void
-    {
-        //
-    }
-
-    public function boot()
+  
+    public function boot(): void
     {
         $hoje = now()->format('Y-m-d');
          
         // Registrar Observer
         Promocao::observe(PromocaoObserver::class);
+        PagamentoVenda::observe(PagamentoVendaObserver::class);
+        Venda::observe(VendaObserver::class);
 
         // Atualizar orçamentos expirados
         Orcamento::where('status', 'Aguardando aprovacao')

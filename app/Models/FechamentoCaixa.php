@@ -23,7 +23,7 @@ class FechamentoCaixaViewModel
     {
         $this->caixa = $caixa;
 
-        $this->totalEntradas = (float) CaixaService::totalEntradasManuais($caixa->id)
+        $this->totalEntradas = (float) CaixaService::totalEntradasManuais($caixa->id)        
             + (float) CaixaService::totalEntradasDinheiro($caixa->id);
 
         $this->totalSaidas = (float) CaixaService::totalSaidas($caixa->id);

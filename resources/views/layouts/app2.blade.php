@@ -100,9 +100,10 @@
         </li>
 
        <!-- Administração -->
-@php
-    $canAccessAdmin = in_array(auth()->user()->nivel_acesso, ['admin', 'gerente']);
-@endphp
+        @php
+            $canAccessAdmin = in_array(auth()->user()->nivel_acesso, ['admin', 'gerente']);
+        @endphp
+
 <li class="nav-item dropdown">
   <a class="nav-link dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#"
      data-bs-toggle="dropdown">

@@ -7,7 +7,7 @@ import './modal_finalizar';
 import './regras';
 import './orcamento';
 import './ui';
-import './atalhos';
+// import './atalhos';
 // Fim resources/js/pdv/app.js
 
 

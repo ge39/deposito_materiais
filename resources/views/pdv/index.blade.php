@@ -4,7 +4,6 @@
 @extends('layouts.app2')
 @section('content') 
 
-// Quando abrir o PDV
 <?php  session(['terminal_id' => $terminal->id])?>;
 
 <style>
@@ -235,7 +234,111 @@
 </style>
 
 <div class="container-fluid p-0">   
-   <!-- OVERLAY -->
+      
+    <!-- OVERLAY -->
+    <!-- //modal verificar sangria -->
+  
+    <div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+
+                <!-- Header -->
+                <div class="modal-header 
+                    @if($bloquearPDV) bg-danger text-white 
+                    @else bg-warning text-dark 
+                    @endif">
+
+                    <h5 class="modal-title fw-bold">
+                        @if($bloquearPDV)
+                            🚫 BLOQUEIO DE CAIXA
+                        @else
+                            ⚠️ LIMITE DE SANGRIA ATINGIDO
+                        @endif
+                    </h5>
+
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body text-center py-4">
+
+                    <h4 class="fw-bold mb-3">
+                        Saldo Atual:
+                        <span class="text-dark">
+                            R$ {{ number_format($saldoAtual, 2, ',', '.') }}
+                        </span>
+                    </h4>
+
+                    <p class="fs-5 mb-2">
+                        Limite configurado:
+                        <strong>
+                            R$ {{ number_format($limiteSangria, 2, ',', '.') }}
+                        </strong>
+                    </p>
+
+                    @if($bloquearPDV)
+                        <div class="alert alert-danger fw-bold fs-5 shadow-sm">
+                            PDV BLOQUEADO<br>
+                            Realize sangria para continuar as vendas.
+                        </div>
+                    @else
+                        <div class="alert alert-warning fw-bold fs-5 shadow-sm">
+                            Recomendado realizar sangria.
+                        </div>
+                    @endif
+
+                    <hr>
+
+                    <h3 class="fw-bold text-primary">
+                        💰 Valor sugerido para sangria:
+                    </h3>
+
+                    <h2 class="display-6 fw-bold text-success">
+                        R$ {{ number_format(($valorSugeridoSangria ?? $saldoAtual) ?? 0, 2, ',', '.') }}
+                        
+                    </h2>
+
+                    <p class="text-muted">
+                        Oriente a operadora a retirar este valor do caixa.
+                    </p>
+
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer justify-content-between">
+                    <div class="d-flex gap-2">
+
+                        <!-- <button onclick="window.print()" class="btn btn-outline-dark px-4">
+                            🖨 Imprimir
+                        </button> -->
+        
+                        <a href="{{ route('caixa.sangria.form', $caixa->id) }}" 
+                        class="btn btn-success px-4 fw-bold">
+                            ✅ Efetuar Sangria
+                        </a>
+
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                            ❌ Cancelar
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Script para abrir o modal automaticamente -->
+    <!-- <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            @if($saldoAtual >= $limiteSangria)
+                var modal = new bootstrap.Modal(document.getElementById('modalSangria'));
+                modal.show();
+            @endif
+        });
+    </script> -->
+
+    <!-- bloquear caixa -->
     <div id="modalBloquearCaixa" style="display: none;">
         <div class="carimbo-caixa">
             <span class="
@@ -248,11 +351,11 @@
             </span>
         </div>
         <!-- Lista de caixas esquecidos -->
-        <div class="listaCaixasEsquecidos" id="listaCaixasEsquecidos">
+        <div class="listaCaixasEsquecidos list-group text-center" id="listaCaixasEsquecidos">
             <ul></ul>
         </div>
 
-       <div class="d-flex mb-5 justify-content-between p-3 w-100 bg-lavender">
+        <div class="d-flex mb-5 justify-content-between p-3 w-100 bg-lavender">
             <button class="btn-abrir-caixa btn-primary btn-sm px-4"
                 onclick="window.location.href='{{ route('caixa.abrir') }}'">
                 ABRIR CAIXA
@@ -263,7 +366,7 @@
                 SAIR
             </button>
         </div>
-
+        
     </div>
     <!-- FIM OVERLAY -->
 
@@ -289,6 +392,7 @@
             </span>
         </div>
     </div>
+
     <!-- FILTROS DA VENDA -->
     <div class="row g-2 mb-2 align-items-center">
         
@@ -342,33 +446,42 @@
         </div> -->
 
     </div>
+    
     <!-- CAMPOS DA VENDA -->
     <div class="row g-2 mb-2 p-2" style="background:#3a3a3a; color:white;">
         <div class="col-md-2 fw-bold mb-0">
             <label>Data Venda</label>
             <input class="form-control fs-6 fw-bold text-center" type="datetime-local" value="{{ date('Y-m-d\TH:i') }}" readonly>
         </div>
+
         <div class="col-md-2 fw-bold mb-0">
              <!-- <label>ID</label> -->
-            <input type="hidden" name="cliente_id">
-            <label>Cliente</label>
-            <input  class="form-control  fs-6 fw-bold text-center" name="nome">
-            <input  type="hidden" name="cliente_id" value="{{  $clienteBalcao->id }}">
+            <input  type="hidden" name="cliente_id" value="{{ $clienteBalcao->id }}">
             <input  type="hidden" name="operador_id" value="{{  $operadorId }}">
             <input  type="hidden" name="terminal_id" value="{{  $terminal->id }}">
             <input  type="hidden" id="dataVenda"  type="datetime-local" value="{{ date('Y-m-d\TH:i') }}">
+
+            <label>Cliente</label>
+            <input  type ="text" class="form-control  fs-6 fw-bold text-center" name = "nome" 
+            value ="{{ $clienteBalcao->nome }}">
         </div>
+        
          <div class="col-md-1 fw-bold mb-0">
             <label>Pessoa</label>
-            <input class="form-control  fs-6 fw-bold text-center" name="pessoa" required readonly>
+            <input class="form-control  fs-6 fw-bold text-center" name="pessoa" 
+             value="{{  $clienteBalcao->tipo }}" required readonly>
         </div>
-        <div class="col-md-1 fw-bold mb-0">
+
+        <div class="col-md-2 fw-bold mb-0">
             <label>Contato Local</label>
-            <input class="form-control fs-6 fw-bold text-center" name="telefone" required >
+            <input class="form-control fs-6 fw-bold text-center" name="telefone" 
+            value="{{  $clienteBalcao->telefone }}" required >
         </div>
-         <div class="col-md-5 fw-bold mb-0">
+
+        <div class="col-md-5 fw-bold mb-0">
             <label>Endereço para entrega</label>
-            <input id="endereco" class="form-control  fs-6 fw-bold text-center" name="endereco" required >
+            <input id="endereco" class="form-control  fs-6 fw-bold text-center" name="endereco" 
+            value="{{  $clienteBalcao->endereco }}" required >
         </div>
         
     </div>
@@ -502,83 +615,67 @@
     
 </div>
 
-
-<!--  Verifica caixa aberto -->
-<script>
-    // console.log('🔍 Terminal recebido no PDV:', @json($terminal));
-    // console.log('💰 Caixa aberto recebido no PDV:', @json($caixaAberto));
-
-    // if (@json($caixaAberto) === null) {
-        // console.warn('⚠️ Nenhum caixa aberto encontrado para este terminal');
-    // } else {
-        // console.info('✅ Caixa aberto válido carregado no PDV');
-    // }
-</script>
-
-<!-- Modal de bloqueio do caixa -->
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const modalEl = document.getElementById('modalBloquearCaixa');
-
-        // ⚠️ Estado real do caixa vindo do backend
-        // const caixaFechado = @json(is_null($caixaAberto));
-        const caixaFechado = @json($caixaAberto?->status !== 'aberto');
-
-        // console.log('🔍 Caixa fechado:', caixaFechado, 'Caixa:', @json($caixaAberto));
-
-        if (caixaFechado) {
-            document.body.classList.add('caixa-bloqueado');
-
-            if (modalEl && typeof bootstrap !== 'undefined') {
-                const modal = new bootstrap.Modal(modalEl, {
-                    backdrop: 'static',
-                    keyboard: false
-                });
-
-                modal.show();
-            } else {
-                console.warn('⚠️ Modal não encontrado ou Bootstrap não carregado');
-            }
-        }
-    });
-</script>
-
-<!--caixas esquecidos abertos acima de 12 horas-->
+<!-- caixas esquecidos abertos acima de 12 horas -->
+<!-- caixas esquecidos abertos acima de 12 horas -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        fetch('/pdv/caixas-esquecidos')
-            .then(response => response.json())
-            .then(data => {
-                if (data.length > 0) {
-                    const lista = document.getElementById('listaCaixasEsquecidos');
-                    lista.innerHTML = ''; // limpa antes
 
-                    data.forEach(caixa => {
-                        const item = document.createElement('li');
-                        item.style.padding = '2px 0';
-                        item.style.borderBottom = '1px solid #fff';
-                       item.textContent =
+        const listaDiv = document.getElementById('listaCaixasEsquecidos');
+        const modalEl  = document.getElementById('modalBloquearCaixa');
+
+        if (!listaDiv) return;
+
+        fetch('/pdv/caixas-esquecidos')
+            .then(response => {
+                if (!response.ok) throw new Error('Erro HTTP');
+                return response.json();
+            })
+            .then(data => {
+
+                if (!data || data.length === 0) {
+                    listaDiv.style.display = 'none';
+                    return;
+                }
+
+                listaDiv.innerHTML = '';
+                listaDiv.style.display = 'block';
+
+                data.forEach(caixa => {
+
+                    const item = document.createElement('li');
+
+                    const operador = caixa.usuario?.name ?? '---';
+
+                    item.textContent =
                         `Terminal: ${caixa.terminal_id} | ` +
                         `Caixa ID: ${caixa.id} | ` +
                         `Aberto em: ${caixa.data_abertura_br} | ` +
                         `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
-                        // `Fechado em: ${caixa.data_fechamento_br ?? '-'} | ` +
-                        `Operador: ${caixa.usuario.name}`;
+                        `Operador: ${operador}`;
 
-                        lista.appendChild(item);
+                    listaDiv.appendChild(item);
+
+                });
+
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    const modal = new bootstrap.Modal(modalEl, {
+                        backdrop: 'static',
+                        keyboard: false
                     });
-
-                    // Exibe o overlay
-                     document.getElementById('modalBloquearCaixa').style.display = 'flex';
-                    //  document.getElementById('listaCaixasEsquecidos').style.display = 'flex';
+                    modal.show();
                 }
+
             })
-            .catch(error => console.error('Erro ao verificar caixas esquecidos:', error));
+            .catch(err => {
+                console.error("Erro ao buscar caixas:", err);
+                listaDiv.style.display = 'none';
+            });
+
     });
-    
 </script>
 
-<!-- oculta ou mostra a div de caixas esquecidos -->
+
+<!-- script dos modais do pdv -->
 <script>
     
     document.addEventListener('DOMContentLoaded', function () {
@@ -606,7 +703,7 @@
     });
 </script>
 
-<!-controle dos lotes vencidos-!>
+<!-- controle dos lotes vencidos -->
 <script>
     const data = @json($data ?? []);
     const alerta = document.getElementById('alerta-lote');
@@ -627,25 +724,6 @@
         alerta.classList.remove('d-none');
     }
 
-</script>
-
-<!--carrega o usuario padrao, "VENDA BALCAO"--!>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-
-        const clienteBalcao = @json($clienteBalcao);
-
-        if (!clienteBalcao) return;
-
-        document.querySelector('input[name="cliente_id"]').value = clienteBalcao.id ?? '';
-        document.querySelector('input[name="nome"]').value       = clienteBalcao.nome ?? '';
-        document.querySelector('input[name="pessoa"]').value     = clienteBalcao.tipo ?? '';
-        document.querySelector('input[name="telefone"]').value   = clienteBalcao.telefone ?? '';
-        document.querySelector('input[name="endereco"]').value   = clienteBalcao.endereco_entrega 
-                                                                    ?? clienteBalcao.endereco 
-                                                                    ?? '';
-
-    });
 </script>
 
 <!-- Armazena total da venda globalmente e passa para view de finalizar -->
@@ -673,17 +751,19 @@
 
 </script>
 
-<!-- armazendo id do caixa para o fechamento--!>
-<script>
-    const CAIXA_ID = {{ $caixaAberto->id ?? 'null' }};
-</script>
-
-<script src="{{ asset('js/atalho.js') }}"></script>
+<!-- armazendo id do caixa para o fechamento -->
+<!-- <script>
+    const CAIXA_ID = @json($caixaAberto?->id);
+    const CAIXA_POSSUI_VENDAS = @json($caixaAberto?->possui_vendas ?? false);
+</script> -->
 
 <script>
     const CAIXA_ID = @json($caixa->id ?? null);
     const CAIXA_POSSUI_VENDAS = @json($caixa->possui_vendas ?? false);
-</script
+</script>
+
+<!-- <script src="{{ asset('js/atalho.js') }}"></script> -->
+
 
 @endsection
 
@@ -693,9 +773,15 @@
 @include('pdv.modals.modal_orcamento')
 @include('pdv.modals.modal_finalizar')
 
+
 @vite([
-    'resources/js/pdv/app.js',
+    'resources/js/pdv/app.js',      {{-- BOOT --}}
+    'resources/js/pdv/produto.js',
+    'resources/js/pdv/carrinho.js',
+    'resources/js/pdv/regras.js',
+    'resources/js/pdv/orcamento.js',
+    'resources/js/pdv/ui.js',
+    'resources/js/pdv/atalhos.js',
+    
 ])
-
-
->
+<!-- Fim view completa do PDV -->

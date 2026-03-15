@@ -66,7 +66,7 @@
     {{-- ================= RESUMO FINANCEIRO ================= --}}
     <div class="row mb-4">
 
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card text-center border-primary shadow-sm">
                 <div class="card-body">
                     <h6>Total Vendas</h6>
@@ -83,7 +83,7 @@
             </div>
         </div>
 
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card text-center border-primary shadow-sm">
                 <div class="card-body">
                     <h6>Troco Caixa</h6>
@@ -93,28 +93,46 @@
                 </div>
             </div>
         </div>
-
-        <div class="col-md-3">
+         <div class="col-md-2">
+            <div class="card text-center border-primary shadow-sm">
+                <div class="card-body">
+                    <h6>Sangrias</h6>
+                    <h4 class="text-primary">
+                        R$ {{ number_format($total_sangrias,2,',','.') }}
+                    </h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
             <div class="card text-center border-dark shadow-sm">
                 <div class="card-body">
-                    <h6>Total Físico Informado</h6>
-                    <h4>
+                    <h6>Total Informado</h6>
+                    <h4 class="text-primary">
                         R$ {{ number_format($auditoria->total_fisico,2,',','.') }}
                     </h4>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card text-center shadow-sm {{ $auditoria->diferenca != 0 ? 'border-danger' : 'border-success' }}">
                 <div class="card-body">
-                    <h6>Diferença</h6>
+                    <h6>Quebra em R$</h6>
                     <h4 class="{{ $auditoria->diferenca != 0 ? 'text-danger' : 'text-success' }}">
                         R$ {{ number_format($auditoria->diferenca,2,',','.') }}
                     </h4>
-                    <small>
+                   
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center shadow-sm {{ $auditoria->diferenca != 0 ? 'border-danger' : 'border-success' }}">
+                <div class="card-body">
+                    <h6>Quebra em %</h6>
+                    
+                    <h4 class="{{ $auditoria->diferenca != 0 ? 'text-danger' : 'text-success' }}">
                         {{ number_format($percentual,2,',','.') }}%
-                    </small>
+                    </h4>
                 </div>
             </div>
         </div>
@@ -135,8 +153,8 @@
 
     {{-- ================= FORMAS DE PAGAMENTO ================= --}}
     <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-secondary text-white">
-            Detalhamento por Forma de Pagamento
+        <div class="card-header bg-primary text-white">
+            Detalhamento Auditoria - Total das Entradas Manuais do Caixa {{ $auditoria->caixa->id}}
         </div>
 
         <div class="card-body p-0">
@@ -145,8 +163,8 @@
                     <tr>
                         <th>Forma</th>
                         <th>Total Sistema</th>
-                        <th>Total Fisico Informado</th>
-                        <th>Diferença</th>
+                        <th >Total Informado Operador</th>
+                        <th >Ajustes</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -164,16 +182,49 @@
                                 R$ {{ number_format($detalhe->total_fisico,2,',','.') }}
                             </td>
                             <td class="fw-bold">
-                                R$ {{ number_format($detalhe->diferenca,2,',','.') }}
+                                <!-- R$ {{  number_format( + $detalhe->diferenca,2,',','.') }} -->
+                                @php
+                                    $valor = $detalhe->diferenca;
+                                @endphp
+
+                                @if($valor < 0)
+                                    <span class="text-success fw-bold">
+                                        + R$ {{ number_format(abs($valor), 2, ',', '.') }}
+                                    </span>
+                                @elseif($valor > 0)
+                                    <span class="text-danger fw-bold">
+                                        - R$ {{ number_format(abs($valor), 2, ',', '.') }}
+                                    </span>
+                                @else
+                                    <span class="text-muted fw-bold">
+                                        R$ 0,00
+                                    </span>
+                                @endif
                             </td>
                             <td>
-                                <span class="badge bg-dark">
-                                    {{ $detalhe->status }}
-                                </span>
-                            </td>
-                        </tr>
+                                @php
+                                    $status = strtolower($detalhe->status);
+                                @endphp
 
+                                @if($status === 'correto')
+                                    <span class="badge bg-success">
+                                        {{ $detalhe->status }}
+                                    </span>
+                                @elseif($status === 'divergente')
+                                    <span class="badge bg-danger">
+                                        {{ $detalhe->status }}
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary">
+                                        {{ $detalhe->status }}
+                                    </span>
+                                @endif
+                            </td>
+                           
+                        </tr>
+                       
                     @empty
+                      <div><tr>Total:  {{ number_format($detalhe->diferenca,2,',','.') }}</tr></div>
                         <tr>
                             <td colspan="5" class="text-center text-muted">
                                 Nenhum detalhamento encontrado.
@@ -188,8 +239,8 @@
 
     {{-- ================= LANÇAMENTOS MANUAIS ================= --}}
     <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-info text-white">
-            Lançamentos Manuais
+        <div class="card-header bg-primary text-white fw-normal">
+            Lançamentos Manuais - Retiradas do Caixa
         </div>
 
         <div class="card-body p-0">
@@ -209,7 +260,7 @@
                             <td class="text-uppercase">
                                 {{ $mov->tipo }}
                             </td>
-                            <td class="fw-bold">
+                            <td>
                                 R$ {{ number_format($mov->valor,2,',','.') }}
                             </td>
                             <td>
@@ -235,7 +286,7 @@
 
     {{-- ================= CORREÇÕES DA AUDITORIA ================= --}}
     <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-warning text-dark fw-bold">
+        <div class="card-header bg-primary text-light ">
             Correções Realizadas pela Auditoria  - R$ {{ number_format($auditoria->total_sistema,2,',','.') }}
         </div>
 

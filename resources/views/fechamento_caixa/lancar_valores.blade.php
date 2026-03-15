@@ -67,10 +67,8 @@
         </div>
     </div>
 </div>
-
-
     
-    <form action="{{ route('fechamento.fechar', $caixa->id) }}" method="POST">
+<form action="{{ route('fechamento.fechar', $caixa->id) }}" method="POST">
     @csrf
 
     <!-- =============================== -->
@@ -104,76 +102,6 @@
                             </div>
                         </div>
                         
-                    @endforeach
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Bandeiras de Cartão -->
-        <div class="col-md-6">
-            <div class="card-header fs-5 bg-primary text-white fw-bold p-2">Bandeiras de Cartão</div>
-            <div class="card mb-3">
-                <div class="card-body">
-
-                    @foreach ([
-                        'bandeira_visa' => 'Visa',
-                        'bandeira_mastercard' => 'Mastercard',
-                        'bandeira_elo' => 'Elo',
-                        'bandeira_amex' => 'Amex',
-                        'bandeira_hipercard' => 'Hipercard'                        
-                    ] as $name => $label)
-                        <div class="row mb-2 align-items-center">
-                            <div class="col-md-4 fw-semibold" style="font-size:14px;">
-                                {{ $label }}
-                            </div>
-                            <div class="col-md-8">
-                                <input type="number" step="0.01"
-                                    name="{{ $name }}"
-                                    class="form-control form-control-sm"
-                                    style="font-size:14px;"
-                                    value="{{ old($name, 0) }}">
-                            </div>
-                        </div>
-                       
-                    @endforeach
-                        
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- =============================== -->
-    <!-- ENTRADAS + SAÍDAS DE CAIXA -->
-    <!-- =============================== -->
-    <div class="row mt-4">
-
-        <!-- Entradas -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header fs-5 bg-primary text-white fw-bold">
-                    Entradas de Caixa
-                </div>
-                <div class="card-body">
-
-                    @foreach ([
-                        'entrada_suprimento' => 'Suprimento',
-                        'entrada_ajuste' => 'Ajuste Positivo',
-                        'entrada_devolucao' => 'Devolução em Dinheiro',
-                        'entrada_outros' => 'Outras Entradas'
-                    ] as $name => $label)
-                        <div class="row mb-2 align-items-center">
-                            <div class="col-md-4 fw-bold" style="font-size:14px;">
-                                {{ $label }}
-                            </div>
-                            <div class="col-md-8">
-                                <input type="number" step="0.01"
-                                    name="{{ $name }}"
-                                    class="form-control form-control-sm text-end"
-                                    value="{{ old($name, 0) }}">
-                            </div>
-                        </div>
                     @endforeach
 
                 </div>
@@ -214,6 +142,75 @@
     </div>
 
     <!-- =============================== -->
+    <!-- ENTRADAS + SAÍDAS DE CAIXA -->
+    <!-- =============================== -->
+    <div class="row mt-4">
+
+        <!-- Entradas -->
+        <!-- <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header fs-5 bg-primary text-white fw-bold">
+                    Entradas de Caixa
+                </div>
+                <div class="card-body">
+
+                    @foreach ([
+                        'entrada_suprimento' => 'Suprimento',
+                        'entrada_ajuste' => 'Ajuste Positivo',
+                        'entrada_devolucao' => 'Devolução em Dinheiro',
+                        'entrada_outros' => 'Outras Entradas'
+                    ] as $name => $label)
+                        <div class="row mb-2 align-items-center">
+                            <div class="col-md-4 fw-bold" style="font-size:14px;">
+                                {{ $label }}
+                            </div>
+                            <div class="col-md-8">
+                                <input type="number" step="0.01"
+                                    name="{{ $name }}"
+                                    class="form-control form-control-sm text-end"
+                                    value="{{ old($name, 0) }}">
+                            </div>
+                        </div>
+                    @endforeach
+
+                </div>
+            </div>
+        </div> -->
+
+        <!-- Saídas
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header fs-5 bg-primary text-white fw-bold">
+                    Saídas de Caixa
+                </div>
+                <div class="card-body">
+
+                    @foreach ([
+                        'saida_sangria' => 'Sangria',
+                        'saida_despesa' => 'Despesas',
+                        'saida_ajuste' => 'Ajuste Negativo',
+                        'saida_outros' => 'Outras Saídas'
+                    ] as $name => $label)
+                        <div class="row mb-2 align-items-center">
+                            <div class="col-md-4 fw-bold" style="font-size:14px;">
+                                {{ $label }}
+                            </div>
+                            <div class="col-md-8">
+                                <input type="number" step="0.01"
+                                    name="{{ $name }}"
+                                    class="form-control form-control-sm text-end"
+                                    value="{{ old($name, 0) }}">
+                            </div>
+                        </div>
+                    @endforeach
+
+                </div>
+            </div>
+        </div> -->
+
+    </div>
+
+    <!-- =============================== -->
     <!-- BOTÕES -->
     <!-- =============================== -->
     <div class="row mt-4">
@@ -226,29 +223,27 @@
             </a>
         </div>
     </div>
-    
-  
-
 </form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form[action="{{ route('fechamento.fechar', $caixa->id) }}"]');
+        const btnFechar = document.getElementById('btnFecharCaixa'); // botão original
+        const btnConfirmar = document.getElementById('confirmarFechamento');
+        const modal = new bootstrap.Modal(document.getElementById('modalConfirmarFechamento'));
+
+        btnFechar.addEventListener('click', function(e) {
+            e.preventDefault(); // impede envio direto
+            modal.show();
+        });
+
+        btnConfirmar.addEventListener('click', function() {
+            form.submit(); // envia o form apenas se confirmar
+        });
+    });
+</script>
 
 @endsection
 
-  <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form[action="{{ route('fechamento.fechar', $caixa->id) }}"]');
-    const btnFechar = document.getElementById('btnFecharCaixa'); // botão original
-    const btnConfirmar = document.getElementById('confirmarFechamento');
-    const modal = new bootstrap.Modal(document.getElementById('modalConfirmarFechamento'));
-
-    btnFechar.addEventListener('click', function(e) {
-        e.preventDefault(); // impede envio direto
-        modal.show();
-    });
-
-    btnConfirmar.addEventListener('click', function() {
-        form.submit(); // envia o form apenas se confirmar
-    });
-});
-</script>
 
 

@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 use Illuminate\Validation\ValidationException;
 use App\Models\Venda;
-use App\Models\ItemVenda;
+Use App\Models\Empresa;
+use Mguimaraes\Pix\Payload;
+use App\Models\Cliente;
 use Illuminate\Http\Request;
+use App\Services\CreditoService;
 use Illuminate\Support\Facades\DB;
 
 class VendaController extends Controller
@@ -17,8 +20,10 @@ class VendaController extends Controller
 
     public function store(Request $request)
     {
+    
         DB::beginTransaction();
-
+      
+        // dd($request->all());
         try {
             // 1️⃣ Cria a venda
             $venda = Venda::create([
@@ -62,141 +67,132 @@ class VendaController extends Controller
     }
 
     //pagamentos de venda (pagamentos_venda)
-   public function finalizar(Request $request, Venda $venda)
+
+    public function finalizar(Request $request, Venda $venda, CreditoService $creditoService)
     {
+        
+         // ✅ Pega o cliente direto do objeto Venda
+        $cliente = $venda->cliente;
+
+        // ✅ Total da venda calculado pelo backend
+        $valorVenda = $venda->itens->sum(fn($i) => $i->quantidade * $i->preco_unitario);
+
+        // ✅ Valida crédito do cliente
+        $validacao = $creditoService->validarCredito($cliente, $valorVenda);
+
+        if (!$validacao['aprovado']) {
+            return response()->json([
+                'success' => false,
+                'erro'    => $validacao['mensagem']
+            ], 422);
+        }
+
         DB::beginTransaction();
 
         try {
             // 1️⃣ Todas as formas de pagamento possíveis
             $formasPossiveis = ['dinheiro', 'cartao_credito', 'cartao_debito', 'carteira', 'pix'];
 
-            // 2️⃣ Total da venda
-            $totalVenda = $venda->itens->sum(fn($i) => $i->quantidade * $i->preco_unitario);
-
-            // 3️⃣ Pagamentos enviados pelo front (se houver)
+            // 2️⃣ Pagamentos enviados pelo frontend
             $pagamentosEnviados = collect($request->input('pagamentos', []))
                 ->keyBy('forma'); // indexa por forma
 
             $totalPagamentos = 0;
+           
+            $formasPermitidas = $creditoService->formasPermitidas($cliente);
+        // Retorna array como ['dinheiro','cartao_credito','cartao_debito','pix']
 
-            // 4️⃣ Cria todos os registros de pagamento
-            foreach ($formasPossiveis as $forma) {
-                $valor = isset($pagamentosEnviados[$forma]) ? (float) $pagamentosEnviados[$forma]['valor'] : 0;
+        foreach ($formasPossiveis as $forma) {
+            $valor = isset($pagamentosEnviados[$forma]) ? (float) $pagamentosEnviados[$forma]['valor'] : 0;
 
-                $totalPagamentos += $valor;
-
-                $venda->pagamentos()->create([
-                    'user_id' => auth()->id(),
-                    'caixa_id' => $venda->caixa_id,
-                    'forma_pagamento' => $forma,
-                    'valor' => $valor,
-                    'status' => 'confirmado',
-                ]);
+            if (!in_array($forma, $formasPermitidas)) {
+                if ($valor > 0) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'erro'    => "Cliente não possui permissão para usar {$forma}"
+                    ], 422);
+                }
+                $valor = 0; // garante que não cria pagamento indevido
             }
 
-            // 5️⃣ Validação: pagamentos insuficientes
-            if ($totalPagamentos < $totalVenda) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'erro' => "Pagamento insuficiente. Total da venda: R$ {$totalVenda}, total pago: R$ {$totalPagamentos}"
-                ], 422);
-            }
+            $totalPagamentos += $valor;
 
-            // 6️⃣ Atualiza status da venda
-            $venda->update([
-                'status' => 'finalizada',
-                'total' => $totalVenda,
+            $venda->pagamentos()->create([
+                // 'user_id'         => auth()->id(),
+                'user_id' => auth()->id() ?? $venda->funcionario_id,
+                'caixa_id'        => $venda->caixa_id,
+                'forma_pagamento' => $forma,
+                'valor'           => $valor,
+                'status'          => 'confirmado',
             ]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'total' => $totalVenda,
-                'message' => 'Venda finalizada com sucesso',
-                'venda_id' => $venda->id
-            ]);
-
-        } catch (\Exception $e) {
+        }
+        // 4️⃣ Validação: pagamentos insuficientes
+        if ($totalPagamentos < $valorVenda) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'erro' => $e->getMessage()
+                'erro'    => "Pagamento insuficiente. Total da venda: R$ {$valorVenda}, total pago: R$ {$totalPagamentos}"
+            ], 422);
+        }
+
+        // 5️⃣ Atualiza status da venda
+        $venda->update([
+            'status' => 'finalizada',
+            'total'  => $valorVenda,
+        ]);
+
+        DB::commit();
+
+        // ✅ Retorna JSON sempre, pronto para o JS
+        return response()->json([
+            'success'  => true,
+            'total'    => $valorVenda,
+            'message'  => 'Venda finalizada com sucesso',
+            'venda_id' => $venda->id
+        ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'erro'    => $e->getMessage()
             ], 500);
         }
     }
 
-    // public function finalizar(Request $request, Venda $venda)
+    
+    //criar qrcode
+    // public function gerarPix($venda)
     // {
-    //     DB::beginTransaction();
+    //     $payload = new Payload();
 
-    //     try {
-    //         // 1️⃣ Todas as formas de pagamento possíveis
-    //         $formasPossiveis = ['dinheiro', 'cartao_credito', 'cartao_debito', 'carteira', 'pix'];
+    //     $payload->setPixKey('11999999999'); // chave pix da empresa
+    //     $payload->setDescription('Venda '.$venda->id);
+    //     $payload->setMerchantName('DEPOSITO MATERIAIS');
+    //     $payload->setMerchantCity('POA');
+    //     $payload->setAmount(number_format($venda->total,2,'.',''));
+    //     $payload->setTxid($venda->id);
 
-    //         // 2️⃣ Total da venda
-    //         $totalVenda = $venda->itens->sum(fn($i) => $i->quantidade * $i->preco_unitario);
-
-    //         // 3️⃣ Pagamentos enviados pelo front, indexados por forma
-    //         $pagamentosEnviados = collect($request->input('pagamentos', []))
-    //             ->keyBy('forma');
-
-    //         // 4️⃣ Cria uma coleção com todas as formas, preenchendo 0 se não houver valor
-    //         $pagamentosParaRegistrar = collect($formasPossiveis)->map(function ($forma) use ($pagamentosEnviados) {
-    //             return [
-    //                 'forma_pagamento' => $forma,
-    //                 'valor' => isset($pagamentosEnviados[$forma]) ? (float) $pagamentosEnviados[$forma]['valor'] : 0,
-    //             ];
-    //         });
-
-    //         // 5️⃣ Soma os valores
-    //         $totalPagamentos = $pagamentosParaRegistrar->sum('valor');
-
-    //         // 6️⃣ Validação: pagamento insuficiente
-    //         if ($totalPagamentos < $totalVenda) {
-    //             DB::rollBack();
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'erro' => "Pagamento insuficiente. Total da venda: R$ {$totalVenda}, total pago: R$ {$totalPagamentos}"
-    //             ], 422);
-    //         }
-
-    //         // 7️⃣ Persiste todos os pagamentos
-    //         $pagamentosParaRegistrar->each(function ($pag) use ($venda) {
-    //             $venda->pagamentos()->create([
-    //                 'user_id' => auth()->id(),
-    //                 'caixa_id' => $venda->caixa_id,
-    //                 'forma_pagamento' => $pag['forma_pagamento'],
-    //                 'valor' => $pag['valor'],
-    //                 'status' => 'confirmado',
-    //             ]);
-    //         });
-
-    //         // 8️⃣ Atualiza status da venda
-    //         $venda->update([
-    //             'status' => 'finalizada',
-    //             'total' => $totalVenda,
-    //         ]);
-
-    //         DB::commit();
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'total' => $totalVenda,
-    //             'message' => 'Venda finalizada com sucesso',
-    //             'venda_id' => $venda->id
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return response()->json([
-    //             'success' => false,
-    //             'erro' => $e->getMessage()
-    //         ], 500);
-    //     }
+    //     return $payload->getPayload();
     // }
 
+    //dados da empresa e exibe a tela que imprime cupom das vendas
+    public function cupom($id)
+    {
+        $venda = Venda::with([
+            'cliente',
+            'itens.produto',
+            'pagamentos',
+            'funcionario'
+        ])->findOrFail($id);
 
+        $empresa = Empresa::where('ativo', 1)->first();
+
+        return view('vendas.cupom', compact('venda','empresa'));
+    }
+        
+    
 
 }

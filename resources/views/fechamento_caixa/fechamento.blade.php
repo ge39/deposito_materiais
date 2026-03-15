@@ -99,7 +99,7 @@
 
 <div class="fechamento-container">
 
-    <h4>Fechamento de Caixa #{{ $caixa->id }}</h4>
+    <h4 class="bg-secondary text-center text-white ">Fechamento do Caixa {{ $caixa->id }} </h4>
 
     <form method="POST" action="{{ route('fechamento.fechar', $caixa->id) }}">
         @csrf
@@ -107,7 +107,7 @@
         {{-- DADOS DO CAIXA --}}
         <div class="card mb-4 border-primary">
             <div class="card-header bg-primary text-white">
-                ✅ Dados do Caixa - Fechamento #{{ $caixa->id }}
+                ✅ Dados do Caixa - Fechamento #{{ $caixa->id }} - Sem Movimento
             </div>
             <div class="card-body">
                 <div class="row mb-3">
@@ -118,6 +118,7 @@
 
                 <div class="row">
                     <div class="col-md-4"><strong>Abertura</strong><br>{{ \Carbon\Carbon::parse($caixa->data_abertura)->format('d/m/Y H:i') }}</div>
+                    
                     <div class="col-md-4">
                         <strong>Status</strong><br>
                         @php
