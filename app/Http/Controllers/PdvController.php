@@ -81,7 +81,7 @@ class PdvController extends Controller
 //         ]);
 //     }
 
-     public function index(Request $request)
+    public function index(Request $request)
     {
         // 1️⃣ Cliente padrão
         $clienteBalcao = Cliente::select(

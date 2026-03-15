@@ -456,7 +456,7 @@
 
         <div class="col-md-2 fw-bold mb-0">
              <!-- <label>ID</label> -->
-            <input  type="hidden" name="cliente_id" value="{{ $clienteBalcao->id }}">
+            <input type="hidden" id="input-cliente-id" name="cliente_id" value="{{ $clienteBalcao->id }}">
             <input  type="hidden" name="operador_id" value="{{  $operadorId }}">
             <input  type="hidden" name="terminal_id" value="{{  $terminal->id }}">
             <input  type="hidden" id="dataVenda"  type="datetime-local" value="{{ date('Y-m-d\TH:i') }}">

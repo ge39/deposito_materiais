@@ -178,9 +178,25 @@
                         </div>
                     </div>
                 </div>
-
-                {{-- Bandeiras de Cartão --}}
+                
+                {{-- Saídas --}}
                 <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-danger text-white fw-bold">Saídas de Caixa</div>
+                        <div class="card-body">
+                            @foreach (['saida_sangria'=>'Sangria','saida_despesa'=>'Despesas','saida_ajuste'=>'Ajuste Negativo','saida_outros'=>'Outras Saídas'] as $name => $label)
+                                <div class="row align-items-center">
+                                    <div class="col-4 fw-bold">{{ $label }}</div>
+                                    <div class="col-8">
+                                        <input type="number" step="0.01" name="{{ $name }}" class="form-control input-financeiro text-end" value="{{ old($name,0) }}">
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                {{-- Bandeiras de Cartão --}}
+                <!-- <div class="col-md-6">
                     <div class="card shadow-sm">
                         <div class="card-header bg-primary text-white fw-bold">Bandeiras de Cartão</div>
                         <div class="card-body">
@@ -194,11 +210,11 @@
                             @endforeach
                         </div>
                     </div>
-                </div>
+                </div> -->
             </div>
 
             {{-- Entradas e Saídas --}}
-            <div class="row mt-4">
+            <!-- <div class="row mt-4">
                 {{-- Entradas --}}
                 <div class="col-md-6">
                     <div class="card shadow-sm">
@@ -231,8 +247,8 @@
                             @endforeach
                         </div>
                     </div>
-                </div>
-            </div>
+                </div> -->
+            <!-- </div> -->
         @endif
 
         {{-- Botões --}}

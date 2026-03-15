@@ -178,9 +178,25 @@
                         </div>
                     </div>
                 </div>
-
+                
                 
                 <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-danger text-white fw-bold">Saídas de Caixa</div>
+                        <div class="card-body">
+                            <?php $__currentLoopData = ['saida_sangria'=>'Sangria','saida_despesa'=>'Despesas','saida_ajuste'=>'Ajuste Negativo','saida_outros'=>'Outras Saídas']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <div class="row align-items-center">
+                                    <div class="col-4 fw-bold"><?php echo e($label); ?></div>
+                                    <div class="col-8">
+                                        <input type="number" step="0.01" name="<?php echo e($name); ?>" class="form-control input-financeiro text-end" value="<?php echo e(old($name,0)); ?>">
+                                    </div>
+                                </div>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- <div class="col-md-6">
                     <div class="card shadow-sm">
                         <div class="card-header bg-primary text-white fw-bold">Bandeiras de Cartão</div>
                         <div class="card-body">
@@ -194,11 +210,11 @@
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </div>
                     </div>
-                </div>
+                </div> -->
             </div>
 
             
-            <div class="row mt-4">
+            <!-- <div class="row mt-4">
                 
                 <div class="col-md-6">
                     <div class="card shadow-sm">
@@ -231,8 +247,8 @@
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </div>
                     </div>
-                </div>
-            </div>
+                </div> -->
+            <!-- </div> -->
         <?php endif; ?>
 
         

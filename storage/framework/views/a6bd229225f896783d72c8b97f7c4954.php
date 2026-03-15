@@ -7,45 +7,45 @@
 
 <style>
 
-body{
-    font-family: monospace;
-    width:300px;
-    margin:0;
-    font-size:12px;
-}
+    body{
+        font-family: monospace;
+        width:300px;
+        margin:0;
+        font-size:12px;
+    }
 
-.cupom{
-    padding-left:10px;
-    padding-right:10px;
-    margin: 20px;
-}
+    .cupom{
+        padding-left:10px;
+        padding-right:10px;
+        margin: 20px;
+    }
 
-.center{
-    text-align:center;
-}
+    .center{
+        text-align:center;
+    }
 
-.hr{
-    border-top:1px dashed #000;
-    margin:6px 0;
-}
+    .hr{
+        border-top:1px dashed #000;
+        margin:6px 0;
+    }
 
-.row{
-    display:flex;
-    justify-content:space-between;
-}
+    .row{
+        display:flex;
+        justify-content:space-between;
+    }
 
-.item{
-    margin-top:4px;
-}
+    .item{
+        margin-top:4px;
+    }
 
-.total{
-    font-size:16px;
-    font-weight:bold;
-}
+    .total{
+        font-size:16px;
+        font-weight:bold;
+    }
 
-.qrcode{
-    margin-top:10px;
-}
+    .qrcode{
+        margin-top:10px;
+    }
 
 </style>
 </head>
@@ -83,6 +83,7 @@ body{
         <div>Venda: <?php echo e($venda->id); ?></div>
         <div>Data: <?php echo e($venda->created_at->format('d/m/Y H:i')); ?></div>
         <div>Cliente: <?php echo e($venda->cliente->nome ?? 'CONSUMIDOR'); ?></div>
+        <div><?php echo e($venda->cliente->endereco_entrega  ?? $venda->cliente->endereco .'-'. $venda->cliente->bairro .'-'. $venda->cliente->cidade . '-'. $venda->cliente->estado); ?></div>
         <div>Operador: <?php echo e($venda->funcionario->nome ?? 'PDV'); ?></div>
         <div>Caixa: <?php echo e($venda->caixa_id); ?></div>
 

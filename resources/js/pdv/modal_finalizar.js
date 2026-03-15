@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const operadorId  = document.querySelector('input[name="operador_id"]').value;
     const terminalId  = document.querySelector('input[name="terminal_id"]').value;
     const caixaId  = document.querySelector('input[name="caixa_id"]').value;
-    const totalGeral  = document.querySelector('input[name="caixa_id"]').value;
+    // const totalGeral  = document.querySelector('input[name="caixa_id"]').value;
     const idProduto = document.querySelector('input[name="id_produto"]').value;
     const dataVenda   = document.querySelector('#dataVenda').value;
     const endereco = document.querySelector('#endereco').value;
@@ -314,7 +314,12 @@ inputsPagamento.forEach(input => {
         if (e.target && e.target.id === 'btnFinalizar') {
             e.preventDefault();
 
-            console.log('🔹 Botão Finalizar clicado');
+            // lê cliente_id aqui
+            let clienteId = document.querySelector('input[name="cliente_id"]').value;
+            
+            console.log(clienteId, operadorId, terminalId, dataVenda,endereco,idProduto);
+
+            // console.log('🔹 Botão Finalizar clicado');
 
             const token = document.querySelector('meta[name="csrf-token"]').content;
 
@@ -357,7 +362,7 @@ inputsPagamento.forEach(input => {
                 alert('Informe ao menos uma forma de pagamento');
                 return;
             }
-
+            
             // Monta payload
             const payload = {
                 cliente_id: clienteId,
@@ -442,4 +447,4 @@ inputsPagamento.forEach(input => {
         }
     });
 
-});
+    });
