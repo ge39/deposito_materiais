@@ -1,12 +1,13 @@
 <?php
 
 namespace App\Models;
-
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Facades\DB;
-use App\Models\PagamentoVenda;
 use App\Models\Empresa;
+use App\Models\Venda;
+use App\Models\SangriaConfig;
+
 
 class Caixa extends Model
 {
@@ -59,6 +60,7 @@ class Caixa extends Model
     public function vendas()  { return $this->hasMany(Venda::class, 'caixa_id'); }
     public function empresa() { return $this->belongsTo(Empresa::class, 'empresa_id', 'id'); }
     
+    
     public function possuiVendas(): bool
     {
         return $this->vendas()
@@ -69,7 +71,7 @@ class Caixa extends Model
     }
 
     
-        public function isBloqueado(): bool
+    public function isBloqueado(): bool
     {
         $verificacao = $this->verificarSangria();
         return $verificacao['bloquearPDV'];
@@ -110,6 +112,7 @@ class Caixa extends Model
         $saidas   = $this->movimentacoes->whereIn('tipo', ['saida_manual', 'cancelamento_venda'])->sum('valor');
         return $this->valor_abertura + $entradas - $saidas;
     }
+
     public function totaisPorFormaPagamento(): array
     {
         $totais = [];
@@ -134,23 +137,94 @@ class Caixa extends Model
                     ->where('tipo', 'sangria');
     }
 
-    // public function saldoDinheiroAtual(): float
+    // public function verificarSangria(): array
     // {
-    //     $totalVendasDinheiro = PagamentoVenda::whereHas('venda', function ($query) {
-    //             $query->where('caixa_id', $this->id);
-    //         })
-    //         ->where('forma_pagamento', 'dinheiro')
-    //         ->where('status', 'confirmado')
-    //         ->sum('valor');
+        
+    //     // 💰 Saldo atual baseado em pagamentos_venda
+    //     $saldoAtual = $this->saldoDinheiroAtual();
 
-    //     $totalSangrias = $this->sangrias()->sum('valor');
+    //     // ⚙️ Busca configuração da empresa
+    //     $config = \App\Models\SangriaConfig::where('empresa_id', $this->empresa_id)->first();
 
-    //     return $totalVendasDinheiro - $totalSangrias;
+    //     // ❌ Sem configuração → não aplica regra
+    //     if (!$config) {
+    //         return [
+    //             'saldoAtual'      => $saldoAtual,
+    //             'limiteSangria'   => 0,
+    //             'limiteBloqueio'  => 0,
+    //             'avisarSangria'   => false,
+    //             'bloquearPDV'     => false,
+    //         ];
+    //     }
+
+    //     // 🎯 Limite principal da sangria
+    //     $limiteSangria = (float) $config->valor_limite;
+
+    //     // ⚙️ Configurações adicionais (com default seguro)
+    //     $percentualBloqueio = (float) ($config->percentual_bloqueio ?? 50);
+    //     $bloqueioAtivo      = (bool) ($config->bloqueio_ativo ?? true);
+
+    //     // 🚧 Limite de bloqueio (ex: 50% acima)
+    //     $limiteBloqueio = $limiteSangria * (1 + ($percentualBloqueio / 100));
+
+    //     // 🔔 Regras
+    //     $avisarSangria = $saldoAtual >= $limiteSangria;
+    //     $bloquearPDV   = $bloqueioAtivo && $saldoAtual >= $limiteBloqueio;
+
+    //     return [
+    //         'saldoAtual'      => $saldoAtual,
+    //         'limiteSangria'   => $limiteSangria,
+    //         'limiteBloqueio'  => $limiteBloqueio,
+    //         'avisarSangria'   => $avisarSangria,
+    //         'bloquearPDV'     => $bloquearPDV,
+    //     ];
     // }
 
-     public function saldoDinheiroAtual(bool $comLock = false): float
+   
+    //  public function saldoDinheiroAtual(bool $comLock = false): float
+    // {
+    //     // Recarrega o caixa com lock opcional para evitar race condition
+    //     $query = self::where('id', $this->id)
+    //         ->where('status', 'aberto');
+
+    //     if ($comLock) {
+    //         $query->lockForUpdate();
+    //     }
+
+    //     $caixa = $query->first();
+
+    //     if (!$caixa) {
+    //         return 0.00;
+    //     }
+
+    //     // Total de vendas em dinheiro confirmadas
+    //     $totalVendasDinheiro = DB::table('pagamentos_venda')
+    //         ->join('vendas', 'pagamentos_venda.venda_id', '=', 'vendas.id')
+    //         ->where('vendas.caixa_id', $caixa->id)
+    //         ->where('pagamentos_venda.forma_pagamento', 'dinheiro')
+    //         ->where('pagamentos_venda.status', 'confirmado')
+    //         ->selectRaw('COALESCE(SUM(pagamentos_venda.valor), 0) as total')
+    //         ->value('total');
+
+    //     // Total de sangrias já realizadas
+    //     $totalSangrias = DB::table('sangrias')
+    //         ->where('caixa_id', $caixa->id)
+    //         ->selectRaw('COALESCE(SUM(valor), 0) as total')
+    //         ->value('total');
+
+    //     // Fundo de troco seguro
+    //     // $fundoTroco = (float) $caixa->fundo_troco;
+
+    //     // Cálculo final
+    //     // $saldo = ($fundoTroco + (float) $totalVendasDinheiro) - (float) $totalSangrias;
+    //     $saldo = ($totalVendasDinheiro) - (float) $totalSangrias;
+
+    //     // Nunca permitir saldo negativo
+    //     return round(max($saldo, 0), 2);
+    // }
+
+    public function saldoDinheiroAtual(bool $comLock = false): float
     {
-        // Recarrega o caixa com lock opcional para evitar race condition
         $query = self::where('id', $this->id)
             ->where('status', 'aberto');
 
@@ -164,31 +238,21 @@ class Caixa extends Model
             return 0.00;
         }
 
-        // Total de vendas em dinheiro confirmadas
-        $totalVendasDinheiro = DB::table('pagamentos_venda')
-            ->join('vendas', 'pagamentos_venda.venda_id', '=', 'vendas.id')
-            ->where('vendas.caixa_id', $caixa->id)
-            ->where('pagamentos_venda.forma_pagamento', 'dinheiro')
-            ->where('pagamentos_venda.status', 'confirmado')
-            ->selectRaw('COALESCE(SUM(pagamentos_venda.valor), 0) as total')
-            ->value('total');
+        $totalVendasDinheiro = DB::table('pagamentos_venda as p')
+            ->join('vendas as v', 'p.venda_id', '=', 'v.id')
+            ->where('v.caixa_id', $caixa->id)
+            ->where('p.forma_pagamento', 'dinheiro')
+            ->where('p.status', 'confirmado')
+            ->sum('p.valor');
 
-        // Total de sangrias já realizadas
         $totalSangrias = DB::table('sangrias')
             ->where('caixa_id', $caixa->id)
-            ->selectRaw('COALESCE(SUM(valor), 0) as total')
-            ->value('total');
+            ->sum('valor');
 
-        // Fundo de troco seguro
-        // $fundoTroco = (float) $caixa->fundo_troco;
-
-        // Cálculo final
-        // $saldo = ($fundoTroco + (float) $totalVendasDinheiro) - (float) $totalSangrias;
-        $saldo = ($totalVendasDinheiro) - (float) $totalSangrias;
-
-        // Nunca permitir saldo negativo
-        return round(max($saldo, 0), 2);
+        return round(max($totalVendasDinheiro - $totalSangrias, 0), 2);
     }
+
+
 
     public function verificarSangria(): array
     {
@@ -204,23 +268,78 @@ class Caixa extends Model
             ];
         }
 
+         // 🔹 Pega a configuração da sangria da empresa ativa
+        $config = SangriaConfig::where('empresa_id', $this->empresa_id)->first();
         $config = $empresa->configuracaoCaixa;
 
-        $limite        = (float) ($config->limite_sangria ?? 0);
+        // 🔹 Limite da sangria vindo da tabela
+        $limiteSangria = (float) $config->valor_limite;
+               
+        $limiteSangria        = (float) ($config->limite_sangria ?? 0);
         $percentual    = (float) ($config->percentual_bloqueio ?? 0);
         $bloqueioAtivo = (bool)  ($config->bloqueio_ativo ?? false);
         $saldoAtual = $this->saldoDinheiroAtual();
-        $limiteBloqueio = $limite * (1 + ($percentual / 100));
-
-        $deveAvisar   = $saldoAtual >= $limite;
+        $limiteBloqueio = $limiteSangria * (1 + ($percentual / 100));
+        
+        $deveAvisar   = $saldoAtual >= $limiteSangria;
         $deveBloquear = $bloqueioAtivo && $saldoAtual >= $limiteBloqueio;
+        
         return [
             'saldoAtual'     => $saldoAtual,
-            'limiteSangria'  => $limite,
+            'limiteSangria'  => $limiteSangria,
             'limiteBloqueio' => $limiteBloqueio,
             'avisarSangria'  => $deveAvisar,
             'bloquearPDV'    => $deveBloquear,
         ];
     }
+
+
+
+// public function verificarSangria(): array
+// {
+//     // 🔹 Busca a empresa ativa relacionada ao caixa
+//     $empresa = \App\Models\Empresa::where('id', $this->empresa_id)
+//                 ->where('ativo', 'ativo')
+//                 ->first();
+
+//     if (!$empresa) {
+//         return [
+//             'saldoAtual'      => 0.0,
+//             'limiteSangria'   => 0.0,
+//             'limiteBloqueio'  => 0.0,
+//             'avisarSangria'   => false,
+//             'bloquearPDV'     => false,
+//         ];
+//     }
+
+//     // 🔹 Busca a configuração da sangria para a empresa ativa
+//     $config = \App\Models\SangriaConfig::where('empresa_id', $empresa->id)->first();
+
+//     if (!$config) {
+//         return [
+//             'saldoAtual'      => $this->saldoDinheiroAtual(),
+//             'limiteSangria'   => 0.0,
+//             'limiteBloqueio'  => 0.0,
+//             'avisarSangria'   => false,
+//             'bloquearPDV'     => false,
+//         ];
+//     }
+
+//     $saldoAtual         = $this->saldoDinheiroAtual();
+//     $limiteSangria      = (float) $config->valor_limite;
+//     $percentualBloqueio = (float) ($config->percentual_bloqueio ?? 50);
+//     $bloqueioAtivo      = (bool) ($config->bloqueio_ativo ?? true);
+//     $limiteBloqueio     = $limiteSangria * (1 + ($percentualBloqueio / 100));
+//     $avisarSangria      = $saldoAtual >= $limiteSangria;
+//     $bloquearPDV        = $bloqueioAtivo && $saldoAtual >= $limiteBloqueio;
+
+//     return [
+//         'saldoAtual'     => $saldoAtual,
+//         'limiteSangria'  => $limiteSangria,
+//         'limiteBloqueio' => $limiteBloqueio,
+//         'avisarSangria'  => $avisarSangria,
+//         'bloquearPDV'    => $bloquearPDV,
+//     ];
+// }
 
 }

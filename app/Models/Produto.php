@@ -16,7 +16,7 @@ class Produto extends Model
         'marca_id', 'estoque_minimo', 'preco_compra_atual', 'preco_venda', 'peso',
         'largura', 'altura', 'profundidade', 'localizacao_estoque', 'imagem',
         'ativo', 'codigo_barras', 'sku', 'em_promocao', 'validade_produto',
-        'editando_por', 'editando_em'
+        'editando_por', 'editando_em','controla_validade'
     ];
     
     protected $dates = ['created_at','updated_at','validade_produto','editando_em'];

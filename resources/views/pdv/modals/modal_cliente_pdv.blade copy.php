@@ -48,156 +48,156 @@
 
 <style>
 
-.cliente-header,
-.cliente-row{
-    display:grid;
-    grid-template-columns:
-        60px
-        1.5fr
-        90px
-        150px
-        130px
-        1.5fr
-        70px
-        120px
-        1fr
-        1fr
-        60px
-        90px;
-    align-items:center;
-}
+    .cliente-header,
+    .cliente-row{
+        display:grid;
+        grid-template-columns:
+            60px
+            1.5fr
+            90px
+            150px
+            130px
+            1.5fr
+            70px
+            120px
+            1fr
+            1fr
+            60px
+            90px;
+        align-items:center;
+    }
 
-.cliente-header{
-    background:#212529;
-    color:white;
-    font-weight:bold;
-    padding:6px;
-    font-size:13px;
-}
+    .cliente-header{
+        background:#212529;
+        color:white;
+        font-weight:bold;
+        padding:6px;
+        font-size:13px;
+    }
 
-.cliente-row{
-    border-bottom:1px solid #ddd;
-    padding:4px 6px;
-    font-size:13px;
-}
+    .cliente-row{
+        border-bottom:1px solid #ddd;
+        padding:4px 6px;
+        font-size:13px;
+    }
 
-.cliente-row:hover{
-    background:#f2f2f2;
-}
+    .cliente-row:hover{
+        background:#f2f2f2;
+    }
 
-.cliente-empty{
-    text-align:center;
-    padding:20px;
-    color:#777;
-}
+    .cliente-empty{
+        text-align:center;
+        padding:20px;
+        color:#777;
+    }
 
 </style>
 
 <script>
 
-document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function () {
 
-    const modalCliente = document.getElementById('modalCliente');
-    const inputBusca   = document.getElementById('buscaClientePDV');
-    const resultado    = document.getElementById('resultadoClientePDV');
+        const modalCliente = document.getElementById('modalCliente');
+        const inputBusca   = document.getElementById('buscaClientePDV');
+        const resultado    = document.getElementById('resultadoClientePDV');
 
-    let delayBusca;
-    let controller;
+        let delayBusca;
+        let controller;
 
-    modalCliente.addEventListener('shown.bs.modal', function () {
+        modalCliente.addEventListener('shown.bs.modal', function () {
 
-        // NÃO limpar input aqui
-        inputBusca.focus();
+            // NÃO limpar input aqui
+            inputBusca.focus();
 
-        resultado.innerHTML =
-            '<div class="cliente-empty">Digite para buscar clientes</div>';
-    });
+            resultado.innerHTML =
+                '<div class="cliente-empty">Digite para buscar clientes</div>';
+        });
 
 
-    inputBusca.addEventListener('input', function(){
+        inputBusca.addEventListener('input', function(){
 
-        clearTimeout(delayBusca);
+            clearTimeout(delayBusca);
 
-        const query = this.value.trim();
+            const query = this.value.trim();
 
-        if(query.length < 2){
-            resultado.innerHTML = '';
-            return;
-        }
-
-        delayBusca = setTimeout(() => {
-
-            if(controller){
-                controller.abort();
+            if(query.length < 2){
+                resultado.innerHTML = '';
+                return;
             }
 
-            controller = new AbortController();
+            delayBusca = setTimeout(() => {
 
-            fetch(`{{ route('pdv.buscarCliente') }}?query=` + encodeURIComponent(query),{
-                signal: controller.signal
-            })
-            .then(res => res.json())
-            .then(clientes => {
-
-                if(!clientes.length){
-                    resultado.innerHTML =
-                        '<div class="cliente-empty">Nenhum cliente encontrado</div>';
-                    return;
+                if(controller){
+                    controller.abort();
                 }
 
-                let html = '';
+                controller = new AbortController();
 
-                clientes.forEach(c => {
+                fetch(`{{ route('pdv.buscarCliente') }}?query=` + encodeURIComponent(query),{
+                    signal: controller.signal
+                })
+                .then(res => res.json())
+                .then(clientes => {
 
-                    html += `
-                    <div class="cliente-row">
+                    if(!clientes.length){
+                        resultado.innerHTML =
+                            '<div class="cliente-empty">Nenhum cliente encontrado</div>';
+                        return;
+                    }
 
-                        <div>${c.id}</div>
-                        <div>${c.nome}</div>
-                        <div>${c.pessoa}</div>
-                        <div>${c.cpf_cnpj ?? ''}</div>
-                        <div>${c.telefone ?? ''}</div>
-                        <div>${c.endereco ?? ''}</div>
-                        <div>${c.numero ?? ''}</div>
-                        <div>${c.cep ?? ''}</div>
-                        <div>${c.bairro ?? ''}</div>
-                        <div>${c.cidade ?? ''}</div>
-                        <div>${c.estado ?? ''}</div>
+                    let html = '';
 
-                        <div>
-                            <button class="btn btn-sm btn-primary"
-                                onclick="selecionarClientePDV(
-                                    ${c.id},
-                                    '${c.nome}',
-                                    '${c.pessoa}',
-                                    '${c.telefone ?? ''}',
-                                    '${c.endereco ?? ''}',
-                                    '${c.numero ?? ''}',
-                                    '${c.cep ?? ''}',
-                                    '${c.bairro ?? ''}',
-                                    '${c.cidade ?? ''}',
-                                    '${c.estado ?? ''}'
-                                )">
-                                Selecionar
-                            </button>
-                        </div>
+                    clientes.forEach(c => {
 
-                    </div>`;
+                        html += `
+                        <div class="cliente-row">
+
+                            <div>${c.id}</div>
+                            <div>${c.nome}</div>
+                            <div>${c.pessoa}</div>
+                            <div>${c.cpf_cnpj ?? ''}</div>
+                            <div>${c.telefone ?? ''}</div>
+                            <div>${c.endereco ?? ''}</div>
+                            <div>${c.numero ?? ''}</div>
+                            <div>${c.cep ?? ''}</div>
+                            <div>${c.bairro ?? ''}</div>
+                            <div>${c.cidade ?? ''}</div>
+                            <div>${c.estado ?? ''}</div>
+
+                            <div>
+                                <button class="btn btn-sm btn-primary"
+                                    onclick="selecionarClientePDV(
+                                        ${c.id},
+                                        '${c.nome}',
+                                        '${c.pessoa}',
+                                        '${c.telefone ?? ''}',
+                                        '${c.endereco ?? ''}',
+                                        '${c.numero ?? ''}',
+                                        '${c.cep ?? ''}',
+                                        '${c.bairro ?? ''}',
+                                        '${c.cidade ?? ''}',
+                                        '${c.estado ?? ''}'
+                                    )">
+                                    Selecionar
+                                </button>
+                            </div>
+
+                        </div>`;
+                    });
+
+                    resultado.innerHTML = html;
+
+                })
+                .catch(err=>{
+                    if(err.name !== "AbortError"){
+                        console.error(err);
+                    }
                 });
 
-                resultado.innerHTML = html;
+            },300);
 
-            })
-            .catch(err=>{
-                if(err.name !== "AbortError"){
-                    console.error(err);
-                }
-            });
-
-        },300);
+        });
 
     });
-
-});
 
 </script>

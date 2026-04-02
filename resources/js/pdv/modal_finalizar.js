@@ -379,6 +379,7 @@ inputsPagamento.forEach(input => {
 
             try {
                 // 1️⃣ Cria a venda
+                console.log('Itens a enviar:', itens);
                 const response = await fetch('/vendas', {
                     method: 'POST',
                     headers: {
@@ -403,6 +404,7 @@ inputsPagamento.forEach(input => {
                 }
 
                 // 3️⃣ Chama o endpoint de finalizar venda
+                console.log('Itens a enviar:', itens);
                 const responseFinalizar = await fetch(`/venda/finalizar/${vendaId}`, {
                     method: 'POST',
                     headers: {

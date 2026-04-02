@@ -4,18 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Empresa;
 
 class Orcamento extends Model
 {
     use HasFactory;
 
+    const STATUS_AGUARDANDO_APROVACAO = 'Aguardando Aprovacao';
+    const STATUS_EXPIRADO = 'Expirado';
+    const STATUS_APROVADO = 'Aprovado';
+    
     protected $table = 'orcamentos';
 
     protected $fillable = [
         'cliente_id',
+        'empresa_id',
+        'validade',
         'data_orcamento',
         'codigo_orcamento',
-        'validade',
         'status',
         'observacoes',
         'total',
@@ -29,10 +35,15 @@ class Orcamento extends Model
         'ativo'          => 'boolean',
     ];
 
+   
+
     /* =========================
      | RELACIONAMENTOS
      ========================= */
-
+    public function empresa ()
+    {
+        return $this->belongsTo(Empresa::Class);
+    }
     /** Cliente do orçamento */
    public function cliente()
     {

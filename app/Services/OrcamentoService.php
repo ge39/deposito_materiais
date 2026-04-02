@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Services;
-
 use App\Models\Orcamento;
 use App\Models\ItemOrcamento;
 use App\Models\Produto;
@@ -71,7 +70,7 @@ class OrcamentoService
                 'data_orcamento' => $data['data_orcamento'],
                 'codigo_orcamento' => now()->format('YmdHis'),
                 'validade' => $data['validade'],
-                'status' => 'Aguardando aprovacao',
+                'status' => 'Aguardando Aprovacao',
                 'observacoes' => $data['observacoes'] ?? null,
                 'total' => 0,
                 'ativo' => 1,
@@ -196,7 +195,8 @@ class OrcamentoService
             throw new \Exception("Este orçamento não está expirado.");
         }
 
-        $orcamento->update(['status' => 'Aguardando Aprovação']);
+        $orcamento->update(['status' => 'Aguardando Aprovacao']);
+        $orcamento->update(['observacoes' => 'Orçamento reativado em: ' . now()]);
         return $orcamento;
     }
 

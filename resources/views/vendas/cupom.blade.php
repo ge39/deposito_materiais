@@ -84,7 +84,7 @@
         <div>Data: {{ $venda->created_at->format('d/m/Y H:i') }}</div>
         <div>Cliente: {{ $venda->cliente->nome ?? 'CONSUMIDOR' }}</div>
         <div>{{ $venda->cliente->endereco_entrega  ?? $venda->cliente->endereco .'-'. $venda->cliente->bairro .'-'. $venda->cliente->cidade . '-'. $venda->cliente->estado }}</div>
-        <div>Operador: {{ $venda->funcionario->nome ?? 'PDV' }}</div>
+        <div>Operador: {{ $venda->funcionario_id ?? 'PDV' }}</div>
         <div>Caixa: {{ $venda->caixa_id }}</div>
 
         <div class="hr"></div>
@@ -96,13 +96,14 @@
         <div class="item">
 
         <div>
-        {{ $item->produto->nome }}
+        {{ $item->produto->nome }} L:{{$item->lote_id}}
         </div>
 
         <div class="row">
 
         <div>
         {{ $item->quantidade }} x {{ number_format($item->preco_unitario,2,',','.') }}
+        
         </div>
 
         <div>

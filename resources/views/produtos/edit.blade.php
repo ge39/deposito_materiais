@@ -223,7 +223,16 @@
                     <input type="checkbox" class="form-check-input" id="ativo" name="ativo" value="1" {{ $produto->ativo ? 'checked' : '' }}>
                     <label class="form-check-label" for="ativo">Ativo</label>
                 </div>
+                <div class="form-group col-md-4">
+                    <label for="controla_validade">Controla Validade</label>
+                    <select name="controla_validade" id="controla_validade" class="form-control">
+                        <option value="1" {{ old('controla_validade', $produto->controla_validade ?? 1) == 1 ? 'selected' : '' }}>Sim</option>
+                        <option value="0" {{ old('controla_validade', $produto->controla_validade ?? 1) == 0 ? 'selected' : '' }}>Não</option>
+                    </select>
+                </div> 
             </div>
+             
+
             <div class="col-md-6 d-flex justify-content-end gap-2">
                 <button type="submit" class="btn btn-primary">Salvar</button>
                 <a href="{{ url()->previous() }}" id="btn-voltar"  class="btn btn-secondary">Voltar</a>

@@ -1,159 +1,358 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Orçamento #{{ $orcamento->id }}</title>
-    <style>
-        body {
-            font-family: 'DejaVu Sans', sans-serif;
-            margin: 40px;
-            color: #333;
-        }
+<meta charset="UTF-8">
+<title>Orçamento #{{ $orcamento->id }}</title>
 
-        .header {
-            text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 30px;
-        }
+<style>
+body {
+    font-family: DejaVu Sans, sans-serif;
+    margin: 30px;
+    font-size: 12px;
+    color: #333;
+}
 
-        .header h2 {
-            margin: 0;
-        }
+.header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+}
 
-        .info {
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
+.section {
+    margin-bottom: 20px;
+}
 
-        .info strong {
-            width: 150px;
-            display: inline-block;
-        }
+.section-title {
+    background: #f0f0f0;
+    padding: 6px;
+    font-weight: bold;
+    border: 1px solid #ccc;
+}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
+.box {
+    border: 1px solid #ccc;
+    padding: 10px;
+}
 
-        th, td {
-            border: 1px solid #555;
-            padding: 8px;
-            text-align: left;
-        }
+.row {
+    margin-bottom: 5px;
+}
 
-        th {
-            background-color: #f5f5f5;
-        }
+.label {
+    display: inline-block;
+    width: 120px;
+    font-weight: bold;
+}
 
-        .total {
-            text-align: right;
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-top: 15px;
-        }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+}
 
-        .observacoes {
-            margin-top: 30px;
-            font-size: 0.9em;
-        }
+th, td {
+    border: 1px solid #999;
+    padding: 6px;
+    font-size: 11px;
+}
 
-        .carimbo {
-            position: fixed;
-            top: 45%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-20deg);
-            font-size: 60px;
-            color: rgba(255, 0, 0, 0.2);
-            font-weight: bold;
-            text-transform: uppercase;
-            border: 5px solid rgba(255, 0, 0, 0.2);
-            padding: 15px 40px;
-            border-radius: 15px;
-        }
+th {
+    background: #eee;
+}
 
-        .carimbo.aprovado {
-            color: rgba(0, 128, 0, 0.25);
-            border-color: rgba(0, 128, 0, 0.25);
-        }
+.text-right {
+    text-align: right;
+}
 
-        .footer {
-            position: fixed;
-            bottom: 15px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 0.8em;
-            color: #555;
-        }
-    </style>
+.text-center {
+    text-align: center;
+}
+
+.total {
+    text-align: right;
+    font-weight: bold;
+    margin-top: 10px;
+    font-size: 13px;
+}
+
+.page-break {
+    page-break-before: always;
+}
+
+/* ASSINATURA */
+.assinatura {
+    margin-top: 60px;
+    width: 100%;
+}
+
+.assinatura-box {
+    width: 45%;
+    display: inline-block;
+    text-align: center;
+}
+
+.linha {
+    border-top: 1px solid #000;
+    margin-top: 40px;
+    padding-top: 5px;
+}
+
+/* CONTATO */
+.contato {
+    margin-top: 20px;
+    font-size: 11px;
+    text-align: center;
+    color: #555;
+}
+
+/* CARIMBO */
+.carimbo {
+    position: fixed;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-20deg);
+    font-size: 60px;
+    color: rgba(0,0,0,0.1);
+    border: 4px solid rgba(0,0,0,0.1);
+    padding: 10px 30px;
+}
+.aprovado {
+    color: rgba(0,128,0,0.2);
+    border-color: rgba(0,128,0,0.2);
+}
+.cancelado {
+    color: rgba(255,0,0,0.2);
+    border-color: rgba(255,0,0,0.2);
+}
+
+.footer {
+    position: fixed;
+    bottom: 10px;
+    text-align: center;
+    width: 100%;
+    font-size: 10px;
+    color: #777;
+}
+</style>
 </head>
+
 <body>
-    {{-- Carimbo de status --}}
-    @if($orcamento->status === 'Aprovado')
-        <div class="carimbo aprovado">APROVADO</div>
 
-    @elseif($orcamento->status === 'Cancelado')
-        <div class="carimbo" style="color:rgba(255, 0, 0, 0.35); border-color:rgba(255, 0, 0, 0.35);">CANCELADO</div>
+{{-- CARIMBO --}}
+@if($orcamento->status === 'Aprovado')
+    <div class="carimbo aprovado">APROVADO</div>
+@elseif($orcamento->status === 'Cancelado')
+    <div class="carimbo cancelado">CANCELADO</div>
+@else
+    <div class="carimbo">AGUARDANDO</div>
+@endif
 
-    @elseif($orcamento->status === 'Expirado')
-        <div class="carimbo" style="color:rgba(255, 0, 0, 0.35); border-color:rgba(255, 0, 0, 0.35);">
-            EXPIRADO
-        </div>
+<!-- HEADER -->
+<div class="header">
+    <h2>Orçamento / Pedido</h2>
+    <small>Gerado em: {{ now()->format('d/m/Y H:i') }}</small>
+</div>
 
-    @else
-        <div class="carimbo" style="color:rgba(0,0,0,0.15); border-color:rgba(0,0,0,0.15);">
-            Aguardando Aprovacao
-        </div>
-    @endif
+<!-- 🔷 HEADER EMPRESA -->
+<div class="header">
+    <strong>{{ $orcamento->empresa->nome ?? 'EMPRESA NAO CADASTRADA' }}</strong><br>
+    CNPJ: {{ $orcamento->empresa->cnpj ?? '-' }}<br>
+    {{ $orcamento->empresa->endereco ?? '-' }}, {{ $orcamento->empresa->numero ?? '' }}<br>
+    {{ $orcamento->empresa->cidade ?? '-' }} - {{ $orcamento->empresa->estado ?? '-' }}<br>
+    Tel: {{ $orcamento->empresa->telefone ?? '-' }}
+</div>
 
+@php
+$itensAgrupados = $orcamento->itens->groupBy('produto_id');
+@endphp
 
-    <div class="header">
-        <h2>Orçamento de Cliente</h2>
-        <p><strong>Depósito de Materiais - Sistema Interno</strong></p>
-        <small class="text-muted">Gerado em: {{ now()->format('d/m/Y H:i') }}</small>
+@php
+$totalVenda = $orcamento->itens->sum(fn($i) => $i->quantidade * $i->preco_unitario);
+
+$totalEntregue = $orcamento->itens->sum(fn($i) => $i->quantidade_atendida * $i->preco_unitario);
+
+$totalPendente = $orcamento->itens->sum(fn($i) => $i->quantidade_pendente * $i->preco_unitario);
+@endphp
+
+<!-- DADOS -->
+<div class="section">
+    <div class="box">
+        <div class="row"><span class="label">Código:</span> #{{ $orcamento->codigo_orcamento }}</div>
+        <div class="row"><span class="label">Cliente:</span> {{ $orcamento->cliente->nome ?? '-' }}</div>
+        <div class="row"><span class="label">Telefone:</span> {{ $orcamento->cliente->telefone ?? '-' }}</div>
+        <div class="row"><span class="label">Data:</span> {{ \Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y') }}</div>
+        <div class="row"><span class="label">Validade:</span> {{ \Carbon\Carbon::parse($orcamento->validade)->format('d/m/Y') }}</div>
     </div>
-    <div class="info d-flex flex-wrap gap-3 ">
-        <div class="w-33"><strong>Código:</strong> #{{ $orcamento->codigo_orcamento }}</div>
-        <div class="w-33"><strong>Cliente:</strong> {{ $orcamento->cliente->nome }}</div>
-        <div class="w-33"><strong> Dt.Orçamento:</strong> {{ \Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y') }}</div>
-        <div class="w-50"><strong>Validade:</strong> {{ \Carbon\Carbon::parse($orcamento->validade)->format('d/m/Y') }}</div>
-        <div class="w-50"><strong>Status:</strong> {{ $orcamento->status }}</div>
-    </div>
+</div>
+
+<!-- 📦 ITENS ENTREGUES -->
+<div class="section">
+    <div class="section-title">Itens Entregues</div>
 
     <table>
         <thead>
+<tr>
+    <th>Produto</th>
+    <th>Solicitado</th>
+    <th>Entregue</th>
+    <th>Lote</th>
+</tr>
+</thead>
+
+<tbody>
+@foreach($itensAgrupados as $itens)
+
+@php
+    $produto = $itens->first()->produto;
+
+    $qtdSolicitada = $itens->sum('quantidade');
+    $qtdEntregue = $itens->sum('quantidade_atendida');
+
+    $lotes = $itens
+        ->where('quantidade_atendida', '>', 0)
+        ->map(fn($i) => $i->lote->numero_lote ?? '-')
+        ->unique()
+        ->implode(', ');
+@endphp
+
+@if($qtdEntregue > 0)
+<tr>
+    <td>{{ $produto->descricao }}</td>
+
+    <td class="text-center">
+        {{ number_format($qtdSolicitada, 2, ',', '.') }}
+    </td>
+
+    <td class="text-center">
+        {{ number_format($qtdEntregue, 2, ',', '.') }}
+    </td>
+
+    <td class="text-center">
+        {{ $lotes ?: '-' }}
+    </td>
+</tr>
+@endif
+
+@endforeach
+</tbody>
+    </table>
+
+    <div class="total">
+
+        <div>Total da Venda: 
+            R$ {{ number_format($totalVenda, 2, ',', '.') }}
+        </div>
+
+        <div style="color: green;">
+            Total Entregue: 
+            R$ {{ number_format($totalEntregue, 2, ',', '.') }}
+        </div>
+
+        <div style="color: #aa0000;">
+            Total Pendente: 
+            R$ {{ number_format($totalPendente, 2, ',', '.') }}
+        </div>
+
+    </div>
+
+        <p style="font-size:11px; color:#333;">
+            Este documento refere-se à entrega parcial dos produtos.
+            Os valores abaixo discriminam o total do pedido, o que está sendo entregue e
+            neste momento e o Total pendente.
+        </p>
+
+    <!-- ASSINATURA ENTREGA -->
+    <div class="assinatura">
+        <div class="assinatura-box">
+            <div class="linha">
+                Assinatura do Cliente<br>
+                Data: ____/____/____
+            </div>
+        </div>
+
+        <div class="assinatura-box">
+            <div class="linha">
+                Responsável pela Entrega<br>
+                Data: ____/____/____
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QUEBRA -->
+<div class="page-break"></div>
+
+<!-- ⏳ ITENS PENDENTES -->
+<div class="section">
+    <div class="section-title">Itens Pendentes / Não Entregues</div>
+
+    <p style="color:#aa0000; font-weight:bold;">
+        ⚠ Estes itens NÃO serão entregues neste pedido.<br>
+        Serão fornecidos conforme a previsão de entrega estipulada neste documento..
+    </p>
+   
+    <table>
+        <thead>
             <tr>
-                <th style="width: 100px;font-size:12px;">Produto</th>
-                <th style="width: 20px;font-size:12px;">Qtd</th>
-                <th style="width: 50px;font-size:12px;">Unitário</th>
-                <th style="width: 50px;font-size:12px;">Subtotal</th>
+                <th>Produto</th>
+                <th>Pendente</th>
+                <th>Previsão</th>
             </tr>
         </thead>
+       
         <tbody>
-            @foreach($orcamento->itens as $item)
-                <tr style="width: 100px;font-size:12px;">
-                    <td style="width: 180px;font-size:12px;">{{ $item->produto->nome ?? '-' }}</td>
-                    <td style="width: 20px;font-size:12px;">{{ number_format($item->quantidade, 2, ',', '.') }}</td>
-                    <td style="width: 50px;font-size:12px;">R$ {{ number_format($item->preco_unitario, 2, ',', '.') }}</td>
-                    <td style="width: 50px;font-size:12px;">R$ {{ number_format($item->subtotal, 2, ',', '.') }}</td>
+            @forelse($orcamento->itens->where('quantidade_pendente', '>', 0) as $item)
+                <tr>
+                    <td>{{ $item->produto->descricao ?? '-' }}</td>
+                    <td class="text-center">{{ number_format($item->quantidade_pendente, 2, ',', '.') }}</td>
+                    <td class="text-center">
+                        {{ $item->previsao_entrega 
+                            ? \Carbon\Carbon::parse($item->previsao_entrega)->format('d/m/Y')
+                            : '-' }}
+                    </td>
                 </tr>
-            @endforeach
+            @empty
+                <tr>
+                    <td colspan="3" class="text-center">Nenhum item pendente</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 
-    <p class="total" style="font-size:12px;">Total: R$ {{ number_format($orcamento->total, 2, ',', '.') }}</p>
+    
 
-    @if($orcamento->observacoes)
-        <div class="observacoes">
-            <strong>Observações:</strong>
-            <p>{{ $orcamento->observacoes }}</p>
+    <!-- ASSINATURA PENDENTE -->
+    <div class="assinatura">
+        <div class="assinatura-box">
+            <div class="linha">
+                Ciente do Cliente<br>
+                Data: ____/____/____
+            </div>
         </div>
-    @endif
-
-    <div class="footer">
-        Documento gerado automaticamente pelo sistema - {{ config('app.name', 'Depósito de Materiais') }}
     </div>
+
+    <div class="contato">
+        Em caso de dúvidas:<br>
+        📞 (11) 99999-9999 | 📧 contato@empresa.com.br
+    </div>
+
+</div>
+
+<!-- OBS -->
+@if($orcamento->observacoes)
+<div class="section">
+    <div class="section-title">Observações</div>
+    <div class="box">
+        {{ $orcamento->observacoes }}
+    </div>
+</div>
+@endif
+
+<!-- FOOTER -->
+<div class="footer">
+    Documento gerado automaticamente - {{ config('app.name') }}
+</div>
+
 </body>
 </html>

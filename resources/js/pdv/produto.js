@@ -128,8 +128,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const inputUnidade = document.getElementById("unidade");
             if(inputUnidade) inputUnidade.value = produto.unidade_sigla || "";
 
-            if(imgProduto) imgProduto.src = produto.imagem ? `/storage/${produto.imagem}` : "/images/produto-sem-imagem.png";
-
+            // if(imgProduto) imgProduto.src = produto.imagem ? `/storage/${produto.imagem}` : "/images/produto-sem-imagem.png";
+            
             calcularTotalProduto();
             inputCodigo.value = "";
             inputQuantidade.focus();

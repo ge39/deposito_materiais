@@ -1,19 +1,18 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container py-5 mt-0 pt-0">
-    
+<div class="container py-5">
+
     <div class="card shadow-lg border-0">
-        
         <div class="card-header 
             @if($bloquearPDV) bg-danger text-white 
             @else bg-warning text-dark 
             @endif">
             <h4 class="fw-bold mb-0">
                 @if($bloquearPDV)
-                    🚫 BLOQUEIO DE CAIXA - {{$codigo_operacao}}
+                    🚫 BLOQUEIO DE CAIXA
                 @else
-                    ⚠️ LIMITE DE SANGRIA ATINGIDO - {{$codigo_operacao}}
+                    ⚠️ LIMITE DE SANGRIA ATINGIDO
                 @endif
             </h4>
         </div>
@@ -35,12 +34,12 @@
             </p>
 
             @if($bloquearPDV)
-                <div class="alert alert-danger fw-bold fs-2 shadow-sm">
+                <div class="alert alert-danger fw-bold fs-5 shadow-sm">
                     PDV BLOQUEADO<br>
                     Realize sangria para continuar as vendas.
                 </div>
             @else
-                <div class="alert alert-warning fw-bold fs-2 shadow-sm">
+                <div class="alert alert-warning fw-bold fs-5 shadow-sm">
                     Recomendado realizar sangria.
                 </div>
             @endif
@@ -106,29 +105,164 @@
                     <a href="{{ route('pdv.index') }}" class="btn btn-secondary fw-bold px-4">
                         🔙 Voltar
                     </a>
-                    
-                   
-                   {{-- Botão imprimir sempre visível --}}
-                    @if($ultimaSangria)
-                        <a href="{{ route('sangria.imprimir', $ultimaSangria) }}"
+                    <!-- <div id="imprimirContainer">
+                        <a href="{{ route('sangria.imprimir', $ultimaSangria) }}" 
                         id="btnImprimirSangria"
-                        target="_self"
+                        target="_blank"
                         class="btn btn-primary fw-bold px-4 mt-2">
                             🖨 Imprimir
                         </a>
-                    @else
-                        <a href="#"
-                        id="btnImprimirSangria"
-                        class="btn btn-primary fw-bold px-4 mt-2 disabled">
+                    </div> -->
+                    @if(isset($sangria_id))
+                        <a href="{{ route('sangria.imprimir', $sangria) }}" class="btn btn-info fw-bold px-4">
                             🖨 Imprimir
                         </a>
                     @endif
+
+                    <div id="imprimirContainer">
+                        <a href="{{ route('sangria.imprimir', 44) }}" id="btnImprimirSangria" target="_blank"
+                        class="btn btn-success fw-bold px-4 mt-2">
+                            🖨 Imprimir
+                        </a>
+                    </div>
+    
                 </div>
             </form>
-
+            
+            
         </div>
     </div>
 
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const form = document.getElementById('formSangria');
+        const btn  = document.getElementById('btnSangria');
+        const saldoSpan = document.getElementById('saldoAtualTexto');
+
+        if (!form || !btn) return;
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            btn.disabled = true;
+            btn.innerText = 'Processando...';
+
+            try {
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: new FormData(form)
+                });
+
+                let data = null;
+
+                try {
+                    data = await response.json();
+                } catch (_) {
+                    throw new Error('Resposta inválida do servidor.');
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Erro ao registrar sangria.');
+                }
+
+                if (data.success) {
+
+                    // Atualiza saldo somente se existir no DOM
+                    if (saldoSpan) {
+                        saldoSpan.innerText =
+                            Number(data.saldo_atual).toLocaleString('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL'
+                            });
+                    }
+
+                    if (parseFloat(data.saldo_atual) <= 0) {
+                        btn.disabled = true;
+                        btn.innerText = 'Saldo Zerado';
+                    } else {
+                        btn.disabled = false;
+                        btn.innerText = 'Efetuar Sangria';
+                    }
+
+                    alert('Sangria realizada com sucesso.');
+                    form.reset();
+                }
+
+            } catch (error) {
+
+                alert(error.message || 'Erro inesperado.');
+
+                btn.disabled = false;
+                btn.innerText = 'Efetuar Sangria';
+            }
+        });
+
+        /*
+        |------------------------------------------------------------------
+        | Proteção contra cache do navegador (back button)
+        |------------------------------------------------------------------
+        */
+        window.addEventListener("pageshow", function (event) {
+            if (event.persisted && btn) {
+                btn.disabled = false;
+                btn.innerText = 'Efetuar Sangria';
+            }
+        });
+
+    });
+</script>
+
+<!-- força a pagina recarregar -->
+<script>
+    document.addEventListener('DOMContentLoaded', validarSaldoAoCarregar);
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            validarSaldoAoCarregar();
+        }
+    });
+
+    function validarSaldoAoCarregar() {
+
+        fetch(window.location.href, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            if (!data) return;
+
+            let saldo = parseFloat(data.saldo_atual);
+
+            const btn = document.getElementById('btnSangria');
+            const input = document.getElementById('valorInput');
+            const select = document.getElementById('motivo');
+            const saldoTexto = document.getElementById('saldoAtualTexto');
+            const valorSugerido = document.getElementById('valorSugeridoTexto');
+
+            saldoTexto.innerText =
+                'R$ ' + saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+            valorSugerido.innerText =
+                'R$ ' + saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+            if (saldo <= 0) {
+                btn.disabled = true;
+                input.disabled = true;
+                select.disabled = true;
+            }
+        });
+    }
+</script>
 @endsection
+

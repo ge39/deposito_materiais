@@ -195,6 +195,14 @@ class PdvController extends Controller
             return response()->json([]);
         }
 
+          // 🔹 Autenticação (se necessário)
+        if (!auth()->check()) {
+            return response()->json([
+                'status' => 'erro',
+                'mensagem' => 'Usuário não autorizado.'
+            ], 401);
+        }
+
         // Carrega produtos com relacionamentos e lotes válidos (para cálculo de estoque)
         $produtos = Produto::with([
                 'categoria',
@@ -241,16 +249,19 @@ class PdvController extends Controller
                 'unidade' => $p->unidadeMedida->sigla ?? ($p->unidadeMedida->nome ?? 'UN'),
 
                 // imagem: transforma em URL pública se houver arquivo armazenado
-                'imagem' => $p->imagem ? asset('storage/'.$p->imagem) : null,
+                //  'imagem' => $p->imagem ? asset('storage/'.$p->imagem) : null,
+          
+                'imagem' => $p->imagem ? url('storage/'.$p->imagem) : url('images/produto-sem-imagem.png'),
 
                 // quantidade total disponivel calculada a partir dos lotes carregados
                 'quantidade_total_disponivel' => (int) $quantidadeTotal,
             ];
         });
 
+          
         return response()->json($resultado);
     }
-
+    // Buscar produto por codigo de barras
     public function buscarProdutoPorCodigo($codigo)
     {
         // 🔹 Validação básica
@@ -426,7 +437,7 @@ class PdvController extends Controller
         $bloqueioAtivo = (bool)  $config->bloqueio_ativo;      // 1
         $saldoAtual = $this->saldoDinheiroAtual(); // Deve retornar 850
         $valorSugeridoSangria = max(0, $saldoAtual - $limite);
-        $limiteBloqueio = $limite * (1 + ($percentual / 100)); // 750
+        $limiteBloqueio = $limite ;//* (1 + ($percentual / 100)); // 750
 
         
              

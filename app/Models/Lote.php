@@ -1,9 +1,9 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class Lote extends Model
 {
@@ -12,116 +12,114 @@ class Lote extends Model
     protected $table = 'lotes';
 
     protected $fillable = [
-    'numero_lote', 'pedido_compra_id', 'produto_id', 'fornecedor_id',
-    'quantidade', 'quantidade_disponivel', 'preco_compra', 'data_compra',
-    'lancado_por', 'validade_lote',
-    'status', // 1 = ativo, 0 = inativo
+        'numero_lote',
+        'pedido_compra_id',
+        'produto_id',
+        'fornecedor_id',
+        'quantidade',
+        'quantidade_disponivel',
+        'quantidade_reservada',
+        'preco_compra',
+        'data_compra',
+        'lancado_por',
+        'validade_lote',
+        'status',
     ];
-
-    protected $dates = ['created_at','updated_at','data_compra','validade_lote'];
 
     protected $casts = [
+        'quantidade' => 'float',
+        'quantidade_disponivel' => 'float',
+        'quantidade_reservada' => 'float',
+        'preco_compra' => 'float',
         'data_compra' => 'date',
         'validade_lote' => 'date',
-        'preco_compra' => 'decimal:2',
-        'quantidade' => 'decimal:2',
-        'quantidade_disponivel' => 'decimal:2',
     ];
 
-    /* ============================================================
-       RELACIONAMENTOS
-    ============================================================ */
-    public function usuario()
+    /*
+    |--------------------------------------------------------------------------
+    | RELACIONAMENTOS
+    |--------------------------------------------------------------------------
+    */
+
+    public function produto()
     {
-        return $this->belongsTo(User::class, 'lancado_por');
-    }
-    public function produto(){
-
-        return $this->belongsTo(Produto::class, 'produto_id');
+        return $this->belongsTo(Produto::class);
     }
 
-    public function fornecedor()
+    /*
+    |--------------------------------------------------------------------------
+    | ACCESSOR
+    |--------------------------------------------------------------------------
+    */
+
+    public function getDisponivelRealAttribute()
     {
-        return $this->belongsTo(Fornecedor::class, 'fornecedor_id');
+        return $this->quantidade_disponivel - $this->quantidade_reservada;
     }
 
-    public function pedidoCompra()
+    /*
+    |--------------------------------------------------------------------------
+    | REGRAS DE NEGÓCIO
+    |--------------------------------------------------------------------------
+    */
+
+    public function podeReservar($qtd)
     {
-        return $this->belongsTo(PedidoCompra::class, 'pedido_compra_id');
+        return $this->disponivel_real >= $qtd;
     }
 
-    public function itensVenda()
+    public function reservar($qtd)
     {
-        return $this->belongsToMany(ItemVenda::class, 'item_venda_lote', 'lote_id', 'item_venda_id')
-                    ->withPivot('quantidade');
+        $disponivel = $this->disponivel_real;
+
+        if ($disponivel <= 0) {
+            return 0;
+        }
+
+        $qtdReservada = min($disponivel, $qtd);
+
+        $this->quantidade_reservada += $qtdReservada;
+        $this->save();
+
+        return $qtdReservada;
     }
 
+    public function liberarReserva($qtd)
+    {
+        $this->quantidade_reservada -= $qtd;
 
-    /* ============================================================
-       BOOT: NUMERO DE LOTE AUTOMÁTICO
-    ============================================================ */
+        if ($this->quantidade_reservada < 0) {
+            $this->quantidade_reservada = 0;
+        }
+
+        $this->save();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BOOT
+    |--------------------------------------------------------------------------
+    */
+
     protected static function booted()
     {
         static::creating(function ($lote) {
+
             if (empty($lote->numero_lote)) {
-                $lote->numero_lote = now()->format('YmdHis') 
-                    . '-' . $lote->produto_id 
-                    . '-' . rand(100, 999);
+                $lote->numero_lote = now()->format('YmdHis') . rand(100, 999);
             }
 
-            // se quantidade_disponivel não informado, assume total
             if (!isset($lote->quantidade_disponivel)) {
                 $lote->quantidade_disponivel = $lote->quantidade ?? 0;
             }
 
-            // status padrão
+            if (!isset($lote->quantidade_reservada)) {
+                $lote->quantidade_reservada = 0;
+            }
+
             if (!isset($lote->status)) {
                 $lote->status = 1;
             }
         });
     }
-
-    /* ============================================================
-       MÉTODOS ÚTEIS
-    ============================================================ */
-
-    /**
-     * Atualiza a quantidade disponível do lote.
-     * Garante que não fique negativo.
-     */
-    public function atualizarQuantidadeDisponivel($qtd)
-    {
-        $this->quantidade_disponivel = max(0, $this->quantidade_disponivel + $qtd);
-        $this->save();
-    }
-
-    /**
-     * Verifica se o lote ainda tem estoque disponível.
-     */
-    public function temEstoqueDisponivel()
-    {
-        return ($this->quantidade_disponivel ?? 0) > 0;
-    }
-
-    /**
-     * Marca o lote como inativo (status = 0)
-     */
-    public function inativar()
-    {
-        $this->status = 0;
-        $this->save();
-    }
-
-    /**
-     * Retorna a menor validade entre os lotes ativos de um produto
-     */
-    public static function menorValidadeProduto($produtoId)
-    {
-        return self::where('produto_id', $produtoId)
-            ->where('status', 1)
-            ->whereNotNull('validade_lote')
-            ->min('validade_lote');
-    }
-
-   
 }

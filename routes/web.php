@@ -35,6 +35,7 @@ use App\Http\Controllers\{
     PromocaoController,
     PainelPromocaoController,
     SangriaController,
+    SangriaConfigController,
 };
 
 // ===============================
@@ -69,8 +70,10 @@ Route::middleware('auth')->group(function () {
     // ===============================
     // ORÇAMENTOS
     // ===============================
+    
     Route::prefix('orcamentos')->name('orcamentos.')->group(function () {
         Route::post('{orcamento}/aprovar', [OrcamentoController::class, 'aprovar'])->name('aprovar');
+        Route::post('{orcamento}/reativar', [OrcamentoController::class, 'reativar'])->name('reativar');
         Route::post('{orcamento}/cancelar', [OrcamentoController::class, 'cancelar'])->name('cancelar');
         Route::get('{orcamento}/pdf', [OrcamentoController::class, 'gerarPdf'])->name('gerarPdf');
         Route::get('buscar', [OrcamentoController::class, 'buscar'])->name('buscar');
@@ -78,7 +81,7 @@ Route::middleware('auth')->group(function () {
         Route::post('{id}/limpar-edicao', [OrcamentoController::class, 'limparEdicao'])->name('limparEdicao');
     });
     Route::resource('orcamentos', OrcamentoController::class);
-
+    
     // ===============================
     // PRODUTOS
     // ===============================
@@ -94,6 +97,13 @@ Route::middleware('auth')->group(function () {
         Route::post('{id}/limpar-edicao', [ProdutoController::class, 'limparEdicao'])->name('limparEdicao');
     });
     Route::resource('produtos', ProdutoController::class);
+
+    Route::get('/api/lotes/{produto}', function ($produtoId) {
+        return \App\Models\Lote::where('produto_id', $produtoId)
+            ->where('quantidade_disponivel', '>', 0)
+            ->where('status', 1)
+            ->get();
+    });
 
     // ===============================
     // PROMOÇÕES
@@ -332,4 +342,9 @@ Route::middleware('auth')->group(function () {
         [ContaCorrenteController::class, 'show']
     )->name('clientes.conta_corrente.show');
 
-   
+    //Sangria conf
+    Route::get('/sangria-config', [SangriaConfigController::class, 'index'])
+    ->name('sangria-config.index');
+
+    Route::post('/sangria-config', [SangriaConfigController::class, 'store'])
+    ->name('sangria-config.store');

@@ -94,7 +94,7 @@
                                 <strong>Preço Médio de Compra:</strong> 
                                 R$ {{ number_format($produto->preco_medio_compra, 2, ',', '.') }}
                             </p>
-
+                            
                             <p class="card-text mb-1"><strong>Marca:</strong> {{ $produto->marca->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Unidade:</strong> {{ $produto->unidadeMedida->nome ?? '-' }}</p>
 

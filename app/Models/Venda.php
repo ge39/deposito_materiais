@@ -82,4 +82,9 @@ class Venda extends Model
         return $this->belongsTo(Funcionario::class, 'funcionario_id');
     }
 
+   public function pedido()
+    {
+        return $this->belongsTo(Pedido::class, 'pedido_id');
+    }
+
 }

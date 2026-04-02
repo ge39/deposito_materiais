@@ -84,7 +84,7 @@
         <div>Data: <?php echo e($venda->created_at->format('d/m/Y H:i')); ?></div>
         <div>Cliente: <?php echo e($venda->cliente->nome ?? 'CONSUMIDOR'); ?></div>
         <div><?php echo e($venda->cliente->endereco_entrega  ?? $venda->cliente->endereco .'-'. $venda->cliente->bairro .'-'. $venda->cliente->cidade . '-'. $venda->cliente->estado); ?></div>
-        <div>Operador: <?php echo e($venda->funcionario->nome ?? 'PDV'); ?></div>
+        <div>Operador: <?php echo e($venda->funcionario_id ?? 'PDV'); ?></div>
         <div>Caixa: <?php echo e($venda->caixa_id); ?></div>
 
         <div class="hr"></div>
@@ -96,7 +96,7 @@
         <div class="item">
 
         <div>
-        <?php echo e($item->produto->nome); ?>
+        <?php echo e($item->produto->nome); ?> L:<?php echo e($item->lote_id); ?>
 
         </div>
 
@@ -105,6 +105,7 @@
         <div>
         <?php echo e($item->quantidade); ?> x <?php echo e(number_format($item->preco_unitario,2,',','.')); ?>
 
+        
         </div>
 
         <div>

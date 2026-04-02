@@ -43,8 +43,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
             if (!data.success || !data.orcamento) throw new Error(data.message || 'Resposta inválida do servidor.');
 
-            console.log('🔍 Orçamento recebido:', data.orcamento);
-
+            // console.log('🔍 Orçamento recebido:', data.orcamento);
+            // console.log('ITENS:', data.orcamento.itens);
+            console.log(data.orcamento.itens[0].lote);
+            
             // Preenche cliente e carrinho
             preencherCliente(data.orcamento.cliente);
             preencherCarrinho(data.orcamento.itens);
@@ -119,7 +121,7 @@ function preencherCliente(cliente) {
 
             tr.innerHTML = `
                 <td class="text-center item-numero"><strong>${index + 1}</strong></td>
-                <td class="text-center item-lote"><strong>${item.lote_id ?? '0'}</strong></td>
+                <td class="text-center item-lote"><strong>${item.lote?.numero_lote ?? 'Sem lote'}</strong></td>
                 <td class="text-left"><strong>${item.produto?.nome ?? ''}</strong></td>
                 <td class="text-center"><strong>${item.quantidade ?? 0}</strong></td>
                 <td class="text-center"><strong>${item.produto?.unidade_medida?.sigla ?? ''}</strong></td>

@@ -50,12 +50,17 @@
                 #{{ $auditoria->caixa_id }}
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <strong>Auditor:</strong><br>
                 {{ $auditoria->usuario->name ?? '-' }}
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-2">
+                <strong>Op.Caixa:</strong><br>
+                {{ $auditoria->usuario->name ?? '-' }}
+            </div>
+
+            <div class="col-md-3">
                 <strong>Data:</strong><br>
                 {{ $auditoria->data_auditoria->format('d/m/Y H:i') }}
             </div>

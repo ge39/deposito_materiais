@@ -34,6 +34,7 @@ class CaixaController extends Controller
 
         $caixaAberto = Caixa::where('terminal_id', $terminal->id)
             ->where('status', 'aberto')
+             ->latest('data_abertura')
             ->first();
 
         if ($caixaAberto) {
@@ -48,6 +49,7 @@ class CaixaController extends Controller
         return view('caixa.abrir', [
             'user' => $user,
             'terminal' => $terminal,
+             'data_abertura' => $caixaAberto?->data_abertura,
         ]);
     }
 

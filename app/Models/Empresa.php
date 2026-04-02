@@ -24,8 +24,23 @@ class Empresa extends Model
         'ativo'
     ];
     
+    public static function ativa()
+    {
+        return self::where('ativo', 1)->first();
+    }
+
     public function configuracaoCaixa(): HasOne
     {
         return $this->hasOne(ConfiguracoesCaixa::class, 'empresa_id', 'id');
+    }
+
+    public function sangriaConfig()
+    {
+        return $this->hasOne(SangriaConfig::class);
+    }
+
+    public function orcamentos()
+    {
+        return $this->hasMany(Orcamento::class);
     }
 }

@@ -3,7 +3,7 @@
 @section('content')
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Orçamentos</h2>
+        <h2>Pedido/Orçamentos</h2>
         <a href="{{ route('orcamentos.create') }}" class="btn btn-primary">
             Novo Orçamento
         </a>
@@ -16,9 +16,11 @@
                 <label class="form-label fw-bold">Status</label>
                 <select name="status" class="form-control">
                     <option value="">-- Todos os Status --</option>
-                    <option value="Aguardando Aprovação" {{ request('status') == 'Aguardando Aprovação' ? 'selected' : '' }}>Aguardando Aprovação</option>
+                    <option value="Aguardando Aprovacao" {{ request('status') == 'Aguardando Aprovacao' ? 'selected' : '' }}>Aguardando Aprovacao</option>
+                    <option value="Aguardando Estoque" {{ request('status') == 'Aguardando Estoque' ? 'selected' : '' }}>Aguardando Estoque</option>
                     <option value="Aprovado" {{ request('status') == 'Aprovado' ? 'selected' : '' }}>Aprovado</option>
                     <option value="Expirado" {{ request('status') == 'Expirado' ? 'selected' : '' }}>Expirado</option>
+                     <option value="Cancelado" {{ request('status') == 'Cancelado' ? 'selected' : '' }}>Cancelado</option>
                 </select>
             </div>
 
@@ -75,9 +77,9 @@
                     <span class="badge bg-danger" style="font-size: 14px;">
                         Expirado
                     </span>
-                @elseif ($orcamento->status === 'Aguardando aprovacao')
+                @elseif ($orcamento->status === 'Aguardando Aprovacao')
                     <span class="badge bg-warning text-dark" style="font-size: 14px;">
-                        Aguardando aprovação
+                        Aguardando Aprovacao
                     </span>
                 @elseif ($orcamento->status === 'Aprovado')
                     <span class="badge bg-success" style="font-size: 14px;">
@@ -87,18 +89,64 @@
                     <span class="badge bg-secondary" style="font-size: 14px;">
                         Cancelado
                     </span>
+                @elseif ($orcamento->status === 'Aguardando Estoque')
+                    <span class="badge bg-secondary" style="font-size: 14px;">
+                        Aguardando Estoque
+                    </span>
                 @endif
+               
             </td>
 
             <td>{{ $orcamento->codigo_orcamento }}</td>
             <td>
-                <a href="{{ route('orcamentos.edit', $orcamento->id) }}" class="btn btn-sm btn-warning">Editar</a>
-                <a href="{{ route('orcamentos.gerarPdf', $orcamento->id) }}" class="btn btn-primary" target="_blank">Gerar PDF</a>
+                <!-- Aguardando Aprovação -->
+                @if ($orcamento->status === 'Aguardando Aprovacao' )
+                    <a href="{{ route('orcamentos.edit', $orcamento->id) }}" class="btn btn-sm btn-warning">Editar</a>
+                    
+                    <form method="POST" action="{{ route('orcamentos.aprovar', $orcamento->id) }}" style="display:inline;">
+                        @csrf
+                        <button class="btn btn-sm btn-success"
+                            onclick="return confirm('Deseja realmente aprovar este orçamento?')">
+                            Aprovar
+                        </button>
+                    </form>
+                @endif
+
+                <!-- 'Aguardando Estoque -->
+                @if ($orcamento->status === 'Aguardando Estoque' )
+                    <a href="{{ route('orcamentos.edit', $orcamento->id) }}" class="btn btn-sm btn-warning">Editar</a>
+                    
+                @endif
+                <!-- Expirado -->
+                @if ($orcamento->status === 'Expirado' )
+                    <form method="POST" action="{{ route('orcamentos.reativar', $orcamento->id) }}" style="display:inline;">
+                            @csrf
+                            <button class="btn btn-sm btn-warning"
+                                onclick="return confirm('Deseja realmente reativar este orçamento?')">
+                                Reativar
+                            </button>
+                    </form>
+                </a>
+                    
+                @endif
+                <a href="{{ route('orcamentos.gerarPdf', $orcamento->id) }}" class="btn btn-sm btn-primary" target="_blank">Gerar PDF</a>
                 <a href="{{ route('orcamentos.whatsapp', $orcamento->id) }}" 
                     class="btn btn-success btn-sm" 
                     target="_blank">
                         Enviar WhatsApp
                 </a>
+                
+                <!-- cancelar orcamento -->
+                @if (!$orcamento->status === 'Cancelado' )
+                    <form method="POST" action="{{ route('orcamentos.cancelar', $orcamento->id) }}" style="display:inline;">
+                        @csrf
+                        <button class="btn btn-sm btn-danger"
+                            onclick="return confirm('Deseja realmente cancelar este orçamento?')">
+                            Cancelar
+                        </button>
+                    </form>
+                   
+                @endif
             </td>
         </tr>
             @endforeach
@@ -109,6 +157,7 @@
                     </td>
                 </tr>
             @endif
+            
 
         </tbody>
 

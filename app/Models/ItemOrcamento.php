@@ -14,15 +14,22 @@ class ItemOrcamento extends Model
     protected $fillable = [
         'orcamento_id',
         'produto_id',
+        'lote_id',
         'quantidade',
-        'preco_unitario', // ← campo correto
-        'subtotal'
+        'quantidade_atendida',
+        'quantidade_pendente',
+        'status',
+        'preco_unitario',
+        'subtotal',
+        'previsao_entrega'
     ];
 
     protected $casts = [
-        'quantidade'     => 'decimal:2',
-        'preco_unitario' => 'decimal:2',
-        'subtotal'       => 'decimal:2',
+        'quantidade' => 'decimal:2',
+        'quantidade_atendida' => 'decimal:2',
+        'quantidade_pendente' => 'decimal:2',
+        'subtotal' => 'decimal:2',
+        'previsao_entrega' => 'date',
     ];
 
     // Relacionamento com o orçamento principal
@@ -37,12 +44,11 @@ class ItemOrcamento extends Model
         return $this->belongsTo(Produto::class, 'produto_id');
     }
 
-    // Fornecedor vinculado (opcional)
-    // public function fornecedor()
-    // {
-    //     return $this->belongsTo(Fornecedor::class);
-    // }
-
+    public function lote()
+    {
+        return $this->belongsTo(Lote::class, 'lote_id');
+    }
+    
     // Campo dinâmico para exibir o nome do item (produto cadastrado ou texto livre)
     public function getNomeItemAttribute()
     {

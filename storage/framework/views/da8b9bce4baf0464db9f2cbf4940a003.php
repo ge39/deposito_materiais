@@ -53,13 +53,19 @@
 
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <strong>Auditor:</strong><br>
                 <?php echo e($auditoria->usuario->name ?? '-'); ?>
 
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-2">
+                <strong>Op.Caixa:</strong><br>
+                <?php echo e($auditoria->usuario->name ?? '-'); ?>
+
+            </div>
+
+            <div class="col-md-3">
                 <strong>Data:</strong><br>
                 <?php echo e($auditoria->data_auditoria->format('d/m/Y H:i')); ?>
 

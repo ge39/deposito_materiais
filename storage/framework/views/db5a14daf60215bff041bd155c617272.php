@@ -380,7 +380,7 @@
 
      <!-- Informações do status do Caixa -->
     <div class="container-fluid p-0" 
-         style="background:#e6e6e6; margin-top:-18px; overflow-x:hidden;">
+         style="background:#e6e6e6; margin-top:-40px; overflow-x:hidden">
        
         <div class="caixa-info mb-3 p-0 border rounded shadow-sm bg-light d-flex justify-content-start align-items-center">
             <span><strong>Terminal: 00<?php echo e($terminal->id); ?></strong></span>
@@ -401,6 +401,14 @@
                 "><strong>
                     <?php echo e($status); ?>
 
+
+                    <?php if($caixa): ?>
+                       <?php echo e("em " . $caixaAberto->data_abertura->format('d/m/Y H:i')); ?>
+
+                    <?php else: ?>
+                        <span class="text-danger">Caixa não aberto</span>
+                    <?php endif; ?>
+                                        
                 </strong></span>
             </span>
         </div>
@@ -523,7 +531,7 @@
            <div class="row mt-2 border ">
                 <!-- Quantidade -->
                 <div class="col-md-2 p-1">
-                    <label for="quantidade" class="form-label">Quantidade</label>
+                    <label for="quantidade" class="form-label">Qtde</label>
                     <input id="quantidade" style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  type="number" name="quantidade"  value= "1" min="1" >
                     <small id="msgEstoque" class="text-danger fw-bold"></small>
                 </div>
@@ -540,7 +548,7 @@
                 </div>
                  <!-- Quantidade -->   
                 <div class="col-md-2 p-1">  
-                    <label for="preco_venda" class="form-label">Qtd.Disp</label>
+                    <label for="preco_venda" class="form-label">QtdDisp</label>
                     <input style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  name="qtd_disponivel" id="qtd_disponivel" type="text" min="1" step="1" readOnly>
                 </div>
                 <!-- Total Geral -->
@@ -552,7 +560,7 @@
 
             </div>
             <!-- CAMPO DE IMAGEM DO PRODUTO -->
-            <div class="border bg-white mt-1" style="height: 233px; display:flex; align-items:center; justify-content:center;">
+            <div class="border bg-white mt-1" style="height: 200px; display:flex; align-items:center; justify-content:center;">
                 <img id="produto-imagem" src="" alt="Imagem" style="max-width:100%; height:100%; object-fit:contain;">
             </div>
         </div>

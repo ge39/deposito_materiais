@@ -1,14 +1,18 @@
 <?php
 
 namespace App\Http\Controllers;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
+
 use App\Models\Venda;
 Use App\Models\Empresa;
 use Mguimaraes\Pix\Payload;
 use App\Models\Cliente;
-use Illuminate\Http\Request;
+use App\Models\Caixa;
+
 use App\Services\CreditoService;
-use Illuminate\Support\Facades\DB;
+
 
 class VendaController extends Controller
 {
@@ -209,6 +213,23 @@ class VendaController extends Controller
         ]);
 
         DB::commit();
+    
+        // 🔥 buscar o caixa corretamente
+        $caixa = Caixa::find($venda->caixa_id);
+
+        $verificacao = $caixa->verificarSangria();
+
+        // if ($verificacao['bloquearPDV'] || $verificacao['avisarSangria']) {
+        //     return redirect()->route('caixa.sangria.form', $caixa->id);
+        // }
+
+        if ($verificacao['bloquearPDV'] || $verificacao['avisarSangria']) {
+            return response()->json([
+                'success' => true,
+                'redirect_sangria' => true,
+                'url' => route('caixa.sangria.form', $caixa->id)
+            ]);
+        }
 
         // ✅ Retorna JSON sempre, pronto para o JS
         return response()->json([
@@ -217,6 +238,8 @@ class VendaController extends Controller
             'message'  => 'Venda finalizada com sucesso',
             'venda_id' => $venda->id
         ]);
+
+
 
         } catch (\Exception $e) {
             DB::rollBack();

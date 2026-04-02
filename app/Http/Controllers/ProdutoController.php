@@ -58,8 +58,105 @@ class ProdutoController extends Controller
             'produtosExistentes'
         ));
     }
+    // public function store(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'nome'               => 'required|string|max:255',
+    //         'sku'                => 'nullable|string|max:255',
+    //         'descricao'          => 'nullable|string|max:255',
+    //         'categoria_id'       => 'required|integer',
+    //         'fornecedor_id'      => 'required|integer',
+    //         'marca_id'           => 'nullable|integer',
+    //         'unidade_medida_id'  => 'required|integer',
+    //         'codigo_barras'      => 'nullable|string|max:255',
+    //         'preco_venda'        => 'required|numeric',
+    //         'preco_custo'        => 'required|numeric',
+    //         'quantidade_estoque' => 'required|integer|min:1',
+    //         'data_compra'        => 'required|date',
+    //         'validade_produto'   => 'nullable|date',
+    //         'estoque_minimo'     => 'required|integer|min:0',
+            
+            
+    //     ]);
+
+    //     DB::beginTransaction();
+
+    //     try {
+
+    //         $produto = Produto::where('nome', $validated['nome'])
+    //             ->where('sku', $validated['sku'])
+    //             ->where('marca_id', $validated['marca_id'])
+    //             ->where('categoria_id', $validated['categoria_id'])
+    //             ->where('unidade_medida_id', $validated['unidade_medida_id'])
+    //             ->lockForUpdate()
+    //             ->first();
+
+    //         if ($produto) {
+    //             // 🔹 PRODUTO EXISTENTE
+    //             $produto->descricao     = $validated['descricao'];
+    //             $produto->codigo_barras = $validated['codigo_barras'];
+    //             $produto->preco_custo   = $validated['preco_custo'];
+    //             $produto->preco_venda   = $validated['preco_venda'];
+    //             $produto->save();
+    //         } else {
+    //             // 🔹 NOVO PRODUTO
+    //             $produto = Produto::create([
+    //                 'nome'               => $validated['nome'],
+    //                 'sku'                => $validated['sku'],
+    //                 'marca_id'           => $validated['marca_id'],
+    //                 'categoria_id'       => $validated['categoria_id'],
+    //                 'unidade_medida_id'  => $validated['unidade_medida_id'],
+    //                 'descricao'          => $validated['descricao'],
+    //                 'fornecedor_id'      => $validated['fornecedor_id'],
+    //                 'codigo_barras'      => $validated['codigo_barras'],
+    //                 'preco_custo'        => $validated['preco_custo'],
+    //                 'preco_venda'        => $validated['preco_venda'],
+    //                 'quantidade_estoque' => 0,
+    //                 'estoque_minimo'     => $validated['estoque_minimo'], // 🔥 CORRETO
+    //                 'ativo'              => 1,
+    //                 'validade_produto'   => $validated['validade_produto'] ?? null,
+    //                  'validade_produto' => $request->validade_produto,
+    //             ]);
+    //         }
+
+    //         // 🔹 LOTE
+    //         $lote = $produto->lotes()->create([
+    //             'numero_lote'           => 'L' . time(),
+    //             'pedido_compra_id'      => null,
+    //             'produto_id'            => $produto->id,
+    //             'fornecedor_id'         => $validated['fornecedor_id'],
+    //             'quantidade'            => $validated['quantidade_estoque'],
+    //             'quantidade_disponivel' => $validated['quantidade_estoque'],
+    //             'preco_compra'          => $validated['preco_custo'],
+    //             'data_compra'           => $validated['data_compra'],
+    //             'validade_lote'         => $validated['validade_produto'] ?? null,
+    //             'lancado_por'           => auth()->id(),
+    //         ]);
+
+    //         // 🔹 ATUALIZA ESTOQUE
+    //         $produto->quantidade_estoque = $produto->lotes()->sum('quantidade');
+
+    //         if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
+    //             $path = $request->file('imagem')->store('produtos', 'public');
+    //             $produto->imagem = $path;
+    //         }
+
+    //         $produto->save();
+
+    //         DB::commit();
+
+    //         return redirect()->route('produtos.index')
+    //                         ->with('success', 'Produto e lote salvos com sucesso!');
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return back()->withErrors('Erro ao salvar: ' . $e->getMessage());
+    //     }
+    // }
+
     public function store(Request $request)
     {
+        // Validação básica
         $validated = $request->validate([
             'nome'               => 'required|string|max:255',
             'sku'                => 'nullable|string|max:255',
@@ -73,9 +170,19 @@ class ProdutoController extends Controller
             'preco_custo'        => 'required|numeric',
             'quantidade_estoque' => 'required|integer|min:1',
             'data_compra'        => 'required|date',
-            'validade_produto'   => 'nullable|date',
             'estoque_minimo'     => 'required|integer|min:0',
+            'controla_validade'  => 'required|boolean', // ✅ Novo campo
+            'validade_produto'   => 'nullable|date',
         ]);
+
+        // Validação condicional da validade
+        if ($validated['controla_validade']) {
+            $request->validate([
+                'validade_produto' => 'required|date|after_or_equal:today',
+            ]);
+        } else {
+            $validated['validade_produto'] = null;
+        }
 
         DB::beginTransaction();
 
@@ -91,10 +198,12 @@ class ProdutoController extends Controller
 
             if ($produto) {
                 // 🔹 PRODUTO EXISTENTE
-                $produto->descricao     = $validated['descricao'];
-                $produto->codigo_barras = $validated['codigo_barras'];
-                $produto->preco_custo   = $validated['preco_custo'];
-                $produto->preco_venda   = $validated['preco_venda'];
+                $produto->descricao          = $validated['descricao'];
+                $produto->codigo_barras      = $validated['codigo_barras'];
+                $produto->preco_custo        = $validated['preco_custo'];
+                $produto->preco_venda        = $validated['preco_venda'];
+                $produto->controla_validade  = $validated['controla_validade'];
+                $produto->validade_produto   = $validated['validade_produto'];
                 $produto->save();
             } else {
                 // 🔹 NOVO PRODUTO
@@ -110,9 +219,10 @@ class ProdutoController extends Controller
                     'preco_custo'        => $validated['preco_custo'],
                     'preco_venda'        => $validated['preco_venda'],
                     'quantidade_estoque' => 0,
-                    'estoque_minimo'     => $validated['estoque_minimo'], // 🔥 CORRETO
+                    'estoque_minimo'     => $validated['estoque_minimo'],
                     'ativo'              => 1,
-                    'validade_produto'   => $validated['validade_produto'] ?? null,
+                    'controla_validade'  => $validated['controla_validade'],
+                    'validade_produto'   => $validated['validade_produto'],
                 ]);
             }
 
@@ -126,7 +236,7 @@ class ProdutoController extends Controller
                 'quantidade_disponivel' => $validated['quantidade_estoque'],
                 'preco_compra'          => $validated['preco_custo'],
                 'data_compra'           => $validated['data_compra'],
-                'validade_lote'         => $validated['validade_produto'] ?? null,
+                'validade_lote'         => $validated['validade_produto'],
                 'lancado_por'           => auth()->id(),
             ]);
 
@@ -176,9 +286,61 @@ class ProdutoController extends Controller
         ]);
     }
 
-     public function update(Request $request, Produto $produto)
+    //  public function update(Request $request, Produto $produto)
+    // {
+    //     $this->validateProduto($request, false);
+
+    //     // --- Verifica bloqueio ANTES da transação ---
+    //     if ($produto->editando_por && $produto->editando_por != auth()->id()) {
+    //         $usuario = $produto->usuarioEditando;
+    //         $nomeUsuario = $usuario->name ?? 'Outro usuário';
+
+    //         return redirect()
+    //             ->route('produtos.index')
+    //             ->with('error', "Este produto está sendo editado por: {$nomeUsuario}");
+    //     }
+
+    //     DB::transaction(function () use ($request, $produto) {
+
+    //         $produto->fill($request->except('imagem'));
+
+    //         if ($request->filled('validade_produto')) {
+    //             $produto->validade_produto = Carbon::parse($request->validade_produto)->startOfDay();
+    //         }
+
+    //         if ($request->hasFile('imagem')) {
+    //             if ($produto->imagem) {
+    //                 Storage::disk('public')->delete($produto->imagem);
+    //             }
+    //             $produto->imagem = $request->file('imagem')->store('produtos', 'public');
+    //         }
+
+    //         // --- Libera o bloqueio de edição ---
+    //         if ($produto->editando_por == auth()->id()) {
+    //             $produto->editando_por = null;
+    //             $produto->editando_em = null;
+                
+    //         }
+
+    //         $produto->save();
+    //     });
+
+    //     return redirect()->route('produtos.index')
+    //         ->with('success', 'Produto atualizado com sucesso!');
+    // }
+
+    public function update(Request $request, Produto $produto)
     {
         $this->validateProduto($request, false);
+
+        // Validação condicional da validade
+        if ($request->controla_validade) {
+            $request->validate([
+                'validade_produto' => 'required|date|after_or_equal:today',
+            ]);
+        } else {
+            $request->merge(['validade_produto' => null]);
+        }
 
         // --- Verifica bloqueio ANTES da transação ---
         if ($produto->editando_por && $produto->editando_por != auth()->id()) {
@@ -194,9 +356,9 @@ class ProdutoController extends Controller
 
             $produto->fill($request->except('imagem'));
 
-            if ($request->filled('validade_produto')) {
-                $produto->validade_produto = Carbon::parse($request->validade_produto)->startOfDay();
-            }
+            // Atualiza validade e controla_validade
+            $produto->controla_validade = $request->controla_validade;
+            $produto->validade_produto  = $request->validade_produto;
 
             if ($request->hasFile('imagem')) {
                 if ($produto->imagem) {
@@ -208,7 +370,7 @@ class ProdutoController extends Controller
             // --- Libera o bloqueio de edição ---
             if ($produto->editando_por == auth()->id()) {
                 $produto->editando_por = null;
-                $produto->editando_em = null;
+                $produto->editando_em  = null;
             }
 
             $produto->save();
@@ -218,7 +380,7 @@ class ProdutoController extends Controller
             ->with('success', 'Produto atualizado com sucesso!');
     }
 
-    /** PESQUISAR COM VIEWS E CARDS */
+     /** PESQUISAR COM VIEWS E CARDS */
     public function search(Request $request)
     {
         $query = $request->input('query');

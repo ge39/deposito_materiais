@@ -155,6 +155,16 @@
                             value="{{ old('validade_produto', \Carbon\Carbon::now()->addDays(30)->format('Y-m-d')) }}" required>
                     </div>
 
+                    <div class="col-md-3"> 
+                        <div class="form-group">
+                                <label for="controla_validade">Controla Validade</label>
+                                <select name="controla_validade" id="controla_validade" class="form-control">
+                                    <option value="1" {{ old('controla_validade', $produto->controla_validade ?? 1) == 1 ? 'selected' : '' }}>Sim</option>
+                                    <option value="0" {{ old('controla_validade', $produto->controla_validade ?? 1) == 0 ? 'selected' : '' }}>Não</option>
+                                </select>
+                            </div>  
+                    </div>
+
                 </div>
 
 
