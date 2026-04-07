@@ -36,6 +36,9 @@ use App\Http\Controllers\{
     PainelPromocaoController,
     SangriaController,
     SangriaConfigController,
+    RelatorioEstoqueController,
+    RelatorioReposicaoController,
+
 };
 
 // ===============================
@@ -348,3 +351,11 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/sangria-config', [SangriaConfigController::class, 'store'])
     ->name('sangria-config.store');
+
+        //Relatorio tabela itens_orcamento quantidade_pendente
+    Route::get('/relatorio/reposicao', [RelatorioReposicaoController::class, 'index'])
+    ->name('relatorio.reposicao');
+    
+    // pdf do relatorio itens_orcamentos
+    Route::get('/relatorio/reposicao/pdf', [App\Http\Controllers\RelatorioReposicaoController::class, 'gerarPdf'])
+    ->name('relatorio.reposicao.pdf');

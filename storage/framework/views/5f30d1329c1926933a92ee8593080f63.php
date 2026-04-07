@@ -6,7 +6,7 @@
 
 <?php $__env->startSection('content'); ?>
 <div class="container">
-    <h2 class="mb-4">Editar Pedido/Orçamento #<?php echo e($orcamento->codigo_orcamento); ?></h2>
+    <h2 class="mb-4">Editar Pedido/Orçamento #<?php echo e($orcamento->codigo_orcamento); ?>  </h2>
     
     <?php if(session('success')): ?>
         <div class="alert alert-success"><?php echo e(session('success')); ?></div>
@@ -69,9 +69,9 @@
                 <hr>
 
                 <div class="row fw-bold border-bottom pb-2 mb-2">
-                    <div class="col-md-3">Produto</div>
-                    <div class="col-md-2">Lote</div>
-                    <div class="col-md-2">Qtd</div>
+                    <div class="col-md-3 text-primary">Produto - ID: <?php echo e($orcamento->id); ?></div>
+                    <div class="col-md-3">Lote</div>
+                    <div class="col-md-1">Qtd</div>
                     <div class="col-md-2">Unidade</div>
                     <div class="col-md-1">Preço</div>
                     <div class="col-md-1">Subtotal</div>
@@ -110,7 +110,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                                 <div class="form-control bg-light loteLabel">
                                     <?php echo e($oldItem['lote_label']); ?>
 
@@ -118,10 +118,10 @@
                                 <input type="hidden"
                                     name="produtos[<?php echo e($i); ?>][lote_id]"
                                     class="loteInput"
-                                    value="<?php echo e($oldItem['lote_id']); ?>">
+                                    value="<?php echo e($oldItem['lote_id']); ?>" >
                             </div>
 
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <input type="number" name="produtos[<?php echo e($i); ?>][quantidade]" class="form-control qtd" min="1" value="<?php echo e($oldItem['quantidade']); ?>" required>
                             </div>
 
@@ -197,13 +197,13 @@
                     </select>
                 </div>
 
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <select name="produtos[${index}][lote_id]" class="form-select loteSelect" required>
                         <option value="">Selecione o lote</option>
                     </select>
                 </div>
 
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <input type="number"
                         name="produtos[${index}][quantidade]"
                         class="form-control qtd"

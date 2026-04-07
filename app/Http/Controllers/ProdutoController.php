@@ -58,102 +58,7 @@ class ProdutoController extends Controller
             'produtosExistentes'
         ));
     }
-    // public function store(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'nome'               => 'required|string|max:255',
-    //         'sku'                => 'nullable|string|max:255',
-    //         'descricao'          => 'nullable|string|max:255',
-    //         'categoria_id'       => 'required|integer',
-    //         'fornecedor_id'      => 'required|integer',
-    //         'marca_id'           => 'nullable|integer',
-    //         'unidade_medida_id'  => 'required|integer',
-    //         'codigo_barras'      => 'nullable|string|max:255',
-    //         'preco_venda'        => 'required|numeric',
-    //         'preco_custo'        => 'required|numeric',
-    //         'quantidade_estoque' => 'required|integer|min:1',
-    //         'data_compra'        => 'required|date',
-    //         'validade_produto'   => 'nullable|date',
-    //         'estoque_minimo'     => 'required|integer|min:0',
-            
-            
-    //     ]);
-
-    //     DB::beginTransaction();
-
-    //     try {
-
-    //         $produto = Produto::where('nome', $validated['nome'])
-    //             ->where('sku', $validated['sku'])
-    //             ->where('marca_id', $validated['marca_id'])
-    //             ->where('categoria_id', $validated['categoria_id'])
-    //             ->where('unidade_medida_id', $validated['unidade_medida_id'])
-    //             ->lockForUpdate()
-    //             ->first();
-
-    //         if ($produto) {
-    //             // 🔹 PRODUTO EXISTENTE
-    //             $produto->descricao     = $validated['descricao'];
-    //             $produto->codigo_barras = $validated['codigo_barras'];
-    //             $produto->preco_custo   = $validated['preco_custo'];
-    //             $produto->preco_venda   = $validated['preco_venda'];
-    //             $produto->save();
-    //         } else {
-    //             // 🔹 NOVO PRODUTO
-    //             $produto = Produto::create([
-    //                 'nome'               => $validated['nome'],
-    //                 'sku'                => $validated['sku'],
-    //                 'marca_id'           => $validated['marca_id'],
-    //                 'categoria_id'       => $validated['categoria_id'],
-    //                 'unidade_medida_id'  => $validated['unidade_medida_id'],
-    //                 'descricao'          => $validated['descricao'],
-    //                 'fornecedor_id'      => $validated['fornecedor_id'],
-    //                 'codigo_barras'      => $validated['codigo_barras'],
-    //                 'preco_custo'        => $validated['preco_custo'],
-    //                 'preco_venda'        => $validated['preco_venda'],
-    //                 'quantidade_estoque' => 0,
-    //                 'estoque_minimo'     => $validated['estoque_minimo'], // 🔥 CORRETO
-    //                 'ativo'              => 1,
-    //                 'validade_produto'   => $validated['validade_produto'] ?? null,
-    //                  'validade_produto' => $request->validade_produto,
-    //             ]);
-    //         }
-
-    //         // 🔹 LOTE
-    //         $lote = $produto->lotes()->create([
-    //             'numero_lote'           => 'L' . time(),
-    //             'pedido_compra_id'      => null,
-    //             'produto_id'            => $produto->id,
-    //             'fornecedor_id'         => $validated['fornecedor_id'],
-    //             'quantidade'            => $validated['quantidade_estoque'],
-    //             'quantidade_disponivel' => $validated['quantidade_estoque'],
-    //             'preco_compra'          => $validated['preco_custo'],
-    //             'data_compra'           => $validated['data_compra'],
-    //             'validade_lote'         => $validated['validade_produto'] ?? null,
-    //             'lancado_por'           => auth()->id(),
-    //         ]);
-
-    //         // 🔹 ATUALIZA ESTOQUE
-    //         $produto->quantidade_estoque = $produto->lotes()->sum('quantidade');
-
-    //         if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
-    //             $path = $request->file('imagem')->store('produtos', 'public');
-    //             $produto->imagem = $path;
-    //         }
-
-    //         $produto->save();
-
-    //         DB::commit();
-
-    //         return redirect()->route('produtos.index')
-    //                         ->with('success', 'Produto e lote salvos com sucesso!');
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return back()->withErrors('Erro ao salvar: ' . $e->getMessage());
-    //     }
-    // }
-
+    
     public function store(Request $request)
     {
         // Validação básica
@@ -168,7 +73,7 @@ class ProdutoController extends Controller
             'codigo_barras'      => 'nullable|string|max:255',
             'preco_venda'        => 'required|numeric',
             'preco_custo'        => 'required|numeric',
-            'quantidade_estoque' => 'required|integer|min:1',
+             'quantidade_estoque' => 'required|integer|min:1',
             'data_compra'        => 'required|date',
             'estoque_minimo'     => 'required|integer|min:0',
             'controla_validade'  => 'required|boolean', // ✅ Novo campo

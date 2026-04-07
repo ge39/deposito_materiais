@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
+use App\Models\Empresa;
 use App\Models\Orcamento;
 use App\Models\ItemOrcamento;
 use App\Models\Cliente;
+use App\Models\User;
 use App\Models\Produto;
 use App\Models\Lote;
 use Illuminate\Http\Request;
@@ -21,90 +23,56 @@ class OrcamentoController extends Controller
     }
 
     // 🔥 INICIO ALTERAÇÃO
-    // private function distribuirLotes($produtoId, $quantidade)
-    // {
-    //     $produto = Produto::find($produtoId);
-
-    //     $query = Lote::where('produto_id', $produtoId)
-    //         ->where('status', 1)
-    //         ->where('quantidade_disponivel', '>', 0)
-    //         ->lockForUpdate();
-
-    //     if ($produto->controla_validade) {
-    //             // produtos com validade → FEFO
-    //             $query->whereDate('validade_lote', '>=', now())
-    //                 ->orderBy('validade_lote');
-    //         } else {
-    //             // 🔥 SEM validade → pega todos os lotes sem filtro
-    //             $query->orderBy('id'); // ou FIFO simples
-    //     }
-
-    //     $lotes = $query->get();
-
-    //     $resultado = [];
-
-    //     foreach ($lotes as $lote) {
-    //         if ($quantidade <= 0) break;
-
-    //         $disponivel = $lote->quantidade_disponivel - ($lote->quantidade_reservada ?? 0);
-    //         if ($disponivel <= 0) continue;
-
-    //         $usar = min($disponivel, $quantidade);
-
-    //         $resultado[] = [
-    //             'lote' => $lote,
-    //             'quantidade' => $usar
-    //         ];
-
-    //         $quantidade -= $usar;
-    //     }
-
-    //     if ($quantidade > 0) {
-    //         throw new \Exception("Estoque insuficiente para o produto ID {$produtoId}");
-    //     }
-
-    //     return $resultado;
-    // }
-
-    private function distribuirLotes($produtoId, $quantidade)
+   /**
+ * 🔹 Distribui a quantidade de um produto entre vários lotes
+ * Retorna um array com: ['lote' => Lote, 'quantidade' => float]
+ */
+    private function distribuirLotes(int $produtoId, float $quantidadeDesejada): array
     {
+        $resultado = [];
+        $restante = $quantidadeDesejada;
+
+        // Busca todos os lotes do produto, ativos ou parciais
         $lotes = Lote::where('produto_id', $produtoId)
-            ->whereRaw('quantidade > quantidade_reservada')
-            ->orderBy('created_at') // FIFO (opcional)
+            ->orderBy('created_at')
             ->lockForUpdate()
             ->get();
 
-        //     dd($lotes->map(function($l){
-        //     return [
-        //         'lote_id' => $l->id,
-        //         'disponivel' => $l->quantidade - $l->quantidade_reservada
-        //     ];
-        // }));
-
-        $distribuicao = [];
-        $quantidadeRestante = $quantidade;
-
         foreach ($lotes as $lote) {
+            if ($restante <= 0) break;
 
-            $disponivel = $lote->quantidade - $lote->quantidade_reservada;
+            $disponivel = max(0, $lote->quantidade_disponivel - $lote->quantidade_reservada);
 
-            if ($disponivel <= 0) continue;
+            $atendida = min($disponivel, $restante);
+            $pendente  = $restante - $atendida;
 
-            $qtd = min($disponivel, $quantidadeRestante);
+            // Atualiza quantidade_reservada do lote
+            $lote->quantidade_reservada += $atendida;
+            $lote->save();
 
-            $distribuicao[] = [
+            $resultado[] = [
                 'lote' => $lote,
-                'quantidade' => $qtd
+                'quantidade' => $quantidadeDesejada, // total do item solicitado
+                'atendida' => $atendida,
+                'pendente' => $pendente,
             ];
 
-            $quantidadeRestante -= $qtd;
-
-            if ($quantidadeRestante <= 0) break;
+            $restante -= $atendida;
         }
 
-        return $distribuicao;
+        // Se ainda restar quantidade depois de todos os lotes, pega o último lote
+        if ($restante > 0 && $lotes->isNotEmpty()) {
+            $ultimoLote = $lotes->last();
+            $resultado[] = [
+                'lote' => $ultimoLote,
+                'quantidade' => $restante,
+                'atendida' => 0,
+                'pendente' => $restante,
+            ];
+        }
+
+        return $resultado;
     }
-    // 🔥 FIM ALTERAÇÃO
 
     /** LISTAGEM */
     public function index(Request $request)
@@ -211,40 +179,41 @@ class OrcamentoController extends Controller
 
         $lotes = [];
 
-        foreach ($produtos as $produto) {
+       foreach ($produtos as $produto) {
 
-            $lotesValidos = $produto->lotes->filter(function ($lote) {
-                return $lote->status == 1 &&
-                    $lote->quantidade_disponivel > 0 &&
-                    (
-                        !$lote->validade_lote ||
-                        $lote->validade_lote >= now()
-                    );
-            })->values();
+        $lotesValidos = $produto->lotes->filter(function ($lote) {
+            return $lote->status == 1 &&
+                $lote->quantidade_disponivel > 0 &&
+                (!$lote->validade_lote || $lote->validade_lote >= now());
+        })->values();
 
-            $lotes[$produto->id] = [
-                'controla_validade' => $produto->controla_validade,
+        // Soma de todos os lotes válidos do produto
+        $estoqueDisponivel = $lotesValidos->sum(fn($lote) => $lote->quantidade_disponivel);
 
-                // 🔥 TODOS OS LOTES
-                'todos' => $produto->lotes->map(function ($lote) {
-                    return [
-                        'id' => $lote->id,
-                        'numero_lote' => $lote->numero_lote,
-                        'quantidade_disponivel' => $lote->quantidade_disponivel,
-                        'validade_lote' => $lote->validade_lote
-                    ];
-                })->values(),
+        $lotes[$produto->id] = [
+            'controla_validade' => $produto->controla_validade,
 
-                // 🔥 SOMENTE VÁLIDOS
-                'validos' => $lotesValidos->map(function ($lote) {
-                    return [
-                        'id' => $lote->id,
-                        'numero_lote' => $lote->numero_lote,
-                        'quantidade_disponivel' => $lote->quantidade_disponivel,
-                        'validade_lote' => $lote->validade_lote
-                    ];
-                })->values(),
-            ];
+            'todos' => $produto->lotes->map(function ($lote) {
+                return [
+                    'id' => $lote->id,
+                    'numero_lote' => $lote->numero_lote,
+                    'quantidade_disponivel' => $lote->quantidade_disponivel,
+                    'validade_lote' => $lote->validade_lote,
+                ];
+            })->values(),
+
+            'validos' => $lotesValidos->map(function ($lote) {
+                return [
+                    'id' => $lote->id,
+                    'numero_lote' => $lote->numero_lote,
+                    'quantidade_disponivel' => $lote->quantidade_disponivel,
+                    'validade_lote' => $lote->validade_lote,
+                ];
+            })->values(),
+
+            // 🔥 NOVO: estoque total do produto
+            'estoque_disponivel' => $estoqueDisponivel,
+        ];
         }
 
         return view('orcamentos.create', compact(
@@ -254,273 +223,230 @@ class OrcamentoController extends Controller
         ));
     }
 
-    // public function store(Request $request)
-    // {
-    //     $request->validate([
-    //         'cliente_id' => 'required|exists:clientes,id',
-    //         'data_orcamento' => 'required|date',
-    //         'validade' => 'required|date|after_or_equal:data_orcamento',
-    //         'produtos' => 'required|array|min:1',
-    //         'produtos.*.id' => 'required|exists:produtos,id',
-    //         'produtos.*.quantidade' => 'required|numeric|min:0.01',
-    //         'produtos.*.preco_unitario' => 'required|numeric|min:0.01',
-    //         'produtos.*.lote_id' => 'required|exists:lotes,id',
-    //     ]);
-
-    //     DB::beginTransaction();
-
-    //     try {
-
-    //         $cliente = Cliente::where('id', $request->cliente_id)
-    //             ->lockForUpdate()
-    //             ->firstOrFail();
-
-    //         $orcamento = Orcamento::create([
-    //             'cliente_id' => $cliente->id,
-    //             'data_orcamento' => $request->data_orcamento,
-    //             'codigo_orcamento' => now()->format('YmdHis'),
-    //             'validade' => $request->validade,
-    //             'status' => 'Aguardando Aprovacao',
-    //             'observacoes' => $request->observacoes,
-    //             'total' => 0,
-    //             'ativo' => 1,
-    //         ]);
-
-    //         $codigo = now()->format('Ymd') . $orcamento->id;
-    //         $orcamento->update(['codigo_orcamento' => $codigo]);
-
-    //         $total = 0;
-    //         $produtoIds = [];
-
-    //         foreach ($request->produtos as $produto) {
-
-    //             if (in_array($produto['id'], $produtoIds)) {
-    //                 throw new \Exception('Produto duplicado: ' . $produto['id']);
-    //             }
-    //             $produtoIds[] = $produto['id'];
-
-    //             $produtoModel = Produto::where('id', $produto['id'])
-    //                 ->lockForUpdate()
-    //                 ->firstOrFail();
-
-    //             $quantidade = (float) $produto['quantidade'];
-    //             $preco = (float) $produto['preco_unitario'];
-
-    //             // 🔥 INICIO ALTERAÇÃO
-    //             $distribuicao = $this->distribuirLotes($produtoModel->id, $quantidade);
-
-    //             foreach ($distribuicao as $d) {
-
-    //                 $lote = $d['lote'];
-    //                 $qtd = $d['quantidade'];
-
-    //                 ItemOrcamento::create([
-    //                     'orcamento_id' => $orcamento->id,
-    //                     'produto_id' => $produtoModel->id,
-    //                     'lote_id' => $lote->id,
-    //                     'quantidade' => $qtd,
-    //                     'quantidade_atendida' => $qtd,
-    //                     'quantidade_pendente' => 0,
-    //                     'status' => 'disponivel',
-    //                     'preco_unitario' => $preco,
-    //                     'subtotal' => $qtd * $preco,
-    //                 ]);
-
-    //                 $lote->quantidade_reservada += $qtd;
-    //                 $lote->save();
-
-    //                 $total += $qtd * $preco;
-    //             }
-    //             // 🔥 FIM ALTERAÇÃO
-    //         }
-
-    //         $orcamento->update([
-    //             'total' => $total,
-    //             'status' => 'Aguardando Aprovacao'
-    //         ]);
-
-    //         DB::commit();
-
-    //         return redirect()->route('orcamentos.index')
-    //             ->with('success', 'Orçamento criado com sucesso!');
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return back()->withInput()->with('error', 'Erro ao criar orçamento: ' . $e->getMessage());
-    //     }
-    // }
-
+       /**
+     * Criar um novo orçamento
+     */
     public function store(Request $request)
     {
         $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
-            'data_orcamento' => 'required|date',
-            'validade' => 'required|date|after_or_equal:data_orcamento',
             'produtos' => 'required|array|min:1',
             'produtos.*.id' => 'required|exists:produtos,id',
-            'produtos.*.quantidade' => 'required|numeric|min:0.01',
-            'produtos.*.preco_unitario' => 'required|numeric|min:0.01',
+            'produtos.*.quantidade' => 'required|numeric|min:1',
+            'validade'   => 'required|date',
         ]);
 
-        DB::beginTransaction();
+       
 
-        try {
+        DB::transaction(function () use ($request) {
+            $empresa = Empresa::where('ativo', 1)->first();
 
+            if (!$empresa) {
+                throw new \Exception('Nenhuma empresa ativa encontrada.');
+            }
+
+            // Cria o orçamento
             $orcamento = Orcamento::create([
-                'cliente_id' => $request->cliente_id,
-                'data_orcamento' => $request->data_orcamento,
-                'validade' => $request->validade,
-                'codigo_orcamento' => now()->format('YmdHis'),
-                'status' => 'Aguardando Aprovacao',
-                'total' => 0,
-                'ativo' => 1,
+                'cliente_id'     => $request->cliente_id,
+                'empresa_id' => $empresa->id,
+                'data_orcamento' => now(),
+                'validade'       => $request->validade,
+                'codigo_orcamento'=> now()->format('YmdHis'),
+                'status'         => Orcamento::STATUS_AGUARDANDO_APROVACAO,
+                'observacoes'    => $request->observacoes ?? null,
+                'total'          => 0,
+                'ativo'          => true,
+                'editando_por'       => auth()->id(),
+                'editando_em'        => now()->format('YmdHis') ,
             ]);
 
-            $total = 0;
+            $totalOrcamento = 0;
+            $orcamento->codigo_orcamento = now()->format('YmdHis') . $orcamento->id;
+            $orcamento->save();
 
-            foreach ($request->produtos as $produto) {
+            // Percorre os itens enviados
+            foreach ($request->produtos as $itemReq) {
 
-                $quantidade = (float) $produto['quantidade'];
-                $preco = (float) $produto['preco_unitario'];
+                $produtoId = $itemReq['id'];
+                $quantidadeDesejada = $itemReq['quantidade'];
+                $precoUnitario = $itemReq['preco_unitario'] ?? 0;
+                $subtotal = $quantidadeDesejada * $precoUnitario;
+                $totalOrcamento += $subtotal;
 
-                $quantidadeRestante = $quantidade;
-                $quantidadeAtendida = 0;
-
-                $lotes = Lote::where('produto_id', $produto['id'])
+                // Buscar lotes válidos do produto
+                $lotes = Lote::where('produto_id', $produtoId)
                     ->where('status', 1)
-                    ->whereRaw('quantidade_disponivel > quantidade_reservada')
                     ->orderBy('created_at')
                     ->lockForUpdate()
                     ->get();
 
+                $quantidadeAtendida = 0;
+                $quantidadePendente = $quantidadeDesejada;
+                $loteId = null;
+
                 foreach ($lotes as $lote) {
+                    if ($quantidadePendente <= 0) break;
 
-                    if ($quantidadeRestante <= 0) break;
+                    $disponivel = $lote->quantidade_disponivel - $lote->quantidade_reservada;
 
-                    $qtdReservada = $lote->reservar($quantidadeRestante);
+                    if ($disponivel <= 0) continue;
 
-                    if ($qtdReservada <= 0) continue;
+                    $qtdParaReservar = min($quantidadePendente, $disponivel);
 
-                    ItemOrcamento::create([
-                        'orcamento_id' => $orcamento->id,
-                        'produto_id' => $produto['id'],
-                        'lote_id' => $lote->id,
-                        'quantidade' => $qtdReservada,
-                        'quantidade_atendida' => $qtdReservada,
-                        'quantidade_pendente' => 0,
-                        'status' => 'disponivel',
-                        'preco_unitario' => $preco,
-                        'subtotal' => $qtdReservada * $preco,
-                    ]);
+                    // Atualiza lote
+                    $lote->quantidade_reservada += $qtdParaReservar;
+                    $lote->save();
 
-                    $quantidadeRestante -= $qtdReservada;
-                    $quantidadeAtendida += $qtdReservada;
-                    $total += $qtdReservada * $preco;
+                    $quantidadeAtendida += $qtdParaReservar;
+                    $quantidadePendente -= $qtdParaReservar;
+
+                    $loteId = $lote->id; // último lote usado
                 }
-                   
-                // 🔥 PENDENTE (REGRA DE NEGÓCIO)
-                if ($quantidadeRestante > 0) {
 
-                    ItemOrcamento::create([
-                        'orcamento_id' => $orcamento->id,
-                        'produto_id' => $produto['id'],
-                        'lote_id' => $lote->id, // opcional: pode deixar null ou associar ao último lote tentado
-                        'quantidade' => $quantidadeRestante,
-                        'quantidade_atendida' => 0,
-                        'quantidade_pendente' => $quantidadeRestante,
-                        'status' => 'indisponivel',
-                        'preco_unitario' => $preco,
-                        'subtotal' => $quantidadeRestante * $preco,
-                        'previsao_entrega' => now()->addDays(7),
-                    ]);
-
-                    $total += $quantidadeRestante * $preco;
+                // Define status do item
+                if ($quantidadeAtendida == 0) {
+                    $status = 'indisponivel';
+                } elseif ($quantidadePendente > 0) {
+                    $status = 'parcial';
+                } else {
+                    $status = 'disponivel';
                 }
+
+                // Previsão de entrega: mantém a mesma data inicial ou pode usar o lote mais antigo
+                $previsaoEntrega = $lotes->first()?->validade_lote ?? now();
+
+                // Cria item do orçamento
+                ItemOrcamento::create([
+                    'orcamento_id'      => $orcamento->id,
+                    'produto_id'        => $produtoId,
+                    'lote_id'           => $loteId,
+                    'quantidade'        => $quantidadeDesejada,
+                    'quantidade_atendida'=> $quantidadeAtendida,
+                    'quantidade_pendente'=> $quantidadePendente,
+                    'preco_unitario'    => $precoUnitario,
+                    'subtotal'          => $subtotal,
+                    'status'            => $status,
+                    'previsao_entrega'  => $previsaoEntrega,
+                ]);
             }
 
-            $orcamento->update([
-                'total' => $total
-            ]);
+            // Atualiza total do orçamento
+            $orcamento->total = $totalOrcamento;
 
-            DB::commit();
+            // Atualiza status geral do orçamento
+            $temPendentes = $orcamento->itens()->whereIn('status', ['indisponivel','parcial'])->count() > 0;
+            $orcamento->status = $temPendentes
+                ? 'Aguardando Estoque'
+                : 'Aguardando Aprovacao';
 
-            return redirect()->route('orcamentos.index')
-                ->with('success', 'Orçamento criado com sucesso!');
+            $orcamento->save();
+        });
 
-        } catch (\Exception $e) {
-
-            DB::rollBack();
-
-            return back()->withInput()
-                ->with('error', $e->getMessage());
-        }
+        return redirect()->route('orcamentos.index')
+            ->with('success', 'Orçamento criado com sucesso.');
     }
 
-    public function update(Request $request, $id)
+
+   public function update(Request $request, $id)
     {
         $orcamento = Orcamento::findOrFail($id);
 
-        DB::beginTransaction();
+        DB::transaction(function () use ($request, $orcamento) {
 
-        try {
-
-            // 🔥 INICIO ALTERAÇÃO (devolve estoque)
+            // 🔹 Devolver estoque dos itens atuais
             foreach ($orcamento->itens as $item) {
                 if ($item->lote_id) {
                     $lote = Lote::find($item->lote_id);
                     if ($lote) {
                         $lote->quantidade_reservada -= $item->quantidade_atendida ?? 0;
+                        if ($lote->quantidade_reservada < 0) $lote->quantidade_reservada = 0;
                         $lote->save();
                     }
                 }
             }
-            // 🔥 FIM ALTERAÇÃO
 
+            // 🔹 Deleta itens antigos
             $orcamento->itens()->delete();
 
-            $total = 0;
+            $totalOrcamento = 0;
 
-            foreach ($request->produtos as $produto) {
+            // 🔹 Percorre produtos enviados
+            foreach ($request->produtos as $produtoReq) {
+                $produtoId = $produtoReq['id'];
+                $quantidadeDesejada = $produtoReq['quantidade'];
+                $precoUnitario = $produtoReq['preco_unitario'] ?? 0;
+                $subtotalProduto = 0;
 
-                // 🔥 INICIO ALTERAÇÃO
-                $distribuicao = $this->distribuirLotes($produto['id'], $produto['quantidade']);
+                // Buscar lotes válidos
+                $lotes = Lote::where('produto_id', $produtoId)
+                    ->where('status', 1)
+                    ->orderBy('created_at')
+                    ->lockForUpdate()
+                    ->get();
 
-                foreach ($distribuicao as $d) {
+                $quantidadeAtendida = 0;
+                $quantidadePendente = $quantidadeDesejada;
+                $ultimoLoteId = null;
 
-                    $lote = $d['lote'];
-                    $qtd = $d['quantidade'];
+                foreach ($lotes as $lote) {
+                    if ($quantidadePendente <= 0) break;
 
-                    $subtotal = $qtd * $produto['preco_unitario'];
+                    $disponivel = $lote->quantidade_disponivel - $lote->quantidade_reservada;
+                    if ($disponivel <= 0) continue;
 
-                    ItemOrcamento::create([
-                        'orcamento_id' => $orcamento->id,
-                        'produto_id' => $produto['id'],
-                        'lote_id' => $lote->id,
-                        'quantidade' => $qtd,
-                        'preco_unitario' => $produto['preco_unitario'],
-                        'subtotal' => $subtotal
-                    ]);
+                    $qtdParaReservar = min($quantidadePendente, $disponivel);
 
-                    $lote->quantidade_reservada += $qtd;
+                    // Atualiza lote
+                    $lote->quantidade_reservada += $qtdParaReservar;
                     $lote->save();
 
-                    $total += $subtotal;
+                    $quantidadeAtendida += $qtdParaReservar;
+                    $quantidadePendente -= $qtdParaReservar;
+                    $ultimoLoteId = $lote->id;
+
+                    $subtotalProduto += $qtdParaReservar * $precoUnitario;
                 }
-                // 🔥 FIM ALTERAÇÃO
+
+                // Determina status do item
+                if ($quantidadeAtendida == 0) {
+                    $statusItem = 'indisponivel';
+                } elseif ($quantidadePendente > 0) {
+                    $statusItem = 'parcial';
+                } else {
+                    $statusItem = 'disponivel';
+                }
+
+                // Previsão de entrega: usa validade do lote mais antigo ou adiciona 7 dias
+                $previsaoEntrega = $lotes->first()?->validade_lote ?? now()->addDays(7);
+                // Cria item do orçamento
+                ItemOrcamento::create([
+                    'orcamento_id'       => $orcamento->id,
+                    'produto_id'         => $produtoId,
+                    'lote_id'            => $ultimoLoteId,
+                    'quantidade'         => $quantidadeDesejada,
+                    'quantidade_atendida'=> $quantidadeAtendida,
+                    'quantidade_pendente'=> $quantidadePendente,
+                    'preco_unitario'     => $precoUnitario,
+                    'subtotal'           => $subtotalProduto,
+                    'status'             => $statusItem,
+                    'previsao_entrega'   => now()->addDays(7),
+                    'ativo'              => true,
+                     'observacoes'        => $request->observacoes ?? 'Sem observações',
+                ]);
+
+                $totalOrcamento += $subtotalProduto;
             }
 
-            $orcamento->update(['total' => $total]);
+            // 🔹 Atualiza total e status do orçamento
+            $temPendentes = $orcamento->itens()->whereIn('status', ['indisponivel','parcial'])->count() > 0;
+            $orcamento->update([
+                'total' => $totalOrcamento,
+                'status'=> $temPendentes ? 'Aguardando Estoque' : 'Aguardando Aprovacao',
+            ]);
+        });
 
-            DB::commit();
-
-            return redirect()
-                ->route('orcamentos.index')
-                ->with('success', 'Orçamento atualizado com sucesso!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Erro ao atualizar: ' . $e->getMessage());
-        }
+        return redirect()->route('orcamentos.index')
+                        ->with('success', 'Orçamento atualizado com sucesso!');
     }
 
     // 🔽 RESTANTE DO CONTROLLER PERMANECE 100% IGUAL (sem alterações)

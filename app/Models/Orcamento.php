@@ -42,7 +42,7 @@ class Orcamento extends Model
      ========================= */
     public function empresa ()
     {
-        return $this->belongsTo(Empresa::Class);
+        return $this->belongsTo(Empresa::Class, 'empresa_id');
     }
     /** Cliente do orçamento */
    public function cliente()

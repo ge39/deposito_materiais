@@ -6,7 +6,7 @@
 
 @section('content')
 <div class="container">
-    <h2 class="mb-4">Editar Pedido/Orçamento #{{ $orcamento->codigo_orcamento }}</h2>
+    <h2 class="mb-4">Editar Pedido/Orçamento #{{ $orcamento->codigo_orcamento }}  </h2>
     
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
@@ -68,9 +68,9 @@
                 <hr>
 
                 <div class="row fw-bold border-bottom pb-2 mb-2">
-                    <div class="col-md-3">Produto</div>
-                    <div class="col-md-2">Lote</div>
-                    <div class="col-md-2">Qtd</div>
+                    <div class="col-md-3 text-primary">Produto - ID: {{ $orcamento->id }}</div>
+                    <div class="col-md-3">Lote</div>
+                    <div class="col-md-1">Qtd</div>
                     <div class="col-md-2">Unidade</div>
                     <div class="col-md-1">Preço</div>
                     <div class="col-md-1">Subtotal</div>
@@ -108,17 +108,17 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                                 <div class="form-control bg-light loteLabel">
                                     {{ $oldItem['lote_label'] }}
                                 </div>
                                 <input type="hidden"
                                     name="produtos[{{ $i }}][lote_id]"
                                     class="loteInput"
-                                    value="{{ $oldItem['lote_id'] }}">
+                                    value="{{ $oldItem['lote_id'] }}" >
                             </div>
 
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <input type="number" name="produtos[{{ $i }}][quantidade]" class="form-control qtd" min="1" value="{{ $oldItem['quantidade'] }}" required>
                             </div>
 
@@ -193,13 +193,13 @@
                     </select>
                 </div>
 
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <select name="produtos[${index}][lote_id]" class="form-select loteSelect" required>
                         <option value="">Selecione o lote</option>
                     </select>
                 </div>
 
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <input type="number"
                         name="produtos[${index}][quantidade]"
                         class="form-control qtd"

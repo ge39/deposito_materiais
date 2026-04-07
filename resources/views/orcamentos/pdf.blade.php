@@ -1,240 +1,241 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Orçamento #{{ $orcamento->id }}</title>
+    <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <title>Orçamento #{{ $orcamento->id }}</title>
 
-<style>
-body {
-    font-family: DejaVu Sans, sans-serif;
-    margin: 30px;
-    font-size: 12px;
-    color: #333;
-}
+            <style>
+                body {
+                    font-family: DejaVu Sans, sans-serif;
+                    margin: 30px;
+                    font-size: 12px;
+                    color: #333;
+                }
 
-.header {
-    text-align: center;
-    border-bottom: 2px solid #000;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-}
+                .header {
+                    text-align: center;
+                    border-bottom: 2px solid #000;
+                    margin-bottom: 20px;
+                    padding-bottom: 10px;
+                }
 
-.section {
-    margin-bottom: 20px;
-}
+                .section {
+                    margin-bottom: 20px;
+                }
 
-.section-title {
-    background: #f0f0f0;
-    padding: 6px;
-    font-weight: bold;
-    border: 1px solid #ccc;
-}
+                .section-title {
+                    background: #f0f0f0;
+                    padding: 6px;
+                    font-weight: bold;
+                    border: 1px solid #ccc;
+                }
 
-.box {
-    border: 1px solid #ccc;
-    padding: 10px;
-}
+                .box {
+                    border: 1px solid #ccc;
+                    padding: 10px;
+                }
 
-.row {
-    margin-bottom: 5px;
-}
+                .row {
+                    margin-bottom: 5px;
+                }
 
-.label {
-    display: inline-block;
-    width: 120px;
-    font-weight: bold;
-}
+                .label {
+                    display: inline-block;
+                    width: 120px;
+                    font-weight: bold;
+                }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 5px;
-}
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 5px;
+                }
 
-th, td {
-    border: 1px solid #999;
-    padding: 6px;
-    font-size: 11px;
-}
+                th, td {
+                    border: 1px solid #999;
+                    padding: 6px;
+                    font-size: 11px;
+                }
 
-th {
-    background: #eee;
-}
+                th {
+                    background: #eee;
+                }
 
-.text-right {
-    text-align: right;
-}
+                .text-right {
+                    text-align: right;
+                }
 
-.text-center {
-    text-align: center;
-}
+                .text-center {
+                    text-align: center;
+                }
 
-.total {
-    text-align: right;
-    font-weight: bold;
-    margin-top: 10px;
-    font-size: 13px;
-}
+                .total {
+                    text-align: right;
+                    font-weight: bold;
+                    margin-top: 10px;
+                    font-size: 13px;
+                }
 
-.page-break {
-    page-break-before: always;
-}
+                .page-break {
+                    page-break-before: always;
+                }
 
-/* ASSINATURA */
-.assinatura {
-    margin-top: 60px;
-    width: 100%;
-}
+                /* ASSINATURA */
+                .assinatura {
+                    margin-top: 60px;
+                    width: 100%;
+                }
 
-.assinatura-box {
-    width: 45%;
-    display: inline-block;
-    text-align: center;
-}
+                .assinatura-box {
+                    width: 45%;
+                    display: inline-block;
+                    text-align: center;
+                }
 
-.linha {
-    border-top: 1px solid #000;
-    margin-top: 40px;
-    padding-top: 5px;
-}
+                .linha {
+                    border-top: 1px solid #000;
+                    margin-top: 40px;
+                    padding-top: 5px;
+                }
 
-/* CONTATO */
-.contato {
-    margin-top: 20px;
-    font-size: 11px;
-    text-align: center;
-    color: #555;
-}
+                /* CONTATO */
+                .contato {
+                    margin-top: 20px;
+                    font-size: 11px;
+                    text-align: center;
+                    color: #555;
+                }
 
-/* CARIMBO */
-.carimbo {
-    position: fixed;
-    top: 45%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-20deg);
-    font-size: 60px;
-    color: rgba(0,0,0,0.1);
-    border: 4px solid rgba(0,0,0,0.1);
-    padding: 10px 30px;
-}
-.aprovado {
-    color: rgba(0,128,0,0.2);
-    border-color: rgba(0,128,0,0.2);
-}
-.cancelado {
-    color: rgba(255,0,0,0.2);
-    border-color: rgba(255,0,0,0.2);
-}
+                /* CARIMBO */
+                .carimbo {
+                    position: fixed;
+                    top: 45%;
+                    left: 50%;
+                    transform: translate(-50%, -50%) rotate(-20deg);
+                    font-size: 60px;
+                    color: rgba(0,0,0,0.1);
+                    border: 4px solid rgba(0,0,0,0.1);
+                    padding: 10px 30px;
+                }
+                .aprovado {
+                    color: rgba(0,128,0,0.2);
+                    border-color: rgba(0,128,0,0.2);
+                }
+                .cancelado {
+                    color: rgba(255,0,0,0.2);
+                    border-color: rgba(255,0,0,0.2);
+                }
 
-.footer {
-    position: fixed;
-    bottom: 10px;
-    text-align: center;
-    width: 100%;
-    font-size: 10px;
-    color: #777;
-}
-</style>
-</head>
+                .footer {
+                    position: fixed;
+                    bottom: 10px;
+                    text-align: center;
+                    width: 100%;
+                    font-size: 10px;
+                    color: #777;
+                }
+            </style>
+        </head>
 
 <body>
 
-{{-- CARIMBO --}}
-@if($orcamento->status === 'Aprovado')
-    <div class="carimbo aprovado">APROVADO</div>
-@elseif($orcamento->status === 'Cancelado')
-    <div class="carimbo cancelado">CANCELADO</div>
-@else
-    <div class="carimbo">AGUARDANDO</div>
-@endif
+    {{-- CARIMBO --}}
+    @if($orcamento->status === 'Aprovado')
+        <div class="carimbo aprovado">APROVADO</div>
+    @elseif($orcamento->status === 'Cancelado')
+        <div class="carimbo cancelado">CANCELADO</div>
+    @else
+        <div class="carimbo">AGUARDANDO</div>
+    @endif
 
-<!-- HEADER -->
-<div class="header">
-    <h2>Orçamento / Pedido</h2>
-    <small>Gerado em: {{ now()->format('d/m/Y H:i') }}</small>
-</div>
-
-<!-- 🔷 HEADER EMPRESA -->
-<div class="header">
-    <strong>{{ $orcamento->empresa->nome ?? 'EMPRESA NAO CADASTRADA' }}</strong><br>
-    CNPJ: {{ $orcamento->empresa->cnpj ?? '-' }}<br>
-    {{ $orcamento->empresa->endereco ?? '-' }}, {{ $orcamento->empresa->numero ?? '' }}<br>
-    {{ $orcamento->empresa->cidade ?? '-' }} - {{ $orcamento->empresa->estado ?? '-' }}<br>
-    Tel: {{ $orcamento->empresa->telefone ?? '-' }}
-</div>
-
-@php
-$itensAgrupados = $orcamento->itens->groupBy('produto_id');
-@endphp
-
-@php
-$totalVenda = $orcamento->itens->sum(fn($i) => $i->quantidade * $i->preco_unitario);
-
-$totalEntregue = $orcamento->itens->sum(fn($i) => $i->quantidade_atendida * $i->preco_unitario);
-
-$totalPendente = $orcamento->itens->sum(fn($i) => $i->quantidade_pendente * $i->preco_unitario);
-@endphp
-
-<!-- DADOS -->
-<div class="section">
-    <div class="box">
-        <div class="row"><span class="label">Código:</span> #{{ $orcamento->codigo_orcamento }}</div>
-        <div class="row"><span class="label">Cliente:</span> {{ $orcamento->cliente->nome ?? '-' }}</div>
-        <div class="row"><span class="label">Telefone:</span> {{ $orcamento->cliente->telefone ?? '-' }}</div>
-        <div class="row"><span class="label">Data:</span> {{ \Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y') }}</div>
-        <div class="row"><span class="label">Validade:</span> {{ \Carbon\Carbon::parse($orcamento->validade)->format('d/m/Y') }}</div>
+    <!-- HEADER -->
+    <div class="header">
+        
+        <h2>Orçamento / Pedido</h2>
+        <small>Gerado em: {{ now()->format('d/m/Y H:i') }}</small>
     </div>
-</div>
 
-<!-- 📦 ITENS ENTREGUES -->
-<div class="section">
-    <div class="section-title">Itens Entregues</div>
+    <!-- 🔷 HEADER EMPRESA -->
+    <div class="header">
+        <strong>{{ $orcamento->empresa->nome ?? 'EMPRESA NAO CADASTRADA' }}</strong><br>
+        CNPJ: {{ $orcamento->empresa->cnpj ?? '-' }}<br>
+        {{ $orcamento->empresa->endereco ?? '-' }}, {{ $orcamento->empresa->numero ?? '' }}<br>
+        {{ $orcamento->empresa->cidade ?? '-' }} - {{ $orcamento->empresa->estado ?? '-' }}<br>
+        Tel: {{ $orcamento->empresa->telefone ?? '-' }}
+    </div>
 
-    <table>
-        <thead>
-<tr>
-    <th>Produto</th>
-    <th>Solicitado</th>
-    <th>Entregue</th>
-    <th>Lote</th>
-</tr>
-</thead>
+    @php
+        $itensAgrupados = $orcamento->itens->groupBy('produto_id');
+    @endphp
+
+    @php
+        $totalVenda = $orcamento->itens->sum(fn($i) => $i->quantidade * $i->preco_unitario);
+
+        $totalEntregue = $orcamento->itens->sum(fn($i) => $i->quantidade_atendida * $i->preco_unitario);
+
+        $totalPendente = $orcamento->itens->sum(fn($i) => $i->quantidade_pendente * $i->preco_unitario);
+    @endphp
+
+    <!-- DADOS -->
+    <div class="section">
+        <div class="box">
+            <div class="row"><span class="label">Código:</span> #{{ $orcamento->codigo_orcamento }} - ID:{{ $orcamento->id }}</div>
+            <div class="row"><span class="label">Cliente:</span> {{ $orcamento->cliente->nome ?? '-' }}</div>
+            <div class="row"><span class="label">Telefone:</span> {{ $orcamento->cliente->telefone ?? '-' }}</div>
+            <div class="row"><span class="label">Data:</span> {{ \Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y') }}</div>
+            <div class="row"><span class="label">Validade:</span> {{ \Carbon\Carbon::parse($orcamento->validade)->format('d/m/Y') }}</div>
+        </div>
+    </div>
+
+    <!-- 📦 ITENS ENTREGUES -->
+    <div class="section">
+        <div class="section-title">Itens Entregues</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Produto</th>
+                    <th>Solicitado</th>
+                    <th>Entregue</th>
+                    <th>Lote</th>
+                </tr>
+            </thead>
 
 <tbody>
-@foreach($itensAgrupados as $itens)
+    @foreach($itensAgrupados as $itens)
 
-@php
-    $produto = $itens->first()->produto;
+    @php
+        $produto = $itens->first()->produto;
 
-    $qtdSolicitada = $itens->sum('quantidade');
-    $qtdEntregue = $itens->sum('quantidade_atendida');
+        $qtdSolicitada = $itens->sum('quantidade');
+        $qtdEntregue = $itens->sum('quantidade_atendida');
 
-    $lotes = $itens
-        ->where('quantidade_atendida', '>', 0)
-        ->map(fn($i) => $i->lote->numero_lote ?? '-')
-        ->unique()
-        ->implode(', ');
-@endphp
+        $lotes = $itens
+            ->where('quantidade_atendida', '>', 0)
+            ->map(fn($i) => $i->lote->numero_lote ?? '-')
+            ->unique()
+            ->implode(', ');
+    @endphp
 
-@if($qtdEntregue > 0)
-<tr>
-    <td>{{ $produto->descricao }}</td>
+    @if($qtdEntregue > 0)
+        <tr>
+            <td>{{ $produto->descricao }}</td>
 
-    <td class="text-center">
-        {{ number_format($qtdSolicitada, 2, ',', '.') }}
-    </td>
+            <td class="text-center">
+                {{ number_format($qtdSolicitada, 2, ',', '.') }}
+            </td>
 
-    <td class="text-center">
-        {{ number_format($qtdEntregue, 2, ',', '.') }}
-    </td>
+            <td class="text-center">
+                {{ number_format($qtdEntregue, 2, ',', '.') }}
+            </td>
 
-    <td class="text-center">
-        {{ $lotes ?: '-' }}
-    </td>
-</tr>
-@endif
+            <td class="text-center">
+                {{ $lotes ?: '-' }}
+            </td>
+        </tr>
+    @endif
 
-@endforeach
+    @endforeach
 </tbody>
     </table>
 

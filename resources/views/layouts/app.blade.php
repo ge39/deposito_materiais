@@ -177,6 +177,31 @@
             </li>
         </ul>
     </li>
+     <li class="dropdown-submenu">
+        <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
+            <i class="bi bi-tag me-2"></i>Relatórios
+        </a>
+        <ul class="dropdown-menu">
+             <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('relatorio.reposicao') : '#' }}">
+                   <i class="bi bi-list-stars me-2"></i>Orcamento / Qtde Pendente
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('promocoes.index') : '#' }}">
+                   <i class="bi bi-list-stars me-2"></i>Listar Promoções
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('promocoes.create') : '#' }}">
+                   <i class="bi bi-plus-circle me-2"></i>Nova Promoção
+                </a>
+            </li>
+        </ul>
+    </li>
   </ul>
 </li>
       </ul>
