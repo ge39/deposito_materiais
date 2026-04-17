@@ -10,6 +10,7 @@ class RelatorioReposicaoController extends Controller
 {
     public function index(Request $request)
     {
+        
         $dados = $this->buscarDados($request);
         $resumo = $this->resumoProdutos($request);
         $totais = $this->totaisGerais($request);
@@ -31,7 +32,7 @@ class RelatorioReposicaoController extends Controller
             ->where('status', 1)
             ->groupBy('produto_id');
 
-        $query = DB::table('itens_orcamento as io')
+        $query = DB::table('item_orcamentos as io')
             ->join('orcamentos as o', 'o.id', '=', 'io.orcamento_id')
             ->join('produtos as p', 'p.id', '=', 'io.produto_id')
 
@@ -60,7 +61,7 @@ class RelatorioReposicaoController extends Controller
                 DB::raw('MIN(io.previsao_entrega) as previsao_entrega'),
                 DB::raw('COALESCE(estoque.estoque_disponivel, 0) as estoque_disponivel'),
 
-                DB::raw('SUM(io.quantidade) as total_quantidade'),
+                DB::raw('SUM(io.quantidade_solicitada) as total_quantidade'),
                 DB::raw('SUM(io.quantidade_atendida) as total_atendida'),
                 DB::raw('SUM(io.quantidade_pendente) as total_pendente'),
                 DB::raw('SUM(io.subtotal) as valor_total'),
@@ -123,7 +124,7 @@ class RelatorioReposicaoController extends Controller
      */
     private function resumoProdutos(Request $request)
     {
-        $query = DB::table('itens_orcamento as io')
+        $query = DB::table('item_orcamentos as io')
             ->join('produtos as p', 'p.id', '=', 'io.produto_id')
             ->leftJoin('unidades_medida as um', 'um.id', '=', 'p.unidade_medida_id')
             ->join('orcamentos as o', 'o.id', '=', 'io.orcamento_id')
@@ -163,7 +164,7 @@ class RelatorioReposicaoController extends Controller
      */
     private function totaisGerais(Request $request)
     {
-        $query = DB::table('itens_orcamento as io')
+        $query = DB::table('item_orcamentos as io')
             ->join('orcamentos as o', 'o.id', '=', 'io.orcamento_id')
             ->join('produtos as p', 'p.id', '=', 'io.produto_id') // ✅ ADICIONA ISSO
 

@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Lote;
 use App\Models\Produto;
 use Illuminate\Http\Request;
@@ -55,7 +56,7 @@ class LoteController extends Controller
     /**
      * Salvar novo lote
      */
-    public function store(Request $request)
+   public function store(Request $request, EstoqueService $estoqueService)
     {
         $request->validate([
             'produto_id'     => 'required|exists:produtos,id',
@@ -64,15 +65,19 @@ class LoteController extends Controller
             'validade_lote'  => 'required|date',
         ]);
 
-        Lote::create([
+        $lote = Lote::create([
             'produto_id'    => $request->produto_id,
             'codigo_lote'   => $request->codigo_lote,
             'quantidade'    => $request->quantidade,
+            'quantidade_reservada' => 0,
             'validade_lote' => $request->validade_lote,
         ]);
 
+        // 🔥 AQUI A MÁGICA
+        $estoqueService->entradaLote($lote);
+
         return redirect()->route('lotes.index')
-            ->with('success', 'Lote cadastrado com sucesso.');
+            ->with('success', 'Lote cadastrado e distribuído automaticamente.');
     }
 
     /**
@@ -100,26 +105,31 @@ class LoteController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $lote = Lote::findOrFail($id);
 
-        $request->validate([
-            'produto_id'     => 'required|exists:produtos,id',
-            'codigo_lote'    => "required|string|max:100|unique:lotes,codigo_lote,{$lote->id}",
-            'quantidade'     => 'required|numeric|min:0',
-            'validade_lote'  => 'required|date',
-        ]);
+         DB::transaction(function () use ($request, $id) {
+            $lote = Lote::findOrFail($id);
 
-        $lote->update([
-            'produto_id'    => $request->produto_id,
-            'codigo_lote'   => $request->codigo_lote,
-            'quantidade'    => $request->quantidade,
-            'validade_lote' => $request->validade_lote,
-        ]);
+            $request->validate([
+                'produto_id'     => 'required|exists:produtos,id',
+                'codigo_lote'    => "required|string|max:100|unique:lotes,codigo_lote,{$lote->id}",
+                'quantidade'     => 'required|numeric|min:0',
+                'validade_lote'  => 'required|date',
+            ]);
+
+            $lote->update([
+                'produto_id'    => $request->produto_id,
+                'codigo_lote'   => $request->codigo_lote,
+                'quantidade'    => $request->quantidade,
+                'validade_lote' => $request->validade_lote,
+            ]);
+            
+            // 🔥 DISPARO CORRETO
+            event(new \App\Events\EstoqueAtualizado($lote->produto_id));
+        });
 
         return redirect()->route('lotes.index')
             ->with('success', 'Lote atualizado com sucesso.');
     }
-
     /**
      * Excluir lote
      */

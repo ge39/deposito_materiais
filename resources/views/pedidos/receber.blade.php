@@ -97,8 +97,9 @@
         </div>
 
         <button class="btn btn-success mt-3 px-4">Confirmar Recebimento</button>
-        <a href="{{ url()->previous() }}" class="btn btn-secondary mt-3 px-4">Voltar</a>
-
+        <!-- <a href="{{ url()->previous() }}" class="btn btn-secondary mt-3 px-4">Voltar</a> -->
+        <a href="{{ route('pedidos.index') }}" class="btn btn-secondary mt-3 px-4" >Voltar</a>
+           
     </form>
 </div>
 

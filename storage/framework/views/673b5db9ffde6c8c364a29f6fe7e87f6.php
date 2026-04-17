@@ -110,6 +110,7 @@
                             onclick="return confirm('Deseja realmente aprovar este orçamento?')">
                             Aprovar
                         </button>
+                        
                     </form>
                 <?php endif; ?>
 

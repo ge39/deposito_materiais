@@ -1,9 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Models\Venda;
-use App\Models\Caixa;
-
 use App\Http\Controllers\{
     AuthController,
     AuditoriaCaixaController,
@@ -36,9 +33,8 @@ use App\Http\Controllers\{
     PainelPromocaoController,
     SangriaController,
     SangriaConfigController,
-    RelatorioEstoqueController,
     RelatorioReposicaoController,
-
+    MovimentacaoOrcamentoController,
 };
 
 // ===============================
@@ -63,7 +59,6 @@ Route::middleware('auth')->group(function () {
         Route::patch('{pedido}/status', [PedidoCompraController::class, 'updateStatus'])->name('updateStatus');
         Route::get('aprovar/{id}', [PedidoCompraController::class, 'aprovar'])->name('aprovar');
         Route::get('receber-view/{id}', [PedidoCompraController::class, 'receberView'])->name('receber.view');
-        Route::post('receber-confirmar/{id}', [PedidoCompraController::class, 'receberConfirmar'])->name('receber.confirmar');
         Route::post('receber/{id}', [PedidoCompraController::class, 'receber'])->name('receber');
         Route::get('cancelar/{id}', [PedidoCompraController::class, 'cancelar'])->name('cancelar');
         Route::get('pdf/{id}', [PedidoCompraController::class, 'gerarPdf'])->name('pdf');
@@ -73,8 +68,7 @@ Route::middleware('auth')->group(function () {
     // ===============================
     // ORÇAMENTOS
     // ===============================
-    
-    Route::prefix('orcamentos')->name('orcamentos.')->group(function () {
+     Route::prefix('orcamentos')->name('orcamentos.')->group(function () {
         Route::post('{orcamento}/aprovar', [OrcamentoController::class, 'aprovar'])->name('aprovar');
         Route::post('{orcamento}/reativar', [OrcamentoController::class, 'reativar'])->name('reativar');
         Route::post('{orcamento}/cancelar', [OrcamentoController::class, 'cancelar'])->name('cancelar');
@@ -359,3 +353,7 @@ Route::middleware('auth')->group(function () {
     // pdf do relatorio itens_orcamentos
     Route::get('/relatorio/reposicao/pdf', [App\Http\Controllers\RelatorioReposicaoController::class, 'gerarPdf'])
     ->name('relatorio.reposicao.pdf');
+
+    //Relatorio Movimentacao de orcamentos
+    Route::get('/movimentacoes', [MovimentacaoOrcamentoController::class, 'index']);
+    Route::get('/movimentacoes/orcamento/{id}', [MovimentacaoOrcamentoController::class, 'showByOrcamento']);

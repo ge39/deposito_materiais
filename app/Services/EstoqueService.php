@@ -10,145 +10,225 @@ use Illuminate\Support\Facades\DB;
 class EstoqueService
 {
     /**
-     * 🔹 Reservar estoque para um novo orçamento
-     * Retorna os lotes atendidos e quantidade pendente
+     * ENTRADA DE LOTE
      */
-    public function reservar(int $produtoId, float $quantidade)
+    public function entradaLote(Lote $lote): void
     {
-        $resultado = [
-            'itens' => [],
-            'pendente' => 0
-        ];
+        DB::transaction(function () use ($lote) {
 
-        $restante = $quantidade;
-
-        $lotes = Lote::where('produto_id', $produtoId)
-            ->where('status', 1)
-            ->whereRaw('quantidade_disponivel - quantidade_reservada > 0')
-            ->orderBy('created_at')
-            ->lockForUpdate()
-            ->get();
-
-        foreach ($lotes as $lote) {
-            if ($restante <= 0) break;
-
-            $disponivel = $lote->disponivel_real;
-            if ($disponivel <= 0) continue;
-
-            $qtd = min($restante, $disponivel);
-
-            $lote->quantidade_reservada += $qtd;
-            $lote->save();
-
-            $resultado['itens'][] = [
-                'lote_id'   => $lote->id,
-                'quantidade'=> $qtd,
-                'atendida'  => $qtd,
-                'pendente'  => 0
-            ];
-
-            $restante -= $qtd;
-        }
-
-        if ($restante > 0) {
-            // Pendência quando não há estoque suficiente
-            $resultado['itens'][] = [
-                'lote_id'   => null,
-                'quantidade'=> $restante,
-                'atendida'  => 0,
-                'pendente'  => $restante
-            ];
-            $resultado['pendente'] = $restante;
-        }
-
-        return $resultado;
-    }
-
-    /**
-     * 🔹 Atender itens pendentes quando um novo lote chega
-     */
-    public function atenderPendentes(int $produtoId)
-    {
-        DB::transaction(function () use ($produtoId) {
-
-            // Itens pendentes ou parciais do produto
-            $itensPendentes = ItemOrcamento::where('produto_id', $produtoId)
-                ->whereIn('status', ['indisponivel', 'parcial'])
-                ->orderBy('created_at')
-                ->lockForUpdate()
-                ->get();
-
-            if ($itensPendentes->isEmpty()) {
-                return;
+            if (is_null($lote->quantidade_reservada)) {
+                $lote->quantidade_reservada = 0;
+                $lote->save();
             }
 
-            // Lotes válidos com estoque disponível
-            $lotes = Lote::where('produto_id', $produtoId)
-                ->where('status', 1)
-                ->whereRaw('quantidade_disponivel - quantidade_reservada > 0')
-                ->orderBy('created_at')
-                ->lockForUpdate()
-                ->get();
-
-            foreach ($itensPendentes as $item) {
-                $restante = $item->quantidade_pendente ?? $item->quantidade;
-
-                foreach ($lotes as $lote) {
-                    if ($restante <= 0) break;
-
-                    $disponivel = $lote->disponivel_real;
-                    if ($disponivel <= 0) continue;
-
-                    $qtd = min($restante, $disponivel);
-
-                    // Atualiza lote
-                    $lote->quantidade_reservada += $qtd;
-                    $lote->save();
-
-                    // Atualiza item
-                    $item->quantidade_atendida = ($item->quantidade_atendida ?? 0) + $qtd;
-                    $item->quantidade_pendente  = max(($item->quantidade - $item->quantidade_atendida), 0);
-                    $item->quantidade           = ($item->quantidade ?? 0);
-
-                    // Define previsão de entrega se ainda não existir
-                    if (!$item->previsao_entrega) {
-                        $item->previsao_entrega = now();
-                    }
-
-                    $restante -= $qtd;
-                }
-
-                // Atualiza status do item
-                if ($item->quantidade_pendente > 0) {
-                    $item->status = 'parcial';
-                } else {
-                    $item->status = 'disponivel';
-                }
-
-                $item->save();
-
-                // Atualiza status do orçamento
-                $this->atualizarStatusOrcamento($item->orcamento_id);
-            }
+            $this->atenderPendentesPorProduto($lote->produto_id);
         });
     }
 
     /**
-     * 🔹 Atualiza status do orçamento com base nos itens
+     * ATENDER FILA FIFO
      */
-    private function atualizarStatusOrcamento(int $orcamentoId)
+    public function atenderPendentesPorProduto(int $produtoId): void
     {
-        $orcamento = Orcamento::with('itens')->find($orcamentoId);
-        if (!$orcamento) return;
+        $itens = ItemOrcamento::query()
+            ->join('orcamentos', 'orcamentos.id', '=', 'item_orcamentos.orcamento_id')
+            ->where('item_orcamentos.produto_id', $produtoId)
+            ->whereRaw('(quantidade_solicitada - quantidade_atendida) > 0')
+            ->orderBy('orcamentos.data_orcamento')
+            ->lockForUpdate()
+            ->select('item_orcamentos.*')
+            ->get();
 
-        $temPendentes = $orcamento->itens
-            ->whereIn('status', ['indisponivel', 'parcial'])
-            ->count() > 0;
+        if ($itens->isEmpty()) return;
 
-        $orcamento->status = $temPendentes
-            ? 'Aguardando Estoque'
-            : 'Aprovado';
+        $orcamentosAfetados = [];
 
-        $orcamento->save();
+        foreach ($itens as $item) {
+
+            $pendente = $item->quantidade_solicitada - $item->quantidade_atendida;
+
+            if ($pendente <= 0) continue;
+
+            $this->distribuir($item, $produtoId, $pendente);
+
+            $orcamentosAfetados[$item->orcamento_id] = true;
+        }
+
+        $this->atualizarStatusOrcamento(array_keys($orcamentosAfetados));
+    }
+
+    /**
+     * DISTRIBUIÇÃO FIFO MULTI-LOTE
+     */
+    private function distribuir(ItemOrcamento $item, int $produtoId, float $quantidade): void
+    {
+        $restante = $quantidade;
+
+        $lotes = $this->buscarLotesDisponiveis($produtoId);
+
+        foreach ($lotes as $lote) {
+
+            if ($restante <= 0) break;
+
+            $disponivel = $this->disponivel($lote);
+
+            if ($disponivel <= 0) continue;
+
+            $qtd = min($restante, $disponivel);
+
+            $this->reservarLote($lote, $qtd);
+            $this->registrarLote($item, $lote, $qtd);
+
+            $item->quantidade_atendida += $qtd;
+
+            $restante -= $qtd;
+        }
+
+        $this->atualizarStatusItem($item);
+        $item->save();
+    }
+
+    /**
+     * UPSERT ITEM x LOTE
+     */
+    private function registrarLote(ItemOrcamento $item, Lote $lote, float $qtd): void
+    {
+        $registro = DB::table('item_orcamento_lotes')
+            ->where('item_orcamento_id', $item->id)
+            ->where('lote_id', $lote->id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($registro) {
+            DB::table('item_orcamento_lotes')
+                ->where('id', $registro->id)
+                ->update([
+                    'quantidade_reservada' => DB::raw("quantidade_reservada + {$qtd}"),
+                    'quantidade_atendida' => DB::raw("quantidade_atendida + {$qtd}"),
+                ]);
+        } else {
+            DB::table('item_orcamento_lotes')->insert([
+                'item_orcamento_id' => $item->id,
+                'lote_id' => $lote->id,
+                'quantidade_reservada' => $qtd,
+                'quantidade_atendida' => $qtd,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * LOTES DISPONÍVEIS
+     */
+    private function buscarLotesDisponiveis(int $produtoId)
+    {
+        return Lote::where('produto_id', $produtoId)
+            ->where('status', 1)
+            ->whereRaw('(quantidade - quantidade_reservada) > 0')
+            ->orderBy('created_at')
+            ->lockForUpdate()
+            ->get();
+    }
+
+    /**
+     * DISPONÍVEL REAL
+     */
+    private function disponivel(Lote $lote): float
+    {
+        return $lote->quantidade - $lote->quantidade_reservada;
+    }
+
+    /**
+     * RESERVA LOTE
+     */
+    private function reservarLote(Lote $lote, float $qtd): void
+    {
+        if ($qtd > $this->disponivel($lote)) {
+            throw new \Exception("Estoque insuficiente no lote {$lote->id}");
+        }
+
+        $lote->increment('quantidade_reservada', $qtd);
+    }
+
+     /**
+     * CANCELAMENTO DE RESERVA
+     */
+    public function cancelarReserva(ItemOrcamento $item): void
+    {
+        $vinculos = DB::table('item_orcamento_lotes')
+            ->where('item_orcamento_id', $item->id)
+            ->get();
+
+        foreach ($vinculos as $v) {
+
+            $lote = Lote::lockForUpdate()->find($v->lote_id);
+
+            if ($lote) {
+                $lote->quantidade_reservada = max(
+                    0,
+                    $lote->quantidade_reservada - $v->quantidade_reservada
+                );
+                $lote->save();
+            }
+        }
+
+        DB::table('item_orcamento_lotes')
+            ->where('item_orcamento_id', $item->id)
+            ->delete();
+
+        $item->update([
+            'quantidade_atendida' => 0,
+            'quantidade_pendente' => $item->quantidade_solicitada,
+            'status' => 'indisponivel'
+        ]);
+
+        $this->atenderPendentesPorProduto($item->produto_id);
+        $this->atualizarStatusOrcamento([$item->orcamento_id]);
+    }
+
+     public function reservar(int $itemId, int $produtoId, float $quantidade): void
+    {
+        DB::transaction(function () use ($itemId, $produtoId, $quantidade) {
+
+            $item = ItemOrcamento::lockForUpdate()->findOrFail($itemId);
+
+            $this->distribuir($item, $produtoId, $quantidade);
+
+            $this->atualizarStatusOrcamento([$item->orcamento_id]);
+        });
+    }
+
+    /**
+     * STATUS DO ITEM
+     */
+    private function atualizarStatusItem(ItemOrcamento $item): void
+    {
+        $pendente = $item->quantidade_solicitada - $item->quantidade_atendida;
+
+        if ($item->quantidade_atendida <= 0) {
+            $item->status = 'indisponivel';
+        } elseif ($pendente > 0) {
+            $item->status = 'parcial';
+        } else {
+            $item->status = 'disponivel';
+        }
+    }
+
+    /**
+     * STATUS DO ORÇAMENTO
+     */
+    private function atualizarStatusOrcamento(array $ids): void
+    {
+        foreach ($ids as $id) {
+
+            $temPendente = ItemOrcamento::where('orcamento_id', $id)
+                ->whereRaw('(quantidade_solicitada - quantidade_atendida) > 0')
+                ->exists();
+
+            Orcamento::where('id', $id)->update([
+                'status' => $temPendente ? 'Aguardando Estoque' : 'Aguardando Aprovacao'
+            ]);
+        }
     }
 }

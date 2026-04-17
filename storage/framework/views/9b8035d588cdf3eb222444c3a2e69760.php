@@ -67,13 +67,13 @@
                     <div><?php echo e($pedido->user->name ?? '-'); ?></div>
 
                     <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                        <a href="<?php echo e(route('pedidos.show', $pedido->id)); ?>" 
+                        <!-- <a href="<?php echo e(route('pedidos.show', $pedido->id)); ?>" 
                            class="btn btn-info btn-sm"
                            style="font-size:0.65rem; padding:0.25rem 0.4rem;">
                             View
-                        </a>
+                        </a> -->
 
-                        <?php if(!in_array($pedido->status, ['cancelado','recebido'])): ?>
+                        <?php if(!in_array($pedido->status, ['cancelado','recebido','Pendente'])): ?>
                             <a href="<?php echo e(route('pedidos.edit', $pedido->id)); ?>" 
                                class="btn btn-warning btn-sm"
                                style="font-size:0.65rem; padding:0.25rem;">
@@ -81,11 +81,7 @@
                             </a>
                         <?php endif; ?>
 
-                        <a href="<?php echo e(route('pedidos.pdf', $pedido->id)); ?>" target="_blank" 
-                           class="btn btn-success btn-sm"
-                           style="font-size:0.65rem; padding:0.25rem;">
-                             Print
-                        </a>
+                           
 
                         <?php if($pedido->status === 'pendente'): ?>
                             <a href="<?php echo e(route('pedidos.aprovar', $pedido->id)); ?>" 
@@ -99,16 +95,21 @@
                                style="font-size:0.65rem; padding:0.25rem;">
                                 Cancelar
                             </a>
-                                <?php elseif($pedido->status === 'aprovado'): ?> 
-                                    <button 
-                                        class="btn btn-success btn-sm"
-                                        onclick="window.location='<?php echo e(route('pedidos.receber.view', $pedido->id)); ?>'"
-                                        style="font-size:0.65rem; padding:0.25rem;">
-                                        Receber
-                                    </button>
+                        <?php elseif($pedido->status === 'aprovado'): ?> 
+                            <button 
+                                class="btn btn-success btn-sm"
+                                onclick="window.location='<?php echo e(route('pedidos.receber.view', $pedido->id)); ?>'"
+                                style="font-size:0.65rem; padding:0.25rem;">
+                                Receber
+                            </button>
 
-                                <?php endif; ?>
-
+                        <?php endif; ?>
+                        
+                         <a href="<?php echo e(route('pedidos.pdf', $pedido->id)); ?>" target="_blank" 
+                            class="btn btn-success btn-sm"
+                            style="font-size:0.65rem; padding:0.25rem;">
+                                Imprimir
+                        </a>
 
                     </div>
                 </div>
@@ -182,5 +183,4 @@
         });
     });
 </script>
-
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp2\htdocs\deposito_materiais\resources\views/pedidos/index.blade.php ENDPATH**/ ?>

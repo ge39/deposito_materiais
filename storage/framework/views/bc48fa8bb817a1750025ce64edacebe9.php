@@ -99,8 +99,9 @@
         </div>
 
         <button class="btn btn-success mt-3 px-4">Confirmar Recebimento</button>
-        <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary mt-3 px-4">Voltar</a>
-
+        <!-- <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary mt-3 px-4">Voltar</a> -->
+        <a href="<?php echo e(route('pedidos.index')); ?>" class="btn btn-secondary mt-3 px-4" >Voltar</a>
+           
     </form>
 </div>
 

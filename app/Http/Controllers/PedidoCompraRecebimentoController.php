@@ -15,7 +15,8 @@ class PedidoCompraRecebimentoController extends Controller
      */
     public function carregarItens($id)
     {
-        $pedido = PedidoCompra::with('itens.produto')->findOrFail($id);
+       
+    $pedido = PedidoCompra::with('itens.produto')->findOrFail($id);
 
         return response()->json([
             'pedido' => $pedido,
@@ -28,8 +29,9 @@ class PedidoCompraRecebimentoController extends Controller
      */
     public function receber(Request $request, $id)
     {
+        
         $pedido = PedidoCompra::with('itens.produto')->findOrFail($id);
-
+        
         $request->validate([
             'itens' => 'required|array',
             'itens.*.preco_compra' => 'required|numeric|min:0',

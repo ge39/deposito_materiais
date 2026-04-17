@@ -64,13 +64,13 @@
                     <div>{{ $pedido->user->name ?? '-' }}</div>
 
                     <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                        <a href="{{ route('pedidos.show', $pedido->id) }}" 
+                        <!-- <a href="{{ route('pedidos.show', $pedido->id) }}" 
                            class="btn btn-info btn-sm"
                            style="font-size:0.65rem; padding:0.25rem 0.4rem;">
                             View
-                        </a>
+                        </a> -->
 
-                        @if(!in_array($pedido->status, ['cancelado','recebido']))
+                        @if(!in_array($pedido->status, ['cancelado','recebido','Pendente']))
                             <a href="{{ route('pedidos.edit', $pedido->id) }}" 
                                class="btn btn-warning btn-sm"
                                style="font-size:0.65rem; padding:0.25rem;">
@@ -78,11 +78,7 @@
                             </a>
                         @endif
 
-                        <a href="{{ route('pedidos.pdf', $pedido->id) }}" target="_blank" 
-                           class="btn btn-success btn-sm"
-                           style="font-size:0.65rem; padding:0.25rem;">
-                             Print
-                        </a>
+                           
 
                         @if($pedido->status === 'pendente')
                             <a href="{{ route('pedidos.aprovar', $pedido->id) }}" 
@@ -96,16 +92,21 @@
                                style="font-size:0.65rem; padding:0.25rem;">
                                 Cancelar
                             </a>
-                                @elseif($pedido->status === 'aprovado') 
-                                    <button 
-                                        class="btn btn-success btn-sm"
-                                        onclick="window.location='{{ route('pedidos.receber.view', $pedido->id) }}'"
-                                        style="font-size:0.65rem; padding:0.25rem;">
-                                        Receber
-                                    </button>
+                        @elseif($pedido->status === 'aprovado') 
+                            <button 
+                                class="btn btn-success btn-sm"
+                                onclick="window.location='{{ route('pedidos.receber.view', $pedido->id) }}'"
+                                style="font-size:0.65rem; padding:0.25rem;">
+                                Receber
+                            </button>
 
-                                @endif
-
+                        @endif
+                        
+                         <a href="{{ route('pedidos.pdf', $pedido->id) }}" target="_blank" 
+                            class="btn btn-success btn-sm"
+                            style="font-size:0.65rem; padding:0.25rem;">
+                                Imprimir
+                        </a>
 
                     </div>
                 </div>

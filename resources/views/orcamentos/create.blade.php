@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('content')
@@ -58,11 +57,11 @@
 
             <h5>Itens do Orçamento</h5>
 
-            <table class="table table-bordered" id="itensTable">
+            <table class="table table-bordered">
                 <thead>
                     <tr>
                         <th>Produto</th>
-                        <th>Estoque</th>
+                        <th>Lote</th>
                         <th>Quantidade</th>
                         <th>Unidade</th>
                         <th>Preço</th>
@@ -70,7 +69,7 @@
                         <th>Ação</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody id="itensTable"></tbody>
             </table>
 
             <div class="text-end">
@@ -95,122 +94,115 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
 
-    const produtos = @json($produtos);
-    const tableBody = document.querySelector('#itensTable tbody');
-    const totalSpan = document.getElementById('total');
-    const addBtn = document.getElementById('addProduto');
-    const clienteSelect = document.getElementById('clienteSelect');
+        const produtos = @json($produtos);
+        const tableBody = document.getElementById('itensTable');
+        const addBtn = document.getElementById('addProduto');
+        const clienteSelect = document.getElementById('clienteSelect');
+        const totalSpan = document.getElementById('total');
 
-    let index = 0;
+        let index = 0;
 
-    function criarItem() {
-        const tr = document.createElement('tr');
+        // ================================
+        // CRIAR ITEM
+        // ================================
+        function criarItem() {
 
-        tr.innerHTML = `
-            <td>
-                <select name="produtos[${index}][id]" class="form-select produtoSelect" required>
-                    <option value="">Selecione...</option>
-                    ${produtos.map(p => `
-                        <option value="${p.id}"
-                            data-preco="${p.preco_venda}"
-                            data-unidade="${p.unidade_medida?.nome || ''}"
-                            data-estoque="${p.lotes?.reduce((sum, l) => sum + l.quantidade_disponivel, 0) || 0}">
-                            ${p.nome}
-                        </option>
-                    `).join('')}
-                </select>
-            </td>
+            const tr = document.createElement('tr');
 
-            <td><span class="estoqueLabel">0</span></td>
+            tr.innerHTML = `
+                <td>
+                    <select name="produtos[${index}][id]" class="form-select produtoSelect" required>
+                        <option value="">Selecione...</option>
+                        ${produtos.map(p => `
+                            <option value="${p.id}"
+                                data-preco="${p.preco_venda}"
+                                data-unidade="${p.unidade_medida?.nome || ''}">
+                                ${p.nome}
+                            </option>
+                        `).join('')}
+                    </select>
+                </td>
 
-            <td>
-                <input type="number" name="produtos[${index}][quantidade]" class="form-control qtd" min="1" value="1" required>
-            </td>
+                <!-- 🔥 LOTE (IGUAL EDIT) -->
+                <td>
+                    <select name="produtos[${index}][lote_id]" class="form-select loteSelect" required>
+                        <option value="">Selecione o lote</option>
+                    </select>
+                </td>
 
-            <td>
-                <span class="unidadeLabel"></span>
-                <input type="hidden" name="produtos[${index}][unidade]" class="unidade">
-            </td>
+                <td>
+                    <input type="number"
+                        name="produtos[${index}][quantidade]"
+                        class="form-control qtd"
+                        value="1" min="1" required>
+                </td>
 
-            <td>
-                <span class="precoLabel">0,00</span>
-                <input type="hidden" name="produtos[${index}][preco_unitario]" class="preco">
-            </td>
+                <td>
+                    <span class="unidadeLabel"></span>
+                    <input type="hidden" name="produtos[${index}][unidade]" class="unidade">
+                </td>
 
-            <td>
-                <span class="subtotalLabel">0,00</span>
-                <input type="hidden" class="subtotal">
-            </td>
+                <td>
+                    <span class="precoLabel">0,00</span>
+                    <input type="hidden" name="produtos[${index}][preco_unitario]" class="preco">
+                </td>
 
-            <td>
-                <button type="button" class="btn btn-sm btn-danger remover">X</button>
-            </td>
-        `;
+                <td>
+                    <span class="subtotalLabel">0,00</span>
+                </td>
 
-        tableBody.appendChild(tr);
-        index++;
-    }
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger remover">X</button>
+                </td>
+            `;
 
-    function atualizarSubtotal() {
-        let total = 0;
-        tableBody.querySelectorAll('tr').forEach(tr => {
-            const qtd = parseFloat(tr.querySelector('.qtd').value) || 0;
-            const preco = parseFloat(tr.querySelector('.preco').value) || 0;
-            const subtotal = qtd * preco;
-
-            tr.querySelector('.subtotal').value = subtotal.toFixed(2);
-            tr.querySelector('.subtotalLabel').textContent = subtotal.toFixed(2).replace('.', ',');
-
-            total += subtotal;
-        });
-        totalSpan.textContent = total.toFixed(2).replace('.', ',');
-    }
-
-    addBtn.addEventListener('click', () => {
-        if (!clienteSelect.value) {
-            alert('Selecione um cliente primeiro!');
-            clienteSelect.focus();
-            return;
+            tableBody.appendChild(tr);
+            index++;
         }
 
-        const lastRow = tableBody.querySelector('tr:last-child');
-        if (lastRow) {
-            const produto = lastRow.querySelector('.produtoSelect')?.value;
-            const qtd = lastRow.querySelector('.qtd')?.value;
-            const preco = lastRow.querySelector('.preco')?.value;
+        // ================================
+        // ATUALIZAR TOTAL
+        // ================================
+        function atualizarTotal() {
+            let total = 0;
 
-            if (!produto) {
-                alert('Selecione um produto antes de adicionar outro.');
-                lastRow.querySelector('.produtoSelect').focus();
-                return;
-            }
+            tableBody.querySelectorAll('tr').forEach(tr => {
 
-            if (!qtd || qtd <= 0) {
-                alert('Informe uma quantidade válida.');
-                lastRow.querySelector('.qtd').focus();
-                return;
-            }
+                const qtd = parseFloat(tr.querySelector('.qtd').value) || 0;
+                const preco = parseFloat(tr.querySelector('.preco').value) || 0;
 
-            if (!preco || preco <= 0) {
-                alert('Preço inválido. Selecione o produto novamente.');
-                lastRow.querySelector('.produtoSelect').focus();
-                return;
-            }
+                const subtotal = qtd * preco;
+
+                tr.querySelector('.subtotalLabel').textContent =
+                    subtotal.toFixed(2).replace('.', ',');
+
+                total += subtotal;
+            });
+
+            totalSpan.textContent = total.toFixed(2).replace('.', ',');
         }
 
-        criarItem();
-    });
+        // ================================
+        // PRODUTO ALTERADO + LOTES
+        // ================================
+        tableBody.addEventListener('change', e => {
 
-    tableBody.addEventListener('change', e => {
-        if (e.target.classList.contains('produtoSelect')) {
-            const selected = e.target.options[e.target.selectedIndex];
+            if (!e.target.classList.contains('produtoSelect')) return;
+
+            if (!clienteSelect.value) {
+                alert('Selecione o cliente primeiro!');
+                e.target.value = '';
+                return;
+            }
+
+            const produtoId = e.target.value;
+            const produto = produtos.find(p => p.id == produtoId);
             const tr = e.target.closest('tr');
 
-            const preco = parseFloat(selected.dataset.preco) || 0;
-            const unidade = selected.dataset.unidade || '';
-            const estoque = parseFloat(selected.dataset.estoque) || 0;
+            const preco = parseFloat(produto?.preco_venda || 0);
+            const unidade = produto?.unidade_medida?.nome || '';
 
             tr.querySelector('.preco').value = preco;
             tr.querySelector('.precoLabel').textContent = preco.toFixed(2).replace('.', ',');
@@ -218,36 +210,111 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.querySelector('.unidade').value = unidade;
             tr.querySelector('.unidadeLabel').textContent = unidade;
 
-            tr.querySelector('.estoqueLabel').textContent = estoque;
+            // ============================
+            // 🔥 LOTES (IGUAL EDIT)
+            // ============================
+            const loteSelect = tr.querySelector('.loteSelect');
+            loteSelect.innerHTML = '<option value="">Selecione o lote</option>';
 
-            atualizarSubtotal();
-        }
-    });
+            if (!produto || !produto.lotes) return;
 
-    tableBody.addEventListener('input', e => {
-        if (e.target.classList.contains('qtd')) {
-            const tr = e.target.closest('tr');
-            const estoque = parseFloat(tr.querySelector('.estoqueLabel').textContent) || 0;
-            const qtd = parseFloat(e.target.value) || 0;
+            // const lotesValidos = produto.lotes.filter(l => {
+            //     return l.status == 1;
+            // });
 
-            if (qtd > estoque) {
-                e.target.style.border = '2px solid red';
-            } else {
-                e.target.style.border = '';
+            const lotesValidos = produto.lotes.filter(l => 
+            {
+
+            const disponivel =
+                    (parseFloat(l.quantidade) || 0) -
+                    (parseFloat(l.quantidade_reservada) || 0);
+
+                return l.status == 1 && disponivel > 0;
+            });
+
+            if (lotesValidos.length === 0) {
+                loteSelect.innerHTML = '<option value="">Sem lote disponível</option>';
+                return;
             }
 
-            atualizarSubtotal();
-        }
-    });
+            lotesValidos.forEach(l => {
 
-    tableBody.addEventListener('click', e => {
-        if (e.target.classList.contains('remover')) {
-            e.target.closest('tr').remove();
-            atualizarSubtotal();
-        }
-    });
+                const disponivel =
+                    (parseFloat(l.quantidade) || 0) -
+                    (parseFloat(l.quantidade_reservada) || 0);
 
-});
+                loteSelect.innerHTML += `
+                    <option value="${l.id}">
+                        ${l.numero_lote} | Qtd: ${disponivel}
+                    </option>
+                `;
+            });
+
+            atualizarTotal();
+        });
+
+        // ================================
+        // QUANTIDADE
+        // ================================
+        tableBody.addEventListener('input', e => {
+            if (e.target.classList.contains('qtd')) {
+                atualizarTotal();
+            }
+        });
+
+        // ================================
+        // REMOVER
+        // ================================
+        tableBody.addEventListener('click', e => {
+            if (e.target.classList.contains('remover')) {
+                e.target.closest('tr').remove();
+                atualizarTotal();
+            }
+        });
+
+        // ================================
+        // ADICIONAR PRODUTO
+        // ================================
+        addBtn.addEventListener('click', () => {
+
+            if (!clienteSelect.value) {
+                alert('Selecione um cliente primeiro!');
+                return;
+            }
+
+            const lastRow = tableBody.querySelector('tr:last-child');
+
+            if (lastRow) {
+
+                const produto = lastRow.querySelector('.produtoSelect')?.value;
+                const lote = lastRow.querySelector('.loteSelect')?.value;
+                const qtd = lastRow.querySelector('.qtd')?.value;
+                const preco = lastRow.querySelector('.preco')?.value;
+
+                // 🔥 VALIDAÇÃO PRINCIPAL (igual edit)
+                if (!produto || !qtd || !preco) {
+                    alert('Complete o item antes de adicionar outro');
+                    return;
+                }
+
+                // 🔥 NOVO: valida lote também
+                if (!lote) {
+                    alert('Selecione o lote antes de adicionar outro');
+                    lastRow.querySelector('.loteSelect')?.focus();
+                    return;
+                }
+
+                if (qtd <= 0) {
+                    alert('Informe uma quantidade válida');
+                    lastRow.querySelector('.qtd')?.focus();
+                    return;
+                }
+            }
+
+            criarItem();
+        });
+
+    });
 </script>
 
 @endsection

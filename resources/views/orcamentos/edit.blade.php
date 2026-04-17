@@ -83,10 +83,10 @@
                         $oldProdutos = old('produtos', $orcamento->itens->map(function($item){
                             return [
                                 'id' => $item->produto_id,
-                                'quantidade' => $item->quantidade,
+                                'quantidade' => $item->quantidade_solicitada,
                                 'preco_unitario' => $item->preco_unitario,
                                 'unidade' => $item->produto->unidadeMedida->nome ?? '',
-                                'lote_id' => $item->lote_id ?? null,
+                                'lote_id'=> $item->lote_principal->numero_lote ?? 'Sem lote',
                                 'lote_label' => $item->lote->numero_lote ?? 'Sem lote',
                             ];
                         })->toArray());
@@ -201,7 +201,7 @@
 
                 <div class="col-md-1">
                     <input type="number"
-                        name="produtos[${index}][quantidade]"
+                        name="produtos[${index}][quantidade_solicitada]"
                         class="form-control qtd"
                         value="1" min="1" required>
                 </div>
@@ -287,14 +287,29 @@
 
             if (!produto || !produto.lotes) return;
 
-            const lotesValidos = produto.lotes.filter(l => {
-                const disponivel =
-                    (parseFloat(l.quantidade) || 0) -
-                    (parseFloat(l.quantidade_reservada) || 0);
+            // const lotesValidos = produto.lotes.filter(l => {
+            //     const disponivel =
+            //         (parseFloat(l.quantidade_solicitada) || 0) -
+            //         (parseFloat(l.quantidade_reservada) || 0);
 
-                // return l.status == 1 && disponivel > 0;
-                return l.status == 1 ;
-            });
+            //     // return l.status == 1 && disponivel > 0;
+            //     return l.status == 1 ;
+            // });
+
+           const lotesValidos = produto.lotes
+            .map(l => {
+
+                const quantidade = Number(l.quantidade ?? 0);
+                const reservado = Number(l.quantidade_reservada ?? 0);
+
+                const disponivel = quantidade - reservado;
+
+                return {
+                    ...l,
+                    disponivel
+                };
+            })
+            .filter(l => l.disponivel > 0 && l.status == 1);
 
             // 👉 SEM LOTE
             if (lotesValidos.length === 0) {

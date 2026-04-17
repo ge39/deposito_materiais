@@ -11,6 +11,8 @@ use App\Models\PagamentoVenda;
 use App\Models\Venda;
 use App\Observers\PagamentoVendaObserver;
 use App\Observers\VendaObserver;
+use App\Models\Lote;
+use App\Observers\LoteObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
             ->update([
                 'status' => 'Expirado',
                 'observacoes' => DB::raw("CONCAT(IFNULL(observacoes,''), ' | Orçamento expirado em $hoje')")
-            ]);
+        ]);
+
+         Lote::observe(LoteObserver::class);
     }
 }
