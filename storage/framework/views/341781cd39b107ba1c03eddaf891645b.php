@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Orçamento #{{ $orcamento->id }}</title>
+    <title>Orçamento #<?php echo e($orcamento->id); ?></title>
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
@@ -139,37 +139,38 @@
 
 <body>
 
-{{-- CARIMBO --}}
-@if($orcamento->status === 'Aprovado')
+
+<?php if($orcamento->status === 'Aprovado'): ?>
     <div class="carimbo aprovado">APROVADO</div>
-@elseif($orcamento->status === 'Cancelado')
+<?php elseif($orcamento->status === 'Cancelado'): ?>
     <div class="carimbo cancelado">CANCELADO</div>
-@else
+<?php else: ?>
     <div class="carimbo">AGUARDANDO</div>
-@endif
+<?php endif; ?>
 
 <!-- HEADER -->
 <div class="header">
     <h2>Orçamento / Pedido</h2>
-    <small>Gerado em: {{ now()->format('d/m/Y H:i') }}</small>
+    <small>Gerado em: <?php echo e(now()->format('d/m/Y H:i')); ?></small>
 </div>
 
 <!-- HEADER EMPRESA -->
 <div class="header">
-    <strong>{{ $orcamento->empresa->nome ?? 'EMPRESA NAO CADASTRADA' }}</strong><br>
-    CNPJ: {{ $orcamento->empresa->cnpj ?? '-' }}<br>
-    {{ $orcamento->empresa->endereco ?? '-' }}, {{ $orcamento->empresa->numero ?? '' }}<br>
-    {{ $orcamento->empresa->cidade ?? '-' }} - {{ $orcamento->empresa->estado ?? '-' }}<br>
-    Tel: {{ $orcamento->empresa->telefone ?? '-' }}
+    <strong><?php echo e($orcamento->empresa->nome ?? 'EMPRESA NAO CADASTRADA'); ?></strong><br>
+    CNPJ: <?php echo e($orcamento->empresa->cnpj ?? '-'); ?><br>
+    <?php echo e($orcamento->empresa->endereco ?? '-'); ?>, <?php echo e($orcamento->empresa->numero ?? ''); ?><br>
+    <?php echo e($orcamento->empresa->cidade ?? '-'); ?> - <?php echo e($orcamento->empresa->estado ?? '-'); ?><br>
+    Tel: <?php echo e($orcamento->empresa->telefone ?? '-'); ?>
+
 </div>
 
-@php
+<?php
     $itensAgrupados = $orcamento->itens->groupBy('produto_id');
 
     $totalVenda = $orcamento->itens->sum(fn($i) => $i->quantidade_solicitada * $i->preco_unitario);
     $totalEntregue = $orcamento->itens->sum(fn($i) => $i->quantidade_atendida * $i->preco_unitario);
     $totalPendente = $orcamento->itens->sum(fn($i) => $i->quantidade_pendente * $i->preco_unitario);
-@endphp
+?>
 
 <!-- DADOS -->
 <div class="section">
@@ -177,35 +178,39 @@
         
         <div style="display: flex; justify-content: space-between;">
             <div>
-                <strong>Cód:</strong> #{{ $orcamento->codigo_orcamento }}  
-                <strong>ID:</strong> {{ $orcamento->id }}
+                <strong>Cód:</strong> #<?php echo e($orcamento->codigo_orcamento); ?>  
+                <strong>ID:</strong> <?php echo e($orcamento->id); ?>
+
             </div>
             <div>
                 <strong>Orçamento:</strong> 
-                {{ \Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y') }}
+                <?php echo e(\Carbon\Carbon::parse($orcamento->data_orcamento)->format('d/m/Y')); ?>
+
             </div>
         </div>
 
         <div>
-            <strong>Cliente:</strong> {{ $orcamento->cliente->nome ?? '-' }}  
-            <strong>Tel:</strong> {{ $orcamento->cliente->telefone ?? '-' }}
+            <strong>Cliente:</strong> <?php echo e($orcamento->cliente->nome ?? '-'); ?>  
+            <strong>Tel:</strong> <?php echo e($orcamento->cliente->telefone ?? '-'); ?>
+
         </div>
 
         <div>
             <strong>Prev.Entrega:</strong> 
-            {{ $orcamento->itens->first()?->previsao_entrega
+            <?php echo e($orcamento->itens->first()?->previsao_entrega
                 ? \Carbon\Carbon::parse($orcamento->itens->first()->previsao_entrega)->format('d/m/Y H:i')
-                : 'Não definido'
-            }}
+                : 'Não definido'); ?>
+
         </div>
 
         <div>
             <strong>End:</strong>
-            {{ $orcamento->cliente->endereco_entrega ?? $orcamento->cliente->endereco }},
-            {{ $orcamento->cliente->numero }} -
-            {{ $orcamento->cliente->bairro }} -
-            {{ $orcamento->cliente->cidade }}/{{ $orcamento->cliente->estado }} -
-            {{ $orcamento->cliente->cep }}
+            <?php echo e($orcamento->cliente->endereco_entrega ?? $orcamento->cliente->endereco); ?>,
+            <?php echo e($orcamento->cliente->numero); ?> -
+            <?php echo e($orcamento->cliente->bairro); ?> -
+            <?php echo e($orcamento->cliente->cidade); ?>/<?php echo e($orcamento->cliente->estado); ?> -
+            <?php echo e($orcamento->cliente->cep); ?>
+
         </div>
 
     </div>
@@ -226,9 +231,9 @@
             <div class="th text-center">Lote</div>
         </div>
 
-        @foreach($itensAgrupados as $itens)
+        <?php $__currentLoopData = $itensAgrupados; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itens): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
 
-            @php
+            <?php
                 $produto = $itens->first()->produto;
 
                 $qtdSolicitada = $itens->sum('quantidade_solicitada');
@@ -241,22 +246,22 @@
                     ->filter()
                     ->unique()
                     ->implode(', ');
-            @endphp
+            ?>
 
-            @if($qtdEntregue > 0)
+            <?php if($qtdEntregue > 0): ?>
                 <div class="tr">
-                    <div class="td">{{ $produto->id ?? '-' }}</div>
-                    <div class="td">{{ $produto->descricao }}</div>
-                    <div class="td text-center">{{ number_format($qtdSolicitada, 2, ',', '.') }}</div>
-                    <div class="td text-center">{{ number_format($qtdEntregue, 2, ',', '.') }}</div>
-                    <div class="td text-center">{{ $lotesStr ?: '-' }}</div>
+                    <div class="td"><?php echo e($produto->id ?? '-'); ?></div>
+                    <div class="td"><?php echo e($produto->descricao); ?></div>
+                    <div class="td text-center"><?php echo e(number_format($qtdSolicitada, 2, ',', '.')); ?></div>
+                    <div class="td text-center"><?php echo e(number_format($qtdEntregue, 2, ',', '.')); ?></div>
+                    <div class="td text-center"><?php echo e($lotesStr ?: '-'); ?></div>
                 </div>
-            @endif
+            <?php endif; ?>
 
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
     </div>
-    <p class="total" style="font-size:12px;">Total: R$ {{ number_format($orcamento->total, 2, ',', '.') }}</p>
+    <p class="total" style="font-size:12px;">Total: R$ <?php echo e(number_format($orcamento->total, 2, ',', '.')); ?></p>
 </div>
 
 <div class="page-break"></div>
@@ -278,16 +283,17 @@
             <div class="th text-center">Previsão</div>
         </div>
 
-        @forelse($orcamento->itens->where('quantidade_pendente', '>', 0) as $item)
+        <?php $__empty_1 = true; $__currentLoopData = $orcamento->itens->where('quantidade_pendente', '>', 0); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
         <div class="tr">
-            <div class="td">{{ $item->produto->id ?? '-' }}</div>
-            <div class="td">{{ $item->produto->descricao ?? '-' }}</div>
-            <div class="td text-center">{{ number_format($item->quantidade_pendente, 2, ',', '.') }}</div>
+            <div class="td"><?php echo e($item->produto->id ?? '-'); ?></div>
+            <div class="td"><?php echo e($item->produto->descricao ?? '-'); ?></div>
+            <div class="td text-center"><?php echo e(number_format($item->quantidade_pendente, 2, ',', '.')); ?></div>
             <div class="td text-center">
-                {{ $item->previsao_entrega ? \Carbon\Carbon::parse($item->previsao_entrega)->format('d/m/Y') : '-' }}
+                <?php echo e($item->previsao_entrega ? \Carbon\Carbon::parse($item->previsao_entrega)->format('d/m/Y') : '-'); ?>
+
             </div>
         </div>
-        @empty
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
         <br>
         <div class="tr" >
             <div class="td text-center text-color-info">Nenhum item pendente</div>
@@ -295,7 +301,7 @@
             <div class="td text-center text-color-info">Nenhum item pendente</div>
             <div class="td text-center text-color-info">Nenhum item pendente</div>
         </div>
-        @endforelse
+        <?php endif; ?>
     </div>
 
   <!-- HISTÓRICO / RESUMO POR PRODUTO -->
@@ -323,7 +329,7 @@
     </div>
 
     <!-- LINHAS -->
-    @foreach($orcamento->itens as $item)
+    <?php $__currentLoopData = $orcamento->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <div style="
             width: 100%;
             border-bottom: 1px solid #eee;
@@ -331,37 +337,42 @@
         ">
 
             <div style="display:inline-block; width:8%;">
-                {{ $item->produto_id }}
+                <?php echo e($item->produto_id); ?>
+
             </div>
 
             <div style="display:inline-block; width:34%;">
-                {{ $item->produto->descricao ?? '-' }}
+                <?php echo e($item->produto->descricao ?? '-'); ?>
+
             </div>
 
             <div style="display:inline-block; width:14%; text-align:center;">
-                {{ number_format($item->quantidade_solicitada, 2, ',', '.') }}
+                <?php echo e(number_format($item->quantidade_solicitada, 2, ',', '.')); ?>
+
             </div>
 
             <div style="display:inline-block; width:14%; text-align:center; color:green;">
-                {{ number_format($item->quantidade_atendida, 2, ',', '.') }}
+                <?php echo e(number_format($item->quantidade_atendida, 2, ',', '.')); ?>
+
             </div>
 
             <div style="display:inline-block; width:10%; text-align:center; color:#aa0000;">
-                {{ number_format($item->quantidade_pendente, 2, ',', '.') }}
+                <?php echo e(number_format($item->quantidade_pendente, 2, ',', '.')); ?>
+
             </div>
 
             <div style="display:inline-block; width:16%; text-align:center;">
-                @if($item->quantidade_pendente <= 0)
+                <?php if($item->quantidade_pendente <= 0): ?>
                     Concluído
-                @elseif($item->quantidade_atendida > 0)
+                <?php elseif($item->quantidade_atendida > 0): ?>
                     Parcial
-                @else
+                <?php else: ?>
                     Pendente
-                @endif
+                <?php endif; ?>
             </div>
 
         </div>
-    @endforeach
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
 </div>
 
@@ -382,19 +393,21 @@
 </div>
 
 <!-- OBS -->
-@if($orcamento->observacoes)
+<?php if($orcamento->observacoes): ?>
 <div class="section">
     <div class="section-title">Observações</div>
     <div class="box">
-        {{ $orcamento->observacoes }}
+        <?php echo e($orcamento->observacoes); ?>
+
     </div>
 </div>
-@endif
+<?php endif; ?>
 
 <!-- FOOTER -->
 <div class="footer">
-    Documento gerado automaticamente - {{ config('app.name') }}
+    Documento gerado automaticamente - <?php echo e(config('app.name')); ?>
+
 </div>
 
 </body>
-</html>
+</html><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/orcamentos/pdf.blade.php ENDPATH**/ ?>

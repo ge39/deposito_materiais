@@ -261,6 +261,7 @@
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
     </div>
+    <p class="total" style="font-size:12px;">Total: R$ <?php echo e(number_format($orcamento->total, 2, ',', '.')); ?></p>
 </div>
 
 <div class="page-break"></div>

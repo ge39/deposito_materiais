@@ -122,7 +122,7 @@
                             <option value="${p.id}"
                                 data-preco="${p.preco_venda}"
                                 data-unidade="${p.unidade_medida?.nome || ''}">
-                                ${p.nome}
+                                ${p.id} - ${p.nome}
                             </option>
                         `).join('')}
                     </select>
@@ -321,4 +321,4 @@
 </script>
 
 <?php $__env->stopSection(); ?>
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp2\htdocs\deposito_materiais\resources\views/orcamentos/create.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/orcamentos/create.blade.php ENDPATH**/ ?>

@@ -1,40 +1,40 @@
-@extends('layouts.app')
 
-@php
+
+<?php
     $novaValidade = \Carbon\Carbon::now()->addDays(7)->format('Y/m/d');
-@endphp
+?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container">
-    <h2 class="mb-4">Editar Pedido/Orçamento #{{ $orcamento->codigo_orcamento }}  </h2>
+    <h2 class="mb-4">Editar Pedido/Orçamento #<?php echo e($orcamento->codigo_orcamento); ?>  </h2>
     
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
+    <?php if(session('success')): ?>
+        <div class="alert alert-success"><?php echo e(session('success')); ?></div>
+    <?php endif; ?>
 
-    @if ($errors->any())
+    <?php if($errors->any()): ?>
         <div class="alert alert-danger">
             <strong>Erro!</strong> Verifique os campos obrigatórios.
             <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
+                <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><?php echo e($error); ?></li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </ul>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @if($orcamento->status === 'Expirado')
+    <?php if($orcamento->status === 'Expirado'): ?>
         <div class="alert alert-danger text-center fw-bold" style="font-size: 18px;">
             ⚠️ ATENÇÃO! ESTE ORÇAMENTO ESTÁ <u>EXPIRADO</u>.<br>
             AO SALVAR, VIRA <span class="text-danger">AGUARDANDO APROVAÇÃO</span>.<br>
             Nova validade: 
-            <span class="text-primary">{{ \Carbon\Carbon::now()->addDays(7)->format('d/m/Y') }}</span>.
+            <span class="text-primary"><?php echo e(\Carbon\Carbon::now()->addDays(7)->format('d/m/Y')); ?></span>.
         </div>
-    @endif
+    <?php endif; ?>
 
-    <form action="{{ route('orcamentos.update', $orcamento->id) }}" method="POST" id="formOrcamento">
-        @csrf
-        @method('PUT')
+    <form action="<?php echo e(route('orcamentos.update', $orcamento->id)); ?>" method="POST" id="formOrcamento">
+        <?php echo csrf_field(); ?>
+        <?php echo method_field('PUT'); ?>
 
         <div class="card shadow-sm mb-4">
             <div class="card-body">
@@ -43,32 +43,33 @@
                     <div class="col-md-4">
                         <label class="form-label">Cliente *</label>
                         <div class="form-control bg-light">
-                            {{ $orcamento->cliente->nome ?? 'Cliente não encontrado' }}
+                            <?php echo e($orcamento->cliente->nome ?? 'Cliente não encontrado'); ?>
+
                         </div>
-                        <input type="hidden" name="cliente_id" id="clienteSelect" value="{{ $orcamento->cliente_id }}">
+                        <input type="hidden" name="cliente_id" id="clienteSelect" value="<?php echo e($orcamento->cliente_id); ?>">
                     </div>
 
                     <div class="col-md-2">
                         <label class="form-label">Data *</label>
                         <input type="date" name="data_orcamento" class="form-control"
-                               value="{{ old('data_orcamento', $orcamento->data_orcamento->format('Y-m-d')) }}" required>
+                               value="<?php echo e(old('data_orcamento', $orcamento->data_orcamento->format('Y-m-d'))); ?>" required>
                     </div>
 
                     <div class="col-md-2">
                         <label class="form-label text-danger">Validade até</label>
-                        @php
+                        <?php
                             $validade = $orcamento->status === 'Expirado'
                                 ? now()->addDays(7)->format('Y-m-d')
                                 : (old('validade') ?? \Carbon\Carbon::parse($orcamento->validade)->format('Y-m-d'));
-                        @endphp
-                        <input type="date" name="validade" class="form-control" value="{{ $validade }}" required>
+                        ?>
+                        <input type="date" name="validade" class="form-control" value="<?php echo e($validade); ?>" required>
                     </div>
                 </div>
 
                 <hr>
 
                 <div class="row fw-bold border-bottom pb-2 mb-2">
-                    <div class="col-md-3 text-primary">Produto - ID: {{ $orcamento->id }}</div>
+                    <div class="col-md-3 text-primary">Produto - ID: <?php echo e($orcamento->id); ?></div>
                     <div class="col-md-3">Lote</div>
                     <div class="col-md-1">Qtd</div>
                     <div class="col-md-2">Unidade</div>
@@ -79,7 +80,7 @@
 
                 <div id="itensContainer">
 
-                    @php
+                    <?php
                         $oldProdutos = old('produtos', $orcamento->itens->map(function($item){
                             return [
                                 'id' => $item->produto_id,
@@ -90,69 +91,71 @@
                                 'lote_label' => $item->lote->numero_lote ?? 'Sem lote',
                             ];
                         })->toArray());
-                    @endphp
+                    ?>
 
-                    @foreach($oldProdutos as $i => $oldItem)
+                    <?php $__currentLoopData = $oldProdutos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $oldItem): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <div class="row align-items-center mb-2 item-row">
                             <div class="col-md-3">
-                                <select name="produtos[{{ $i }}][id]" class="form-select produtoSelect" required>
+                                <select name="produtos[<?php echo e($i); ?>][id]" class="form-select produtoSelect" required>
                                     <option value="">Selecione...</option>
-                                    @foreach($produtos as $produto)
-                                        <option value="{{ $produto->id }}"
-                                            data-preco="{{ $produto->preco_venda }}"
-                                            data-unidade="{{ $produto->unidadeMedida->nome ?? '' }}"
-                                            {{ (int)$oldItem['id'] === (int)$produto->id ? 'selected' : '' }}>
-                                            {{ $produto->id }} - {{ $produto->nome }} 
+                                    <?php $__currentLoopData = $produtos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $produto): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($produto->id); ?>"
+                                            data-preco="<?php echo e($produto->preco_venda); ?>"
+                                            data-unidade="<?php echo e($produto->unidadeMedida->nome ?? ''); ?>"
+                                            <?php echo e((int)$oldItem['id'] === (int)$produto->id ? 'selected' : ''); ?>>
+                                            <?php echo e($produto->id); ?> - <?php echo e($produto->nome); ?> 
                                         </option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </div>
 
                             <div class="col-md-3">
                                 <div class="form-control bg-light loteLabel">
-                                    {{ $oldItem['lote_label'] }}
+                                    <?php echo e($oldItem['lote_label']); ?>
+
                                 </div>
                                 <input type="hidden"
-                                    name="produtos[{{ $i }}][lote_id]"
+                                    name="produtos[<?php echo e($i); ?>][lote_id]"
                                     class="loteInput"
-                                    value="{{ $oldItem['lote_id'] }}" >
+                                    value="<?php echo e($oldItem['lote_id']); ?>" >
                             </div>
 
                             <div class="col-md-1">
-                                <input type="number" name="produtos[{{ $i }}][quantidade]" class="form-control qtd" min="1" value="{{ $oldItem['quantidade'] }}" required>
+                                <input type="number" name="produtos[<?php echo e($i); ?>][quantidade]" class="form-control qtd" min="1" value="<?php echo e($oldItem['quantidade']); ?>" required>
                             </div>
 
-                            <div class="col-md-2 unidade">{{ $oldItem['unidade'] }}</div>
+                            <div class="col-md-2 unidade"><?php echo e($oldItem['unidade']); ?></div>
 
                             <div class="col-md-1">
-                                <div class="preco">{{ number_format($oldItem['preco_unitario'], 2, ',', '.') }}</div>
-                                <input type="hidden" name="produtos[{{ $i }}][preco_unitario]" value="{{ $oldItem['preco_unitario'] }}">
+                                <div class="preco"><?php echo e(number_format($oldItem['preco_unitario'], 2, ',', '.')); ?></div>
+                                <input type="hidden" name="produtos[<?php echo e($i); ?>][preco_unitario]" value="<?php echo e($oldItem['preco_unitario']); ?>">
                             </div>
 
                             <div class="col-md-1 subtotal">
-                                {{ number_format($oldItem['quantidade'] * $oldItem['preco_unitario'], 2, ',', '.') }}
+                                <?php echo e(number_format($oldItem['quantidade'] * $oldItem['preco_unitario'], 2, ',', '.')); ?>
+
                             </div>
 
                             <div class="col-md-1 text-center">
                                 <button type="button" class="btn btn-sm btn-danger remover">X</button>
                             </div>
                         </div>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </div>
 
                 <div class="text-end mt-3">
                     <button type="button" class="btn btn-primary" id="addProduto">+ Produto</button>
                     <button type="submit" class="btn btn-success">Salvar</button>
-                    <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary">Voltar</a>
+                    <a href="<?php echo e(route('orcamentos.index')); ?>" class="btn btn-secondary">Voltar</a>
                 </div>
 
                 <div class="text-end mt-2">
-                    <h5>Total: R$ <span id="total">{{ number_format($orcamento->total, 2, ',', '.') }}</span></h5>
+                    <h5>Total: R$ <span id="total"><?php echo e(number_format($orcamento->total, 2, ',', '.')); ?></span></h5>
                 </div>
 
                 <div class="mt-3">
                     <label class="form-label">Observações</label>
-                    <textarea name="observacoes" class="form-control" rows="3">{{ old('observacoes', $orcamento->observacoes ?: 'Sem observações') }}</textarea>
+                    <textarea name="observacoes" class="form-control" rows="3"><?php echo e(old('observacoes', $orcamento->observacoes ?: 'Sem observações')); ?></textarea>
                 </div>
 
             </div>
@@ -164,7 +167,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        const produtos = @json($produtos);
+        const produtos = <?php echo json_encode($produtos, 15, 512) ?>;
         const container = document.getElementById('itensContainer');
         const totalSpan = document.getElementById('total');
         const addBtn = document.getElementById('addProduto');
@@ -393,8 +396,8 @@
         // ===============================
         window.addEventListener('beforeunload', () => {
             navigator.sendBeacon(
-                "{{ route('orcamentos.limparEdicao', $orcamento->id) }}",
-                new URLSearchParams({'_token': '{{ csrf_token() }}'})
+                "<?php echo e(route('orcamentos.limparEdicao', $orcamento->id)); ?>",
+                new URLSearchParams({'_token': '<?php echo e(csrf_token()); ?>'})
             );
         });
 
@@ -407,7 +410,7 @@
         function resetTimer() {
             clearTimeout(timeout);
             timeout = setTimeout(() => {
-                window.location.href = "{{ route('orcamentos.index') }}";
+                window.location.href = "<?php echo e(route('orcamentos.index')); ?>";
             }, tempoLimite);
         }
 
@@ -420,4 +423,5 @@
     });
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/orcamentos/edit.blade.php ENDPATH**/ ?>

@@ -163,11 +163,11 @@ class Lote extends Model
             }
         });
 
-        // 🔥 AQUI É O PONTO PRINCIPAL
-        static::created(function ($lote) {
+        // 🔥 AQUI É O PONTO PRINCIPAL, calcula os lotes
+        // static::created(function ($lote) {
 
-            app(EstoqueService::class)
-                ->atenderPendentesPorProduto($lote->produto_id);
-        });
+        //     app(EstoqueService::class)
+        //         ->atenderPendentesPorProduto($lote->produto_id);
+        // });
     }
 }

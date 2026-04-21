@@ -82,8 +82,10 @@
                 <h5>Total: R$ <span id="total">0,00</span></h5>
             </div>
 
-            <div class="mb-3 mt-3">
-                <label class="form-label">Observações</label>
+            <div class="mb-3 mt-3 bg-secondary  p-3 rounded">
+                <label class="form-label text-warning">Observações:</label>
+               <label class="form-label text-light"> insira aqui as informações que vão aparecer impressos no documento de entrega.</label>
+               <label class="form-label text-warning"> Ex: melhor periodo para entrega: manha ou tarde, nome da pessoa que vai receber ?</label>
                 <textarea name="observacoes" class="form-control" rows="3">Sem observações</textarea>
             </div>
 
@@ -119,7 +121,7 @@
                             <option value="${p.id}"
                                 data-preco="${p.preco_venda}"
                                 data-unidade="${p.unidade_medida?.nome || ''}">
-                                ${p.nome}
+                                ${p.id} - ${p.nome}
                             </option>
                         `).join('')}
                     </select>
