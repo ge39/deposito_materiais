@@ -694,7 +694,8 @@ class OrcamentoService
             return $orcamento;
         });
     }
-    
+
+
    
     public function gerarPdfCompleto(Orcamento $orcamento)
     {

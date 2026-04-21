@@ -166,24 +166,47 @@ class EstoqueService
     // }
     private function registrarLote(ItemOrcamento $item, Lote $lote, float $qtd): void
     {
-        $registro = DB::table('item_orcamento_lotes')
-            ->where('item_orcamento_id', $item->id)
-            ->where('lote_id', $lote->id)
-            ->first();
-
-        if ($registro) {
-            DB::table('item_orcamento_lotes')
-                ->where('id', $registro->id)
-                ->increment('quantidade_reservada', $qtd);
-        } else {
-            DB::table('item_orcamento_lotes')->insert([
-                'item_orcamento_id' => $item->id,
-                'lote_id' => $lote->id,
-                'quantidade_reservada' => $qtd,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        // 🔒 1. VALIDAÇÃO DE INTEGRIDADE
+        // Garante que o lote pertence ao mesmo produto do item do orçamento
+        // Evita inconsistência de dados (ex: reservar lote de outro produto)
+        if ($lote->produto_id !== $item->produto_id) {
+            throw new \Exception(
+                "Lote {$lote->id} não pertence ao produto {$item->produto_id}"
+            );
         }
+
+        // 🚀 2. UPSERT ATÔMICO (INSERT + UPDATE)
+        // Esse comando faz duas coisas automaticamente:
+        //
+        // ✔ Se NÃO existir (item_orcamento_id + lote_id)
+        //     → INSERE um novo registro
+        //
+        // ✔ Se JÁ existir
+        //     → SOMA a quantidade_reservada (não sobrescreve)
+        //
+        // Isso evita:
+        // - duplicidade de registros
+        // - perda de dados
+        // - problemas de concorrência (race condition)
+        //
+        // ⚠️ IMPORTANTE:
+        // Para funcionar corretamente, é obrigatório ter índice único:
+        // UNIQUE (item_orcamento_id, lote_id)
+        DB::statement("
+            INSERT INTO item_orcamento_lotes 
+            (item_orcamento_id, lote_id, quantidade_reservada, quantidade_atendida, created_at, updated_at)
+            VALUES (?, ?, ?, 0, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                -- 🔥 Soma a nova quantidade com a já existente
+                quantidade_reservada = quantidade_reservada + VALUES(quantidade_reservada),
+
+                -- 🕒 Atualiza timestamp
+                updated_at = NOW()
+        ", [
+            $item->id,   // ID do item do orçamento
+            $lote->id,   // ID do lote
+            $qtd         // Quantidade a ser reservada
+        ]);
     }
 
     /**
@@ -229,6 +252,7 @@ class EstoqueService
             ->where('id', $lote->id)
             ->increment('quantidade_reservada', $qtd);
     }
+    
     
     /**
      * CANCELAMENTO DE RESERVA
