@@ -101,6 +101,7 @@
             <td>
                 <!-- Aguardando Aprovação -->
                 @if ($orcamento->status === 'Aguardando Aprovacao' )
+               
                     <a href="{{ route('orcamentos.edit', $orcamento->id) }}" class="btn btn-sm btn-warning">Editar</a>
                     
                     <form method="POST" action="{{ route('orcamentos.aprovar', $orcamento->id) }}" style="display:inline;">
@@ -110,6 +111,15 @@
                             Aprovar
                         </button>
                         
+                    </form>
+
+                     <!-- cancelar -->
+                    <form method="POST" action="{{ route('orcamentos.cancelar', $orcamento->id) }}" style="display:inline;">
+                        @csrf
+                        <button class="btn btn-sm btn-danger"
+                            onclick="return confirm('Deseja realmente cancelar este orçamento?')">
+                            Cancelar
+                        </button>
                     </form>
                 @endif
 

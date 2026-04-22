@@ -68,7 +68,7 @@
                 <hr>
 
                 <div class="row fw-bold border-bottom pb-2 mb-2">
-                    <div class="col-md-3 text-primary">Produto - ID: {{ $orcamento->id }}</div>
+                    <div class="col-md-3 text-primary">ID - Produto</div>
                     <div class="col-md-3">Lote</div>
                     <div class="col-md-1">Qtd</div>
                     <div class="col-md-2">Unidade</div>
@@ -142,7 +142,7 @@
 
                 <div class="text-end mt-3">
                     <button type="button" class="btn btn-primary" id="addProduto">+ Produto</button>
-                    <button type="submit" class="btn btn-success">Salvar</button>
+                    <button type="submit" class="btn btn-success" id="btnSalvar" atualizarBotaoSalvar()>Salvar</button>
                     <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary">Voltar</a>
                 </div>
 
@@ -432,6 +432,8 @@
     });
     
 </script> -->
+
+
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -732,4 +734,5 @@
     });
 </script>
 
+<script src="{{ asset('js/orcamento.js') }}"></script>
 @endsection

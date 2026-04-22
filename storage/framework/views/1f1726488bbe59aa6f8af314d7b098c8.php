@@ -102,6 +102,7 @@
             <td>
                 <!-- Aguardando Aprovação -->
                 <?php if($orcamento->status === 'Aguardando Aprovacao' ): ?>
+               
                     <a href="<?php echo e(route('orcamentos.edit', $orcamento->id)); ?>" class="btn btn-sm btn-warning">Editar</a>
                     
                     <form method="POST" action="<?php echo e(route('orcamentos.aprovar', $orcamento->id)); ?>" style="display:inline;">
@@ -111,6 +112,15 @@
                             Aprovar
                         </button>
                         
+                    </form>
+
+                     <!-- cancelar -->
+                    <form method="POST" action="<?php echo e(route('orcamentos.cancelar', $orcamento->id)); ?>" style="display:inline;">
+                        <?php echo csrf_field(); ?>
+                        <button class="btn btn-sm btn-danger"
+                            onclick="return confirm('Deseja realmente cancelar este orçamento?')">
+                            Cancelar
+                        </button>
                     </form>
                 <?php endif; ?>
 

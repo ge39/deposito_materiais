@@ -542,7 +542,7 @@ class OrcamentoService
         });
     }
     
-   public function atualizarCompleto(Request $request, $id)
+    public function atualizarCompleto(Request $request, $id)
     {
         return DB::transaction(function () use ($request, $id) {
 

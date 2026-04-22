@@ -69,7 +69,7 @@
                 <hr>
 
                 <div class="row fw-bold border-bottom pb-2 mb-2">
-                    <div class="col-md-3 text-primary">Produto - ID: <?php echo e($orcamento->id); ?></div>
+                    <div class="col-md-3 text-primary">ID - Produto</div>
                     <div class="col-md-3">Lote</div>
                     <div class="col-md-1">Qtd</div>
                     <div class="col-md-2">Unidade</div>
@@ -145,7 +145,7 @@
 
                 <div class="text-end mt-3">
                     <button type="button" class="btn btn-primary" id="addProduto">+ Produto</button>
-                    <button type="submit" class="btn btn-success">Salvar</button>
+                    <button type="submit" class="btn btn-success" id="btnSalvar" atualizarBotaoSalvar()>Salvar</button>
                     <a href="<?php echo e(route('orcamentos.index')); ?>" class="btn btn-secondary">Voltar</a>
                 </div>
 
@@ -435,6 +435,8 @@
     });
     
 </script> -->
+
+
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -735,5 +737,6 @@
     });
 </script>
 
+<script src="<?php echo e(asset('js/orcamento.js')); ?>"></script>
 <?php $__env->stopSection(); ?>
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/orcamentos/edit.blade.php ENDPATH**/ ?>
