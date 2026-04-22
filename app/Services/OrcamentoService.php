@@ -1,10 +1,10 @@
 <?php
 
 namespace App\Services;
+use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-
 use App\Models\Orcamento;
 use App\Models\ItemOrcamento;
 use App\Models\Empresa;
@@ -12,7 +12,8 @@ use App\Models\Lote;
 use App\Models\Cliente;
 use App\Models\Produto;
 use App\Services\EstoqueService;
-use Illuminate\Http\Request;
+use App\Enums\TipoMovimentacao;
+
 
 class OrcamentoService
 {
@@ -493,8 +494,6 @@ class OrcamentoService
 
             }
 
-            $this->estoqueService->recalcularItemCompleto($item, $quantidadeNova);
-
             $temPendente = $orcamento->itens()
                 ->where('quantidade_pendente', '>', 0)
                 ->exists();
@@ -695,7 +694,28 @@ class OrcamentoService
         });
     }
 
+    public function cancelar(Orcamento $orcamento)
+    {
+        DB::transaction(function () use ($orcamento) {
 
+            // 🔒 evita cancelar duas vezes
+            if ($orcamento->status === 'Cancelado') {
+                return;
+            }
+
+            // 🔄 percorre itens e libera reservas
+            foreach ($orcamento->itens as $item) {
+                $this->estoqueService->cancelarReserva($item);
+            }
+
+            // 🧾 atualiza status
+            $orcamento->update([
+                'status' => 'Cancelado'
+            ]);
+        });
+
+        return $orcamento;
+    }
    
     public function gerarPdfCompleto(Orcamento $orcamento)
     {

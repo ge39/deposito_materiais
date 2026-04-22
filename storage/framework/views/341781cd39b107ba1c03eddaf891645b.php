@@ -174,8 +174,9 @@
 
 <!-- DADOS -->
 <div class="section">
+    
     <div class="box" style="font-size: 11px; line-height: 1.4;">
-        
+        <strong>Orcamento <?php echo e($orcamento->status); ?> em: <?php echo e($orcamento->updated_at); ?> </strong> 
         <div style="display: flex; justify-content: space-between;">
             <div>
                 <strong>Cód:</strong> #<?php echo e($orcamento->codigo_orcamento); ?>  
@@ -269,7 +270,7 @@
 <!-- PENDENTES -->
 <div class="section">
     <div class="section-title">Itens Pendentes / Não Entregues</div>
-
+     <strong>Orcamento <?php echo e($orcamento->status); ?> em: <?php echo e($orcamento->updated_at); ?> </strong> 
     <p style="color:#aa0000; font-weight:bold;">
         ⚠ Estes itens NÃO serão entregues neste pedido.<br>
         Serão fornecidos conforme a previsão de entrega estipulada neste documento.
@@ -329,6 +330,7 @@
     </div>
 
     <!-- LINHAS -->
+     
     <?php $__currentLoopData = $orcamento->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <div style="
             width: 100%;

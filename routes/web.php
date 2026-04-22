@@ -35,6 +35,7 @@ use App\Http\Controllers\{
     SangriaConfigController,
     RelatorioReposicaoController,
     MovimentacaoOrcamentoController,
+    MovimentacaoOrcamentoDashboardController,
 };
 
 // ===============================
@@ -357,3 +358,7 @@ Route::middleware('auth')->group(function () {
     //Relatorio Movimentacao de orcamentos
     Route::get('/movimentacoes', [MovimentacaoOrcamentoController::class, 'index']);
     Route::get('/movimentacoes/orcamento/{id}', [MovimentacaoOrcamentoController::class, 'showByOrcamento']);
+
+    //Dashboard orcamento movimentacoes
+    Route::get('/dashboard/movimentacoes', [MovimentacaoOrcamentoDashboardController::class, 'index'])
+    ->name('dashboard.movimentacoes');

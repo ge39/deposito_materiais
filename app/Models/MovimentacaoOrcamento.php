@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Model;
 
 class MovimentacaoOrcamento extends Model
@@ -9,33 +7,33 @@ class MovimentacaoOrcamento extends Model
     protected $table = 'movimentacao_orcamentos';
 
     protected $fillable = [
+        'lote_id',
         'orcamento_id',
         'item_orcamento_id',
+        'user_id',
         'tipo',
         'descricao',
-        'quantidade',
-        'user_id',
+        'quantidade_antes',
+        'quantidade_depois',
+        'origem',
     ];
 
-    /**
-     * 🔹 Relacionamento com orçamento
-     */
+    // 🔗 Relacionamentos
+    public function lote()
+    {
+        return $this->belongsTo(Lote::class);
+    }
+
     public function orcamento()
     {
         return $this->belongsTo(Orcamento::class);
     }
 
-    /**
-     * 🔹 Relacionamento com item
-     */
     public function item()
     {
         return $this->belongsTo(ItemOrcamento::class, 'item_orcamento_id');
     }
 
-    /**
-     * 🔹 Relacionamento com usuário
-     */
     public function user()
     {
         return $this->belongsTo(User::class);

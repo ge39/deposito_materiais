@@ -190,8 +190,8 @@
             </li>
             <li>
                 <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
-                   href="<?php echo e($canAccessAdmin ? route('promocoes.index') : '#'); ?>">
-                   <i class="bi bi-list-stars me-2"></i>Listar Promoções
+                   href="<?php echo e($canAccessAdmin ? route('dashboard.movimentacoes') : '#'); ?>">
+                   <i class="bi bi-list-stars me-2"></i>Dashboard-Orçamentos
                 </a>
             </li>
             <li>

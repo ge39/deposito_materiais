@@ -1,10 +1,11 @@
 <?php
-
 namespace App\Services;
-
 use App\Models\Lote;
 use App\Models\ItemOrcamento;
 use App\Models\Orcamento;
+use App\Services\MovimentacaoOrcamentoService;
+use App\Enums\TipoMovimentacao;
+use App\Enums\OrigemMovimentacao;
 use Illuminate\Support\Facades\DB;
 
 class EstoqueService
@@ -257,58 +258,78 @@ class EstoqueService
     /**
      * CANCELAMENTO DE RESERVA
      */
+    
     // public function cancelarReserva(ItemOrcamento $item): void
     // {
     //     DB::transaction(function () use ($item) {
 
+    //         // 🔒 pega vínculos atuais
     //         $vinculos = DB::table('item_orcamento_lotes')
     //             ->where('item_orcamento_id', $item->id)
     //             ->lockForUpdate()
     //             ->get();
 
+    //         // 🔄 devolve estoque (SEM observer)
     //         foreach ($vinculos as $v) {
-
-    //             $lote = Lote::lockForUpdate()->find($v->lote_id);
-
-    //             if ($lote) {
-    //                 $lote->decrement('quantidade_reservada', $v->quantidade_reservada);
-    //             }
+    //             DB::table('lotes')
+    //                 ->where('id', $v->lote_id)
+    //                 ->decrement('quantidade_reservada', $v->quantidade_reservada);
     //         }
 
+    //         // 🧹 remove vínculos
     //         DB::table('item_orcamento_lotes')
     //             ->where('item_orcamento_id', $item->id)
     //             ->delete();
 
-    //         // 🔥 recalcula corretamente
+    //         // 🔥 recalcula item (zera atendido corretamente)
     //         $this->recalcularItem($item);
-
-    //         $this->atenderPendentesPorProduto($item->produto_id);
-    //         $this->atualizarStatusOrcamento([$item->orcamento_id]);
     //     });
     // }
+
+
+
     public function cancelarReserva(ItemOrcamento $item): void
     {
         DB::transaction(function () use ($item) {
 
-            // 🔒 pega vínculos atuais
+            $movService = app(MovimentacaoOrcamentoService::class);
+
             $vinculos = DB::table('item_orcamento_lotes')
                 ->where('item_orcamento_id', $item->id)
                 ->lockForUpdate()
                 ->get();
 
-            // 🔄 devolve estoque (SEM observer)
             foreach ($vinculos as $v) {
+
+                $lote = DB::table('lotes')
+                    ->where('id', $v->lote_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $antes = $lote->quantidade_reservada;
+                $depois = $antes - $v->quantidade_reservada;
+
                 DB::table('lotes')
                     ->where('id', $v->lote_id)
                     ->decrement('quantidade_reservada', $v->quantidade_reservada);
+
+                // 🔥 REGISTRA MOVIMENTAÇÃO
+                $movService->registrar(
+                    $v->lote_id,
+                    $item->orcamento_id,
+                    $item->id,
+                    TipoMovimentacao::CANCELAMENTO,
+                    $antes,
+                    $depois,
+                    'Liberação de reserva',
+                    OrigemMovimentacao::SISTEMA
+                );
             }
 
-            // 🧹 remove vínculos
             DB::table('item_orcamento_lotes')
                 ->where('item_orcamento_id', $item->id)
                 ->delete();
 
-            // 🔥 recalcula item (zera atendido corretamente)
             $this->recalcularItem($item);
         });
     }
@@ -384,18 +405,42 @@ class EstoqueService
         }
     }
 
+  
+
     /**
      * STATUS DO ORÇAMENTO
      */
-    private function atualizarStatusOrcamento(array $ids): void
+    // private function atualizarStatusOrcamento(array $ids): void
+    // {
+    //     foreach ($ids as $id) {
+
+    //         $temPendente = ItemOrcamento::where('orcamento_id', $id)
+    //             ->whereRaw('(quantidade_solicitada - quantidade_atendida) > 0')
+    //             ->exists();
+
+    //         Orcamento::where('id', $id)->update([
+    //             'status' => $temPendente
+    //                 ? 'Aguardando Estoque'
+    //                 : 'Aguardando Aprovacao'
+    //         ]);
+    //     }
+    // }
+   private function atualizarStatusOrcamento(array $ids): void
     {
         foreach ($ids as $id) {
 
+            $orcamento = Orcamento::find($id);
+
+            // 🚨 REGRA DE OURO: nunca mexer em cancelados
+            if (!$orcamento || $orcamento->status === 'Cancelado') {
+                continue;
+            }
+
             $temPendente = ItemOrcamento::where('orcamento_id', $id)
-                ->whereRaw('(quantidade_solicitada - quantidade_atendida) > 0')
+                ->where('quantidade_pendente', '>', 0)
                 ->exists();
 
-            Orcamento::where('id', $id)->update([
+            $orcamento->update([
                 'status' => $temPendente
                     ? 'Aguardando Estoque'
                     : 'Aguardando Aprovacao'

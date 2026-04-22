@@ -10,9 +10,11 @@ class Orcamento extends Model
 {
     use HasFactory;
 
-    const STATUS_AGUARDANDO_APROVACAO = 'Aguardando Aprovacao';
+    const STATUS_AGUARDANDO_APROVACAO = 'Aguardando aprovacao';
     const STATUS_EXPIRADO = 'Expirado';
     const STATUS_APROVADO = 'Aprovado';
+    const STATUS_CANCELADO = 'Cancelado';
+    const STATUS_FATURADO = 'Faturado';
     
     protected $table = 'orcamentos';
 
@@ -93,6 +95,6 @@ class Orcamento extends Model
     /** Orçamentos não faturados */
     public function scopeNaoFaturado($query)
     {
-        return $query->where('status', '!=', 'faturado');
+        return $query->where('status', '!=', 'Faturado');
     }
 }
