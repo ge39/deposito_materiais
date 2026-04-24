@@ -45,7 +45,7 @@
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
-
+    
     <table class="table table-striped">
 
          <div class="d-flex justify-content-center mt-3">
@@ -114,13 +114,13 @@
                     </form>
 
                      <!-- cancelar -->
-                    <form method="POST" action="{{ route('orcamentos.cancelar', $orcamento->id) }}" style="display:inline;">
+                    <!-- <form method="POST" action="{{ route('orcamentos.cancelar', $orcamento->id) }}" style="display:inline;">
                         @csrf
                         <button class="btn btn-sm btn-danger"
                             onclick="return confirm('Deseja realmente cancelar este orçamento?')">
                             Cancelar
                         </button>
-                    </form>
+                    </form> -->
                 @endif
 
                 <!-- 'Aguardando Estoque -->
@@ -146,9 +146,8 @@
                     target="_blank">
                         Enviar WhatsApp
                 </a>
-                
-                <!-- cancelar orcamento -->
-                @if (!$orcamento->status === 'Cancelado' )
+                                <!-- cancelar orcamento -->
+                @if ($orcamento->status !== 'Cancelado')
                     <form method="POST" action="{{ route('orcamentos.cancelar', $orcamento->id) }}" style="display:inline;">
                         @csrf
                         <button class="btn btn-sm btn-danger"
@@ -156,8 +155,12 @@
                             Cancelar
                         </button>
                     </form>
-                   
+                @else
+                    <button class="btn btn-sm btn-secondary" disabled style="opacity: 0.6; cursor: not-allowed;">
+                        Cancelar
+                    </button>
                 @endif
+                 
             </td>
         </tr>
             @endforeach
@@ -167,8 +170,7 @@
                         Nenhum orçamento encontrado para os filtros informados.
                     </td>
                 </tr>
-            @endif
-            
+            @endif 
 
         </tbody>
 

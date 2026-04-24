@@ -47,6 +47,7 @@
 
     @if($produtos->count() > 0)
 
+        <!-- Paginação -->
         <div class="d-flex justify-content-center mt-6">
             {{ $produtos->links('pagination::bootstrap-5') }}
         </div>
@@ -97,20 +98,10 @@
                             <p class="card-text mb-1"><strong>Marca:</strong> {{ $produto->marca->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Unidade:</strong> {{ $produto->unidadeMedida->nome ?? '-' }}</p>
 
-                            <!-- 🔥 ESTOQUE CORRIGIDO (BASE LOTE) -->
+                            <!-- Estoque agora baseado nos lotes -->
                             <p class="card-text mb-1">
-                                <strong>Estoque Total:</strong> 
-                                {{ $produto->estoque_total ?? 0 }}
-                            </p>
-
-                            <p class="card-text mb-1">
-                                <strong>Reservado:</strong> 
-                                {{ $produto->quantidade_reservada ?? 0 }}
-                            </p>
-
-                            <p class="card-text mb-1">
-                                <strong>Disponível:</strong> 
-                                <span style="font-size:20px; color:grafite; font-weight:bold">{{ $produto->disponivel ?? 0 }}</span>
+                                <strong>Estoque:</strong> 
+                                {{ $produto->lotes->sum('quantidade_disponivel') }}
                             </p>
 
                             <p class="card-text mb-1"><strong>Mínimo:</strong> {{ $produto->estoque_minimo }}</p>
@@ -119,6 +110,7 @@
                                 {{ \Carbon\Carbon::parse($produto->data_compra)->format('d/m/Y') }}
                             </p>
 
+                            <!-- Validade: usa lotes -->
                             <p class="card-text mb-1 text-primary">
                                 <strong>Validade:</strong>
                                 @if($produto->lotes->count() > 0)
@@ -128,6 +120,7 @@
                                 @endif
                             </p>
 
+                            <!-- Exibição de preço e promoções -->
                             <p class="card-text mb-1 text-primary">
                                 <strong>Preço Venda:</strong>
 
@@ -159,10 +152,18 @@
                             <div class="d-flex flex-wrap gap-1 mt-3">
                                 <div>
                                     @if($produto->imagem)
-                                        <label class="form-label">Imagem do Produto</label>
+                                        <label for="imagem" class="form-label">Imagem do Produto</label>
                                         <img 
+                                            id="imagemPreview" 
                                             src="{{ asset('storage/'.$produto->imagem) }}" 
+                                            alt="Imagem Atual" 
                                             style="max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
+                                    @else
+                                        <img 
+                                            id="imagemPreview" 
+                                            src="#" 
+                                            alt="Prévia da Imagem" 
+                                            style="display:none; max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
                                     @endif
                                 </div>
                             </div>
@@ -179,7 +180,7 @@
                                 </a>
 
                                 <a href="{{ route('produtos.index-grid') }}" class="btn btn-warning btn-sm" style="width: 6.3rem">
-                                    Grid
+                                    <i class="bi bi-plus-circle"></i> Grid
                                 </a>
 
                                 <a href="{{ route('produtos.inativos') }}" class="btn btn-secondary btn-sm" style="width: 6.3rem">
@@ -189,7 +190,10 @@
                                 <form action="{{ route('produtos.desativar', $produto->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('PUT')
-                                    <button type="submit" class="btn btn-sm btn-danger" style="width: 6.3rem"
+                                    <button 
+                                        type="submit" 
+                                        class="btn btn-sm btn-danger" 
+                                        style="width: 6.3rem"
                                         onclick="return confirm('Deseja desativar este produto?')">
                                         Desativar
                                     </button>
@@ -204,6 +208,7 @@
             @endforeach
         </div>
 
+        <!-- Paginação -->
         <div class="d-flex justify-content-center mt-4">
             {{ $produtos->links('pagination::bootstrap-5') }}
         </div>

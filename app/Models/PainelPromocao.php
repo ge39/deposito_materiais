@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Models;
 
 use Illuminate\Http\Request;
 use App\Models\Promocao;
 use Carbon\Carbon;
 
-class PainelPromocaoController extends Controller
+class PainelPromocao extends Model
 {
     
     protected $fillable = [

@@ -362,3 +362,6 @@ Route::middleware('auth')->group(function () {
     //Dashboard orcamento movimentacoes
     Route::get('/dashboard/movimentacoes', [MovimentacaoOrcamentoDashboardController::class, 'index'])
     ->name('dashboard.movimentacoes');
+
+    Route::get('/dashboard/movimentacoes/data', [MovimentacaoOrcamentoDashboardController::class, 'data'])
+    ->name('dashboard.movimentacoes.data');

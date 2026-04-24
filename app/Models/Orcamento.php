@@ -10,10 +10,11 @@ class Orcamento extends Model
 {
     use HasFactory;
 
-    const STATUS_AGUARDANDO_APROVACAO = 'Aguardando aprovacao';
-    const STATUS_EXPIRADO = 'Expirado';
-    const STATUS_APROVADO = 'Aprovado';
-    const STATUS_CANCELADO = 'Cancelado';
+    const AGUARDANDO_APROVACAO = 'Aguardando Aprovacao';
+    const AGUARDANDO_ESTOQUE = 'Aguardando Estoque';
+    const APROVADO = 'Aprovado';
+    const EXPIRADO = 'Expirado';
+    const CANCELADO = 'Cancelado';
     const STATUS_FATURADO = 'Faturado';
     
     protected $table = 'orcamentos';

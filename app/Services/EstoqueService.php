@@ -64,10 +64,11 @@ class EstoqueService
     /**
      * DISTRIBUIÇÃO FIFO MULTI-LOTE
      */
+
     // private function distribuir(ItemOrcamento $item, int $produtoId, float $quantidade): void
     // {
-    //     $this->limparDistribuicao($item);
-            
+    //     // $this->limparDistribuicao($item);
+
     //     $restante = $quantidade;
 
     //     $lotes = $this->buscarLotesDisponiveis($produtoId);
@@ -82,23 +83,18 @@ class EstoqueService
 
     //         $qtd = min($restante, $disponivel);
 
-    //         // 🔒 reserva no lote
     //         $this->reservarLote($lote, $qtd);
 
-    //         // 🔗 registra vínculo
     //         $this->registrarLote($item, $lote, $qtd);
 
     //         $restante -= $qtd;
     //     }
 
-    //     // 🔥 sempre recalcula após mexer nos lotes
     //     $this->recalcularItem($item);
     // }
 
     private function distribuir(ItemOrcamento $item, int $produtoId, float $quantidade): void
     {
-        $this->limparDistribuicao($item);
-
         $restante = $quantidade;
 
         $lotes = $this->buscarLotesDisponiveis($produtoId);
@@ -140,31 +136,6 @@ class EstoqueService
     /**
      * UPSERT ITEM x LOTE
      */
-    // private function registrarLote(ItemOrcamento $item, Lote $lote, float $qtd): void
-    // {
-    //     $registro = DB::table('item_orcamento_lotes')
-    //         ->where('item_orcamento_id', $item->id)
-    //         ->where('lote_id', $lote->id)
-    //         ->lockForUpdate()
-    //         ->first();
-
-    //     if ($registro) {
-    //         DB::table('item_orcamento_lotes')
-    //             ->where('id', $registro->id)
-    //             ->update([
-    //                 'quantidade_reservada' => DB::raw("quantidade_reservada + {$qtd}"),
-    //                 'updated_at' => now(),
-    //             ]);
-    //     } else {
-    //         DB::table('item_orcamento_lotes')->insert([
-    //             'item_orcamento_id' => $item->id,
-    //             'lote_id' => $lote->id,
-    //             'quantidade_reservada' => $qtd,
-    //             'created_at' => now(),
-    //             'updated_at' => now(),
-    //         ]);
-    //     }
-    // }
     private function registrarLote(ItemOrcamento $item, Lote $lote, float $qtd): void
     {
         // 🔒 1. VALIDAÇÃO DE INTEGRIDADE
@@ -234,15 +205,7 @@ class EstoqueService
     /**
      * RESERVA LOTE
      */
-    // private function reservarLote(Lote $lote, float $qtd): void
-    // {
-    //     if ($qtd > $this->disponivel($lote)) {
-    //         throw new \Exception("Estoque insuficiente no lote {$lote->id}");
-    //     }
-
-    //     $lote->increment('quantidade_reservada', $qtd);
-    // }
-
+    
     private function reservarLote(Lote $lote, float $qtd): void
     {
         if ($qtd > $this->disponivel($lote)) {
@@ -263,30 +226,47 @@ class EstoqueService
     // {
     //     DB::transaction(function () use ($item) {
 
-    //         // 🔒 pega vínculos atuais
+    //         $movService = app(MovimentacaoOrcamentoService::class);
+
     //         $vinculos = DB::table('item_orcamento_lotes')
     //             ->where('item_orcamento_id', $item->id)
     //             ->lockForUpdate()
     //             ->get();
 
-    //         // 🔄 devolve estoque (SEM observer)
     //         foreach ($vinculos as $v) {
+
+    //             $lote = DB::table('lotes')
+    //                 ->where('id', $v->lote_id)
+    //                 ->lockForUpdate()
+    //                 ->first();
+
+    //             $antes = $lote->quantidade_reservada;
+    //             $depois = $antes - $v->quantidade_reservada;
+
     //             DB::table('lotes')
     //                 ->where('id', $v->lote_id)
     //                 ->decrement('quantidade_reservada', $v->quantidade_reservada);
+
+    //             // 🔥 REGISTRA MOVIMENTAÇÃO
+    //             $movService->registrar(
+    //                 $v->lote_id,
+    //                 $item->orcamento_id,
+    //                 $item->id,
+    //                 TipoMovimentacao::CANCELAMENTO,
+    //                 $antes,
+    //                 $depois,
+    //                 'Liberação de reserva',
+    //                 OrigemMovimentacao::SISTEMA
+    //             );
     //         }
 
-    //         // 🧹 remove vínculos
     //         DB::table('item_orcamento_lotes')
     //             ->where('item_orcamento_id', $item->id)
     //             ->delete();
 
-    //         // 🔥 recalcula item (zera atendido corretamente)
     //         $this->recalcularItem($item);
     //     });
     // }
-
-
 
     public function cancelarReserva(ItemOrcamento $item): void
     {
@@ -306,12 +286,21 @@ class EstoqueService
                     ->lockForUpdate()
                     ->first();
 
-                $antes = $lote->quantidade_reservada;
-                $depois = $antes - $v->quantidade_reservada;
+                if (!$lote) continue;
 
+                $antes = $lote->quantidade_reservada;
+
+                // 🔹 atualiza estoque
                 DB::table('lotes')
                     ->where('id', $v->lote_id)
                     ->decrement('quantidade_reservada', $v->quantidade_reservada);
+
+                // 🔹 pega valor atualizado
+                $loteAtualizado = DB::table('lotes')
+                    ->where('id', $v->lote_id)
+                    ->first();
+
+                $depois = max(0, $loteAtualizado->quantidade_reservada);
 
                 // 🔥 REGISTRA MOVIMENTAÇÃO
                 $movService->registrar(
@@ -337,17 +326,6 @@ class EstoqueService
     /**
      * RESERVA DIRETA
      */
-    // public function reservar(int $itemId, int $produtoId, float $quantidade): void
-    // {
-    //     DB::transaction(function () use ($itemId, $produtoId, $quantidade) {
-
-    //         $item = ItemOrcamento::lockForUpdate()->findOrFail($itemId);
-
-    //         $this->distribuir($item, $produtoId, $quantidade);
-
-    //         $this->atualizarStatusOrcamento([$item->orcamento_id]);
-    //     });
-    // }
 
     public function recalcularReservar(int $itemId, int $produtoId, float $quantidade)
     {
@@ -405,27 +383,10 @@ class EstoqueService
         }
     }
 
-  
-
     /**
      * STATUS DO ORÇAMENTO
      */
-    // private function atualizarStatusOrcamento(array $ids): void
-    // {
-    //     foreach ($ids as $id) {
-
-    //         $temPendente = ItemOrcamento::where('orcamento_id', $id)
-    //             ->whereRaw('(quantidade_solicitada - quantidade_atendida) > 0')
-    //             ->exists();
-
-    //         Orcamento::where('id', $id)->update([
-    //             'status' => $temPendente
-    //                 ? 'Aguardando Estoque'
-    //                 : 'Aguardando Aprovacao'
-    //         ]);
-    //     }
-    // }
-   private function atualizarStatusOrcamento(array $ids): void
+    private function atualizarStatusOrcamento(array $ids): void
     {
         foreach ($ids as $id) {
 
@@ -447,4 +408,37 @@ class EstoqueService
             ]);
         }
     }
+
+
+
+    //  public function reprocessarProduto(int $produtoId)
+    // {
+    //     DB::transaction(function () use ($produtoId) {
+
+    //         // 1. pega todos itens pendentes do produto
+    //         $itens = ItemOrcamento::where('produto_id', $produtoId)
+    //             ->whereRaw('(quantidade_solicitada - quantidade_atendida) > 0')
+    //             ->orderBy('orcamento_id')
+    //             ->lockForUpdate()
+    //             ->get();
+
+    //         foreach ($itens as $item) {
+
+    //             // 2. tenta redistribuir com FIFO
+    //             $this->distribuir(
+    //                 $item,
+    //                 $produtoId,
+    //                 $item->quantidade_solicitada - $item->quantidade_atendida
+    //             );
+
+    //             // 3. recalcula fonte da verdade
+    //             $this->recalcularItem($item);
+    //         }
+
+    //         // 4. atualiza status dos orçamentos afetados
+    //         $this->atualizarStatusOrcamento(
+    //             $itens->pluck('orcamento_id')->unique()->toArray()
+    //         );
+    //     });
+    // }
 }

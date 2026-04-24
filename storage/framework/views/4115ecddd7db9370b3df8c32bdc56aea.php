@@ -1,21 +1,22 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 <div class="container">
     <h2 class="mb-4">Pedidos de Compras</h2>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
+    <?php if(session('success')): ?>
+        <div class="alert alert-success"><?php echo e(session('success')); ?></div>
+    <?php endif; ?>
 
     <div class="mb-3">
-        <a href="{{ route('pedidos.create') }}" class="btn btn-primary">Novo Pedido</a>
-         <a href="{{ route('pedidos.index') }}" class="btn btn-secondary">voltar</a>
+        <a href="<?php echo e(route('pedidos.create')); ?>" class="btn btn-primary">Novo Pedido</a>
+         <a href="<?php echo e(route('pedidos.index')); ?>" class="btn btn-secondary">voltar</a>
     </div>
 
     <div class="d-flex justify-content-center mt-3">
         <div class="d-inline-block">
-            {{ $pedidos->links('pagination::bootstrap-5') }}
+            <?php echo e($pedidos->links('pagination::bootstrap-5')); ?>
+
         </div>
     </div>
 
@@ -36,74 +37,76 @@
 
         <!-- Rows -->
         <div>
-            @forelse($pedidos as $pedido)
+            <?php $__empty_1 = true; $__currentLoopData = $pedidos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pedido): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                 <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem;
                             padding: 0.5rem; border-bottom: 1px solid #dee2e6;">
 
-                    <div>{{ $pedido->id }}</div>
-                    <div>{{ $pedido->fornecedor->nome ?? '-' }}</div>
-                    <div>{{ \Carbon\Carbon::parse($pedido->data_pedido)->format('d/m/Y') }}</div>
+                    <div><?php echo e($pedido->id); ?></div>
+                    <div><?php echo e($pedido->fornecedor->nome ?? '-'); ?></div>
+                    <div><?php echo e(\Carbon\Carbon::parse($pedido->data_pedido)->format('d/m/Y')); ?></div>
 
                     <div>
-                        R$ {{ number_format($pedido->lotes->sum(fn($lote) => $lote->quantidade * $lote->preco_compra), 2, ',', '.') }}
+                        R$ <?php echo e(number_format($pedido->lotes->sum(fn($lote) => $lote->quantidade * $lote->preco_compra), 2, ',', '.')); ?>
+
                     </div>
                    <div>
-                        @php
+                        <?php
                             $statusClasses = [
                                 'pendente' => 'badge bg-warning text-dark',
                                 'aprovado' => 'badge bg-primary',
                                 'recebido' => 'badge bg-success',
                                 'cancelado' => 'badge bg-danger'
                             ];
-                        @endphp
+                        ?>
 
-                        <span class="{{ $statusClasses[$pedido->status] ?? 'badge bg-secondary' }}">
-                            {{ ucfirst($pedido->status) }}
+                        <span class="<?php echo e($statusClasses[$pedido->status] ?? 'badge bg-secondary'); ?>">
+                            <?php echo e(ucfirst($pedido->status)); ?>
+
                         </span>
                     </div>
 
-                    <div>{{ $pedido->user->name ?? '-' }}</div>
+                    <div><?php echo e($pedido->user->name ?? '-'); ?></div>
 
                     <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                        <!-- <a href="{{ route('pedidos.show', $pedido->id) }}" 
+                        <!-- <a href="<?php echo e(route('pedidos.show', $pedido->id)); ?>" 
                            class="btn btn-info btn-sm"
                            style="font-size:0.65rem; padding:0.25rem 0.4rem;">
                             View
                         </a> -->
 
-                        @if(!in_array($pedido->status, ['cancelado','recebido','Pendente']))
-                            <a href="{{ route('pedidos.edit', $pedido->id) }}" 
+                        <?php if(!in_array($pedido->status, ['cancelado','recebido','Pendente'])): ?>
+                            <a href="<?php echo e(route('pedidos.edit', $pedido->id)); ?>" 
                                class="btn btn-warning btn-sm"
                                style="font-size:0.65rem; padding:0.25rem;">
                                 Editar
                             </a>
-                        @endif
+                        <?php endif; ?>
 
                            
 
-                        @if($pedido->status === 'pendente')
-                            <a href="{{ route('pedidos.aprovar', $pedido->id) }}" 
+                        <?php if($pedido->status === 'pendente'): ?>
+                            <a href="<?php echo e(route('pedidos.aprovar', $pedido->id)); ?>" 
                                class="btn btn-primary btn-sm"
                                style="font-size:0.65rem; padding:0.25rem;">
                                 Aprovar
                             </a>
 
-                            <a href="{{ route('pedidos.cancelar', $pedido->id) }}" 
+                            <a href="<?php echo e(route('pedidos.cancelar', $pedido->id)); ?>" 
                                class="btn btn-danger btn-sm"
                                style="font-size:0.65rem; padding:0.25rem;">
                                 Cancelar
                             </a>
-                        @elseif($pedido->status === 'aprovado') 
+                        <?php elseif($pedido->status === 'aprovado'): ?> 
                             <button 
                                 class="btn btn-success btn-sm"
-                                onclick="window.location='{{ route('pedidos.receber.view', $pedido->id) }}'"
+                                onclick="window.location='<?php echo e(route('pedidos.receber.view', $pedido->id)); ?>'"
                                 style="font-size:0.65rem; padding:0.25rem;">
                                 Receber
                             </button>
 
-                        @endif
+                        <?php endif; ?>
                         
-                         <a href="{{ route('pedidos.pdf', $pedido->id) }}" target="_blank" 
+                         <a href="<?php echo e(route('pedidos.pdf', $pedido->id)); ?>" target="_blank" 
                             class="btn btn-success btn-sm"
                             style="font-size:0.65rem; padding:0.25rem;">
                                 Imprimir
@@ -111,21 +114,22 @@
 
                     </div>
                 </div>
-            @empty
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <div class="text-center p-3">Nenhum pedido encontrado.</div>
-            @endforelse
+            <?php endif; ?>
         </div>
     </div>
 
     <div class="d-flex justify-content-center mt-3">
         <div class="d-inline-block">
-            {{ $pedidos->links('pagination::bootstrap-5') }}
+            <?php echo e($pedidos->links('pagination::bootstrap-5')); ?>
+
         </div>
     </div>
 
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
 <!-- Modal de Recebimento -->
 <div class="modal fade" id="modalReceber" tabindex="-1" aria-hidden="true">
@@ -151,7 +155,7 @@
                 const id = this.dataset.id;
                 try {
                     // Pega o HTML da view (retorna a partial blade)
-                    const res = await fetch("{{ url('pedidos/modal-recebimento') }}/" + id, {
+                    const res = await fetch("<?php echo e(url('pedidos/modal-recebimento')); ?>/" + id, {
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     });
                     if (!res.ok) throw new Error('Falha ao carregar modal');
@@ -180,3 +184,4 @@
         });
     });
 </script>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pedidos/index.blade.php ENDPATH**/ ?>

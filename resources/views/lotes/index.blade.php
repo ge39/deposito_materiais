@@ -36,7 +36,8 @@
                             </p>
 
                             <p class="card-text mb-1"><strong>Produto ID:</strong> 000{{ $lote->produto_id }}</p>
-                            <p class="card-text mb-1"><strong>Qtd Comprada:</strong> {{ $lote->quantidade }}</p>
+                            <p class="card-text mb-1"><strong>Qtd Comprada:</strong> {{ $lote->quantidade }} {{ $produto->unidadeMedida->nome }}(s)</p>
+                            <p class="card-text mb-1"><strong>Qtd Reservada p/ Orcamento:</strong> {{ $lote->quantidade_reservada}} {{ $produto->unidadeMedida->nome }}(s)</p>
                             <p class="card-text mb-1"><strong>Preço de Compra:</strong> R$ {{ number_format($lote->preco_compra, 2, ',', '.') }}</p>
                             <p class="card-text mb-1"><strong>Data da Compra:</strong> {{ \Carbon\Carbon::parse($lote->data_compra)->format('d/m/Y') }}</p>
                             <p class="card-text mb-1"><strong>Validade até::</strong> {{ \Carbon\Carbon::parse($lote->validade_lote)->format('d/m/Y') }}</p>

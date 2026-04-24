@@ -13,6 +13,7 @@ class PedidoCompraRecebimentoController extends Controller
     /**
      * Carrega os itens do pedido e retorna JSON para abrir o modal.
      */
+    
     public function carregarItens($id)
     {
        
@@ -29,7 +30,7 @@ class PedidoCompraRecebimentoController extends Controller
      */
     public function receber(Request $request, $id)
     {
-        
+     
         $pedido = PedidoCompra::with('itens.produto')->findOrFail($id);
         
         $request->validate([

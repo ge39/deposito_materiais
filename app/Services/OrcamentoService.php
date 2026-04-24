@@ -6,6 +6,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Orcamento;
+
 use App\Models\ItemOrcamento;
 use App\Models\Empresa;
 use App\Models\Lote;
@@ -13,6 +14,7 @@ use App\Models\Cliente;
 use App\Models\Produto;
 use App\Services\EstoqueService;
 use App\Enums\TipoMovimentacao;
+use App\Enums\OrigemMovimentacao;
 
 
 class OrcamentoService
@@ -42,6 +44,29 @@ class OrcamentoService
         return $query->orderByDesc('id')->paginate(15);
     }
 
+    // public function listar($request)
+    // {
+    //     $query = Orcamento::with('cliente')
+    //         ->whereIn('status', [
+    //             'Aprovado',
+    //             'Aguardando Aprovacao',
+    //             'Aguardando Estoque'
+                
+    //         ]);
+
+    //     if ($request->status) {
+    //         $query->where('status', $request->status);
+    //     }
+
+    //     if ($request->codigo_orcamento) {
+    //         $query->where('codigo_orcamento', $request->codigo_orcamento);
+    //     }
+
+    //     return $query
+    //         ->orderByDesc('id')
+    //         ->paginate(15)
+    //         ->withQueryString();
+    // }
     /* =========================================
      | DADOS CREATE
      ========================================= */
@@ -101,6 +126,91 @@ class OrcamentoService
     /* =========================================
      | CRIAR COMPLETO
      ========================================= */
+    // public function criarCompleto(array $request)
+    // {
+    //     return DB::transaction(function () use ($request) {
+
+    //         $empresa = Empresa::where('ativo', 1)->firstOrFail();
+
+    //         $orcamento = Orcamento::create([
+    //             'cliente_id' => $request['cliente_id'],
+    //             'empresa_id' => $empresa->id,
+    //             'data_orcamento' => now(),
+    //             'validade' => $request['validade'],
+    //             'codigo_orcamento' => now()->format('YmdHis'),
+    //             'status' => 'Aguardando Aprovacao',
+    //             'observacoes' => $request['observacoes'] ?? null,
+    //             'total' => 0,
+    //             'ativo' => 1,
+    //             'editando_por' => Auth::id(),
+    //             'editando_em' => now(),
+    //         ]);
+
+    //         $orcamento->update([
+    //             'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
+    //         ]);
+
+    //         $total = 0;
+
+    //         if (empty($request['produtos']) || !is_array($request['produtos'])) {
+    //             throw new \Exception('Produtos inválidos no orçamento');
+    //         }
+
+    //         foreach ($request['produtos'] as $itemReq) {
+
+    //             $produtoId = $itemReq['id'] ?? null;
+    //             if (!$produtoId) continue;
+
+    //             $qtd = $itemReq['quantidade_solicitada']
+    //                 ?? $itemReq['quantidade']
+    //                 ?? 0;
+
+    //             $preco = $itemReq['preco_unitario']
+    //                 ?? $itemReq['preco']
+    //                 ?? 0;
+
+    //             if ($qtd <= 0) continue;
+
+    //             $item = ItemOrcamento::create([
+    //                 'orcamento_id' => $orcamento->id,
+    //                 'produto_id' => $produtoId,
+    //                 'quantidade_solicitada' => $qtd,
+    //                 'quantidade_atendida' => 0,
+    //                 'quantidade_pendente' => $qtd,
+    //                 'preco_unitario' => $preco,
+    //                 'subtotal' => $qtd * $preco,
+    //                 'status' => 'indisponivel',
+    //                 'previsao_entrega' => now()->addDays(7),
+    //             ]);
+
+    //             // 🔥 ESTOQUE
+    //             $this->estoqueService->recalcularReservar(
+    //                 $item->id,
+    //                 $produtoId,
+    //                 $qtd
+    //             );
+
+    //             // 🔥 ESSA LINHA RESOLVE SEU BUG
+    //             $this->recalcularItemCompleto($item);
+
+    //             $item->refresh();
+    //         }
+
+    //         $temPendente = $orcamento->itens()
+    //             ->whereIn('status', ['indisponivel', 'parcial'])
+    //             ->exists();
+
+    //         $orcamento->update([
+    //             'total' => $total,
+    //             'status' => $temPendente
+    //                 ? 'Aguardando Estoque'
+    //                 : 'Aguardando Aprovacao'
+    //         ]);
+
+    //         return $orcamento;
+    //     });
+    // }
+
     public function criarCompleto(array $request)
     {
         return DB::transaction(function () use ($request) {
@@ -121,11 +231,10 @@ class OrcamentoService
                 'editando_em' => now(),
             ]);
 
+            // 🔥 garante código único
             $orcamento->update([
                 'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
             ]);
-
-            $total = 0;
 
             if (empty($request['produtos']) || !is_array($request['produtos'])) {
                 throw new \Exception('Produtos inválidos no orçamento');
@@ -158,24 +267,34 @@ class OrcamentoService
                     'previsao_entrega' => now()->addDays(7),
                 ]);
 
-                // 🔥 ESTOQUE
+                // 🔥 1. processa estoque (FIFO)
                 $this->estoqueService->recalcularReservar(
                     $item->id,
                     $produtoId,
                     $qtd
                 );
 
-                // $total += $item->subtotal;
-                $total += $item->quantidade_atendida * $item->preco_unitario;
-                $total = ItemOrcamento::where('orcamento_id', $orcamento->id)
-                ->selectRaw('SUM(quantidade_atendida * preco_unitario) as total')
-                ->value('total');
+                // 🔥 2. garante consistência do item
+                $this->recalcularItemCompleto($item);
+
+                // 🔥 3. atualiza estado em memória
+                $item->refresh();
             }
 
-            $temPendente = $orcamento->itens()
-                ->whereIn('status', ['indisponivel', 'parcial'])
-                ->exists();
+            // 🔥 4. recarrega TODOS os itens já atualizados
+            $orcamento->load('itens');
 
+            // 🔥 5. calcula total CORRETAMENTE (baseado no atendido)
+            $total = $orcamento->itens->sum(function ($item) {
+                return $item->quantidade_atendida * $item->preco_unitario;
+            });
+
+            // 🔥 6. verifica pendências reais
+            $temPendente = $orcamento->itens
+                ->where('quantidade_pendente', '>', 0)
+                ->isNotEmpty();
+
+            // 🔥 7. atualiza orçamento FINAL
             $orcamento->update([
                 'total' => $total,
                 'status' => $temPendente
@@ -186,115 +305,12 @@ class OrcamentoService
             return $orcamento;
         });
     }
+    
 
      /* =========================================
      | EDITAR
      ========================================= */
-    // public function dadosParaEdicao($id)
-    // {
-    //     try {
-    //         $orcamento = Orcamento::with([
-    //             'itens.produto.unidadeMedida',
-    //             'itens.produto.lotes' => function ($q) {
-    //                 $q->where('status', 1)
-    //                     ->whereRaw('(quantidade - quantidade_reservada) > 0')
-    //                     ->where(function ($q2) {
-    //                         $q2->whereDate('validade_lote', '>=', now());
-    //                             ->orWhereNull('validade_lote');
-    //                     })
-    //                     ->orderBy('id', 'asc');
-    //             },
-    //             'itens.lote'
-    //         ])->findOrFail($id);
-
-    //         // 🔒 Controle de edição concorrente
-    //         if ($orcamento->editando_por && $orcamento->editando_por != auth()->id()) {
-    //             $usuario = $orcamento->usuarioEditando;
-    //             $nomeUsuario = $usuario->name ?? 'Outro usuário';
-
-    //             return [
-    //                 'erro' => "Este orçamento está sendo editado por: {$nomeUsuario}"
-    //             ];
-    //         }
-
-    //         $orcamento->update([
-    //             'editando_por' => auth()->id(),
-    //             'editando_em' => now()
-    //         ]);
-
-    //         // 👥 Clientes ativos
-    //         $clientes = Cliente::where('ativo', 1)
-    //             ->orderBy('nome')
-    //             ->get();
-
-    //         // 📦 Produtos do orçamento
-    //         $produtosIdsOrcamento = $orcamento->itens->pluck('produto_id');
-
-    //         $produtos = Produto::with([
-    //             'unidadeMedida',
-    //             'lotes' => function ($query) {
-    //                 $query->where('status', 1)
-    //                     ->whereRaw('(quantidade - quantidade_reservada) > 0')
-    //                     ->where(function ($q) {
-    //                         $q->whereDate('validade_lote', '>=', now())
-    //                             ->orWhereNull('validade_lote');
-    //                     })
-    //                     ->orderBy('id', 'asc');
-    //             }
-    //         ])
-    //         ->where('ativo', 1)
-    //         ->where(function ($query) use ($produtosIdsOrcamento) {
-    //             $query->where(function ($q) {
-    //                 $q->where('controla_validade', 0)
-    //                     ->orWhereHas('lotes', function ($qq) {
-    //                         $qq->where('status', 1)
-    //                             ->whereRaw('(quantidade - quantidade_reservada) > 0')
-    //                             ->where(function ($qqq) {
-    //                                 $qqq->whereDate('validade_lote', '>=', now())
-    //                                     ->orWhereNull('validade_lote');
-    //                             });
-    //                     });
-    //             })
-    //             ->orWhereIn('id', $produtosIdsOrcamento);
-    //         })
-    //         ->orderBy('nome')
-    //         ->get();
-
-    //         $lotes = [];
-
-    //         foreach ($produtos as $produto) {
-    //             $lotes[$produto->id] = $produto->lotes;
-    //         }
-
-    //         return compact('orcamento', 'clientes', 'produtos', 'lotes');
-
-    //     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-
-    //         return [
-    //             'erro' => 'Orçamento não encontrado',
-    //             'detalhes' => $e->getMessage()
-    //         ];
-
-    //     } catch (\Illuminate\Database\QueryException $e) {
-
-    //         return [
-    //             'erro' => 'Erro de banco de dados',
-    //             'sql' => $e->getSql(),
-    //             'bindings' => $e->getBindings(),
-    //             'mensagem' => $e->getMessage()
-    //         ];
-
-    //     } catch (\Throwable $e) {
-
-    //         return [
-    //             'erro' => 'Erro inesperado',
-    //             'mensagem' => $e->getMessage(),
-    //             'arquivo' => $e->getFile(),
-    //             'linha' => $e->getLine(),
-    //             'trace' => collect($e->getTrace())->take(5)
-    //         ];
-    //     }
-    // }
+   
     public function dadosParaEdicao($id)
     {
         try {
@@ -446,9 +462,12 @@ class OrcamentoService
     /* =========================================
      | APROVAR COMPLETO
      ========================================= */
+   
     public function aprovarCompleto(int $orcamentoId)
     {
         return DB::transaction(function () use ($orcamentoId) {
+
+            $movService = app(MovimentacaoOrcamentoService::class);
 
             $orcamento = Orcamento::findOrFail($orcamentoId);
 
@@ -458,13 +477,18 @@ class OrcamentoService
 
             foreach ($orcamento->itens as $item) {
 
-                $lotes = DB::table('item_orcamento_lotes')
+                $vinculos = DB::table('item_orcamento_lotes')
                     ->where('item_orcamento_id', $item->id)
+                    ->lockForUpdate()
                     ->get();
 
-                foreach ($lotes as $l) {
+                foreach ($vinculos as $v) {
 
-                    $lote = Lote::lockForUpdate()->find($l->lote_id);
+                    $lote = DB::table('lotes')
+                        ->where('id', $v->lote_id)
+                        ->lockForUpdate()
+                        ->first();
+
                     if (!$lote) continue;
 
                     $disponivel = $lote->quantidade - $lote->quantidade_reservada;
@@ -474,11 +498,14 @@ class OrcamentoService
                     $atender = min($item->quantidade_pendente, $disponivel);
 
                     if ($atender > 0) {
-                        $lote->quantidade_reservada += $atender;
-                        $lote->save();
+
+                        // 🔹 estoque continua funcionando normal
+                        DB::table('lotes')
+                            ->where('id', $v->lote_id)
+                            ->increment('quantidade_reservada', $atender);
 
                         DB::table('item_orcamento_lotes')
-                            ->where('id', $l->id)
+                            ->where('id', $v->id)
                             ->increment('quantidade_atendida', $atender);
 
                         $item->quantidade_atendida += $atender;
@@ -491,16 +518,51 @@ class OrcamentoService
                     : 'disponivel';
 
                 $item->save();
-
             }
 
             $temPendente = $orcamento->itens()
                 ->where('quantidade_pendente', '>', 0)
                 ->exists();
 
+            $statusFinal = $temPendente ? 'Aguardando Estoque' : 'Aprovado';
+
             $orcamento->update([
-                'status' => $temPendente ? 'Aguardando Estoque' : 'Aprovado'
+                'status' => $statusFinal
             ]);
+
+            // 🔥 REGRA CORRETA: só registra se aprovado
+            if ($statusFinal === 'Aprovado') {
+
+                foreach ($orcamento->itens as $item) {
+
+                    $vinculos = DB::table('item_orcamento_lotes')
+                        ->where('item_orcamento_id', $item->id)
+                        ->get();
+
+                    foreach ($vinculos as $v) {
+
+                        $lote = DB::table('lotes')
+                            ->where('id', $v->lote_id)
+                            ->first();
+
+                        if (!$lote) continue;
+
+                        $antes = $lote->quantidade_reservada;
+                        $depois = $lote->quantidade_reservada;
+
+                        $movService->registrar(
+                            $v->lote_id,
+                            $orcamento->id,
+                            $item->id,
+                            TipoMovimentacao::APROVADO,
+                            $antes,
+                            $depois,
+                            'Orçamento aprovado',
+                            OrigemMovimentacao::SISTEMA
+                        );
+                    }
+                }
+            }
 
             return $orcamento;
         });

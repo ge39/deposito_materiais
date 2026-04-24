@@ -45,7 +45,7 @@
     <?php if(session('success')): ?>
         <div class="alert alert-success"><?php echo e(session('success')); ?></div>
     <?php endif; ?>
-
+    
     <table class="table table-striped">
 
          <div class="d-flex justify-content-center mt-3">
@@ -115,13 +115,13 @@
                     </form>
 
                      <!-- cancelar -->
-                    <form method="POST" action="<?php echo e(route('orcamentos.cancelar', $orcamento->id)); ?>" style="display:inline;">
+                    <!-- <form method="POST" action="<?php echo e(route('orcamentos.cancelar', $orcamento->id)); ?>" style="display:inline;">
                         <?php echo csrf_field(); ?>
                         <button class="btn btn-sm btn-danger"
                             onclick="return confirm('Deseja realmente cancelar este orçamento?')">
                             Cancelar
                         </button>
-                    </form>
+                    </form> -->
                 <?php endif; ?>
 
                 <!-- 'Aguardando Estoque -->
@@ -147,9 +147,8 @@
                     target="_blank">
                         Enviar WhatsApp
                 </a>
-                
-                <!-- cancelar orcamento -->
-                <?php if(!$orcamento->status === 'Cancelado' ): ?>
+                                <!-- cancelar orcamento -->
+                <?php if($orcamento->status !== 'Cancelado'): ?>
                     <form method="POST" action="<?php echo e(route('orcamentos.cancelar', $orcamento->id)); ?>" style="display:inline;">
                         <?php echo csrf_field(); ?>
                         <button class="btn btn-sm btn-danger"
@@ -157,8 +156,12 @@
                             Cancelar
                         </button>
                     </form>
-                   
+                <?php else: ?>
+                    <button class="btn btn-sm btn-secondary" disabled style="opacity: 0.6; cursor: not-allowed;">
+                        Cancelar
+                    </button>
                 <?php endif; ?>
+                 
             </td>
         </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -168,8 +171,7 @@
                         Nenhum orçamento encontrado para os filtros informados.
                     </td>
                 </tr>
-            <?php endif; ?>
-            
+            <?php endif; ?> 
 
         </tbody>
 

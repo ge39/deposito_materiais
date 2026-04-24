@@ -3,7 +3,7 @@ namespace App\Enums;
 
 class TipoMovimentacao
 {
-    const RESERVA = 'reserva';
+    const APROVADO = 'aprovado';
     const CANCELAMENTO = 'cancelamento';
-    const EDICAO = 'edicao';
+    const AGUARDANDO_ESTOQUE = 'aguardando_estoque';
 }

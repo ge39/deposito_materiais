@@ -182,9 +182,13 @@ class PedidoCompraController extends Controller
             return redirect()->route('pedidos.index')
                 ->with('success', 'Produtos recebidos e estoque atualizado!');
 
+        // } catch (\Exception $e) {
+        //     DB::rollBack();
+        //     return back()->with('error', 'Erro ao receber produtos: ' . $e->getMessage());
+        // }
+
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Erro ao receber produtos: ' . $e->getMessage());
+           dd( $e->getMessage());
         }
     }
 

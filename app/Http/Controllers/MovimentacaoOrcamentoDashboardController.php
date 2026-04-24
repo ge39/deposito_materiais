@@ -1,81 +1,108 @@
-<?php 
+<?php
+
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\DB;
 use App\Models\MovimentacaoOrcamento;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MovimentacaoOrcamentoDashboardController extends Controller
 {
     public function index(Request $request)
-{
-    $inicio = $request->inicio ?? now()->subDays(7)->format('Y-m-d');
-    $fim    = $request->fim ?? now()->format('Y-m-d');
-    $tipo   = $request->tipo;
+    {
+        $inicio = $request->inicio ?? now()->subDays(7)->format('Y-m-d');
+        $fim    = $request->fim ?? now()->format('Y-m-d');
+        $tipo   = $request->tipo;
 
-    $query = MovimentacaoOrcamento::query()
-        ->whereBetween('created_at', [$inicio.' 00:00:00', $fim.' 23:59:59']);
+        $baseQuery = MovimentacaoOrcamento::query()
+            ->whereBetween('created_at', [
+                $inicio . ' 00:00:00',
+                $fim . ' 23:59:59'
+            ])
+            ->when($tipo, fn ($q) => $q->where('tipo', $tipo));
 
-    if ($tipo) {
-        $query->where('tipo', $tipo);
+        // 🔥 CARREGA DADOS UMA ÚNICA VEZ
+        $movimentacoes = (clone $baseQuery)
+            ->with(['user', 'orcamento', 'item.produto'])
+            ->latest()
+            ->get();
+
+        // ================= KPI (sem requery desnecessário)
+        $total = $movimentacoes->count();
+
+        $cancelamentos = $movimentacoes->where('tipo', 'cancelamento')->count();
+
+        $reservas = $movimentacoes->where('tipo', 'aguardando_estoque')->count();
+
+        $aprovados = $movimentacoes->where('tipo', 'aprovado')->count();
+
+        $taxaCancelamento = $reservas > 0
+            ? round(($cancelamentos / $reservas) * 100, 2)
+            : 0;
+
+        // ================= AGRUPAMENTOS (em memória = rápido)
+        $porTipo = $movimentacoes->groupBy('tipo')->map->count();
+
+        $porDia = $movimentacoes->groupBy(fn ($m) => $m->created_at->format('Y-m-d'))
+            ->map->count()
+            ->sortKeys();
+
+        $topUsuarios = $movimentacoes->groupBy('user_id')
+            ->map(fn ($items) => [
+                'user' => $items->first()->user,
+                'total' => $items->count()
+            ])
+            ->sortByDesc('total')
+            ->take(5);
+
+        // últimas 15
+        $ultimas = $movimentacoes->take(15);
+
+        return view('dashboard.movimentacoes', compact(
+            'total',
+            'cancelamentos',
+            'reservas',
+            'aprovados',
+            'taxaCancelamento',
+            'porTipo',
+            'porDia',
+            'topUsuarios',
+            'ultimas',
+            'inicio',
+            'fim',
+            'tipo'
+        ));
     }
 
-    // KPIs
-    $total = (clone $query)->count();
+    public function data(Request $request)
+    {
+        $inicio = $request->inicio ?? now()->subDays(7)->format('Y-m-d');
+        $fim    = $request->fim ?? now()->format('Y-m-d');
+        $tipo   = $request->tipo;
 
-    $cancelamentos = (clone $query)
-        ->where('tipo', 'cancelamento')
-        ->count();
+        $query = MovimentacaoOrcamento::query()
+            ->whereBetween('created_at', [
+                $inicio . ' 00:00:00',
+                $fim . ' 23:59:59'
+            ])
+            ->when($tipo, fn($q) => $q->where('tipo', $tipo));
 
-    $reservas = (clone $query)
-        ->where('tipo', 'reserva')
-        ->count();
+        $mov = $query->with(['user', 'item.produto'])->get();
 
-    $taxaCancelamento = $reservas > 0
-        ? ($cancelamentos / $reservas) * 100
-        : 0;
+        return response()->json([
+            'kpis' => [
+                'total' => $mov->count(),
+                'aprovados' => $mov->where('tipo', 'aprovado')->count(),
+                'cancelamentos' => $mov->where('tipo', 'cancelamento')->count(),
+                'reservas' => $mov->where('tipo', 'aguardando_estoque')->count(),
+            ],
 
-    // Por tipo
-    $porTipo = (clone $query)
-        ->select('tipo', DB::raw('count(*) as total'))
-        ->groupBy('tipo')
-        ->pluck('total', 'tipo');
+            'porTipo' => $mov->groupBy('tipo')->map->count(),
+            'porDia' => $mov->groupBy(fn($m) => $m->created_at->format('Y-m-d'))
+                ->map->count()
+                ->sortKeys(),
 
-    // Por dia
-    $porDia = (clone $query)
-        ->select(DB::raw('DATE(created_at) as data'), DB::raw('count(*) as total'))
-        ->groupBy('data')
-        ->orderBy('data')
-        ->get();
-
-    // Top usuários
-    $topUsuarios = (clone $query)
-        ->select('user_id', DB::raw('count(*) as total'))
-        ->groupBy('user_id')
-        ->orderByDesc('total')
-        ->with('user')
-        ->limit(5)
-        ->get();
-
-    // Últimas
-    $ultimas = (clone $query)
-        ->with(['user', 'orcamento'])
-        ->latest()
-        ->limit(15)
-        ->get();
-
-    return view('dashboard.movimentacoes', compact(
-        'total',
-        'cancelamentos',
-        'reservas',
-        'taxaCancelamento',
-        'porTipo',
-        'porDia',
-        'topUsuarios',
-        'ultimas',
-        'inicio',
-        'fim',
-        'tipo'
-    ));
-}
+            'ultimas' => $mov->take(15)->values(),
+        ]);
+    }
 }

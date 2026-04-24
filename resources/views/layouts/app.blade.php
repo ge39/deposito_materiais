@@ -191,7 +191,7 @@
             <li>
                 <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
                    href="{{ $canAccessAdmin ? route('dashboard.movimentacoes') : '#' }}">
-                   <i class="bi bi-list-stars me-2"></i>Dashboard-Orçamentos
+                   <i class="bi bi-list-stars me-2"></i>Orcamento / Dashboard
                 </a>
             </li>
             <li>

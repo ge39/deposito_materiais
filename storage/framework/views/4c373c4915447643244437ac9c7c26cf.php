@@ -1,151 +1,232 @@
 
 
 <?php $__env->startSection('content'); ?>
-<div class="container">
+<div class="container-fluid mt-3">
 
-<h2 class="mb-4">📊 Dashboard de Movimentações</h2>
-
-
-<form method="GET" class="row mb-4">
-    <div class="col-md-3">
-        <input type="date" name="inicio" value="<?php echo e($inicio); ?>" class="form-control">
+    
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Dashboard de Movimentações</h3>
     </div>
 
-    <div class="col-md-3">
-        <input type="date" name="fim" value="<?php echo e($fim); ?>" class="form-control">
-    </div>
+    
+    <form method="GET" class="card card-body mb-3">
+        <div class="row g-2">
 
-    <div class="col-md-3">
-        <select name="tipo" class="form-control">
-            <option value="">Todos</option>
-            <option value="reserva" <?php if($tipo=='reserva'): echo 'selected'; endif; ?>>Reserva</option>
-            <option value="cancelamento" <?php if($tipo=='cancelamento'): echo 'selected'; endif; ?>>Cancelamento</option>
-            <option value="edicao" <?php if($tipo=='edicao'): echo 'selected'; endif; ?>>Edição</option>
-        </select>
-    </div>
+            <div class="col-md-3">
+                <label>Data início</label>
+                <input type="date" name="inicio" class="form-control"
+                    value="<?php echo e(request('inicio', $inicio)); ?>">
+            </div>
 
-    <div class="col-md-3">
-        <button class="btn btn-primary w-100">Filtrar</button>
-    </div>
-</form>
+            <div class="col-md-3">
+                <label>Data fim</label>
+                <input type="date" name="fim" class="form-control"
+                    value="<?php echo e(request('fim', $fim)); ?>">
+            </div>
 
+            <div class="col-md-3">
+                <label>Tipo</label>
+                <select name="tipo" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="aprovado" <?php if(request('tipo')=='aprovado'): echo 'selected'; endif; ?>>Aprovado</option>
+                    <option value="cancelamento" <?php if(request('tipo')=='cancelamento'): echo 'selected'; endif; ?>>Cancelamento</option>
+                    <option value="aguardando_estoque" <?php if(request('tipo')=='aguardando_estoque'): echo 'selected'; endif; ?>>Aguardando Estoque</option>
+                </select>
+            </div>
 
-<div class="row mb-4">
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button class="btn btn-primary w-100">Filtrar</button>
+                <a href="<?php echo e(route('dashboard.movimentacoes')); ?>" class="btn btn-secondary w-100">Limpar</a>
+            </div>
 
-    <div class="col-md-3">
-        <div class="card p-3 shadow-sm">
-            <small>Total</small>
-            <h3><?php echo e($total); ?></h3>
         </div>
-    </div>
+    </form>
 
-    <div class="col-md-3">
-        <div class="card p-3 shadow-sm">
-            <small>Reservas</small>
-            <h3><?php echo e($reservas); ?></h3>
+    
+    <div class="row g-3 mb-3">
+
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>Total</h6>
+                    <h3><?php echo e($total); ?></h3>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="col-md-3">
-        <div class="card p-3 shadow-sm">
-            <small>Cancelamentos</small>
-            <h3><?php echo e($cancelamentos); ?></h3>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>Aprovados</h6>
+                    <h3 class="text-success"><?php echo e($aprovados); ?></h3>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="col-md-3">
-        <div class="card p-3 shadow-sm">
-            <small>Taxa Cancelamento</small>
-            <h3><?php echo e(number_format($taxaCancelamento, 1)); ?>%</h3>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>Cancelamentos</h6>
+                    <h3 class="text-danger"><?php echo e($cancelamentos); ?></h3>
+                </div>
+            </div>
         </div>
-    </div>
 
-</div>
-
-
-<?php if($taxaCancelamento > 30): ?>
-    <div class="alert alert-danger">
-        ⚠️ Alta taxa de cancelamento — verifique estoque ou preços
-    </div>
-<?php endif; ?>
-
-
-<div class="card mb-4 p-3 shadow-sm">
-    <canvas id="grafico"></canvas>
-</div>
-
-
-<div class="card mb-4 p-3 shadow-sm">
-    <h5>👤 Top usuários</h5>
-
-    <?php $__currentLoopData = $topUsuarios; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $u): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-        <div class="d-flex justify-content-between">
-            <span><?php echo e($u->user->name ?? 'Sistema'); ?></span>
-            <strong><?php echo e($u->total); ?></strong>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>Taxa Cancelamento</h6>
+                    <h3 class="text-warning"><?php echo e($taxaCancelamento); ?>%</h3>
+                </div>
+            </div>
         </div>
-    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-</div>
 
+    </div>
 
-<div class="card shadow-sm">
-    <div class="card-body table-responsive">
-        <table class="table table-striped">
+    
+    <div class="row mb-4">
 
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Tipo</th>
-                    <th>Antes</th>
-                    <th>Depois</th>
-                    <th>Usuário</th>
-                    <th>Data</th>
-                </tr>
-            </thead>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Movimentações por Tipo</div>
+                <div class="card-body">
+                    <canvas id="chartTipo"></canvas>
+                </div>
+            </div>
+        </div>
 
-            <tbody>
-                <?php $__currentLoopData = $ultimas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Movimentações por Dia</div>
+                <div class="card-body">
+                    <canvas id="chartDia"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    
+    <div class="card mb-4">
+        <div class="card-header">Top Usuários</div>
+        <div class="card-body table-responsive">
+
+            <table class="table table-sm">
+                <thead>
                     <tr>
-                        <td><?php echo e($mov->id); ?></td>
-
-                        <td>
-                            <span class="badge
-                                <?php if($mov->tipo=='reserva'): ?> bg-primary
-                                <?php elseif($mov->tipo=='cancelamento'): ?> bg-danger
-                                <?php else: ?> bg-secondary
-                                <?php endif; ?>">
-                                <?php echo e($mov->tipo); ?>
-
-                            </span>
-                        </td>
-
-                        <td><?php echo e($mov->quantidade_antes); ?></td>
-                        <td><?php echo e($mov->quantidade_depois); ?></td>
-                        <td><?php echo e($mov->user->name ?? '-'); ?></td>
-                        <td><?php echo e($mov->created_at->format('d/m H:i')); ?></td>
+                        <th>Usuário</th>
+                        <th>Total</th>
                     </tr>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            </tbody>
+                </thead>
 
-        </table>
+                <tbody>
+                    <?php $__currentLoopData = $topUsuarios; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <tr>
+                            <td><?php echo e($item['user']->name ?? 'N/A'); ?></td>
+                            <td><?php echo e($item['total']); ?></td>
+                        </tr>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </tbody>
+
+            </table>
+
+        </div>
     </div>
-</div>
+
+    
+    <div class="card">
+        <div class="card-header">Últimas Movimentações</div>
+
+        <div class="card-body table-responsive">
+
+            <table class="table table-hover table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Produto</th>
+                        <th>Tipo</th>
+                        <th>Antes</th>
+                        <th>Depois</th>
+                        <th>Usuário</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <?php $__empty_1 = true; $__currentLoopData = $ultimas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+
+                        <?php
+                            $produto = $mov->item->produto ?? null;
+                        ?>
+
+                        <tr>
+                            <td><?php echo e($mov->id); ?></td>
+
+                            <td>
+                                <?php echo e($produto->nome ?? $mov->descricao ?? 'Sem produto'); ?>
+
+                            </td>
+
+                            <td>
+                                <?php if($mov->tipo == 'aprovado'): ?>
+                                    <span class="badge bg-success">Aprovado</span>
+                                <?php elseif($mov->tipo == 'cancelamento'): ?>
+                                    <span class="badge bg-danger">Cancelamento</span>
+                                <?php else: ?>
+                                    <span class="badge bg-warning text-dark"><?php echo e($mov->tipo); ?></span>
+                                <?php endif; ?>
+                            </td>
+
+                            <td><?php echo e($mov->quantidade_antes); ?></td>
+                            <td><?php echo e($mov->quantidade_depois); ?></td>
+
+                            <td><?php echo e($mov->user->name ?? '-'); ?></td>
+
+                            <td><?php echo e($mov->created_at->format('d/m H:i')); ?></td>
+                        </tr>
+
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <tr>
+                            <td colspan="7" class="text-center">Nenhuma movimentação encontrada</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
 
 </div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-new Chart(document.getElementById('grafico'), {
-    type: 'line',
-    data: {
-        labels: <?php echo json_encode($porDia->pluck('data')); ?>,
-        datasets: [{
-            label: 'Movimentações',
-            data: <?php echo json_encode($porDia->pluck('total')); ?>,
-            tension: 0.4
-        }]
-    }
-});
+    const porTipo = <?php echo json_encode($porTipo, 15, 512) ?>;
+    const porDia = <?php echo json_encode($porDia, 15, 512) ?>;
+
+    new Chart(document.getElementById('chartTipo'), {
+        type: 'pie',
+        data: {
+            labels: Object.keys(porTipo),
+            datasets: [{
+                data: Object.values(porTipo)
+            }]
+        }
+    });
+
+    new Chart(document.getElementById('chartDia'), {
+        type: 'line',
+        data: {
+            labels: porDia.map(i => i.data),
+            datasets: [{
+                label: 'Movimentações',
+                data: porDia.map(i => i.total),
+                fill: true
+            }]
+        }
+    });
 </script>
 
 <?php $__env->stopSection(); ?>

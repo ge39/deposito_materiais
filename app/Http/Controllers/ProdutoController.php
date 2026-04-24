@@ -191,48 +191,6 @@ class ProdutoController extends Controller
         ]);
     }
 
-    //  public function update(Request $request, Produto $produto)
-    // {
-    //     $this->validateProduto($request, false);
-
-    //     // --- Verifica bloqueio ANTES da transação ---
-    //     if ($produto->editando_por && $produto->editando_por != auth()->id()) {
-    //         $usuario = $produto->usuarioEditando;
-    //         $nomeUsuario = $usuario->name ?? 'Outro usuário';
-
-    //         return redirect()
-    //             ->route('produtos.index')
-    //             ->with('error', "Este produto está sendo editado por: {$nomeUsuario}");
-    //     }
-
-    //     DB::transaction(function () use ($request, $produto) {
-
-    //         $produto->fill($request->except('imagem'));
-
-    //         if ($request->filled('validade_produto')) {
-    //             $produto->validade_produto = Carbon::parse($request->validade_produto)->startOfDay();
-    //         }
-
-    //         if ($request->hasFile('imagem')) {
-    //             if ($produto->imagem) {
-    //                 Storage::disk('public')->delete($produto->imagem);
-    //             }
-    //             $produto->imagem = $request->file('imagem')->store('produtos', 'public');
-    //         }
-
-    //         // --- Libera o bloqueio de edição ---
-    //         if ($produto->editando_por == auth()->id()) {
-    //             $produto->editando_por = null;
-    //             $produto->editando_em = null;
-                
-    //         }
-
-    //         $produto->save();
-    //     });
-
-    //     return redirect()->route('produtos.index')
-    //         ->with('success', 'Produto atualizado com sucesso!');
-    // }
 
     public function update(Request $request, Produto $produto)
     {
@@ -285,78 +243,209 @@ class ProdutoController extends Controller
             ->with('success', 'Produto atualizado com sucesso!');
     }
 
-     /** PESQUISAR COM VIEWS E CARDS */
+     /** PESQUISAR COM VIEW e CARDS */
+    // public function search(Request $request)
+    // {
+    //     $query = $request->input('query');
+
+    //     $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida'])
+    //         ->where('ativo', 1)
+    //         ->when($query, function ($q) use ($query) {
+    //             $q->where(function ($sub) use ($query) {
+    //                 $sub->where('nome', 'LIKE', "%$query%")
+    //                     ->orWhere('codigo_barras', 'LIKE', "%$query%")
+    //                     ->orWhere('descricao', 'LIKE', "%$query%")
+    //                     ->orWhere('id', $query); // busca pelo ID exato
+    //             })
+
+    //             // Categoria
+    //             ->orWhereHas('categoria', function($cat) use ($query) {
+    //                 $cat->where('ativo', 1)
+    //                     ->where('nome', 'LIKE', "%$query%");
+    //             })
+
+    //             // Fornecedor
+    //             ->orWhereHas('fornecedor', function($for) use ($query) {
+    //                 $for->where('ativo', 1)
+    //                     ->where('nome', 'LIKE', "%$query%");
+    //             })
+
+    //             // Marca
+    //             ->orWhereHas('marca', function($mar) use ($query) {
+    //                 $mar->where('ativo', 1)
+    //                     ->where('nome', 'LIKE', "%$query%");
+    //             });
+    //         })
+    //         ->paginate(20);
+
+    //     return view('produtos.index', compact('produtos'));
+    // }
     public function search(Request $request)
     {
         $query = $request->input('query');
 
         $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida'])
             ->where('ativo', 1)
+
             ->when($query, function ($q) use ($query) {
                 $q->where(function ($sub) use ($query) {
                     $sub->where('nome', 'LIKE', "%$query%")
                         ->orWhere('codigo_barras', 'LIKE', "%$query%")
                         ->orWhere('descricao', 'LIKE', "%$query%")
-                        ->orWhere('id', $query); // busca pelo ID exato
+                        ->orWhere('id', $query);
                 })
-
-                // Categoria
-                ->orWhereHas('categoria', function($cat) use ($query) {
-                    $cat->where('ativo', 1)
-                        ->where('nome', 'LIKE', "%$query%");
-                })
-
-                // Fornecedor
-                ->orWhereHas('fornecedor', function($for) use ($query) {
-                    $for->where('ativo', 1)
-                        ->where('nome', 'LIKE', "%$query%");
-                })
-
-                // Marca
-                ->orWhereHas('marca', function($mar) use ($query) {
-                    $mar->where('ativo', 1)
-                        ->where('nome', 'LIKE', "%$query%");
-                });
+                ->orWhereHas('categoria', fn($c) =>
+                    $c->where('ativo',1)->where('nome','LIKE',"%$query%")
+                )
+                ->orWhereHas('fornecedor', fn($f) =>
+                    $f->where('ativo',1)->where('nome','LIKE',"%$query%")
+                )
+                ->orWhereHas('marca', fn($m) =>
+                    $m->where('ativo',1)->where('nome','LIKE',"%$query%")
+                );
             })
+
+            // ==============================
+            // ESTOQUE TOTAL (lotes)
+            // ==============================
+            ->addSelect([
+                'estoque_total' => DB::table('lotes')
+                    ->selectRaw('COALESCE(SUM(quantidade),0)')
+                    ->whereColumn('produto_id', 'produtos.id')
+                    ->where('status', 1)
+            ])
+
+            // ==============================
+            // RESERVADO
+            // ==============================
+            ->addSelect([
+                'quantidade_reservada' => DB::table('lotes')
+                    ->selectRaw('COALESCE(SUM(quantidade_reservada),0)')
+                    ->whereColumn('produto_id', 'produtos.id')
+                    ->where('status', 1)
+            ])
+
+            // ==============================
+            // DISPONÍVEL (CORRETO)
+            // ==============================
+            ->addSelect([
+                'disponivel' => DB::table('lotes')
+                    ->selectRaw('
+                        COALESCE(SUM(quantidade),0)
+                        - COALESCE(SUM(quantidade_reservada),0)
+                    ')
+                    ->whereColumn('produto_id', 'produtos.id')
+                    ->where('status', 1)
+            ])
+
             ->paginate(20);
 
         return view('produtos.index', compact('produtos'));
     }
 
     /** PESQUISAR COM VIEWS E grids */
+    // public function search_grid(Request $request)
+    // {
+    //     $query = $request->input('query');
+
+    //     $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida'])
+    //         ->where('ativo', 1)
+    //         ->when($query, function ($q) use ($query) {
+    //             $q->where(function ($sub) use ($query) {
+    //                 $sub->where('nome', 'LIKE', "%$query%")
+    //                     ->orWhere('codigo_barras', 'LIKE', "%$query%")
+    //                     ->orWhere('descricao', 'LIKE', "%$query%")
+    //                      ->orWhere('id', $query); // busca pelo ID exato
+    //             })
+
+    //             // Categoria
+    //             ->orWhereHas('categoria', function($cat) use ($query) {
+    //                 $cat->where('ativo', 1)
+    //                     ->where('nome', 'LIKE', "%$query%");
+    //             })
+
+    //             // Fornecedor
+    //             ->orWhereHas('fornecedor', function($for) use ($query) {
+    //                 $for->where('ativo', 1)
+    //                     ->where('nome', 'LIKE', "%$query%");
+    //             })
+
+    //             // Marca
+    //             ->orWhereHas('marca', function($mar) use ($query) {
+    //                 $mar->where('ativo', 1)
+    //                     ->where('nome', 'LIKE', "%$query%");
+    //             });
+    //         })
+    //         ->paginate(20);
+
+    //     return view('produtos.index', compact('produtos'));
+    // }
+   
     public function search_grid(Request $request)
     {
         $query = $request->input('query');
 
         $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida'])
             ->where('ativo', 1)
+
             ->when($query, function ($q) use ($query) {
                 $q->where(function ($sub) use ($query) {
                     $sub->where('nome', 'LIKE', "%$query%")
                         ->orWhere('codigo_barras', 'LIKE', "%$query%")
                         ->orWhere('descricao', 'LIKE', "%$query%")
-                         ->orWhere('id', $query); // busca pelo ID exato
+                        ->orWhere('id', $query);
                 })
 
-                // Categoria
                 ->orWhereHas('categoria', function($cat) use ($query) {
                     $cat->where('ativo', 1)
                         ->where('nome', 'LIKE', "%$query%");
                 })
 
-                // Fornecedor
                 ->orWhereHas('fornecedor', function($for) use ($query) {
                     $for->where('ativo', 1)
                         ->where('nome', 'LIKE', "%$query%");
                 })
 
-                // Marca
                 ->orWhereHas('marca', function($mar) use ($query) {
                     $mar->where('ativo', 1)
                         ->where('nome', 'LIKE', "%$query%");
                 });
             })
-            ->paginate(20);
+
+            // =========================
+            // ESTOQUE TOTAL (lotes)
+            // =========================
+            ->addSelect([
+                'estoque_total' => DB::table('lotes')
+                    ->selectRaw('COALESCE(SUM(quantidade),0)')
+                    ->whereColumn('produto_id', 'produtos.id')
+                    ->where('status', 1)
+            ])
+
+            // =========================
+            // RESERVADO
+            // =========================
+            ->addSelect([
+                'quantidade_reservada' => DB::table('lotes')
+                    ->selectRaw('COALESCE(SUM(quantidade_reservada),0)')
+                    ->whereColumn('produto_id', 'produtos.id')
+                    ->where('status', 1)
+            ])
+
+            // =========================
+            // DISPONÍVEL (CORRETO)
+            // =========================
+            ->addSelect([
+                'disponivel' => DB::table('lotes')
+                    ->selectRaw('
+                        COALESCE(SUM(quantidade),0)
+                        - COALESCE(SUM(quantidade_reservada),0)
+                    ')
+                    ->whereColumn('produto_id', 'produtos.id')
+                    ->where('status', 1)
+        ])
+
+        ->paginate(20);
 
         return view('produtos.index', compact('produtos'));
     }
@@ -436,4 +525,4 @@ class ProdutoController extends Controller
 
         return response()->json(['status' => 'ok']);
     }
-    }
+}

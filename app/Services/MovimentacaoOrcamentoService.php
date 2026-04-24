@@ -9,22 +9,23 @@ class MovimentacaoOrcamentoService
         int $orcamentoId,
         ?int $itemId,
         string $tipo,
-        float $antes,
-        float $depois,
-        string $descricao = null,
-        string $origem = 'sistema'
+        $antes,
+        $depois,
+        ?string $descricao = null,
+        string $origem = 'sistema',
+        ?int $userId = null
     ): void {
 
         MovimentacaoOrcamento::create([
-            'lote_id' => $loteId,
-            'orcamento_id' => $orcamentoId,
-            'item_orcamento_id' => $itemId,
-            'user_id' => auth()->id(),
-            'tipo' => $tipo,
-            'descricao' => $descricao,
-            'quantidade_antes' => $antes,
-            'quantidade_depois' => $depois,
-            'origem' => $origem,
+        'lote_id' => $loteId,
+        'orcamento_id' => $orcamentoId,
+        'item_orcamento_id' => $itemId,
+        'user_id' => $userId ?? auth()->id(),
+        'tipo' => $tipo,
+        'descricao' => $descricao,
+        'quantidade_antes' => $antes,
+        'quantidade_depois' => $depois,
+        'origem' => $origem,
         ]);
     }
 }

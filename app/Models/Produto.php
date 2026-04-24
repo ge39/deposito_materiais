@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Models;
-
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -169,5 +169,27 @@ class Produto extends Model
 
         return round($preco, 2);
     }
-    
+    // =========================
+    // ESTOQUE TOTAL (TODOS LOTES)
+    // =========================
+    public function getEstoqueTotalAttribute()
+    {
+        return $this->lotes()->sum('quantidade');
+    }
+
+    // =========================
+    // RESERVADO (TODOS LOTES)
+    // =========================
+    public function getQuantidadeReservadaAttribute()
+    {
+        return $this->lotes()->sum('quantidade_reservada');
+    }
+
+    // =========================
+    // DISPONÍVEL (ESTOQUE REAL)
+    // =========================
+    public function getDisponivelAttribute()
+    {
+        return $this->lotes()->sum(DB::raw('quantidade - quantidade_reservada'));
+    }
 }

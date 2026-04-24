@@ -176,7 +176,13 @@
 <div class="section">
     
     <div class="box" style="font-size: 11px; line-height: 1.4;">
-        <strong>Orcamento <?php echo e($orcamento->status); ?> em: <?php echo e($orcamento->updated_at); ?> </strong> 
+        <div style="border: 1px solid gray; padding: 10px;">
+            <strong>
+                <?php echo e($orcamento->status ?? 'SEM STATUS'); ?> 
+                em: <?php echo e(\Carbon\Carbon::parse($orcamento->updated_at)->format('d/m/Y H:i')); ?>
+
+            </strong>
+        </div>
         <div style="display: flex; justify-content: space-between;">
             <div>
                 <strong>Cód:</strong> #<?php echo e($orcamento->codigo_orcamento); ?>  
@@ -270,7 +276,13 @@
 <!-- PENDENTES -->
 <div class="section">
     <div class="section-title">Itens Pendentes / Não Entregues</div>
-     <strong>Orcamento <?php echo e($orcamento->status); ?> em: <?php echo e($orcamento->updated_at); ?> </strong> 
+        <div style="border: 1px solid gray; padding: 10px;">
+            <strong>
+                <?php echo e($orcamento->status ?? 'SEM STATUS'); ?> 
+                em: <?php echo e(\Carbon\Carbon::parse($orcamento->updated_at)->format('d/m/Y H:i')); ?>
+
+            </strong>
+        </div>
     <p style="color:#aa0000; font-weight:bold;">
         ⚠ Estes itens NÃO serão entregues neste pedido.<br>
         Serão fornecidos conforme a previsão de entrega estipulada neste documento.

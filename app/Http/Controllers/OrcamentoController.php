@@ -21,7 +21,7 @@ class OrcamentoController extends Controller
     public function index(Request $request)
     {
         $orcamentos = $this->service->listar($request);
-
+        
         return view('orcamentos.index', compact('orcamentos'));
     }
 
