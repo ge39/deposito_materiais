@@ -12,25 +12,41 @@
     <form method="GET" class="card card-body mb-3">
         <div class="row g-2">
 
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label>Data início</label>
                 <input type="date" name="inicio" class="form-control"
                     value="<?php echo e(request('inicio', $inicio)); ?>">
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label>Data fim</label>
                 <input type="date" name="fim" class="form-control"
                     value="<?php echo e(request('fim', $fim)); ?>">
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label>Tipo</label>
                 <select name="tipo" class="form-control">
                     <option value="">Todos</option>
                     <option value="aprovado" <?php if(request('tipo')=='aprovado'): echo 'selected'; endif; ?>>Aprovado</option>
                     <option value="cancelamento" <?php if(request('tipo')=='cancelamento'): echo 'selected'; endif; ?>>Cancelamento</option>
                     <option value="aguardando_estoque" <?php if(request('tipo')=='aguardando_estoque'): echo 'selected'; endif; ?>>Aguardando Estoque</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label>Orçamento</label>
+                <select name="orcamento_id" class="form-control">
+                    <option value="">Todos</option>
+
+                    <?php $__currentLoopData = $listaOrcamentos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $orc): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($orc->id); ?>"
+                            <?php if(request('orcamento_id', $orcamentoId) == $orc->id): echo 'selected'; endif; ?>>
+                            #<?php echo e($orc->id); ?>
+
+                        </option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
                 </select>
             </div>
 
@@ -48,8 +64,8 @@
         <div class="col-md-3">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h6>Total</h6>
-                    <h3><?php echo e($total); ?></h3>
+                    <h6>Total Orçamentos</h6>
+                    <h3><?php echo e($totalOrcamentos); ?></h3>
                 </div>
             </div>
         </div>
@@ -58,7 +74,7 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h6>Aprovados</h6>
-                    <h3 class="text-success"><?php echo e($aprovados); ?></h3>
+                    <h3 class="text-success"><?php echo e($orcamentosAprovados); ?></h3>
                 </div>
             </div>
         </div>
@@ -66,8 +82,8 @@
         <div class="col-md-3">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h6>Cancelamentos</h6>
-                    <h3 class="text-danger"><?php echo e($cancelamentos); ?></h3>
+                    <h6>Cancelados</h6>
+                    <h3 class="text-danger"><?php echo e($orcamentosCancelados); ?></h3>
                 </div>
             </div>
         </div>
@@ -135,11 +151,12 @@
 
     
     <div class="card">
-        <div class="card-header">Últimas Movimentações</div>
+        <div class="card-header">Orçamentos e Itens</div>
 
         <div class="card-body table-responsive">
 
-            <table class="table table-hover table-sm align-middle">
+            <table class="table table-sm align-middle">
+
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -153,43 +170,76 @@
                 </thead>
 
                 <tbody>
-                    <?php $__empty_1 = true; $__currentLoopData = $ultimas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
 
-                        <?php
-                            $produto = $mov->item->produto ?? null;
-                        ?>
+                    <?php $__empty_1 = true; $__currentLoopData = $orcamentos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $orc): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
 
-                        <tr>
-                            <td><?php echo e($mov->id); ?></td>
+                        
+                        <tr class="table-primary">
+                            <td colspan="7">
+                                <strong>Orçamento #<?php echo e($orc->id); ?></strong>
 
-                            <td>
-                                <?php echo e($produto->nome ?? $mov->descricao ?? 'Sem produto'); ?>
+                                <span class="ms-2 text-muted">
+                                    (<?php echo e($orc->movimentacoes->count()); ?> itens)
+                                </span>
 
-                            </td>
+                                
+                                <?php
+                                    $tipos = $orc->movimentacoes->pluck('tipo');
+                                ?>
 
-                            <td>
-                                <?php if($mov->tipo == 'aprovado'): ?>
-                                    <span class="badge bg-success">Aprovado</span>
-                                <?php elseif($mov->tipo == 'cancelamento'): ?>
-                                    <span class="badge bg-danger">Cancelamento</span>
+                                <?php if($tipos->contains('cancelamento')): ?>
+                                    <span class="badge bg-danger ms-2">Cancelado</span>
+                                <?php elseif($tipos->contains('aprovado')): ?>
+                                    <span class="badge bg-success ms-2">Aprovado</span>
                                 <?php else: ?>
-                                    <span class="badge bg-warning text-dark"><?php echo e($mov->tipo); ?></span>
+                                    <span class="badge bg-warning text-dark ms-2">Pendente</span>
                                 <?php endif; ?>
                             </td>
-
-                            <td><?php echo e($mov->quantidade_antes); ?></td>
-                            <td><?php echo e($mov->quantidade_depois); ?></td>
-
-                            <td><?php echo e($mov->user->name ?? '-'); ?></td>
-
-                            <td><?php echo e($mov->created_at->format('d/m H:i')); ?></td>
                         </tr>
+
+                        
+                        <?php $__currentLoopData = $orc->movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+
+                            <?php
+                                $produto = $mov->item->produto ?? null;
+                            ?>
+
+                            <tr>
+                                <td><?php echo e($mov->id); ?></td>
+
+                                <td>
+                                    <?php echo e($produto->nome ?? $mov->descricao ?? '-'); ?>
+
+                                </td>
+
+                                <td>
+                                    <?php if($mov->tipo == 'aprovado'): ?>
+                                        <span class="badge bg-success">Aprovado</span>
+                                    <?php elseif($mov->tipo == 'cancelamento'): ?>
+                                        <span class="badge bg-danger">Cancelamento</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning text-dark"><?php echo e($mov->tipo); ?></span>
+                                    <?php endif; ?>
+                                </td>
+
+                                <td><?php echo e($mov->quantidade_antes); ?></td>
+                                <td><?php echo e($mov->quantidade_depois); ?></td>
+
+                                <td><?php echo e($mov->user->name ?? '-'); ?></td>
+
+                                <td><?php echo e($mov->created_at->format('d/m H:i')); ?></td>
+                            </tr>
+
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
-                            <td colspan="7" class="text-center">Nenhuma movimentação encontrada</td>
+                            <td colspan="7" class="text-center">
+                                Nenhum orçamento encontrado
+                            </td>
                         </tr>
                     <?php endif; ?>
+
                 </tbody>
 
             </table>
@@ -219,10 +269,10 @@
     new Chart(document.getElementById('chartDia'), {
         type: 'line',
         data: {
-            labels: porDia.map(i => i.data),
+            labels: Object.keys(porDia),
             datasets: [{
                 label: 'Movimentações',
-                data: porDia.map(i => i.total),
+                data: Object.values(porDia),
                 fill: true
             }]
         }

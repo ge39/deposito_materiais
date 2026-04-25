@@ -32,7 +32,7 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">
-                                Valor limite do caixa  R$ {{  $config->valor_limite }}
+                                Valor limite do caixa  R$ {{  $config->valor_limite ?? '0,00' }}
                             </label>
 
                             <input 

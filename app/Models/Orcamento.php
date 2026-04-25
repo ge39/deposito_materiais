@@ -98,4 +98,10 @@ class Orcamento extends Model
     {
         return $query->where('status', '!=', 'Faturado');
     }
+
+    /** Movimentacoes Dashboard */
+    public function movimentacoes()
+    {
+        return $this->hasMany(\App\Models\MovimentacaoOrcamento::class, 'orcamento_id');
+    }
 }
