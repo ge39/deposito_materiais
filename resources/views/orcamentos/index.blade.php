@@ -144,7 +144,7 @@
                 <a href="{{ route('orcamentos.whatsapp', $orcamento->id) }}" 
                     class="btn btn-success btn-sm" 
                     target="_blank">
-                        Enviar WhatsApp
+                    WhatsApp
                 </a>
                                 <!-- cancelar orcamento -->
                 @if ($orcamento->status !== 'Cancelado')

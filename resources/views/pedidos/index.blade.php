@@ -25,7 +25,7 @@
         <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem; 
                     font-weight: bold; background-color: #343a40; color: #fff;
                     padding: 0.5rem;">
-            <div>ID</div>
+            <div >ID</div>
             <div>Fornecedor</div>
             <div>Data Pedido</div>
             <div>Total</div>
@@ -37,7 +37,7 @@
         <!-- Rows -->
         <div>
             @forelse($pedidos as $pedido)
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem;
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem;
                             padding: 0.5rem; border-bottom: 1px solid #dee2e6;">
 
                     <div>{{ $pedido->id }}</div>
@@ -64,7 +64,7 @@
 
                     <div>{{ $pedido->user->name ?? '-' }}</div>
 
-                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;width:200px;">
                         <!-- <a href="{{ route('pedidos.show', $pedido->id) }}" 
                            class="btn btn-info btn-sm"
                            style="font-size:0.65rem; padding:0.25rem 0.4rem;">

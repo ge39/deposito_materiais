@@ -26,7 +26,7 @@
         <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem; 
                     font-weight: bold; background-color: #343a40; color: #fff;
                     padding: 0.5rem;">
-            <div>ID</div>
+            <div >ID</div>
             <div>Fornecedor</div>
             <div>Data Pedido</div>
             <div>Total</div>
@@ -38,7 +38,7 @@
         <!-- Rows -->
         <div>
             <?php $__empty_1 = true; $__currentLoopData = $pedidos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pedido): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem;
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem;
                             padding: 0.5rem; border-bottom: 1px solid #dee2e6;">
 
                     <div><?php echo e($pedido->id); ?></div>
@@ -67,7 +67,7 @@
 
                     <div><?php echo e($pedido->user->name ?? '-'); ?></div>
 
-                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;width:200px;">
                         <!-- <a href="<?php echo e(route('pedidos.show', $pedido->id)); ?>" 
                            class="btn btn-info btn-sm"
                            style="font-size:0.65rem; padding:0.25rem 0.4rem;">

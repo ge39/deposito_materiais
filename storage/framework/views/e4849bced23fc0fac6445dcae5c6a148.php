@@ -94,7 +94,7 @@
                         <th>Unidade</th>
                         <th>Pendente</th>
                         <!-- <th>Estoque</th> -->
-                        <th>Compra</th>
+                        <th>à Comprar</th>
                     </tr>
                 </thead>
                 <tbody>

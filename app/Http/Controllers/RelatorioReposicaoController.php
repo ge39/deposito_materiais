@@ -1,5 +1,4 @@
-<?php
-
+<?php 
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -35,7 +34,7 @@ class RelatorioReposicaoController extends Controller
         $query = DB::table('item_orcamentos as io')
             ->join('orcamentos as o', 'o.id', '=', 'io.orcamento_id')
             ->join('produtos as p', 'p.id', '=', 'io.produto_id')
-
+            
             // 🔥 JOIN COM ESTOQUE REAL
             ->leftJoinSub($estoqueSub, 'estoque', function ($join) {
                 $join->on('estoque.produto_id', '=', 'p.id');
@@ -45,7 +44,7 @@ class RelatorioReposicaoController extends Controller
             ->leftJoin('unidades_medida as um', 'um.id', '=', 'p.unidade_medida_id')
             ->where('io.quantidade_pendente', '>', 0)
             ->whereIn('io.status', ['parcial', 'indisponivel'])
-           
+             ->where('o.status', '!=', 'Cancelado')
 
             ->select(
                 'p.id as produto_id',
@@ -131,7 +130,7 @@ class RelatorioReposicaoController extends Controller
 
             ->where('io.quantidade_pendente', '>', 0)
             ->whereIn('io.status', ['parcial', 'indisponivel'])
-
+             ->where('o.status', '!=', 'Cancelado')
             ->select(
                 'p.id',
                 'p.nome',
@@ -169,7 +168,8 @@ class RelatorioReposicaoController extends Controller
             ->join('produtos as p', 'p.id', '=', 'io.produto_id') // ✅ ADICIONA ISSO
 
             ->where('io.quantidade_pendente', '>', 0)
-            ->whereIn('io.status', ['parcial', 'indisponivel']);
+            ->whereIn('io.status', ['parcial', 'indisponivel'])
+             ->where('o.status', '!=', 'Cancelado');
 
         $this->aplicarFiltros($query, $request);
 

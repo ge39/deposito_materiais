@@ -145,7 +145,7 @@
                 <a href="<?php echo e(route('orcamentos.whatsapp', $orcamento->id)); ?>" 
                     class="btn btn-success btn-sm" 
                     target="_blank">
-                        Enviar WhatsApp
+                    WhatsApp
                 </a>
                                 <!-- cancelar orcamento -->
                 <?php if($orcamento->status !== 'Cancelado'): ?>

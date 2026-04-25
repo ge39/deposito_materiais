@@ -185,7 +185,7 @@
              <li>
                 <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
                    href="{{ $canAccessAdmin ? route('relatorio.reposicao') : '#' }}">
-                   <i class="bi bi-list-stars me-2"></i>Orcamento / Qtde Pendente
+                   <i class="bi bi-list-stars me-2"></i>Orcamento / Repor/Estoque
                 </a>
             </li>
             <li>
