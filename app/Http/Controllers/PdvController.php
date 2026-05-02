@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Cliente;
 use App\Models\Produto;
 use App\Models\Empresa;
@@ -17,69 +18,6 @@ class PdvController extends Controller
           
     }
    
-//    public function index(Request $request)
-//     {
-//         // 1️⃣ Cliente padrão "VENDA BALCAO"
-//         $clienteBalcao = Cliente::where('nome', 'VENDA BALCAO')
-//             ->where('ativo', 1)
-//             ->firstOrFail();
-//             $clienteId   = $clienteBalcao->id;
-
-//         // 2️⃣ Terminal identificado pelo middleware
-//         $terminal = $request->attributes->get('terminal');
-
-//         if (!$terminal) {
-//             abort(500, 'Terminal não identificado no PDV.');
-//         }
-
-//         // 2️⃣ Busca o CAIXA ABERTO vinculado ao terminal
-//         $caixaAberto = Caixa::where('terminal_id', $terminal->id)
-//             ->where('status', 'aberto')
-//             ->latest('data_abertura')
-//             ->first();
-
-//         if (!$caixaAberto) {
-//         // Nenhum caixa aberto: redireciona para abertura de caixa
-//         return redirect()->route('caixa.abrir')
-//                             ->with('info', 'Nenhum caixa aberto. Abra um caixa para continuar.');
-//         }
-
-//         // Continua normalmente com o PDV
-//         // 4️⃣ Operador
-//         $operadorId   = $caixaAberto?->usuario?->id ?? null;
-//         $operador = $caixaAberto?->usuario?->name ?? 'Nenhum';
-//         $caixa_id = $caixaAberto->id;
-
-//         // 5️⃣ Status do caixa
-//         $status = 'Fechado';
-//         if ($caixaAberto) {
-//             switch ($caixaAberto->status) {
-//                 case 'aberto':
-//                     $status = 'Aberto';
-//                     break;
-//                 case 'pendente':
-//                     $status = 'Pendente';
-//                     break;
-//                 case 'inconsistente':
-//                     $status = 'Inconsistente';
-//                     break;
-//                 default:
-//                     $status = 'Fechado';
-//             }
-//         }
-
-//         // 6️⃣ ÚNICO return
-//         return view('pdv.index', [
-//             'clienteBalcao' => $clienteBalcao,
-//             'terminal'      => $terminal,
-//             'caixaAberto'   => $caixaAberto,
-//             'caixa'         => $caixaAberto, // ✅ agora $caixa também está disponível
-//             'caixa_id'      => $caixa_id,
-//             'operador'      => $operador,
-//             'status'        => $status,
-//             'operadorId'    => $operadorId,
-//         ]);
-//     }
 
     public function index(Request $request)
     {
@@ -166,16 +104,16 @@ class PdvController extends Controller
 
         $clientes = Cliente::where('ativo', 1)
             ->when($query, function ($q) use ($query) {
-                $q->where('bairro', 'LIKE', "%{$query}%")
-                  ->orWhere('tipo', 'LIKE', "%{$query}%")
-                  ->orWhere('cpf_cnpj', 'LIKE', "%{$query}%")
-                  ->orWhere('telefone', 'LIKE', "%{$query}%")
-                  ->orWhere('endereco', 'LIKE', "%{$query}%")
-                  ->orWhere('numero', 'LIKE', "%{$query}%")
-                  ->orWhere('cep', 'LIKE', "%{$query}%")
-                 ->orWhere('estado', 'LIKE', "%{$query}%")
-                  ->orWhere('cidade', 'LIKE', "%{$query}%")
-                  ->orWhere('nome', 'LIKE', "%{$query}%");
+                $q->where('bairro', 'LIKE', "{$query}%")
+                  ->orWhere('tipo', 'LIKE', "{$query}%")
+                  ->orWhere('cpf_cnpj', 'LIKE', "{$query}%")
+                  ->orWhere('telefone', 'LIKE', "{$query}%")
+                  ->orWhere('endereco', 'LIKE', "{$query}%")
+                  ->orWhere('numero', 'LIKE', "{$query}%")
+                  ->orWhere('cep', 'LIKE', "{$query}%")
+                 ->orWhere('estado', 'LIKE', "{$query}%")
+                  ->orWhere('cidade', 'LIKE', "{$query}%")
+                  ->orWhere('nome', 'LIKE', "{$query}%");
             })
             ->orderBy('nome')
             ->limit(20)
@@ -183,8 +121,65 @@ class PdvController extends Controller
 
         return response()->json($clientes);
     }
-    
- 
+
+
+    // public function buscarCliente(Request $request)
+    // {
+    //     $query = $request->input('query');
+
+    //     $clientes = DB::table('clientes as c')
+
+    //         // crédito
+    //         ->leftJoin('cliente_creditos as cc', function ($join) {
+    //             $join->on('cc.cliente_id', '=', 'c.id')
+    //                 ->where('cc.status', 'ativo');
+    //         })
+
+    //         // consumo (SUBQUERY)
+    //         ->leftJoin(DB::raw("
+    //             (
+    //                 SELECT cliente_id,
+    //                     SUM(CASE WHEN tipo = 'debito' THEN valor ELSE 0 END) as total_consumido
+    //                 FROM cliente_conta_correntes
+    //                 GROUP BY cliente_id
+    //             ) as m
+    //         "), 'm.cliente_id', '=', 'c.id')
+
+    //         ->where('c.ativo', 1)
+
+    //         ->when($query, function ($q) use ($query) {
+    //             $q->where(function ($sub) use ($query) {
+    //                 $sub->where('c.nome', 'LIKE', "%{$query}%")
+    //                     ->orWhere('c.cpf_cnpj', 'LIKE', "%{$query}%")
+    //                     ->orWhere('c.telefone', 'LIKE', "%{$query}%");
+    //             });
+    //         })
+
+    //         ->select(
+    //             'c.id',
+    //             'c.nome',
+    //             'c.tipo',
+    //             'c.cpf_cnpj',
+    //             'c.telefone',
+    //             'c.endereco',
+    //             'c.numero',
+    //             'c.cep',
+    //             'c.bairro',
+    //             'c.cidade',
+    //             'c.estado',
+
+    //             DB::raw('COALESCE(cc.limite_credito,0) as limite_credito'),
+    //             DB::raw('COALESCE(m.total_consumido,0) as total_consumido'),
+    //             DB::raw('(COALESCE(cc.limite_credito,0) - COALESCE(m.total_consumido,0)) as limite_disponivel')
+    //         )
+
+    //         ->orderBy('c.nome')
+    //         ->limit(20)
+    //         ->get();
+    //     dump($clientes);
+    //     return response()->json($clientes);
+    // }
+        
    /**
      * F3 – Buscar Produto (Modal de produtos) */        
     public function buscarProduto(Request $request)
@@ -451,6 +446,8 @@ class PdvController extends Controller
             
         ];
     }
+
+    
 }
 
 

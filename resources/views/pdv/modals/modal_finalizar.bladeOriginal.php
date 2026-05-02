@@ -10,13 +10,13 @@
 
       <div class="modal-body">
 
-        
+        {{-- Total --}}
         <div class="alert alert-secondary fs-5 text-center">
             Total a pagar:<br>
             <strong id="total-venda-modal">0,00</strong>
         </div>
 
-        
+        {{-- Dados cliente carteira --}}
         <div class="alert alert-light py-1 px-2 d-flex justify-content-between align-items-center mb-2">
 
             <div>
@@ -35,7 +35,7 @@
 
         </div>
 
-        
+        {{-- Resumo --}}
         <div class="alert alert-light text-center mb-3">
             <div class="fw-semibold">
                 Restante:
@@ -48,11 +48,11 @@
             </div>
         </div>
 
-        
+        {{-- Pagamentos --}}
         <div class="card shadow-sm">
           <div class="card-body">
 
-            <?php
+            @php
                 $formas = [
                     'dinheiro' => 'DD - Dinheiro',
                     'cartao_credito' => 'CC - Crédito',
@@ -60,27 +60,27 @@
                     'pix' => 'PI - PIX',
                     'carteira' => 'CA - Carteira'
                 ];
-            ?>
+            @endphp
 
-            <?php $__currentLoopData = $formas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            @foreach($formas as $key => $label)
             <div class="row mb-2 align-items-center">
                 <div class="col-5">
-                    <label class="form-label fw-semibold"><?php echo e($label); ?></label>
+                    <label class="form-label fw-semibold">{{ $label }}</label>
                 </div>
                 <div class="col-7">
                     <input  
                         type="number" 
                         step="0.01"  
                         class="form-control pagamento-modal" 
-                        data-forma="<?php echo e($key); ?>"
+                        data-forma="{{ $key }}"
                         placeholder="0,00" 
                         min="0"
                         style="max-width:150px;font-weight:bold"
-                        <?php if($loop->first): ?> autofocus <?php endif; ?>
+                        @if($loop->first) autofocus @endif
                     >
                 </div>
             </div>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            @endforeach
 
           </div>
         </div>
@@ -267,4 +267,4 @@
         }
 
     });
-</script><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/modals/modal_finalizar.blade.php ENDPATH**/ ?>
+</script>

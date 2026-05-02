@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ClienteContaCorrente extends Model
 {
-    protected $table = 'cliente_conta_corrente';
+    protected $table = 'cliente_conta_correntes';
 
     protected $fillable = [
         'cliente_id',
@@ -21,16 +21,16 @@ class ClienteContaCorrente extends Model
 
     public function cliente()
     {
-        return $this->belongsTo(Cliente::class);
+        return $this->belongsTo(Cliente::class, 'cliente_id');
     }
 
     public function venda()
     {
-        return $this->belongsTo(Venda::class);
+        return $this->belongsTo(Venda::class, 'venda_id');
     }
 
     public function pagamentoVenda()
     {
-        return $this->belongsTo(PagamentoVenda::class);
+        return $this->belongsTo(PagamentoVenda::class, 'pagamento_venda_id');
     }
 }

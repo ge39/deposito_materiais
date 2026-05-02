@@ -21,53 +21,6 @@ class VendaController extends Controller
      * Responsabilidade TOTAL do backend
      */
 
-
-    // public function store(Request $request)
-    // {
-    
-    //     DB::beginTransaction();
-    //     try {
-    //         // 1️⃣ Cria a venda
-    //         $venda = Venda::create([
-    //             'cliente_id'      => $request->input('cliente_id'),
-    //             'funcionario_id'  => $request->input('funcionario_id'),
-    //             'caixa_id'        => $request->input('caixa_id'),
-    //             'data_venda'      => $request->input('dataVenda'),
-    //             'endereco'        => $request->input('endereco'),
-    //             'total'           => collect($request->input('itens', []))
-    //                                     ->sum(fn($i) => $i['quantidade'] * $i['valor_unitario'])
-    //         ]);
-
-    //         // 2️⃣ Persiste itens da venda
-    //         foreach ($request->input('itens', []) as $item) {
-    //             $venda->itens()->create([
-    //                 'produto_id'    => $item['produto_id'],
-    //                 'lote_id'       => $item['lote_id'] ?? null,
-    //                 'quantidade'    => $item['quantidade'],
-    //                 'preco_unitario'=> $item['valor_unitario']
-    //             ]);
-    //         }
-
-    //         // 🔹 Commit da transação
-    //         DB::commit();
-
-    //         // 3️⃣ Retorna sucesso + venda_id para o JS chamar /venda/finalizar/{id}
-    //         return response()->json([
-    //             'success'  => true,
-    //             'message'  => 'Venda criada com sucesso',
-    //             'venda_id' => $venda->id
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
-
     public function store(Request $request)
     {
         // 1️⃣ Validação
@@ -138,16 +91,129 @@ class VendaController extends Controller
     }
 
     //pagamentos de venda (pagamentos_venda)
+    // public function finalizar(Request $request, Venda $venda, CreditoService $creditoService)
+    // {
+        
+    //      // ✅ Pega o cliente direto do objeto Venda
+    //     $cliente = $venda->cliente;
+
+    //     // ✅ Total da venda calculado pelo backend
+    //     $valorVenda = $venda->itens->sum(fn($i) => $i->quantidade * $i->preco_unitario);
+
+    //     // ✅ Valida crédito do cliente
+    //     $validacao = $creditoService->validarCredito($cliente, $valorVenda);
+
+    //     if (!$validacao['aprovado']) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'erro'    => $validacao['mensagem']
+    //         ], 422);
+    //     }
+
+    //     DB::beginTransaction();
+
+    //     try {
+    //         // 1️⃣ Todas as formas de pagamento possíveis
+    //         $formasPossiveis = ['dinheiro', 'cartao_credito', 'cartao_debito', 'carteira', 'pix'];
+
+    //         // 2️⃣ Pagamentos enviados pelo frontend
+    //         $pagamentosEnviados = collect($request->input('pagamentos', []))
+    //             ->keyBy('forma'); // indexa por forma
+
+    //         $totalPagamentos = 0;
+           
+    //         $formasPermitidas = $creditoService->formasPermitidas($cliente);
+    //     // Retorna array como ['dinheiro','cartao_credito','cartao_debito','pix']
+
+    //     foreach ($formasPossiveis as $forma) {
+    //         $valor = isset($pagamentosEnviados[$forma]) ? (float) $pagamentosEnviados[$forma]['valor'] : 0;
+
+    //         if (!in_array($forma, $formasPermitidas)) {
+    //             if ($valor > 0) {
+    //                 DB::rollBack();
+    //                 return response()->json([
+    //                     'success' => false,
+    //                     'erro'    => "Cliente não possui permissão para usar {$forma}"
+    //                 ], 422);
+    //             }
+    //             $valor = 0; // garante que não cria pagamento indevido
+    //         }
+
+    //         $totalPagamentos += $valor;
+
+    //         $venda->pagamentos()->create([
+    //             // 'user_id'         => auth()->id(),
+    //             'user_id' => auth()->id() ?? $venda->funcionario_id,
+    //             'caixa_id'        => $venda->caixa_id,
+    //             'forma_pagamento' => $forma,
+    //             'valor'           => $valor,
+    //             'status'          => 'confirmado',
+    //         ]);
+    //     }
+
+    //     // 4️⃣ Validação: pagamentos insuficientes
+    //     if ($totalPagamentos < $valorVenda) {
+    //         DB::rollBack();
+    //         return response()->json([
+    //             'success' => false,
+    //             'erro'    => "Pagamento insuficiente. Total da venda: R$ {$valorVenda}, total pago: R$ {$totalPagamentos}"
+    //         ], 422);
+    //     }
+
+    //     // 5️⃣ Atualiza status da venda
+    //     $venda->update([
+    //         'status' => 'finalizada',
+    //         'total'  => $valorVenda,
+    //     ]);
+
+    //     DB::commit();
+    
+    //     // 🔥 buscar o caixa corretamente
+    //     $caixa = Caixa::find($venda->caixa_id);
+
+    //     $verificacao = $caixa->verificarSangria();
+
+    //     // if ($verificacao['bloquearPDV'] || $verificacao['avisarSangria']) {
+    //     //     return redirect()->route('caixa.sangria.form', $caixa->id);
+    //     // }
+
+    //     if ($verificacao['bloquearPDV'] || $verificacao['avisarSangria']) {
+    //         return response()->json([
+    //             'success' => true,
+    //             'redirect_sangria' => true,
+    //             'url' => route('caixa.sangria.form', $caixa->id)
+    //         ]);
+    //     }
+
+    //     // ✅ Retorna JSON sempre, pronto para o JS
+    //     return response()->json([
+    //         'success'  => true,
+    //         'total'    => $valorVenda,
+    //         'message'  => 'Venda finalizada com sucesso',
+    //         'venda_id' => $venda->id
+    //     ]);
+
+
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+
+    //         return response()->json([
+    //             'success' => false,
+    //             'erro'    => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
     public function finalizar(Request $request, Venda $venda, CreditoService $creditoService)
     {
-        
-         // ✅ Pega o cliente direto do objeto Venda
+        // 🔹 Cliente da venda
         $cliente = $venda->cliente;
 
-        // ✅ Total da venda calculado pelo backend
+        // 🔹 Total da venda
         $valorVenda = $venda->itens->sum(fn($i) => $i->quantidade * $i->preco_unitario);
 
-        // ✅ Valida crédito do cliente
+        // 🔹 Validação de crédito
         $validacao = $creditoService->validarCredito($cliente, $valorVenda);
 
         if (!$validacao['aprovado']) {
@@ -160,88 +226,128 @@ class VendaController extends Controller
         DB::beginTransaction();
 
         try {
-            // 1️⃣ Todas as formas de pagamento possíveis
+
+            // 🔹 Formas possíveis
             $formasPossiveis = ['dinheiro', 'cartao_credito', 'cartao_debito', 'carteira', 'pix'];
 
-            // 2️⃣ Pagamentos enviados pelo frontend
+            // 🔹 Pagamentos enviados
             $pagamentosEnviados = collect($request->input('pagamentos', []))
-                ->keyBy('forma'); // indexa por forma
+                ->keyBy('forma');
 
             $totalPagamentos = 0;
-           
+
+            // 🔹 Formas permitidas
             $formasPermitidas = $creditoService->formasPermitidas($cliente);
-        // Retorna array como ['dinheiro','cartao_credito','cartao_debito','pix']
 
-        foreach ($formasPossiveis as $forma) {
-            $valor = isset($pagamentosEnviados[$forma]) ? (float) $pagamentosEnviados[$forma]['valor'] : 0;
+            foreach ($formasPossiveis as $forma) {
 
-            if (!in_array($forma, $formasPermitidas)) {
-                if ($valor > 0) {
-                    DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'erro'    => "Cliente não possui permissão para usar {$forma}"
-                    ], 422);
+                $valor = isset($pagamentosEnviados[$forma])
+                    ? (float) $pagamentosEnviados[$forma]['valor']
+                    : 0;
+
+                // ❌ Forma não permitida
+                if (!in_array($forma, $formasPermitidas)) {
+                    if ($valor > 0) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'erro' => "Cliente não possui permissão para usar {$forma}"
+                        ], 422);
+                    }
+                    $valor = 0;
                 }
-                $valor = 0; // garante que não cria pagamento indevido
+
+                // 🔥 TRATAMENTO ESPECIAL: CARTEIRA
+                if ($forma === 'carteira' && $valor > 0) {
+
+                    // 🔎 Último saldo
+                    $ultimoSaldo = DB::table('cliente_conta_correntes')
+                        ->where('cliente_id', $cliente->id)
+                        ->orderByDesc('id')
+                        ->value('saldo_apos');
+
+                    // 🧠 Se nunca movimentou
+                    if (is_null($ultimoSaldo)) {
+                        $ultimoSaldo = $cliente->limite_credito ?? 0;
+                    }
+
+                    // ❌ Saldo insuficiente
+                    if ($valor > $ultimoSaldo) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'erro' => 'Saldo insuficiente na carteira'
+                        ], 422);
+                    }
+
+                    $novoSaldo = $ultimoSaldo - $valor;
+
+                    // 💾 Registra na conta corrente
+                    DB::table('cliente_conta_correntes')->insert([
+                        'cliente_id' => $cliente->id,
+                        'venda_id'   => $venda->id,
+                        'tipo'       => 'debito',
+                        'origem'     => 'venda',
+                        'valor'      => $valor,
+                        'saldo_apos' => $novoSaldo,
+                        'descricao'  => 'Pagamento via carteira',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                // 🔹 Soma pagamentos
+                $totalPagamentos += $valor;
+
+                // 💾 Salva pagamento
+                $venda->pagamentos()->create([
+                    'user_id' => auth()->id() ?? $venda->funcionario_id,
+                    'caixa_id' => $venda->caixa_id,
+                    'forma_pagamento' => $forma,
+                    'valor' => $valor,
+                    'status' => 'confirmado',
+                ]);
             }
 
-            $totalPagamentos += $valor;
+            // ❌ Pagamento insuficiente
+            if ($totalPagamentos < $valorVenda) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'erro' => "Pagamento insuficiente. Total: R$ {$valorVenda}, Pago: R$ {$totalPagamentos}"
+                ], 422);
+            }
 
-            $venda->pagamentos()->create([
-                // 'user_id'         => auth()->id(),
-                'user_id' => auth()->id() ?? $venda->funcionario_id,
-                'caixa_id'        => $venda->caixa_id,
-                'forma_pagamento' => $forma,
-                'valor'           => $valor,
-                'status'          => 'confirmado',
+            // 🔹 Atualiza venda
+            $venda->update([
+                'status' => 'finalizada',
+                'total'  => $valorVenda,
             ]);
-        }
-        // 4️⃣ Validação: pagamentos insuficientes
-        if ($totalPagamentos < $valorVenda) {
-            DB::rollBack();
+
+            DB::commit();
+
+            // 🔎 Verifica sangria
+            $caixa = Caixa::find($venda->caixa_id);
+            $verificacao = $caixa->verificarSangria();
+
+            if ($verificacao['bloquearPDV'] || $verificacao['avisarSangria']) {
+                return response()->json([
+                    'success' => true,
+                    'redirect_sangria' => true,
+                    'url' => route('caixa.sangria.form', $caixa->id)
+                ]);
+            }
+
+            // ✅ Sucesso
             return response()->json([
-                'success' => false,
-                'erro'    => "Pagamento insuficiente. Total da venda: R$ {$valorVenda}, total pago: R$ {$totalPagamentos}"
-            ], 422);
-        }
-
-        // 5️⃣ Atualiza status da venda
-        $venda->update([
-            'status' => 'finalizada',
-            'total'  => $valorVenda,
-        ]);
-
-        DB::commit();
-    
-        // 🔥 buscar o caixa corretamente
-        $caixa = Caixa::find($venda->caixa_id);
-
-        $verificacao = $caixa->verificarSangria();
-
-        // if ($verificacao['bloquearPDV'] || $verificacao['avisarSangria']) {
-        //     return redirect()->route('caixa.sangria.form', $caixa->id);
-        // }
-
-        if ($verificacao['bloquearPDV'] || $verificacao['avisarSangria']) {
-            return response()->json([
-                'success' => true,
-                'redirect_sangria' => true,
-                'url' => route('caixa.sangria.form', $caixa->id)
+                'success'  => true,
+                'total'    => $valorVenda,
+                'message'  => 'Venda finalizada com sucesso',
+                'venda_id' => $venda->id
             ]);
-        }
-
-        // ✅ Retorna JSON sempre, pronto para o JS
-        return response()->json([
-            'success'  => true,
-            'total'    => $valorVenda,
-            'message'  => 'Venda finalizada com sucesso',
-            'venda_id' => $venda->id
-        ]);
-
-
 
         } catch (\Exception $e) {
+
             DB::rollBack();
 
             return response()->json([
@@ -250,8 +356,6 @@ class VendaController extends Controller
             ], 500);
         }
     }
-
-    
     //criar qrcode
     // public function gerarPix($venda)
     // {

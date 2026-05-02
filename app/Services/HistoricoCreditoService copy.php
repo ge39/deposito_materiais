@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\Cliente;
@@ -11,8 +12,10 @@ class HistoricoCreditoService
     {
         ClienteHistoricoCredito::create([
             'cliente_id' => $cliente->id,
-            'tipo_evento' => 'pagamento',
-            'descricao' => 'Pagamento de carteira: R$ ' . $pagamento->valor,
+            'pagamento_venda_id' => $pagamento->id,
+            'valor' => $pagamento->valor,
+            'tipo' => 'credito',
+            'descricao' => 'Pagamento de carteira',
         ]);
     }
 
@@ -20,8 +23,10 @@ class HistoricoCreditoService
     {
         ClienteHistoricoCredito::create([
             'cliente_id' => $cliente->id,
-            'tipo_evento' => 'venda',
-            'descricao' => 'Venda em carteira: R$ ' . $pagamento->valor,
+            'pagamento_venda_id' => $pagamento->id,
+            'valor' => $pagamento->valor,
+            'tipo' => 'debito',
+            'descricao' => 'Venda em carteira',
         ]);
     }
 }

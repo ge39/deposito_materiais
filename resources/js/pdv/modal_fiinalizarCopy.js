@@ -138,9 +138,9 @@ inputsPagamento.forEach(input => {
             }
         }
         // =========================
-    // FORMATA VALOR AO PERDER FOCO
-    // =========================
-    inputsPagamento.forEach(input => {
+        // FORMATA VALOR AO PERDER FOCO
+        // =========================
+        inputsPagamento.forEach(input => {
 
             input.addEventListener('blur', function () {
 
@@ -168,7 +168,7 @@ inputsPagamento.forEach(input => {
         atualizarResumo();
     });
 
-    });
+});
 
     // =========================
     // DINHEIRO: zera se total já fechado

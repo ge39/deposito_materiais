@@ -329,14 +329,14 @@
     </div>
 
     <!-- Script para abrir o modal automaticamente -->
-    <!-- <script>
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             @if($saldoAtual >= $limiteSangria)
                 var modal = new bootstrap.Modal(document.getElementById('modalSangria'));
                 modal.show();
             @endif
         });
-    </script> -->
+    </script>
 
     <!-- bloquear caixa -->
     <div id="modalBloquearCaixa" style="display: none;">
@@ -736,33 +736,39 @@
 <!-- Armazena total da venda globalmente e passa para view de finalizar -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const btnFinalizar = document.getElementById("btnF6"); // botão que abre o modal
-        const totalInput = document.getElementById("inputTotalGeral");
-        const modalTotal = document.getElementById("total-venda-modal"); // input do modal
+
+    const btnFinalizar = document.getElementById("btnF6");
+    const totalInput = document.getElementById("inputTotalGeral");
+    const modalTotal = document.getElementById("total-venda-modal");
+
+    if (btnFinalizar) {
 
         btnFinalizar.addEventListener("click", function() {
-            if(totalInput && modalTotal){
-                modalTotal.value = totalInput.value; // preenche o modal
+
+            if (totalInput && modalTotal) {
+                modalTotal.value = totalInput.value;
             } else {
                 console.warn("Elemento de total não encontrado!");
             }
 
-            // abre o modal
             const modalEl = document.getElementById('modalFinalizar');
-            if(modalEl && typeof bootstrap !== 'undefined'){
-                const modal = new bootstrap.Modal(modalEl);
+
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.show();
             }
+
         });
-    });
+
+    } else {
+        console.warn("btnF6 não encontrado no DOM");
+    }
+
+});
 
 </script>
 
 <!-- armazendo id do caixa para o fechamento -->
-<!-- <script>
-    const CAIXA_ID = @json($caixaAberto?->id);
-    const CAIXA_POSSUI_VENDAS = @json($caixaAberto?->possui_vendas ?? false);
-</script> -->
 
 <script>
     const CAIXA_ID = @json($caixa->id ?? null);

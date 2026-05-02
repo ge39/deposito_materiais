@@ -61,7 +61,7 @@
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="{{ route('produtos.index') }}"><i class="bi bi-box me-2"></i>Estoque</a></li>
             <li><a class="dropdown-item" href="{{ route('pedidos.index') }}"><i class="bi bi-cart-check me-2"></i>Pedido de Compra/Lotes</a></li>
-            <li><a class="dropdown-item" href="{{ route('orcamentos.index') }}"><i class="bi bi-clipboard-data me-2"></i>Pedido/Orçamento</a></li>
+            <li><a class="dropdown-item" href="{{ route('orcamentos.index') }}"><i class="bi bi-clipboard-data me-2"></i>Pedido/Orçamento/Clientes</a></li>
           </ul>
         </li>
 
@@ -140,6 +140,12 @@
                 <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
                    href="{{ $canAccessAdmin ? route('fechamento.lista') : '#'}}">
                    <i class="bi bi-list-stars me-2"></i>Fechamento de Caixa
+                </a>
+            </li>
+             <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('limites-view') : '#'}}">
+                   <i class="bi bi-list-stars me-2"></i>ControleLimite Credito
                 </a>
             </li>
             <li>

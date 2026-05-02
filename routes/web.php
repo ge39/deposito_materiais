@@ -36,6 +36,7 @@ use App\Http\Controllers\{
     RelatorioReposicaoController,
     MovimentacaoOrcamentoController,
     MovimentacaoOrcamentoDashboardController,
+    LimiteClienteController,
 };
 
 // ===============================
@@ -340,7 +341,7 @@ Route::middleware('auth')->group(function () {
         [ContaCorrenteController::class, 'show']
     )->name('clientes.conta_corrente.show');
 
-    //Sangria conf
+     //Sangria conf
     Route::get('/sangria-config', [SangriaConfigController::class, 'index'])
     ->name('sangria-config.index');
 
@@ -365,3 +366,20 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard/movimentacoes/data', [MovimentacaoOrcamentoDashboardController::class, 'data'])
     ->name('dashboard.movimentacoes.data');
+
+       //exibe saldo cliente no pdv
+    // Route::get('/cliente/{id}/saldo', [ClienteController::class, 'saldo']);
+
+    Route::get('/api/cliente/financeiro/{id}', [ContaCorrenteController::class,
+     'infoClienteFinanceiro']
+    );   
+
+    Route::get('/limites', [LimiteClienteController::class, 'index']);
+    Route::get('/limites-view', [LimiteClienteController::class, 'tela'])->name('limites-view');
+    Route::get('/limites/estourados', [LimiteClienteController::class, 'estourados']);
+    Route::get('/limites/risco', [LimiteClienteController::class, 'risco']);
+    Route::get('/limites/{id}', [LimiteClienteController::class, 'show']);
+    Route::post('/clientes/{id}/bloquear', [LimiteClienteController::class, 'bloquear']);
+    Route::post('/clientes/{id}/desbloquear', [LimiteClienteController::class, 'desbloquear']); 
+    
+    

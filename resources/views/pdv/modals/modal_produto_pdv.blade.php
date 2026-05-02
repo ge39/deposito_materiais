@@ -19,13 +19,13 @@ placeholder="Digite nome, SKU ou código">
 <!-- CABEÇALHO -->
 <div class="produto-header">
 
-<div>Nome</div>
-<div>Marca</div>
-<div>Unid.</div>
-<div>Qtd.</div>
-<div>Barras</div>
-<div>SKU</div>
-<div>Preço</div>
+    <div>Nome</div>
+    <div>Marca</div>
+    <div>Unid.</div>
+    <div>Qtd.</div>
+    <div>Barras</div>
+    <div>SKU</div>
+    <div>Preço</div>
 
 
 </div>

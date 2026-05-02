@@ -148,7 +148,8 @@ class ClienteController extends Controller
     // Ativar cliente
     public function ativar(Cliente $cliente)
     {
-        $cliente->ativo = 1;
+        
+       $cliente->ativo = '1';
         $cliente->save();
         return redirect()->route('clientes.inativos')->with('success', 'Cliente ativado.');
     }
@@ -160,6 +161,49 @@ class ClienteController extends Controller
         $cliente->save();
         return redirect()->route('clientes.index')->with('success', 'Cliente desativado.');
     }
-
    
+    // public function saldo($id)
+    // {
+    //     $cliente = \App\Models\Cliente::findOrFail($id);
+
+    //     $creditoService = app(\App\Services\CreditoService::class);
+
+    //     // quanto ele já usou (pendente)
+    //    // $saldoDevedor = $creditoService->saldoDevedor($cliente);
+    //     $saldoDevedor = $creditoService->saldoDevedor($cliente);
+
+    //     // quanto ainda pode usar
+    //     //$disponivel = max(0, $cliente->limite_credito - $saldoDevedor);
+    //     $disponivel = max(0, $cliente->limite_credito - $saldoDevedor);
+    //     return response()->json([
+    //         'cliente' => [
+    //             'id' => $cliente->id,
+    //             'nome' => $cliente->nome,
+    //         ],
+    //         'credito' => [
+    //             'utilizado' => $saldoDevedor,
+    //             'disponivel' => $disponivel,
+    //             'limite' => $cliente->limite_credito,
+    //         ]
+    //     ]);
+    // }
+
+    public function saldo($id)
+    {
+        $cliente = \App\Models\Cliente::findOrFail($id);
+
+        $saldo = \App\Models\ClienteContaCorrente::where('cliente_id', $id)
+            ->sum(\DB::raw("
+                CASE 
+                    WHEN tipo = 'credito' THEN valor
+                    WHEN tipo = 'debito' THEN -valor
+                END
+            "));
+
+        return response()->json([
+            'nome' => $cliente->nome,
+            'saldo' => (float) $saldo
+        ]);
+    }
+    
 }
