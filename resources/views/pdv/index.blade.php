@@ -374,8 +374,10 @@
     <div class="container-fluid p-0" 
          style="background:#e6e6e6; margin-top:-40px; overflow-x:hidden">
        
-        <div class="caixa-info mb-3 p-0 border rounded shadow-sm bg-light d-flex justify-content-start align-items-center">
-            <span><strong>Terminal: 00{{ $terminal->id }}</strong></span>
+        <div class="caixa-info mb-3 px-3 py-2 border rounded shadow-sm bg-light d-flex align-items-center">
+             <span class="me-3">
+                    <strong>Terminal:</strong> {{ str_pad($terminal->id, 2, '0', STR_PAD_LEFT) }}      
+            </span>
             <span><strong>Operador: {{ $operador }}</strong> </span>
             <span><strong>ID: {{ $operadorId }}</strong> </span>
             <span><strong>Caixa: {{ $caixa_id }}</strong> </span>
@@ -463,14 +465,17 @@
 
         <div class="col-md-2 fw-bold mb-0">
              <!-- <label>ID</label> -->
-            <input type="hidden" id="input-cliente-id" name="cliente_id" value="{{ $clienteBalcao->id }}">
-            <input  type="hidden" name="operador_id" value="{{  $operadorId }}">
-            <input  type="hidden" name="terminal_id" value="{{  $terminal->id }}">
+               <!-- 👇 EXPORTAÇÃO PARA JS -->
+              
+            <input type="hidden" id="cliente_id" name="cliente_id" value="{{ $clienteBalcao->id }}">
+            <input  type="hidden" id="operador_id" name="operador_id" value="{{  $operadorId }}">
+            <input  type="hidden" id="caixa_id" name="caixa_id" value="{{  $terminal->id }}">
             <input  type="hidden" id="dataVenda"  type="datetime-local" value="{{ date('Y-m-d\TH:i') }}">
 
             <label>Cliente</label>
             <input  type ="text" class="form-control  fs-6 fw-bold text-center" name = "nome" 
             value ="{{ $clienteBalcao->nome }}">
+
         </div>
         
          <div class="col-md-1 fw-bold mb-0">
@@ -624,7 +629,7 @@
 
 <!-- caixas esquecidos abertos acima de 12 horas -->
 <!-- caixas esquecidos abertos acima de 12 horas -->
-<script>
+<!-- <script>
     document.addEventListener('DOMContentLoaded', function() {
 
         const listaDiv = document.getElementById('listaCaixasEsquecidos');
@@ -677,6 +682,63 @@
                 console.error("Erro ao buscar caixas:", err);
                 listaDiv.style.display = 'none';
             });
+
+    });
+</script> -->
+
+<script>
+    document.addEventListener('DOMContentLoaded', async function () {
+
+        const listaDiv = document.getElementById('listaCaixasEsquecidos');
+        const modalEl  = document.getElementById('modalBloquearCaixa');
+
+        if (!listaDiv || !modalEl) return;
+
+        try {
+            const response = await fetch('/pdv/caixas-esquecidos');
+
+            if (!response.ok) throw new Error('Erro HTTP');
+
+            const data = await response.json();
+
+            const caixas = Array.isArray(data) ? data : (data.data ?? []);
+
+            if (caixas.length === 0) {
+                listaDiv.style.display = 'none';
+                return;
+            }
+
+            listaDiv.innerHTML = '';
+            listaDiv.style.display = 'block';
+
+            caixas.forEach(caixa => {
+
+                const item = document.createElement('li');
+
+                const operador = caixa.usuario?.name ?? '---';
+
+                item.textContent =
+                    `Terminal: ${caixa.terminal_id} | ` +
+                    `Caixa ID: ${caixa.id} | ` +
+                    `Aberto em: ${caixa.data_abertura_br} | ` +
+                    `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
+                    `Operador: ${operador}`;
+
+                listaDiv.appendChild(item);
+            });
+
+            // 🔥 evita recriar modal toda vez
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+                backdrop: 'static',
+                keyboard: false
+            });
+
+            modal.show();
+
+        } catch (err) {
+            console.error("Erro ao buscar caixas:", err);
+            listaDiv.style.display = 'none';
+        }
 
     });
 </script>
@@ -775,7 +837,15 @@
     const CAIXA_POSSUI_VENDAS = @json($caixa->possui_vendas ?? false);
 </script>
 
-<!-- <script src="{{ asset('js/atalho.js') }}"></script> -->
+<script>
+    window.carrinho = [];
+
+    window.PDV = {
+        caixa_id: {{ $caixa->id }},
+        funcionario_id: {{ auth()->id() }},
+        dataVenda: "{{ now() }}"
+    };
+</script>
 
 
 @endsection

@@ -1,27 +1,17 @@
- window.Carrinho.adicionar({ id: 1, quantidade: 2, preco: 10 });
- console.log('Resultado:'.window.Carrinho.listar());
-
-
-window.Carrinho = (function () {
+window.Carrinho = (function() {
     let itens = [];
 
-    function init() {}
-    function adicionar(item) {}
+    function init() { itens = []; }
+
+    function adicionar(item) {
+        itens.push(item);
+        console.log('Item adicionado:', item);
+        console.log('Carrinho atual:', itens);
+    }
+
     function listar() { return itens; }
+    function remover(index) { itens.splice(index, 1); }
+    function limpar() { itens = []; }
 
-    return { init, adicionar, listar };
+    return { init, adicionar, listar, remover, limpar };
 })();
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -571,166 +571,89 @@
 
     });
 
-
     // ===============================
     // BUSCAR CLIENTES
     // ===============================
-    // async function buscarClientes(query){
+    async function buscarClientes(query){
 
-    //     const resultadoClientePDV =
-    //         document.getElementById('resultadoClientePDV');
+        const resultadoClientePDV = document.getElementById('resultadoClientePDV');
 
-    //     // cancela request anterior
-    //     if(controller) controller.abort();
+        if(controller) controller.abort();
+        controller = new AbortController();
 
-    //     controller = new AbortController();
+        if (resultadoClientePDV) {
+            resultadoClientePDV.innerHTML = `
+                <div class="text-center py-2 text-muted bg-info">
+                    Buscando clientes...
+                </div>
+            `;
+        }
 
-    //     // loading
-    //     if (resultadoClientePDV) {
+        try{
 
-    //         resultadoClientePDV.innerHTML = `
-    //             <div class="text-center py-2 text-muted bg-info">
-    //                 Buscando clientes...
-    //             </div>
-    //         `;
-    //     }
+            const res = await fetch(`{{ route('pdv.buscarCliente') }}?query=` + encodeURIComponent(query), {
+                signal: controller.signal
+            });
 
-    //     try{
+            const data = await res.json();
 
-    //         const res = await fetch(
-    //             `{{ route('pdv.buscarCliente') }}?query=` +
-    //             encodeURIComponent(query),
-    //             {
-    //                 signal: controller.signal,
-    //                 headers: {
-    //                     'Accept': 'application/json'
-    //                 }
-    //             }
-    //         );
+            clientes = Array.isArray(data) ? data : (data.clientes ?? data);
+            clienteIndex = -1;
 
-    //         // pega resposta REAL
-    //         const text = await res.text();
+            if(!clientes.length){
+                resultadoClientePDV.innerHTML = `
+                    <div class="text-center py-2 text-light bg-secondary fw-bold">
+                        Nenhum cliente encontrado
+                    </div>
+                `;
+                return;
+            }
 
-    //         // console.log('RESPOSTA BACKEND ↓↓↓');
-    //         // console.log(text);
+            let html = '';
 
-    //         // erro backend
-    //         if (!res.ok) {
+            clientes.forEach((c,i)=>{
+                html += `
+                <div class="cliente-row" data-index="${i}">
+                    <div>${c.id}</div>
+                    <div>${c.nome}</div>
+                    <div>${c.tipo}</div>
+                    <div>${c.cpf_cnpj ?? ''}</div>
+                    <div>${c.telefone ?? ''}</div>
+                    <div>${c.endereco ?? ''}</div>
+                    <div>${c.numero ?? ''}</div>
+                    <div>${c.cep ?? ''}</div>
+                    <div>${c.bairro ?? ''}</div>
+                    <div>${c.cidade ?? ''}</div>
+                    <div>${c.estado ?? ''}</div>
+                </div>`;
+            });
 
-    //             console.error('STATUS:', res.status);
-    //             console.error(text);
+            resultadoClientePDV.innerHTML = html;
 
-    //             throw new Error(
-    //                 `Erro backend (${res.status})`
-    //             );
-    //         }
+        }catch(e){
 
-    //         // converte JSON manualmente
-    //         let data = [];
+            if(e.name === 'AbortError') return;
 
-    //         try {
+            console.error(e);
 
-    //             data = JSON.parse(text);
-
-    //         } catch(jsonError){
-
-    //             console.error(
-    //                 'Resposta não é JSON válido'
-    //             );
-
-    //             console.error(text);
-
-    //             throw jsonError;
-    //         }
-
-    //         // popula array
-    //         clientes =
-    //             Array.isArray(data)
-    //                 ? data
-    //                 : (data.clientes ?? []);
-
-    //         clienteIndex = -1;
-
-    //         // vazio
-    //         if(!clientes.length){
-
-    //             resultadoClientePDV.innerHTML = `
-    //                 <div class="text-center py-2 text-light bg-secondary fw-bold">
-    //                     Nenhum cliente encontrado
-    //                 </div>
-    //             `;
-
-    //             return;
-    //         }
-
-    //         // monta html
-    //         let html = '';
-
-    //         clientes.forEach((c,i)=>{
-
-    //             html += `
-    //             <div class="cliente-row" data-index="${i}">
-    //                 <div>${c.id ?? ''}</div>
-    //                 <div>${c.nome ?? ''}</div>
-    //                 <div>${c.tipo ?? ''}</div>
-    //                 <div>${c.cpf_cnpj ?? ''}</div>
-    //                 <div>${c.telefone ?? ''}</div>
-    //                 <div>${c.endereco ?? ''}</div>
-    //                 <div>${c.numero ?? ''}</div>
-    //                 <div>${c.cep ?? ''}</div>
-    //                 <div>${c.bairro ?? ''}</div>
-    //                 <div>${c.cidade ?? ''}</div>
-    //                 <div>${c.estado ?? ''}</div>
-    //             </div>`;
-    //         });
-
-    //         resultadoClientePDV.innerHTML = html;
-
-    //     }
-    //     catch(e){
-
-    //         // abort cancelado
-    //         if(e.name === 'AbortError')
-    //             return;
-
-    //         console.error(
-    //             'Erro buscarClientes:',
-    //             e
-    //         );
-
-    //         if (resultadoClientePDV) {
-
-    //             resultadoClientePDV.innerHTML = `
-    //                 <div class="text-center text-danger py-2 bg-dark">
-    //                     Erro ao buscar clientes
-    //                 </div>
-    //             `;
-    //         }
-    //     }
-    // }
+            if (resultadoClientePDV) {
+                resultadoClientePDV.innerHTML = `
+                    <div class="text-center text-danger py-2">
+                        Erro ao buscar clientes
+                    </div>
+                `;
+            }
+        }
+    }
 
     // ===============================
     // SELECIONAR CLIENTE
     // ===============================
     // function selecionarClientePDV(
-    //         id,
-    //         nome,
-    //         tipo,
-    //         telefone = '',
-    //         endereco = '',
-    //         numero = '',
-    //         cep = '',
-    //         bairro = '',
-    //         cidade = '',
-    //         estado = ''
+    //     id,nome,tipo,telefone='',endereco='',numero='',
+    //     cep='',bairro='',cidade='',estado=''
     //     ){
 
-    //     // procura cliente completo já carregado
-    //     const clienteData = clientes.find(c => Number(c.id) === Number(id));
-
-    //     // ===============================
-    //     // INPUTS
-    //     // ===============================
     //     document.querySelector('input[name="cliente_id"]').value = id;
     //     document.querySelector('input[name="nome"]').value = nome;
     //     document.querySelector('input[name="pessoa"]').value = tipo;
@@ -741,221 +664,268 @@
 
     //     document.querySelector('input[name="endereco"]').value = enderecoCompleto;
 
-    //     // ===============================
-    //     // CLIENTE GLOBAL
-    //     // ===============================
-    //     window.cliente = {
+    //     fetch(`/api/cliente/financeiro/${id}`)
+    //     .then(async res => {
 
-    //         id: id,
-    //         nome: nome,
-    //         tipo: tipo,
-    //         telefone: telefone,
+    //         const text = await res.text();
 
-    //         saldo: Number(clienteData?.saldo || 0),
+    //         if (!res.ok) {
+    //             console.error(text);
+    //             throw new Error("Erro backend");
+    //         }
 
-    //         limite: Number(clienteData?.limite || 0),
+    //         return JSON.parse(text);
+    //     })
+    //     .then(data => {
 
-    //         credito_usado:
-    //             Number(clienteData?.credito_usado || 0),
+    //         window.cliente = {
+    //             id: id,
+    //             nome: data.cliente,
+    //             limite_credito: Number(data.limite_credito || 0),
+    //             saldo_apos: Number(data.saldo_apos || 0),
+    //         };
 
-    //         status:
-    //             clienteData?.status || null,
+    //         const nomeEl = document.getElementById('nome-cliente-modal');
+    //         const saldoEl = document.getElementById('saldo-cliente-modal');
 
-    //         formas:
-    //             clienteData?.formas || []
-    //     };
+    //         if (nomeEl) {
+    //             nomeEl.textContent = data.cliente;
+    //         }
 
-    //     console.log('Cliente:', window.cliente);
+    //         if (saldoEl) {
+    //             // Saldo Atual
+    //             // Limite do cliente R$ ${window.cliente.limite_credito.toFixed(2).replace('.', ',')}
+    //             saldoEl.innerHTML = `
+    //                 R$ ${window.cliente.saldo_apos.toFixed(2).replace('.', ',')}<br>
+                     
+    //             `;
+    //         }
 
-    //     // ===============================
-    //     // MODAL INFO
-    //     // ===============================
-    //     const nomeEl =
-    //         document.getElementById('nome-cliente-modal');
-
-    //     const saldoEl =
-    //         document.getElementById('saldo-cliente-modal');
-
-    //     if (nomeEl) {
-    //         nomeEl.textContent = nome;
-    //     }
-
-    //     if (saldoEl) {
-
-    //         saldoEl.innerHTML = `
-    //             Saldo: R$ ${window.cliente.saldo
-    //                 .toFixed(2)
-    //                 .replace('.', ',')}<br>
-
-    //             Limite: R$ ${window.cliente.limite
-    //                 .toFixed(2)
-    //                 .replace('.', ',')}
-    //         `;
-    //     }
-
-    //     // ===============================
-    //     // FECHA MODAL
-    //     // ===============================
-    //     const modalEl =
-    //         document.getElementById('modalCliente');
+    //     })
+    //     .catch(err => {
+    //         console.error('Erro ao buscar financeiro do cliente:', err);
+    //     });
+        
+    //     // 🔥 FECHA O MODAL (INDEPENDENTE DE ENTER OU CLICK)
+    //     const modalEl = document.getElementById('modalCliente');
 
     //     if (modalEl && typeof bootstrap !== 'undefined') {
-
-    //         const modalInstance =
-    //             bootstrap.Modal.getInstance(modalEl);
-
+    //         const modalInstance = bootstrap.Modal.getInstance(modalEl);
     //         modalInstance?.hide();
     //     }
     // }
 
     // ===============================
-// BUSCAR CLIENTES
+// SELECIONAR CLIENTE PDV
 // ===============================
-async function buscarClientes(query){
-    const resultadoClientePDV = document.getElementById('resultadoClientePDV');
-    
-    // Cancela request anterior para evitar concorrência (Debounce/Abort)
-    if(controller) controller.abort();
-    controller = new AbortController();
+// function selecionarClientePDV(
+//         id,
+//         nome,
+//         tipo,
+//         telefone = '',
+//         endereco = '',
+//         numero = '',
+//         cep = '',
+//         bairro = '',
+//         cidade = '',
+//         estado = ''
+//     ) {
 
-    if (resultadoClientePDV) {
-        resultadoClientePDV.innerHTML = `
-            <div class="text-center py-2 text-muted bg-info">Buscando clientes...</div>
-        `;
-    }
+//     // ===============================
+//     // ENDEREÇO COMPLETO
+//     // ===============================
+//     const enderecoCompleto =
+//         `${endereco} ${numero} - ${bairro}, ${cidade} - ${estado}, CEP: ${cep}`;
 
-    try{
-        const res = await fetch(
-            `{{ route('pdv.buscarCliente') }}?query=` + encodeURIComponent(query),
-            { signal: controller.signal, headers: { 'Accept': 'application/json' } }
-        );
+//     // ===============================
+//     // UI - DADOS BÁSICOS DO CLIENTE
+//     // ===============================
+//     preencherClienteUI(id, nome, tipo, telefone, enderecoCompleto);
 
-        const text = await res.text();
+//     // ===============================
+//     // BUSCA FINANCEIRO
+//     // ===============================
+//     carregarFinanceiroCliente(id)
+//         .then(data => {
 
-        if (!res.ok) {
-            throw new Error(`Erro backend (${res.status})`);
-        }
+//             window.cliente = {
+//                 id: id,
+//                 nome: data.cliente ?? nome,
+//                 limite_credito: Number(data.limite_credito ?? 0),
+//                 saldo_apos: Number(data.saldo_apos ?? 0),
+//                 status: data.status ?? data.creditoAtivo?.status ?? null
+//             };
 
-        let data = [];
-        try {
-            data = JSON.parse(text);
-        } catch(jsonError){
-            throw jsonError;
-        }
+//             atualizarClienteModal(window.cliente);
+//         })
+//         .catch(err => {
+//             console.error('Erro ao carregar financeiro do cliente:', err);
 
-        clientes = Array.isArray(data) ? data : (data.clientes ?? []);
-        clienteIndex = -1;
+//             window.cliente = {
+//                 id,
+//                 nome,
+//                 limite_credito: 0,
+//                 saldo_apos: 0,
+//                 status: null
+//             };
+//         });
 
-        if(!clientes.length){
-            resultadoClientePDV.innerHTML = `
-                <div class="text-center py-2 text-light bg-secondary fw-bold">Nenhum cliente encontrado</div>
-            `;
-            return;
-        }
-
-        // Monta o HTML injetando o INDEX do array para capturar o objeto completo depois
-        let html = '';
-        clientes.forEach((c, i) => {
-            html += `
-                <div class="cliente-row" data-index="${i}" onclick="selecionarClientePorIndex(${i})">
-                    <div>${c.id ?? ''}</div>
-                    <div>${c.nome ?? ''}</div>
-                    <div>${c.tipo ?? ''}</div>
-                    <div>${c.cpf_cnpj ?? ''}</div>
-                    <div>${c.telefone ?? ''}</div>
-                    <div>${c.endereco ?? ''}</div>
-                    <div>${c.numero ?? ''}</div>
-                    <div>${c.cep ?? ''}</div>
-                    <div>${c.bairro ?? ''}</div>
-                    <div>${c.cidade ?? ''}</div>
-                    <div>${c.estado ?? ''}</div>
-                </div>`;
-        });
-        resultadoClientePDV.innerHTML = html;
-
-    } catch(e){
-        if(e.name === 'AbortError') return;
-        console.error('Erro buscarClientes:', e);
-        if (resultadoClientePDV) {
-            resultadoClientePDV.innerHTML = `
-                <div class="text-center text-danger py-2 bg-dark">Erro ao buscar clientes</div>
-            `;
-        }
-    }
-}
+//     // ===============================
+//     // FECHA MODAL (INDEPENDENTE DO FETCH)
+//     // ===============================
+//     fecharModalCliente();
+// }
 
 // ===============================
-// NOVA FUNÇÃO AUXILIAR DE SELEÇÃO (SEGURA)
+// SELECIONAR CLIENTE PDV
 // ===============================
-function selecionarClientePorIndex(index) {
-    const c = clientes[index];
-    if (!c) return;
-
-    selecionarClientePDV(c.id, c.nome, c.tipo, c.telefone, c.endereco, c.numero, c.cep, c.bairro, c.cidade, c.estado);
-}
-
-// ===============================
-// SELECIONAR CLIENTE
-// ===============================
-function selecionarClientePDV(id, nome, tipo, telefone = '', endereco = '', numero = '', cep = '', bairro = '', cidade = '', estado = ''){
-    
-    // Busca garantida dentro do array local mapeado pelo ID
-    const clienteData = clientes.find(c => Number(c.id) === Number(id));
+function selecionarClientePDV(cliente) {
 
     // ===============================
-    // INPUTS DO FORMULÁRIO
+    // ENDEREÇO COMPLETO
     // ===============================
-    document.querySelector('input[name="cliente_id"]').value = id;
-    document.querySelector('input[name="nome"]').value = nome;
-    document.querySelector('input[name="pessoa"]').value = tipo;
-    document.querySelector('input[name="telefone"]').value = telefone;
-    
-    const enderecoCompleto = `${endereco} ${numero} - ${bairro}, ${cidade} - ${estado}, CEP: ${cep}`.trim();
-    document.querySelector('input[name="endereco"]').value = enderecoCompleto;
+    const enderecoCompleto =
+        `${cliente.endereco || ''} ${cliente.numero || ''} - ${cliente.bairro || ''}, ${cliente.cidade || ''} - ${cliente.estado || ''}, CEP: ${cliente.cep || ''}`;
+
 
     // ===============================
-    // CLIENTE GLOBAL (Garante reativação dos novos campos do Laravel)
+    // INPUTS
+    // ===============================
+    document.querySelector('input[name="cliente_id"]').value =
+        cliente.id || '';
+
+    document.querySelector('input[name="nome"]').value =
+        cliente.nome || '';
+
+    document.querySelector('input[name="pessoa"]').value =
+        cliente.tipo || '';
+
+    document.querySelector('input[name="telefone"]').value =
+        cliente.telefone || '';
+
+    document.querySelector('input[name="endereco"]').value =
+        enderecoCompleto;
+
+
+    // ===============================
+    // CLIENTE GLOBAL
     // ===============================
     window.cliente = {
-        id: id,
-        nome: nome,
-        tipo: tipo,
-        telefone: telefone,
-        saldo: Number(clienteData?.saldo ?? 0),
-        limite: Number(clienteData?.limite ?? 0),
-        credito_usado: Number(clienteData?.credito_usado ?? 0),
-        status: clienteData?.status ?? null,
-        formas: clienteData?.formas ?? []
+
+        id: cliente.id,
+        nome: cliente.nome,
+
+        saldo: Number(cliente.saldo || 0),
+
+        limite: Number(cliente.limite || 0),
+
+        credito_usado:
+            Number(cliente.credito_usado || 0),
+
+        status: cliente.status || null,
+
+        formas: cliente.formas || []
     };
+
+
+    console.log('Cliente:', window.cliente);
+
 
     // ===============================
     // MODAL INFO
     // ===============================
-    const nomeEl = document.getElementById('nome-cliente-modal');
-    const saldoEl = document.getElementById('saldo-cliente-modal');
+    const nomeEl =
+        document.getElementById('nome-cliente-modal');
 
-    if (nomeEl) { nomeEl.textContent = nome; }
-    
+    const saldoEl =
+        document.getElementById('saldo-cliente-modal');
+
+
+    if (nomeEl) {
+        nomeEl.textContent = cliente.nome || '';
+    }
+
+
     if (saldoEl) {
-        // Validação visual de segurança baseada no status trazido do banco
-        const statusBadge = window.cliente.status === 'ativo' 
-            ? '<span class="badge bg-success">Ativo</span>' 
-            : '<span class="badge bg-danger">Bloqueado</span>';
 
         saldoEl.innerHTML = `
-            Status: ${statusBadge}<br>
-            Saldo: R$ ${window.cliente.saldo.toFixed(2).replace('.', ',')}<br>
-            Limite: R$ ${window.cliente.limite.toFixed(2).replace('.', ',')}
+            R$ ${window.cliente.saldo
+                .toFixed(2)
+                .replace('.', ',')}
         `;
     }
 
+
     // ===============================
-    // FECHA MODAL
+    // FECHAR MODAL
     // ===============================
-    const modalEl = document.getElementById('modalCliente');
+    const modalEl =
+        document.getElementById('modalCliente');
+
     if (modalEl && typeof bootstrap !== 'undefined') {
-        const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+
+        const modalInstance =
+            bootstrap.Modal.getInstance(modalEl);
+
         modalInstance?.hide();
+    }
+}
+
+// ===============================
+// UI DO CLIENTE
+// ===============================
+function preencherClienteUI(id, nome, tipo, telefone, enderecoCompleto) {
+
+    document.querySelector('input[name="cliente_id"]').value = id;
+    document.querySelector('input[name="nome"]').value = nome;
+    document.querySelector('input[name="pessoa"]').value = tipo;
+    document.querySelector('input[name="telefone"]').value = telefone;
+    document.querySelector('input[name="endereco"]').value = enderecoCompleto;
+}
+
+
+// ===============================
+// FETCH FINANCEIRO
+// ===============================
+function carregarFinanceiroCliente(id) {
+
+    return fetch(`/api/cliente/financeiro/${id}`)
+        .then(res => {
+            if (!res.ok) throw new Error('Erro backend');
+            return res.json();
+        });
+}
+
+
+// ===============================
+// ATUALIZA MODAL CLIENTE
+// ===============================
+function atualizarClienteModal(cliente) {
+
+    const nomeEl = document.getElementById('nome-cliente-modal');
+    const saldoEl = document.getElementById('saldo-cliente-modal');
+
+    if (nomeEl) {
+        nomeEl.textContent = cliente.nome;
+    }
+
+    if (saldoEl) {
+        saldoEl.innerHTML = `
+            R$ ${cliente.saldo_apos.toFixed(2).replace('.', ',')}
+        `;
+    }
+}
+
+
+// ===============================
+// FECHAR MODAL
+// ===============================
+function fecharModalCliente() {
+
+    const modalEl = document.getElementById('modalCliente');
+
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        bootstrap.Modal.getInstance(modalEl)?.hide();
     }
 }
 

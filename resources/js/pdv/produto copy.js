@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ELEMENTOS
     // ===============================
     const inputCodigo        = document.getElementById("codigo_barras");
+    const inputId_produto = document.getElementById("id_produto");
     const inputDescricao     = document.getElementById("descricao");
     const inputQuantidade    = document.getElementById("quantidade");
     const inputPrecoVenda    = document.getElementById("preco_venda");
@@ -17,26 +18,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnDiminuir        = document.getElementById("btnDiminuir");
     const btnRemover         = document.getElementById("btnRemover");
     const btnOcultar         = document.getElementById("btnOcultar");
+    const vendaId = data.venda_id; // vai ter valor real
 
     window.produtoAtual = null;
-    // JS para arrastar a div
-    const acoes = document.getElementById("acoes-carrinho");
+
+    // ===============================
+    // ARRASTAR DIV DE AÇÕES
+    // ===============================
     let isDragging = false;
     let offsetX = 0, offsetY = 0;
-
-    acoes.addEventListener("mousedown", (e) => {
+    acoesCarrinho?.addEventListener("mousedown", (e) => {
         isDragging = true;
-        offsetX = e.clientX - acoes.offsetLeft;
-        offsetY = e.clientY - acoes.offsetTop;
-        acoes.style.transition = "none"; // remove animação enquanto arrasta
+        offsetX = e.clientX - acoesCarrinho.offsetLeft;
+        offsetY = e.clientY - acoesCarrinho.offsetTop;
+        acoesCarrinho.style.transition = "none";
     });
-
     document.addEventListener("mousemove", (e) => {
         if (!isDragging) return;
-        acoes.style.left = `${e.clientX - offsetX}px`;
-        acoes.style.top  = `${e.clientY - offsetY}px`;
+        acoesCarrinho.style.left = `${e.clientX - offsetX}px`;
+        acoesCarrinho.style.top  = `${e.clientY - offsetY}px`;
     });
-
     document.addEventListener("mouseup", () => {
         if (isDragging) isDragging = false;
     });
@@ -45,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // FUNÇÕES AUXILIARES
     // ===============================
     function limparCamposProduto() {
+        if(inputId_produto) inputId_produto.value = "";
         if(inputDescricao) inputDescricao.value = "";
         if(inputPrecoVenda) inputPrecoVenda.value = "";
         if(inputTotalGeral) inputTotalGeral.value = "";
@@ -80,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function atualizarTotalCarrinho() {
         let total = 0;
         tabelaItens.querySelectorAll("tr:not(.d-none)").forEach(linha => {
-            const subtotal = parseFloat(linha.children[5].textContent.replace('R$', '').replace(',', '.')) || 0;
+            const subtotal = parseFloat(linha.children[6].textContent.replace('R$', '').replace(',', '.')) || 0;
             total += subtotal;
         });
         atualizarTotalGeral(total);
@@ -111,8 +113,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const produto = data.produto;
             window.produtoAtual = produto;
-
-            // Preenche inputs
+            // Preenche o input
+            const inputId_produto = document.getElementById("id_produto");
+                if (inputId_produto) {
+                    inputId_produto.value = produto.id;
+                }
             inputDescricao.value  = produto.nome;
             inputPrecoVenda.value = Number(produto.preco_venda).toFixed(2);
             const qtdDisponivel = produto.quantidade_total_disponivel || 1;
@@ -123,8 +128,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const inputUnidade = document.getElementById("unidade");
             if(inputUnidade) inputUnidade.value = produto.unidade_sigla || "";
 
-            if(imgProduto) imgProduto.src = produto.imagem ? `/storage/${produto.imagem}` : "/images/produto-sem-imagem.png";
-
+            // if(imgProduto) imgProduto.src = produto.imagem ? `/storage/${produto.imagem}` : "/images/produto-sem-imagem.png";
+            
             calcularTotalProduto();
             inputCodigo.value = "";
             inputQuantidade.focus();
@@ -133,64 +138,101 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error(e);
             alert("Erro ao buscar produto.");
         }
-       
+    }
+
+    window.adicionarItemCarrinho = function(produto) {
+    const quantidade = Number(inputQuantidade.value);
+    const preco = Number(produto.preco_venda);
+
+    if(quantidade <= 0) {
+        alert("Informe uma quantidade válida.");
+        inputQuantidade.focus();
+        return;
+    }
+    if(preco <= 0) {
+        alert("Produto sem preço de venda.");
+        return;
     }
 
     // ===============================
-    // ADICIONAR AO CARRINHO
+    // SELECIONAR LOTE VÁLIDO
     // ===============================
-    window.adicionarItemCarrinho = function(produto) {
-        const quantidade = Number(inputQuantidade.value);
-        const preco = Number(produto.preco_venda);
-        const loteId = produto.lotes?.[0]?.numero_lote ?? "";
+    let loteSelecionado = null;
+    if(Array.isArray(produto.lotes)) {
+        // Prioriza lotes com quantidade disponível > 0 e não vencidos
+        loteSelecionado = produto.lotes.find(lote => {
+            const quantidadeLote = Number(lote.quantidade_disponivel || 0);
+            const vencimento = lote.data_vencimento ? new Date(lote.data_vencimento) : null;
+            const hoje = new Date();
+            return quantidadeLote > 0 && (!vencimento || vencimento >= hoje);
+        });
+    }
 
-        if(quantidade <= 0) {
-            alert("Informe uma quantidade válida.");
-            inputQuantidade.focus();
-            return;
-        }
-        if(preco <= 0) {
-            alert("Produto sem preço de venda.");
-            return;
-        }
+    if(!loteSelecionado) {
+        alert("Nenhum lote disponível para este produto, Precisa criar um lote antes de adicionar ao carrinho.");
+        return;
+    }
 
-        // Verifica se o produto já existe
-        const linhas = tabelaItens.querySelectorAll("tr");
-        for(let linha of linhas) {
-            if(linha.dataset.produtoId == produto.id && linha.dataset.loteId == loteId) {
-                const tdQtd = linha.querySelector(".item-quantidade");
-                const tdSubtotal = linha.querySelector(".subtotal");
-                const novaQtd = Number(tdQtd.textContent) + quantidade;
-                if(novaQtd > Number(inputQuantidade.max)) {
-                    alert("Estoque insuficiente.");
-                    return;
-                }
-                tdQtd.textContent = novaQtd;
-                tdSubtotal.textContent = (novaQtd * preco).toFixed(2);
-                atualizarNumeroItens();
-                atualizarTotalCarrinho();
-                resetarProdutoAtual();
-                limparCamposProduto();
+    const loteId = loteSelecionado.id; // usa ID interno do lote
+    const qtdDisponivelLote = Number(loteSelecionado.quantidade_disponivel);
+
+    if(quantidade > qtdDisponivelLote) {
+        alert(`Quantidade solicitada excede o lote disponível (${qtdDisponivelLote}).`);
+        inputQuantidade.focus();
+        return;
+    }
+
+    // ===============================
+    // VERIFICA SE PRODUTO + LOTE JÁ EXISTE NO CARRINHO
+    // ===============================
+    const linhas = tabelaItens.querySelectorAll("tr");
+    for(let linha of linhas) {
+        if(linha.dataset.produto == produto.id && linha.dataset.lote == loteId) {
+
+            const tdQtd = linha.querySelector(".item-quantidade");
+            const tdSubtotal = linha.querySelector(".subtotal");
+            const novaQtd = Number(tdQtd.textContent) + quantidade;
+
+            if(novaQtd > qtdDisponivelLote) {
+                alert("Estoque insuficiente neste lote.");
                 return;
             }
+
+            tdQtd.textContent = novaQtd;
+            tdSubtotal.textContent = (novaQtd * preco).toFixed(2);
+            atualizarNumeroItens();
+            atualizarTotalCarrinho();
+            resetarProdutoAtual();
+            limparCamposProduto();
+            return;
         }
+    }
 
-        const subtotal = quantidade * preco;
-        tabelaItens.insertAdjacentHTML("beforeend", `
-            <tr class="linha-carrinho" data-produto-id="${produto.id}" data-lote-id="${loteId}">
-                <td class="item-numero text-center" style="font-size:18px; font-weight:strong;font-weight:bold;"></td>
-                <td class="item-descricao" style="font-size:18px; font-weight:bold;">${produto.nome}</td>
-                <td class="item-quantidade text-center" style="font-size:18px; font-weight:bold;">${quantidade}</td>
-                <td class="text-center" style="font-size:18px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
-                <td class="item-preco text-end" style="font-size:18px; font-weight:bold;">${preco.toFixed(2)}</td>
-                <td class="subtotal text-end subtotal" style="font-size:18px; font-weight:bold;">${subtotal.toFixed(2)}</td>
-            </tr>
-        `);
+    // ===============================
+    // ADICIONAR NOVO ITEM NO CARRINHO
+    // ===============================
+    const subtotal = quantidade * preco;
+    tabelaItens.insertAdjacentHTML("beforeend", `
+        <tr class="item-carrinho"
+            data-produto="${produto.id}"
+            data-lote="${loteId}"
+            data-qtd="${quantidade}"
+            data-valor="${preco}">
+            <td class="item-numero text-center" style="font-size:18px; font-weight:bold;"></td>
+             <td class="item-lote" style="font-size:18px; font-weight:bold;">${loteId}</td>
+            <td class="item-descricao" style="font-size:18px; font-weight:bold;">${produto.nome}</td>
+            <td class="item-quantidade text-center" style="font-size:18px; font-weight:bold;">${quantidade}</td>
+            <td class="text-center" style="font-size:18px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
+            <td class="item-preco text-end" style="font-size:18px; font-weight:bold;">${preco.toFixed(2)}</td>
+            <td class="subtotal text-end" style="font-size:18px; font-weight:bold;">${subtotal.toFixed(2)}</td>
+        </tr>
+    `);
 
-        atualizarNumeroItens();
-        atualizarTotalCarrinho();
-        resetarProdutoAtual();
-        limparCamposProduto();
+    atualizarNumeroItens();
+    atualizarTotalCarrinho();
+    resetarProdutoAtual();
+    limparCamposProduto();
+    
     }
 
     // ===============================
@@ -209,15 +251,21 @@ document.addEventListener("DOMContentLoaded", () => {
         calcularTotalProduto();
     });
 
+
     inputQuantidade?.addEventListener("keydown", e => {
-        if(e.key !== "Enter") return;
+        if (e.key !== "Enter") return;
         e.preventDefault();
-        if(!window.produtoAtual) {
-            alert("Nenhum produto carregado. Leia o código de barras.");
-            return;
+
+        const produto = window.produtoAtual; // captura o estado uma vez
+
+        if (!produto) {
+            return; // NÃO alertar aqui
         }
-        adicionarItemCarrinho(window.produtoAtual);
+
+        adicionarItemCarrinho(produto);
     });
+
+
 
     document.addEventListener("keydown", e => {
         if(e.key === "F3") {
@@ -229,64 +277,37 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===============================
     // EDIÇÃO DO CARRINHO
     // ===============================
-   
-    // Inicialmente oculta os botões
-    
-     acoesCarrinho.classList.add("d-none");
-  // Ocultar os botões ao clicar fora do carrinho
+    acoesCarrinho.classList.add("d-none");
+
     document.addEventListener("click", (e) => {
         const linhaSelecionada = getLinhaSelecionada();
-
-        // Se existe uma linha selecionada e o clique NÃO foi nela nem na div de ações
         if (linhaSelecionada && !linhaSelecionada.contains(e.target) && !acoesCarrinho.contains(e.target)) {
-            // Remove destaque da linha
             linhaSelecionada.classList.remove("selecionada", "table-warning");
-            // Oculta os botões
             atualizarVisibilidadeBotoes();
         }
     });
 
-    // Função para pegar a linha selecionada visível
     function getLinhaSelecionada() {
         return tabelaItens.querySelector("tr.table-warning:not(.d-none)");
     }
 
-    // Atualiza visibilidade dos botões
     function atualizarVisibilidadeBotoes() {
         const linha = getLinhaSelecionada();
         if (linha) acoesCarrinho.classList.remove("d-none");
         else acoesCarrinho.classList.add("d-none");
     }
 
-    // Evento click na linha do carrinho
     tabelaItens?.addEventListener("click", e => {
         const linha = e.target.closest("tr");
         if(!linha || linha.classList.contains("d-none")) return;
-
-        // Remove seleção das outras linhas
         tabelaItens.querySelectorAll('tr.linha-carrinho').forEach(l => l.classList.remove('selecionada'));
-        linha.classList.add('selecionada');
-
-        // Marca a linha clicada
-        linha.classList.add("table-warning");
-
-        // Exibe os botões
+        linha.classList.add('selecionada', "table-warning");
         atualizarVisibilidadeBotoes();
-
-        // Se existe uma linha selecionada e o clique NÃO foi nela nem na div de ações
-        if (linhaSelecionada && !linhaSelecionada.contains(e.target) && !acoesCarrinho.contains(e.target)) {
-            // Remove destaque da linha
-            linhaSelecionada.classList.remove("selecionada", "table-warning");
-            // Oculta os botões
-            atualizarVisibilidadeBotoes();
-        }
     });
 
-    // Diminuir quantidade
     btnDiminuir?.addEventListener("click", () => {
         const linha = getLinhaSelecionada();
         if(!linha) return;
-
         const tdQtd = linha.children[2];
         let qtd = parseInt(tdQtd.textContent);
         if(qtd > 1) {
@@ -300,11 +321,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Remover item
     btnRemover?.addEventListener("click", () => {
         const linha = getLinhaSelecionada();
         if(!linha) return;
-
         if(confirm("Deseja remover o item selecionado?")) {
             linha.remove();
             atualizarTotalVenda();
@@ -313,20 +332,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Ocultar item (apenas esconde os botões, não remove a linha)
     btnOcultar?.addEventListener("click", () => {
         const linha = getLinhaSelecionada();
         if (!linha) return;
-
-        // Remove destaque da linha
         linha.classList.remove("selecionada", "table-warning");
-
-        // Oculta os botões
         atualizarVisibilidadeBotoes();
     });
 
-
-    // Atualizar subtotal da linha
     function atualizarSubTotal(linha) {
         const qtd = parseInt(linha.children[2].textContent);
         const preco = parseFloat(linha.children[4].textContent.replace('R$', '').replace(',', '.'));
@@ -334,7 +346,6 @@ document.addEventListener("DOMContentLoaded", () => {
         atualizarTotalVenda();
     }
 
-    // Atualizar total da venda
     function atualizarTotalVenda() {
         let total = 0;
         tabelaItens.querySelectorAll("tr:not(.d-none)").forEach(linha => {
@@ -344,30 +355,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if(totalVenda) totalVenda.textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
     }
 
-    // Reordenar coluna Item
     function reordenarItens() {
         let contador = 1;
         tabelaItens.querySelectorAll("tr:not(.d-none)").forEach(linha => {
             linha.children[0].textContent = contador++;
         });
     }
-    
-    //marcar linha selecionada no modal de produtos
-    document.addEventListener('keydown', function (e) {
-
-    const modal = document.getElementById('modalProdutos');
-    if (!modal || !modal.classList.contains('show')) return;
-
-    if (e.key === 'Enter') {
-        const linhas = document.querySelectorAll('#modalProdutos tbody tr');
-        const linha = linhas[linhaSelecionadaIndex];
-        if (!linha) return;
-
-        linha.click(); // ou chama sua função de selecionar produto
-    }
-
-
-});
 
 });
 

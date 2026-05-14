@@ -6,19 +6,24 @@ use App\Models\Cliente;
 use App\Models\ClienteContaCorrente;
 use App\Services\ContaCorrenteService;
 use App\Services\CreditoService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class ContaCorrenteController extends Controller
 {
+    /**
+     * Exibe a view do extrato de movimentações do cliente.
+     */
     public function show($clienteId)
     {
         $cliente = Cliente::findOrFail($clienteId);
-
+        
         $movimentacoes = ClienteContaCorrente::where('cliente_id', $cliente->id)
             ->orderBy('id', 'desc')
             ->paginate(20);
 
-        $saldo = app(ContaCorrenteService::class)
-            ->saldoAtual($cliente->id);
+        $saldo = app(ContaCorrenteService::class)->saldoAtual($cliente->id);
 
         return view('clientes.conta_corrente.show', compact(
             'cliente',
@@ -26,185 +31,111 @@ class ContaCorrenteController extends Controller
             'saldo'
         ));
     }
-    
-    // public function infoClienteFinanceiro($clienteId)
-    // {
-    //     $cliente = Cliente::findOrFail($clienteId);
 
-    //     $conta = app(ContaCorrenteService::class);
-    //     $credito = app(CreditoService::class);
-
-    //     return response()->json([
-    //         'cliente' => $cliente->nome,
-
-    //         // 💰 carteira (saldo real)
-    //         'saldo_carteira' => $conta->saldoAtual($cliente->id),
-
-    //         // 🧾 crédito
-    //         'limite_credito' => $cliente->limite_credito,
-    //         'credito_usado' => $credito->saldoDevedor($cliente),
-
-    //         // 💳 formas permitidas no PDV
-    //         'formas_pagamento' => $credito->formasPermitidas($cliente)
-    //     ]);
-    // }
-    // public function infoClienteFinanceiro($clienteId)
-    // {
-    //     $cliente = Cliente::findOrFail($clienteId);
-
-    //     $conta = app(ContaCorrenteService::class);
-    //     $credito = app(CreditoService::class);
-
-    //     $saldoCarteira = $conta->saldoAtual($cliente->id);
-    //     $creditoUsado = $credito->saldoDevedor($cliente);
-    //     $limiteCredito = $cliente->limite_credito ?? 0;
-
-    //     $limiteDisponivel = max(0, $limiteCredito - $creditoUsado);
-
-    //     return response()->json([
-    //         'cliente' => [
-    //             'id' => $cliente->id,
-    //             'nome' => $cliente->nome,
-    //             'tipo' => $cliente->tipo
-    //         ],
-
-    //         'financeiro' => [
-    //             'carteira' => [
-    //                 'saldo' => $saldoCarteira
-    //             ],
-
-    //             'credito' => [
-    //                 'limite' => $limiteCredito,
-    //                 'usado' => $creditoUsado,
-    //                 'disponivel' => $limiteDisponivel
-    //             ]
-    //         ],
-
-    //         'formas_pagamento' => $credito->formasPermitidas($cliente)
-    //     ]);
-    // }
-    //saldo simplificado
-    // public function infoClienteFinanceiro($clienteId)
-    // {
-    //     $cliente = Cliente::with('creditoAtivo')->findOrFail($clienteId);
-
-    //     $conta = app(\App\Services\ContaCorrenteService::class);
-
-    //     $credito = $cliente->creditoAtivo;
-
-    //     // só usa limite se estiver ativo
-    //     $limite = ($credito && $credito->status === 'ativo')
-    //         ? (float) $credito->limite_credito
-    //         : 0;
-
-    //     // 🔥 verifica se existe movimentação
-    //     $temMovimento = $cliente->contaCorrente()->exists();
-
-    //     $saldoConta = $conta->saldoAtual($cliente->id);
-
-    //     // 🔥 REGRA CORRETA
-    //     if (!$temMovimento) {
-    //         $saldoFinal = $limite;
-    //     } else {
-    //         $saldoFinal = $saldoConta;
-    //     }
-
-    //     return response()->json([
-    //         'cliente' => $cliente->nome,
-    //         'saldo_apos' => $saldoFinal,
-    //         'limite_credito' => $limite,
-    //     ]);
-    // }
-    // public function infoClienteFinanceiro($clienteId)
-    // {
-    //     $cliente = Cliente::with(['creditoAtivo', 'contaCorrente'])->findOrFail($clienteId);
-
-    //     $conta = app(\App\Services\ContaCorrenteService::class);
-
-    //     $credito = $cliente->creditoAtivo;
-
-    //     // só usa limite se estiver ativo
-    //     $limite = ($credito && $credito->status === 'ativo')
-    //         ? (float) $credito->limite_credito
-    //         : 0;
-
-    //     // 🔥 verifica se existe movimentação (mantido)
-    //     $temMovimento = $cliente->contaCorrente()->exists();
-
-    //     $saldoConta = $conta->saldoAtual($cliente->id);
-
-    //     // 🔥 REGRA CORRIGIDA
-    //     if (!$temMovimento) {
-    //         $saldoFinal = $limite;
-    //     } else {
-    //         $saldoFinal = $limite + $saldoConta;
-    //     }
-
-    //     // 🔥 NOVO: verifica se existe conta corrente (independente de movimentação)
-    //     $temContaCorrente = !is_null($cliente->contaCorrente);
-
-    //     $saldoConta = $conta->saldoAtual($cliente->id);
-
-    //     // 🔥 REGRA ORIGINAL (mantida)
-    //     if (!$temMovimento) {
-    //         $saldoFinal = $limite;
-    //     } else {
-    //         $saldoFinal = $saldoConta;
-    //     }
-
-    //     return response()->json([
-    //         'cliente' => $cliente->nome,
-    //         'saldo_apos' => $saldoFinal,
-    //         'limite_credito' => $limite,
-
-    //         // 🔥 NOVOS CAMPOS (não quebra nada existente)
-    //         'tem_conta_corrente' => $temContaCorrente,
-    //         'tem_movimento' => $temMovimento,
-
-    //         // opcional: mandar objeto completo se precisar no front
-    //         'conta_corrente' => $cliente->contaCorrente,
-    //     ]);
-    // }
-
+    /**
+     * Retorna as informações financeiras consolidadas para o Modal do PDV.
+     */
     public function infoClienteFinanceiro($clienteId)
     {
-        $cliente = Cliente::with(['creditoAtivo', 'contaCorrente'])
-            ->findOrFail($clienteId);
-
-        $contaService = app(\App\Services\ContaCorrenteService::class);
+        // Carrega o cliente trazendo a relação configurada no ecossistema
+        $cliente = Cliente::with(['creditoAtivo'])->findOrFail($clienteId);
+        $contaService = app(ContaCorrenteService::class);
 
         $credito = $cliente->creditoAtivo;
+        
+        // 🔥 CORREÇÃO: Captura o status real do banco. Se não houver registro, assume inativo
+        $statusBanco = $credito ? $credito->status : 'inativo';
+        $limite = $credito ? (float)$credito->limite_credito : 0;
 
-        // Limite disponível apenas se crédito ativo
-        $limite = ($credito && $credito->status === 'ativo')
-            ? (float) $credito->limite_credito
-            : 0;
+        // 🔥 CORREÇÃO MATEMÁTICA: O Service já entrega o saldo líquido calculado perfeitamente
+        $saldoReal = $contaService->saldoAtual($cliente->id);
 
-        // Saldo da conta corrente (pode retornar null se nunca houve movimentação)
-        $saldoConta = $contaService->saldoAtual($cliente->id);
+        // 🔥 REQUISITO: Se o status for bloqueado no banco OU se o saldo for menor ou igual a zero, força bloqueado
+        $statusFinal = ($statusBanco === 'bloqueado' || $saldoReal <= 0) ? 'bloqueado' : $statusBanco;
 
-        /**
-         * REGRA DE NEGÓCIO:
-         * - sem movimentação: saldo = limite_credito
-         * - com movimentação: saldo = limite_credito + saldo corrente
-         */
-        $saldoFinal = is_null($saldoConta)
-            ? $limite
-            : $limite + (float) $saldoConta;
+        $creditoUsado = $limite - $saldoReal;
 
-        // Possui conta corrente vinculada
-        $temContaCorrente = $cliente->contaCorrente()->exists();
+        // Verifica se há alguma linha de histórico na tabela
+        $temMovimento = ClienteContaCorrente::where('cliente_id', $cliente->id)->exists();
 
-        // Possui movimentação financeira
-        $temMovimento = !is_null($saldoConta);
-
+        // 🔥 CORREÇÃO DE CHAVES: Retorna exatamente o mapeamento que o JavaScript do seu PDV espera ler
         return response()->json([
-            'cliente' => $cliente->nome,
-            'saldo_apos' => $saldoFinal,
-            'limite_credito' => $limite,
-            'tem_conta_corrente' => $temContaCorrente,
+            'success' => true,
+            'cliente' => [
+                'id'   => $cliente->id,
+                'nome' => $cliente->nome,
+            ],
+            'saldo'         => $saldoReal,       // Sincronizado com o JS
+            'limite'        => $limite,          // Sincronizado com o JS
+            'credito_usado' => $creditoUsado > 0 ? $creditoUsado : 0,
+            'status'        => $statusFinal,     // Sincronizado com o JS e com a regra de saldo <= 0
             'tem_movimento' => $temMovimento,
-            'conta_corrente' => $cliente->contaCorrente,
+            'formas_pagamento' => []             // Mantido para compatibilidade do front
         ]);
+    }
+
+    /**
+     * 🔥 NOVO MÉTODO: Processa a entrada de dinheiro no caixa para receber/abater o fiado do cliente.
+     */
+    public function receberPagamentoFiado(Request $request, int $id, ContaCorrenteService $contaCorrenteService)
+    {
+        $request->validate([
+            'valor' => 'required|numeric|min:0.01',
+            'forma_pagamento' => 'required|in:dinheiro,pix,cartao_debito,cartao_credito',
+            'descricao' => 'nullable|string|max:255'
+        ]);
+
+        $valorPago = (float) $request->input('valor');
+        $formaInput = $request->input('forma_pagamento');
+        $descricaoInput = $request->input('descricao') ?? "Recebimento de conta/fiado via " . strtoupper($formaInput);
+
+        $cliente = Cliente::with(['creditoAtivo'])->find($id);
+
+        if (!$cliente) {
+            return response()->json(['success' => false, 'erro' => 'Cliente não encontrado.'], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            $saldoAtual = $contaCorrenteService->saldoAtual($id);
+            $novoSaldo = $saldoAtual + $valorPago;
+
+            // Insere o registro de entrada (crédito)
+            DB::table('cliente_conta_correntes')->insert([
+                'cliente_id'         => $cliente->id,
+                'venda_id'           => null,
+                'pagamento_venda_id' => null,
+                'tipo'               => 'credito',
+                'origem'             => 'recebimento',
+                'valor'              => $valorPago,
+                'saldo_apos'         => $novoSaldo,
+                'descricao'          => $descricaoInput,
+                'created_at'         => now(),
+                'updated_at'         => now(),
+            ]);
+
+            // Se o saldo voltou a ficar positivo, remove o bloqueio automático de saldo estourado
+            if ($novoSaldo > 0 && optional($cliente->creditoAtivo)->status === 'bloqueado') {
+                $cliente->creditoAtivo->status = 'ativo';
+                $cliente->creditoAtivo->save();
+            }
+
+            DB::commit();
+
+            Cache::forget("cliente_saldo_{$cliente->id}");
+
+            return response()->json([
+                'success' => true,
+                'mensagem' => 'Pagamento recebido com sucesso!',
+                'novo_saldo' => $novoSaldo
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'erro' => 'Erro interno ao salvar recebimento: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

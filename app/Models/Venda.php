@@ -17,9 +17,10 @@ class Venda extends Model
         'funcionario_id',
         'total',
         'status',
+        'data_venda', // 🔥 CORREÇÃO: Permite a gravação inicial e a blindagem no update
     ];
 
-    protected $dates = ['created_at','updated_at','data_venda'];
+    protected $dates = ['created_at', 'updated_at', 'data_venda'];
 
     protected $casts = [
         'data_venda' => 'datetime',
@@ -28,14 +29,11 @@ class Venda extends Model
     protected static function booted()
     {
         $bloquearSeCaixaFechado = function ($venda, $mensagem) {
-
             $venda->loadMissing('caixa');
-
             if (!$venda->caixa) {
                 return;
             }
-
-            if (in_array($venda->caixa->status, ['fechado','inconsistente'])) {
+            if (in_array($venda->caixa->status, ['fechado', 'inconsistente'])) {
                 throw new \Exception($mensagem);
             }
         };
@@ -56,7 +54,6 @@ class Venda extends Model
     }
 
     /* Relacionamentos */
-    
     public function itens()
     {
         return $this->hasMany(ItemVenda::class, 'venda_id');
@@ -67,24 +64,23 @@ class Venda extends Model
         return $this->hasMany(PagamentoVenda::class, 'venda_id');
     }
 
-   public function cliente()
+    public function cliente()
     {
-    return $this->belongsTo(\App\Models\Cliente::class, 'cliente_id');
+        return $this->belongsTo(\App\Models\Cliente::class, 'cliente_id');
     }
 
     public function caixa()
     {
         return $this->belongsTo(Caixa::class, 'caixa_id');
     }
-    
+
     public function funcionario()
     {
         return $this->belongsTo(Funcionario::class, 'funcionario_id');
     }
 
-   public function pedido()
+    public function pedido()
     {
         return $this->belongsTo(Pedido::class, 'pedido_id');
     }
-
 }

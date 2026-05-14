@@ -9,20 +9,26 @@ use Illuminate\Support\Facades\DB;
 class CreditoService
 {
     /**
-     * Verifica se cliente pode usar carteira (saldo real)
+     * Verifica se cliente pode usar carteira (saldo real maior que zero e ativo)
      */
     public function podeUsarCarteira(Cliente $cliente): bool
     {
         return DB::transaction(function () use ($cliente) {
+            if (!$cliente->ativo || $cliente->ativo === 'inativo') return false;
 
-            if (!$cliente->ativo) return false;
-            if ($cliente->bloqueado_credito) return false;
-            if ($cliente->limite_credito <= 0) return false;
+            // 🔥 CORREÇÃO: Busca as informações da relação correta 'creditoAtivo'
+            $credito = $cliente->creditoAtivo;
+            if (!$credito) return false;
 
-            $saldo = app(ContaCorrenteService::class)
-                ->saldoAtual($cliente->id);
+            // Se o status no banco for explicitamente bloqueado, barra na hora
+            if ($credito->status === 'bloqueado') return false;
+            if ((float)$credito->limite_credito <= 0) return false;
 
-            return $saldo >= 0;
+            // Consulta o saldo atual real na conta corrente
+            $saldo = app(ContaCorrenteService::class)->saldoAtual($cliente->id);
+
+            // 🔥 CORREÇÃO REQUISITO: Se o saldo for menor ou igual a zero, o input deve ser bloqueado
+            return $saldo > 0;
         });
     }
 
@@ -32,12 +38,12 @@ class CreditoService
     public function saldoDevedor(Cliente $cliente): float
     {
         return (float) PagamentoVenda::whereHas('venda', function ($q) use ($cliente) {
-                $q->where('cliente_id', $cliente->id)
-                  ->where('status', '!=', 'cancelada');
-            })
-            ->where('forma_pagamento', 'credito')
-            ->where('status', 'pendente')
-            ->sum('valor');
+            $q->where('cliente_id', $cliente->id)
+              ->where('status', '!=', 'cancelada');
+        })
+        ->where('forma_pagamento', 'credito')
+        ->where('status', 'pendente')
+        ->sum('valor');
     }
 
     /**
@@ -46,10 +52,13 @@ class CreditoService
     public function temLimiteDisponivel(Cliente $cliente, float $valorNovaVenda): bool
     {
         return DB::transaction(function () use ($cliente, $valorNovaVenda) {
+            $credito = $cliente->creditoAtivo;
+            if (!$credito || $credito->status === 'bloqueado') return false;
 
+            $limiteCredito = (float)($credito->limite_credito ?? 0);
             $devedor = $this->saldoDevedor($cliente);
 
-            return ($devedor + $valorNovaVenda) <= $cliente->limite_credito;
+            return ($devedor + $valorNovaVenda) <= $limiteCredito;
         });
     }
 
@@ -59,10 +68,8 @@ class CreditoService
     public function validarCredito(Cliente $cliente, float $valorNovaVenda, array $pagamentos = []): array
     {
         return DB::transaction(function () use ($cliente, $valorNovaVenda, $pagamentos) {
-
             $valorCarteira = $pagamentos['carteira']['valor'] ?? 0;
 
-            // 🔒 regra de negócio
             if (strtoupper($cliente->tipo_cliente) === 'BALCAO' && $valorCarteira > 0) {
                 return [
                     'aprovado' => false,
@@ -70,7 +77,18 @@ class CreditoService
                 ];
             }
 
-            // 🔒 valida limite de crédito
+            // 🔥 CORREÇÃO: Valida o status e saldo do cliente antes de checar limites amplos
+            $credito = $cliente->creditoAtivo;
+            $saldo = app(ContaCorrenteService::class)->saldoAtual($cliente->id);
+
+            if (optional($credito)->status === 'bloqueado' || $saldo <= 0) {
+                return [
+                    'aprovado' => false,
+                    'mensagem' => 'O crediário/carteira deste cliente encontra-se bloqueado ou sem saldo.'
+                ];
+            }
+
+            // Valida limite de crédito geral
             if (!$this->temLimiteDisponivel($cliente, $valorNovaVenda)) {
                 return [
                     'aprovado' => false,
@@ -81,7 +99,7 @@ class CreditoService
             return [
                 'aprovado' => true,
                 'saldo_atual' => $this->saldoDevedor($cliente),
-                'limite' => $cliente->limite_credito
+                'limite' => (float)($credito->limite_credito ?? 0)
             ];
         });
     }
@@ -92,15 +110,17 @@ class CreditoService
     public function atualizarStatusCliente(Cliente $cliente): void
     {
         DB::transaction(function () use ($cliente) {
+            $credito = $cliente->creditoAtivo;
+            if (!$credito) return;
 
+            $limiteCredito = (float)($credito->limite_credito ?? 0);
             $devedor = $this->saldoDevedor($cliente);
 
-            $cliente->ativo = !(
-                $devedor >= $cliente->limite_credito &&
-                $cliente->limite_credito > 0
-            );
-
-            $cliente->save();
+            // Se estourar o limite, desativa o status do crédito
+            if ($devedor >= $limiteCredito && $limiteCredito > 0) {
+                $credito->status = 'bloqueado';
+                $credito->save();
+            }
         });
     }
 
@@ -110,12 +130,12 @@ class CreditoService
     public function possuiPagamentoEmAtraso(Cliente $cliente): bool
     {
         return PagamentoVenda::whereHas('venda', function ($q) use ($cliente) {
-                $q->where('cliente_id', $cliente->id);
-            })
-            ->where('forma_pagamento', 'credito')
-            ->where('status', 'pendente')
-            ->whereDate('data_vencimento', '<', now())
-            ->exists();
+            $q->where('cliente_id', $cliente->id);
+        })
+        ->where('forma_pagamento', 'credito')
+        ->where('status', 'pendente')
+        ->whereDate('data_vencimento', '<', now())
+        ->exists();
     }
 
     /**
@@ -124,7 +144,6 @@ class CreditoService
     public function formasPermitidas(Cliente $cliente, float $valorVenda = 0): array
     {
         return DB::transaction(function () use ($cliente, $valorVenda) {
-
             $formas = [
                 'dinheiro',
                 'pix',
@@ -132,20 +151,18 @@ class CreditoService
                 'cartao_debito'
             ];
 
-            // 💰 carteira (saldo real)
-            if ($this->podeUsarCarteira($cliente)) {
+            // 🔥 CORREÇÃO: Mapeia do relacionamento correto 'creditoAtivo' unificado no seu PDV
+            $status = $cliente->creditoAtivo->status ?? null;
+            $creditoAtivo = $status === 'ativo';
 
-                $saldo = app(ContaCorrenteService::class)
-                    ->saldoAtual($cliente->id);
-
-                if ($saldo > 0) {
-                    $formas[] = 'carteira';
-                }
+            // 💰 CARTEIRA (Só adiciona se o crédito estiver ativo E passar na regra de saldo > 0)
+            if ($creditoAtivo && $this->podeUsarCarteira($cliente)) {
+                $formas[] = 'carteira';
             }
 
-            // 🧾 crédito (fiado)
-            if ($cliente->limite_credito > 0) {
-
+            // 🧾 CRÉDITO (FIADO)
+            $limiteCredito = (float)($cliente->creditoAtivo->limite_credito ?? 0);
+            if ($creditoAtivo && $limiteCredito > 0) {
                 if ($this->temLimiteDisponivel($cliente, $valorVenda)) {
                     $formas[] = 'credito';
                 }

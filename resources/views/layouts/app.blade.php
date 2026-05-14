@@ -130,16 +130,17 @@
             <i class="bi bi-tag me-2"></i>Financeiro
         </a>
         <ul class="dropdown-menu">
-              <li>
-                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
-                   href="{{ $canAccessAdmin ? route('sangria-config.index') : '#'}}">
-                   <i class="bi bi-list-stars me-2"></i>Define Sangria
-                </a>
-            </li>
+           
              <li>
                 <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
                    href="{{ $canAccessAdmin ? route('fechamento.lista') : '#'}}">
                    <i class="bi bi-list-stars me-2"></i>Fechamento de Caixa
+                </a>
+            </li>
+             <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
+                  href="{{ $canAccessAdmin ? route('auditoria_caixa.index') : '#' }}">
+                  <i class="bi bi-list-stars me-2"></i>Auditoria de Caixa
                 </a>
             </li>
              <li>
@@ -148,13 +149,12 @@
                    <i class="bi bi-list-stars me-2"></i>ControleLimite Credito
                 </a>
             </li>
-            <li>
-                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                  href="{{ $canAccessAdmin ? route('auditoria_caixa.index') : '#' }}">
-                  <i class="bi bi-list-stars me-2"></i>Relatório Auditoria de Caixa
-                </a>
+             <li>
+              <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                  href="{{ $canAccessAdmin ? route('sangria-config.index') : '#'}}">
+                  <i class="bi bi-list-stars me-2"></i>Define Sangria
+              </a>
             </li>
-           
         </ul>
     </li>
       <li><hr class="dropdown-divider"></li>

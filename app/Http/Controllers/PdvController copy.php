@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Cliente;
@@ -96,223 +95,67 @@ class PdvController extends Controller
             'bloquearPDV'    => $bloquearPDV,
         ]);
     }
-
-//     public function index(Request $request) - sistema bugou, sistema multi redes, nao apague este codigo
-// {
-//     // 1️⃣ Cliente padrão
-//     $clienteBalcao = Cliente::select(
-//         'id','nome','tipo','telefone','endereco','endereco_entrega'
-//     )
-//     ->where('nome', 'VENDA BALCAO')
-//     ->where('ativo', 1)
-//     ->first();
-
-//     if (!$clienteBalcao) {
-//         abort(403, 'O cliente "VENDA BALCAO" precisa estar ativo.');
-//     }
-
-//     // 2️⃣ Terminal
-//     $terminal = $request->attributes->get('terminal');
-
-//     if (!$terminal) {
-//         abort(403, 'Terminal não identificado.');
-//     }
-
-//     // 🔥 empresa (vem do terminal OU fallback do caixa depois)
-//     $empresaId = $terminal->empresa_id ?? null;
-
-//     // 3️⃣ Busca caixa aberto (PRIORIDADE: terminal + empresa)
-//     $caixa = Caixa::where('terminal_id', $terminal->id)
-//         ->when($empresaId, function ($q) use ($empresaId) {
-//             $q->where('empresa_id', $empresaId);
-//         })
-//         ->where('status', 'aberto')
-//         ->latest('data_abertura')
-//         ->first();
-
-//     // 🔥 fallback inteligente (evita “sumir caixa” em rede)
-//     if (!$caixa) {
-//         $caixa = Caixa::where('status', 'aberto')
-//             ->when($empresaId, function ($q) use ($empresaId) {
-//                 $q->where('empresa_id', $empresaId);
-//             })
-//             ->latest('data_abertura')
-//             ->first();
-
-//         if (!$caixa) {
-//             return redirect()
-//                 ->route('caixa.abrir')
-//                 ->with('info', 'Nenhum caixa aberto encontrado.');
-//         }
-//     }
-
-//     // 4️⃣ operador
-//     $operadorId = $caixa->user_id;
-//     $operador   = optional($caixa->usuario)->name ?? 'Nenhum';
-
-//     // 5️⃣ status
-//     $status = match ($caixa->status) {
-//         'aberto' => 'Aberto',
-//         'pendente' => 'Pendente',
-//         'bloqueado' => 'Bloqueado',
-//         'inconsistente' => 'Inconsistente',
-//         default => 'Fechado',
-//     };
-
-//     // 6️⃣ sangria
-//     $verificacao = $caixa->verificarSangria();
-
-//     if ($verificacao['bloquearPDV']) {
-//         return redirect()
-//             ->route('caixa.sangria.form', ['caixa' => $caixa->id])
-//             ->with('error', 'Limite de dinheiro excedido.');
-//     }
-
-//     // 7️⃣ view
-//     return view('pdv.index', [
-//         'clienteBalcao' => $clienteBalcao,
-//         'terminal'      => $terminal,
-//         'caixa'         => $caixa,
-//         'caixa_id'      => $caixa->id,
-//         'operador'      => $operador,
-//         'operadorId'    => $operadorId,
-//         'status'        => $status,
-//         'saldoAtual'    => $verificacao['saldoAtual'],
-//         'limiteSangria' => $verificacao['limiteSangria'],
-//         'avisarSangria' => $verificacao['avisarSangria'],
-//         'bloquearPDV'   => $verificacao['bloquearPDV'],
-//     ]);
-// }
         
    /**
      * F2 – Buscar Cliente (Modal de cliente) */
-    
-    public function buscarCliente(Request $request) 
-    { 
-        $query = $request->input('query'); 
+    // public function buscarCliente(Request $request)
+    // {
+    //     $query = $request->input('query');
 
-        $clientes = Cliente::with([ 
-            'creditoAtivo', 
-            'ultimaMovimentacao' 
-        ]) 
-        ->whereIn('ativo', ['1', 'ativo']) 
-        ->when($query, function ($q) use ($query) { 
-            $q->where(function($sub) use ($query){ 
-                $sub->where('nome', 'LIKE', "%{$query}%") 
-                    ->orWhere('cpf_cnpj', 'LIKE', "%{$query}%"); 
-            }); 
-        }) 
-        ->orderBy('nome') 
-        ->limit(20) 
-        ->get([ 
-            'id', 'nome', 'tipo', 'cpf_cnpj', 'telefone', 'endereco', 'numero', 'cep', 'bairro', 'cidade', 'estado' 
-        ]); 
+    //     $clientes = Cliente::where('ativo', 1)
+    //         ->when($query, function ($q) use ($query) {
+    //             $q->where('bairro', 'LIKE', "{$query}%")
+    //               ->orWhere('tipo', 'LIKE', "{$query}%")
+    //               ->orWhere('cpf_cnpj', 'LIKE', "{$query}%")
+    //               ->orWhere('telefone', 'LIKE', "{$query}%")
+    //               ->orWhere('endereco', 'LIKE', "{$query}%")
+    //               ->orWhere('numero', 'LIKE', "{$query}%")
+    //               ->orWhere('cep', 'LIKE', "{$query}%")
+    //              ->orWhere('estado', 'LIKE', "{$query}%")
+    //               ->orWhere('cidade', 'LIKE', "{$query}%")
+    //               ->orWhere('nome', 'LIKE', "{$query}%");
+    //         })
+    //         ->orderBy('nome')
+    //         ->limit(20)
+    //         ->get(['id', 'nome','tipo', 'cpf_cnpj', 'telefone', 'endereco', 'numero','cep','bairro','cidade','estado']);
 
-        $clientes = $clientes->map(function ($cliente) { 
-            // 1️⃣ Pega o limite de crédito (padrão é 0 se não houver registro)
-            $limite = (float) (optional($cliente->creditoAtivo)->limite_credito ?? 0);
-            
-            // 2️⃣ Tenta pegar o saldo_apos da última movimentação
-            $saldoApos = optional($cliente->ultimaMovimentacao)->saldo_apos;
+    //     return response()->json($clientes);
+    // }
 
-            // 3️⃣ Se não houver movimentação (null), o saldo é o limite total
-            $saldo = $saldoApos !== null ? (float) $saldoApos : $limite;
 
-            // 4️⃣ Calcula o crédito que o cliente já utilizou
-            $creditoUsado = $limite - $saldo;
+   public function buscarCliente(Request $request)
+{
+    $query = trim($request->input('query'));
 
-            // 5️⃣ 🔥 NOVA REGRA: Captura o status do banco e força o bloqueio se o saldo for zero ou negativo
-            $statusBanco = optional($cliente->creditoAtivo)->status ?? 'inativo';
-            $statusFinal = ($statusBanco === 'bloqueado' || $saldo <= 0) ? 'bloqueado' : $statusBanco;
-
-            return [ 
-                // ========================= 
-                // CLIENTE 
-                // ========================= 
-                'id' => $cliente->id, 
-                'nome' => $cliente->nome, 
-                'tipo' => $cliente->tipo, 
-                'cpf_cnpj' => $cliente->cpf_cnpj, 
-                'telefone' => $cliente->telefone, 
-                'endereco' => $cliente->endereco, 
-                'numero' => $cliente->numero, 
-                'cep' => $cliente->cep, 
-                'bairro' => $cliente->bairro, 
-                'cidade' => $cliente->cidade, 
-                'estado' => $cliente->estado, 
-
-                // ========================= 
-                // FINANCEIRO ATUALIZADO 
-                // ========================= 
-                'limite' => $limite, 
-                'status' => $statusFinal, // 🔥 Retorna 'bloqueado' caso o saldo seja <= 0 ou status seja bloqueado no banco
-                'saldo' => $saldo, 
-                'credito_usado' => $creditoUsado > 0 ? $creditoUsado : 0, 
-
-                // ========================= 
-                // FORMAS 
-                // ========================= 
-                'formas' => [] 
-            ]; 
-        }); 
-
-        return response()->json($clientes); 
+    if (!$query) {
+        return response()->json([]);
     }
 
-    /**
-     * Obtém os dados financeiros consolidados de um cliente específico para o PDV.
-     *
-     * @param int $id
-     * @return JsonResponse
-     */
-    public function obterFinanceiro(int $id): JsonResponse
-    {
-        // 1️⃣ Carrega o cliente com as mesmas relações da busca
-        $cliente = Cliente::with([
-            'creditoAtivo',
-            'ultimaMovimentacao'
-        ])->find($id);
+    $clientes = Cliente::select(
+            'id',
+            'nome',
+            'tipo',
+            'cpf_cnpj',
+            'telefone',
+            'endereco',
+            'numero',
+            'bairro',
+            'cidade',
+            'estado'
+        )
+        ->whereIn('ativo', ['1', 'ativo'])
+        ->where(function ($q) use ($query) {
 
-        if (!$cliente) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cliente não encontrado.'
-            ], 404);
-        }
+            $q->where('nome', 'LIKE', "%{$query}%")
+              ->orWhere('cpf_cnpj', 'LIKE', "%{$query}%");
+        })
+        ->orderBy('nome')
+        ->limit(20)
+        ->get();
 
-        // 2️⃣ Pega o limite de crédito (padrão é 0 se não houver registro)
-        $limite = (float) (optional($cliente->creditoAtivo)->limite_credito ?? 0);
-
-        // 3️⃣ Tenta pegar o saldo_apos da última movimentação
-        $saldoApos = optional($cliente->ultimaMovimentacao)->saldo_apos;
-
-        // 4️⃣ Se não houver movimentação (null), o saldo é o limite total
-        $saldo = $saldoApos !== null ? (float) $saldoApos : $limite;
-
-        // 5️⃣ Calcula o crédito que o cliente já utilizou
-        $creditoUsado = $limite - $saldo;
-
-        // 6️⃣ 🔥 APLICANDO A MESMA REGRA: Bloqueia se o status for bloqueado no banco OU se o saldo for <= 0
-        $statusBanco = optional($cliente->creditoAtivo)->status ?? 'inativo';
-        $statusFinal = ($statusBanco === 'bloqueado' || $saldo <= 0) ? 'bloqueado' : $statusBanco;
-
-        // 7️⃣ Retorna o JSON estruturado exatamente como o Front-end espera receber
-        return response()->json([
-            'success' => true,
-            'cliente' => [
-                'id' => $cliente->id,
-                'nome' => $cliente->nome,
-            ],
-            'limite' => $limite,
-            'saldo' => $saldo,
-            'credito_usado' => $creditoUsado > 0 ? $creditoUsado : 0,
-            'status' => $statusFinal, // 🔥 Retorna 'bloqueado' de forma segura
-            'formas_pagamento' => []  // Mantido para compatibilidade com o front
-        ]);
-    }
-
-
-    
+    return response()->json($clientes);
+}
+        
    /**
      * F3 – Buscar Produto (Modal de produtos) */        
     public function buscarProduto(Request $request)

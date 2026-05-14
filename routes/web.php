@@ -233,7 +233,8 @@ Route::middleware('auth')->group(function () {
 
          //Vendas
         Route::post('/vendas', [VendaController::class, 'store'])->name('vendas.store');
-        Route::post('/venda/finalizar/{venda}', [VendaController::class, 'finalizar']);
+        // Route::post('/vendas/finalizar/{venda}', [VendaController::class, 'finalizar']);
+         Route::post('/vendas/finalizar', [VendaController::class, 'finalizar']);
         Route::get('/venda/{id}/cupom', [VendaController::class, 'cupom'])->name('venda.cupom');
 
     // ===============================
@@ -340,6 +341,13 @@ Route::middleware('auth')->group(function () {
         '/clientes/{cliente}/conta-corrente',
         [ContaCorrenteController::class, 'show']
     )->name('clientes.conta_corrente.show');
+
+    // API utilizada pelo painel do PDV para checagem de limites e bloqueios
+    Route::get('/api/cliente/financeiro/{id}', [ContaCorrenteController::class, 'obterFinanceiro'])->name('api.cliente.financeiro');
+
+    // Rota para o caixa receber o pagamento do fiado/carteira do cliente
+    Route::post('/clientes/{id}/conta-corrente/receber', [ContaCorrenteController::class, 'receberPagamentoFiado'])->name('clientes.conta_corrente.receber');
+
 
      //Sangria conf
     Route::get('/sangria-config', [SangriaConfigController::class, 'index'])

@@ -140,104 +140,231 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    window.adicionarItemCarrinho = function(produto) {
-    const quantidade = Number(inputQuantidade.value);
-    const preco = Number(produto.preco_venda);
+    // window.adicionarItemCarrinho = function(produto) {
+    //     const quantidade = Number(inputQuantidade.value);
+    //     const preco = Number(produto.preco_venda);
 
-    if(quantidade <= 0) {
-        alert("Informe uma quantidade válida.");
-        inputQuantidade.focus();
-        return;
-    }
-    if(preco <= 0) {
-        alert("Produto sem preço de venda.");
-        return;
-    }
+    //     if(quantidade <= 0) {
+    //         alert("Informe uma quantidade válida.");
+    //         inputQuantidade.focus();
+    //         return;
+    //     }
+    //     if(preco <= 0) {
+    //         alert("Produto sem preço de venda.");
+    //         return;
+    //     }
 
-    // ===============================
-    // SELECIONAR LOTE VÁLIDO
-    // ===============================
-    let loteSelecionado = null;
-    if(Array.isArray(produto.lotes)) {
-        // Prioriza lotes com quantidade disponível > 0 e não vencidos
-        loteSelecionado = produto.lotes.find(lote => {
-            const quantidadeLote = Number(lote.quantidade_disponivel || 0);
-            const vencimento = lote.data_vencimento ? new Date(lote.data_vencimento) : null;
-            const hoje = new Date();
-            return quantidadeLote > 0 && (!vencimento || vencimento >= hoje);
-        });
-    }
+    //     // ===============================
+    //     // SELECIONAR LOTE VÁLIDO
+    //     // ===============================
+    //     let loteSelecionado = null;
+    //     if(Array.isArray(produto.lotes)) {
+    //         // Prioriza lotes com quantidade disponível > 0 e não vencidos
+    //         loteSelecionado = produto.lotes.find(lote => {
+    //             const quantidadeLote = Number(lote.quantidade_disponivel || 0);
+    //             const vencimento = lote.data_vencimento ? new Date(lote.data_vencimento) : null;
+    //             const hoje = new Date();
+    //             return quantidadeLote > 0 && (!vencimento || vencimento >= hoje);
+    //         });
+    //     }
 
-    if(!loteSelecionado) {
-        alert("Nenhum lote disponível para este produto, Precisa criar um lote antes de adicionar ao carrinho.");
-        return;
-    }
+    //     if(!loteSelecionado) {
+    //         alert("Nenhum lote disponível para este produto, Precisa criar um lote antes de adicionar ao carrinho.");
+    //         return;
+    //     }
 
-    const loteId = loteSelecionado.id; // usa ID interno do lote
-    const qtdDisponivelLote = Number(loteSelecionado.quantidade_disponivel);
+    //     const loteId = loteSelecionado.id; // usa ID interno do lote
+    //     const qtdDisponivelLote = Number(loteSelecionado.quantidade_disponivel);
 
-    if(quantidade > qtdDisponivelLote) {
-        alert(`Quantidade solicitada excede o lote disponível (${qtdDisponivelLote}).`);
-        inputQuantidade.focus();
-        return;
-    }
+    //     if(quantidade > qtdDisponivelLote) {
+    //         alert(`Quantidade solicitada excede o lote disponível (${qtdDisponivelLote}).`);
+    //         inputQuantidade.focus();
+    //         return;
+    //     }
 
-    // ===============================
-    // VERIFICA SE PRODUTO + LOTE JÁ EXISTE NO CARRINHO
-    // ===============================
-    const linhas = tabelaItens.querySelectorAll("tr");
-    for(let linha of linhas) {
-        if(linha.dataset.produto == produto.id && linha.dataset.lote == loteId) {
+    //     // ===============================
+    //     // VERIFICA SE PRODUTO + LOTE JÁ EXISTE NO CARRINHO
+    //     // ===============================
+    //     const linhas = tabelaItens.querySelectorAll("tr");
+    //         for(let linha of linhas) {
+    //             if(linha.dataset.produto == produto.id && linha.dataset.lote == loteId) {
 
-            const tdQtd = linha.querySelector(".item-quantidade");
-            const tdSubtotal = linha.querySelector(".subtotal");
-            const novaQtd = Number(tdQtd.textContent) + quantidade;
+    //                 const tdQtd = linha.querySelector(".item-quantidade");
+    //                 const tdSubtotal = linha.querySelector(".subtotal");
+    //                 const novaQtd = Number(tdQtd.textContent) + quantidade;
 
-            if(novaQtd > qtdDisponivelLote) {
-                alert("Estoque insuficiente neste lote.");
-                return;
-            }
+    //                 if(novaQtd > qtdDisponivelLote) {
+    //                     alert("Estoque insuficiente neste lote.");
+    //                     return;
+    //                 }
 
-            tdQtd.textContent = novaQtd;
-            tdSubtotal.textContent = (novaQtd * preco).toFixed(2);
-            atualizarNumeroItens();
-            atualizarTotalCarrinho();
-            resetarProdutoAtual();
-            limparCamposProduto();
-            return;
-        }
-    }
+    //                 tdQtd.textContent = novaQtd;
+    //                 tdSubtotal.textContent = (novaQtd * preco).toFixed(2);
+    //                 atualizarNumeroItens();
+    //                 atualizarTotalCarrinho();
+    //                 resetarProdutoAtual();
+    //                 limparCamposProduto();
+    //                 return;
+    //             }
+    //         }
 
-    // ===============================
-    // ADICIONAR NOVO ITEM NO CARRINHO
-    // ===============================
-    const subtotal = quantidade * preco;
-    tabelaItens.insertAdjacentHTML("beforeend", `
-        <tr class="item-carrinho"
-            data-produto="${produto.id}"
-            data-lote="${loteId}"
-            data-qtd="${quantidade}"
-            data-valor="${preco}">
-            <td class="item-numero text-center" style="font-size:18px; font-weight:bold;"></td>
-             <td class="item-lote" style="font-size:18px; font-weight:bold;">${loteId}</td>
-            <td class="item-descricao" style="font-size:18px; font-weight:bold;">${produto.nome}</td>
-            <td class="item-quantidade text-center" style="font-size:18px; font-weight:bold;">${quantidade}</td>
-            <td class="text-center" style="font-size:18px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
-            <td class="item-preco text-end" style="font-size:18px; font-weight:bold;">${preco.toFixed(2)}</td>
-            <td class="subtotal text-end" style="font-size:18px; font-weight:bold;">${subtotal.toFixed(2)}</td>
-        </tr>
-    `);
+    //         // ===============================
+    //         // ADICIONAR NOVO ITEM NO CARRINHO
+    //         // ===============================
+    //         const subtotal = quantidade * preco;
+    //         tabelaItens.insertAdjacentHTML("beforeend", `
+    //             <tr class="item-carrinho"
+    //                 data-produto="${produto.id}"
+    //                 data-lote="${loteId}"
+    //                 data-qtd="${quantidade}"
+    //                 data-valor="${preco}">
+    //                 <td class="item-numero text-center" style="font-size:18px; font-weight:bold;"></td>
+    //                 <td class="item-lote" style="font-size:18px; font-weight:bold;">${loteId}</td>
+    //                 <td class="item-descricao" style="font-size:18px; font-weight:bold;">${produto.nome}</td>
+    //                 <td class="item-quantidade text-center" style="font-size:18px; font-weight:bold;">${quantidade}</td>
+    //                 <td class="text-center" style="font-size:18px; font-weight:bold;">${produto.unidade_sigla ?? ""}</td>
+    //                 <td class="item-preco text-end" style="font-size:18px; font-weight:bold;">${preco.toFixed(2)}</td>
+    //                 <td class="subtotal text-end" style="font-size:18px; font-weight:bold;">${subtotal.toFixed(2)}</td>
+    //             </tr>
+    //         `);
 
-    atualizarNumeroItens();
-    atualizarTotalCarrinho();
-    resetarProdutoAtual();
-    limparCamposProduto();
-    
-    }
+    //         atualizarNumeroItens();
+    //         atualizarTotalCarrinho();
+    //         resetarProdutoAtual();
+    //         limparCamposProduto();
+
+    //         window.carrinho.push({
+    //             produto_id: produto.id,
+    //             lote_id: loteId,
+    //             quantidade: quantidade,
+    //             valor_unitario: preco
+    //         });
+
+    //     console.log('Carrinho:', window.carrinho);
+    // }
+
 
     // ===============================
     // EVENTOS
     // ===============================
+    
+    window.adicionarItemCarrinho = function(produto) {
+
+        const quantidade = Number(inputQuantidade.value);
+        const preco = Number(produto.preco_venda);
+
+        if (quantidade <= 0) {
+            alert("Informe uma quantidade válida.");
+            inputQuantidade.focus();
+            return;
+        }
+
+        if (preco <= 0) {
+            alert("Produto sem preço de venda.");
+            return;
+        }
+
+        // ===============================
+        // SELEÇÃO DE LOTE
+        // ===============================
+        let loteSelecionado = null;
+
+        if (Array.isArray(produto.lotes)) {
+            loteSelecionado = produto.lotes.find(lote => {
+                const qtd = Number(lote.quantidade_disponivel || 0);
+                const vencimento = lote.data_vencimento ? new Date(lote.data_vencimento) : null;
+                const hoje = new Date();
+
+                return qtd > 0 && (!vencimento || vencimento >= hoje);
+            });
+        }
+
+        if (!loteSelecionado) {
+            alert("Nenhum lote disponível para este produto.");
+            return;
+        }
+
+        const loteId = loteSelecionado.id;
+        const qtdDisponivelLote = Number(loteSelecionado.quantidade_disponivel);
+
+        if (quantidade > qtdDisponivelLote) {
+            alert(`Quantidade excede o lote disponível (${qtdDisponivelLote}).`);
+            inputQuantidade.focus();
+            return;
+        }
+
+        // ===============================
+        // CARRINHO (FONTE ÚNICA)
+        // ===============================
+        if (!window.carrinho) {
+            window.carrinho = [];
+        }
+
+        const itemExistente = window.carrinho.find(i =>
+            i.produto_id == produto.id && i.lote_id == loteId
+        );
+
+        if (itemExistente) {
+
+            const novaQtd = itemExistente.quantidade + quantidade;
+
+            if (novaQtd > qtdDisponivelLote) {
+                alert("Estoque insuficiente neste lote.");
+                return;
+            }
+
+            itemExistente.quantidade = novaQtd;
+
+        } else {
+
+            window.carrinho.push({
+                produto_id: produto.id,
+                lote_id: loteId,
+                nome: produto.nome,
+                unidade: produto.unidade_sigla || '',
+                quantidade: quantidade,
+                valor_unitario: preco
+            });
+        }
+
+        console.log("Carrinho atualizado:", window.carrinho);
+
+        // ===============================
+        // RENDERIZAÇÃO (DOM SÓ EXIBE)
+        // ===============================
+        renderCarrinho();
+
+        resetarProdutoAtual();
+        limparCamposProduto();
+    };
+
+    function renderCarrinho() {
+
+        tabelaItens.innerHTML = '';
+
+        let total = 0;
+
+        window.carrinho.forEach((item, index) => {
+
+            const subtotal = item.quantidade * item.valor_unitario;
+            total += subtotal;
+
+            tabelaItens.insertAdjacentHTML("beforeend", `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.lote_id}</td>
+                    <td>${item.nome}</td>
+                    <td>${item.quantidade}</td>
+                    <td>${item.unidade}</td>
+                    <td>${item.valor_unitario.toFixed(2)}</td>
+                    <td>${subtotal.toFixed(2)}</td>
+                </tr>
+            `);
+        });
+
+        atualizarTotalCarrinho(total);
+    }
+    
     inputCodigo?.addEventListener("keydown", e => {
         if(e.key === "Enter") {
             e.preventDefault();
@@ -263,6 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         adicionarItemCarrinho(produto);
+        
     });
 
 

@@ -99,7 +99,7 @@ class SangriaController extends Controller
         $valorLimite = $configSangria->valor_limite;
         $empresa = $configSangria->empresa;
 
-    return response()
+        return response()
         ->view('pdv.sangria_form', [
             'caixa' => $caixa,
             'saldoAtual' => $verificacao['saldoAtual'],

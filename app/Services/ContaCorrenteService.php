@@ -2,109 +2,85 @@
 
 namespace App\Services;
 
+use App\Models\Cliente;
 use App\Models\ClienteContaCorrente;
 use App\Models\PagamentoVenda;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
-use App\Models\Cliente;
 
 class ContaCorrenteService
 {
-    // public function registrarMovimentacao(PagamentoVenda $pagamento): void
-    // {
-    //     if ($pagamento->forma_pagamento !== 'carteira') {
-    //         return;
-    //     }
-
-    //     $cliente = $pagamento->venda->cliente;
-
-    //     DB::transaction(function () use ($cliente, $pagamento) {
-
-    //         $ultimoSaldo = ClienteContaCorrente::where('cliente_id', $cliente->id)
-    //             ->lockForUpdate()
-    //             ->latest('id')
-    //             ->value('saldo_apos');
-
-    //         // 🧠 usa limite como saldo inicial
-    //         if (is_null($ultimoSaldo)) {
-    //             $ultimoSaldo = $cliente->limite_credito ?? 0;
-    //         }
-
-    //         $novoSaldo = $ultimoSaldo - $pagamento->valor;
-
-    //         if ($novoSaldo < 0) {
-    //             throw new \Exception('Saldo insuficiente na carteira');
-    //         }
-
-    //         ClienteContaCorrente::create([
-    //             'cliente_id' => $cliente->id,
-    //             'venda_id' => $pagamento->venda_id,
-    //             'pagamento_venda_id' => $pagamento->id,
-    //             'tipo' => 'debito',
-    //             'origem' => 'venda',
-    //             'valor' => $pagamento->valor,
-    //             'saldo_apos' => $novoSaldo,
-    //             'descricao' => 'Pagamento via carteira'
-    //         ]);
-    //     });
-    // }
+    /**
+     * Registra uma movimentação de débito na carteira de forma segura.
+     */
     public function registrarMovimentacao(PagamentoVenda $pagamento): void
     {
         if ($pagamento->forma_pagamento !== 'carteira') {
             return;
         }
 
-        $cliente = $pagamento->venda->cliente;
+        // Carrega o cliente com seu crédito ativo para obter o limite base se necessário
+        $cliente = $pagamento->venda->cliente()->with('creditoAtivo')->first();
+        if (!$cliente) {
+            throw new \Exception('Cliente não encontrado para registrar movimentação.');
+        }
 
         DB::transaction(function () use ($cliente, $pagamento) {
-
-            // 🔒 trava para evitar concorrência
-            $ultimoSaldo = ClienteContaCorrente::where('cliente_id', $cliente->id)
+            // 🔒 Trava o último registro de conta corrente do cliente para evitar concorrência (Race Condition)
+            $ultimaMovimentacao = ClienteContaCorrente::where('cliente_id', $cliente->id)
+                ->orderByDesc('id')
                 ->lockForUpdate()
-                ->sum(DB::raw("
-                    CASE 
-                        WHEN tipo = 'credito' THEN valor
-                        WHEN tipo = 'debito' THEN -valor
-                    END
-                "));
+                ->first();
 
-            // 💰 saldo real da carteira
-            $saldoAtual = $ultimoSaldo ?? 0;
+            // 💰 Se nunca movimentou, o saldo base é o limite de crédito do cliente
+            $limiteCredito = (float)(optional($cliente->creditoAtivo)->limite_credito ?? 0);
+            $saldoAtual = $ultimaMovimentacao !== null ? (float)$ultimaMovimentacao->saldo_apos : $limiteCredito;
 
-            // ❌ valida saldo
-            if ($saldoAtual < $pagamento->valor) {
-                throw new \Exception('Saldo insuficiente na carteira');
+            // ❌ Valida se o saldo atual suporta o débito
+            if ($saldoAtual < (float)$pagamento->valor) {
+                throw new \Exception('Saldo insuficiente na carteira para processar este pagamento.');
             }
 
-            // ➖ novo saldo
-            $novoSaldo = $saldoAtual - $pagamento->valor;
+            // ➖ Calcula o novo saldo após o débito
+            $novoSaldo = $saldoAtual - (float)$pagamento->valor;
 
-            // 💾 registra movimentação
+            // 💾 Registra a movimentação mantendo o histórico perfeito do saldo_apos
             ClienteContaCorrente::create([
-                'cliente_id' => $cliente->id,
-                'venda_id' => $pagamento->venda_id,
+                'cliente_id'         => $cliente->id,
+                'venda_id'           => $pagamento->venda_id,
                 'pagamento_venda_id' => $pagamento->id,
-                'tipo' => 'debito',
-                'origem' => 'venda',
-                'valor' => $pagamento->valor,
-                'saldo_apos' => $novoSaldo,
-                'descricao' => 'Pagamento via carteira'
+                'tipo'               => 'debito',
+                'origem'             => 'venda',
+                'valor'              => $pagamento->valor,
+                'saldo_apos'         => $novoSaldo,
+                'descricao'          => 'Pagamento via carteira'
             ]);
+
+            // Limpa o cache imediatamente para o próximo select ler o dado atualizado
             Cache::forget("cliente_saldo_{$cliente->id}");
         });
     }
 
-   public function saldoAtual(int $clienteId): float
+    /**
+     * Retorna o saldo atual real do cliente (Sincronizado com as regras do PDV)
+     */
+    public function saldoAtual(int $clienteId): float
     {
-        return Cache::remember("cliente_saldo_$clienteId", 10, function () use ($clienteId) {
+        return (float) Cache::remember("cliente_saldo_$clienteId", 10, function () use ($clienteId) {
+            // 1️⃣ Busca a última movimentação realizada
+            $ultimoSaldoRaw = ClienteContaCorrente::where('cliente_id', $clienteId)
+                ->orderByDesc('id')
+                ->value('saldo_apos');
 
-            return ClienteContaCorrente::where('cliente_id', $clienteId)
-                ->sum(DB::raw("
-                    CASE 
-                        WHEN tipo = 'credito' THEN valor
-                        WHEN tipo = 'debito' THEN -valor
-                    END
-                "));
+            // 2️⃣ Se encontrou uma movimentação, retorna o saldo dela
+            if ($ultimoSaldoRaw !== null) {
+                return (float)$ultimoSaldoRaw;
+            }
+
+            // 3️⃣ 🔥 RETORNO SEGURO: Se nunca movimentou, busca o limite de crédito do banco como saldo inicial disponível
+            $cliente = Cliente::with('creditoAtivo')->find($clienteId);
+            
+            return (float)(optional($cliente->creditoAtivo)->limite_credito ?? 0);
         });
     }
 }

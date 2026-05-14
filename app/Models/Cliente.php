@@ -30,15 +30,26 @@ class Cliente extends Model
     }
 
     
-   public function contaCorrente()
+//    public function contaCorrente()
+//     {
+//         return $this->hasMany(ClienteContaCorrente::class, 'cliente_id');
+//     }
+
+    public function ultimaMovimentacao()
     {
-        return $this->hasMany(ClienteContaCorrente::class, 'cliente_id');
+        return $this->hasOne(ClienteContaCorrente::class, 'cliente_id')
+            ->latestOfMany();
     }
 
-     public function creditoAtivo()
+    //  public function creditoAtivo()
+    // {
+    //     return $this->hasOne(\App\Models\ClienteCredito::class, 'cliente_id')
+    //                 ->where('status', 'ativo');
+    // }
+
+    public function creditoAtivo()
     {
-        return $this->hasOne(\App\Models\ClienteCredito::class, 'cliente_id')
-                    ->where('status', 'ativo');
+        return $this->hasOne(ClienteCredito::class, 'cliente_id');
     }
 
 }

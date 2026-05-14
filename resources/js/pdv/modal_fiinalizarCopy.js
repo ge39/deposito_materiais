@@ -1,174 +1,57 @@
 window.carrinho = window.carrinho || [];
 
 document.addEventListener('DOMContentLoaded', function () {
-    const token = document.querySelector('meta[name="csrf-token"]').content;
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+
     const totalGeralEl   = document.getElementById('totalGeral');
     const totalModalEl   = document.getElementById('total-venda-modal');
     const modalEl        = document.getElementById('modalFinalizarVenda');
     const restanteEl     = document.getElementById('valor-restante');
     const trocoEl        = document.getElementById('valor-troco');
     const btnFinalizar   = document.getElementById('btnFinalizar');
-    const inputsPagamento = modalEl.querySelectorAll('.pagamento-modal');
 
-    const clienteId   = document.querySelector('input[name="cliente_id"]').value;
-    const operadorId  = document.querySelector('input[name="operador_id"]').value;
-    const terminalId  = document.querySelector('input[name="terminal_id"]').value;
-    const caixaId  = document.querySelector('input[name="caixa_id"]').value;
-    const totalGeral  = document.querySelector('input[name="caixa_id"]').value;
-    const idProduto = document.querySelector('input[name="id_produto"]').value;
-    const dataVenda   = document.querySelector('#dataVenda').value;
-    const endereco = document.querySelector('#endereco').value;
-   
-    // console.log(clienteId, operadorId, terminalId, dataVenda,endereco,idProduto);
-
-   
+    // 🔒 proteção total (não quebra tela)
     if (!totalGeralEl || !totalModalEl || !modalEl) {
-        console.warn('Modal finalizar: elementos não encontrados');
+        console.warn('Elementos principais do PDV não encontrados');
         return;
     }
 
-    const modal = new bootstrap.Modal(modalEl);
+    const inputsPagamento = modalEl.querySelectorAll('.pagamento-modal');
 
+    // 🔒 bootstrap seguro
+    let modal = null;
+    if (typeof bootstrap !== 'undefined') {
+        modal = new bootstrap.Modal(modalEl);
+    } else {
+        console.warn('Bootstrap não carregado');
+    }
+
+    // =========================
+    // HELPERS
+    // =========================
     function obterTotalVenda() {
         return parseFloat(totalGeralEl.textContent.replace(/\D/g, '')) / 100 || 0;
     }
 
-    function atualizarResumo() {
-        const totalVenda = obterTotalVenda();
-
-        let soma = 0;
-        inputsPagamento.forEach(i => {
-            soma += parseFloat(i.value) || 0;
-        });
-
-        let restante = totalVenda - soma;
-        let troco = 0;
-
-        if (restante < 0) {
-            troco = Math.abs(restante);
-            restante = 0;
-        }
-
-        restanteEl.textContent = restante.toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        });
-
-        trocoEl.textContent = troco.toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        });
+    function obterSaldoCarteira() {
+        return window.cliente?.saldo || 0;
     }
 
-    function abrirModalFinalizar() {
+    function calcularRestante(inputAtual = null) {
+
         const total = obterTotalVenda();
+        let soma = 0;
 
-        totalModalEl.textContent = total.toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        });
-
-        inputsPagamento.forEach(i => i.value = '');
-        atualizarResumo();
-
-        modal.show();
-        inputsPagamento[0].focus();
-    }
-
-   
-// =========================
-// ENTER + INPUT (REGRAS CONSOLIDADAS)
-// =========================
-inputsPagamento.forEach(input => {
-
-    // ENTER: não muda campo | se valor = 0, preenche com restante
-    input.addEventListener('keydown', function (e) {
-
-        if (e.key !== 'Enter') return;
-
-        e.preventDefault();
-
-         // valor restante (já formatado na tela)
-        const restanteTexto = restanteEl.textContent
-            .replace(/\./g, '')
-            .replace(',', '.')
-            .replace(/[^\d.]/g, '');
-
-        const restante = parseFloat(restanteTexto) || 0;
-
-        // ✅ NOVA REGRA:
-        // se não há mais nada a pagar, vai direto para o botão
-        if (restante === 0) {
-            btnFinalizar.focus();
-            return;
-        }
-    });
-
-    // INPUT: valida limites + recalcula
-    input.addEventListener('input', function () {
-
-        const forma = this.dataset.forma;
-
-        // Limite SOMENTE para CC, CD, PIX e CARTEIRA
-        if (['cartao_credito', 'cartao_debito', 'pix', 'carteira'].includes(forma)) {
-
-            const totalVenda = obterTotalVenda();
-
-            let somaOutros = 0;
-            inputsPagamento.forEach(i => {
-                if (i !== this) {
-                    const v = parseFloat(i.value) || 0;
-                    if (v > 0) somaOutros += v;
-                }
-            });
-
-            let valorPermitido = totalVenda - somaOutros;
-            if (valorPermitido < 0) valorPermitido = 0;
-
-            const valorDigitado = parseFloat(this.value) || 0;
-
-            if (valorDigitado > valorPermitido) {
-                this.value = valorPermitido.toFixed(2);
-
-                // nesses meios, troco sempre zero
-                trocoEl.textContent = (0).toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL'
-                });
+        inputsPagamento.forEach(i => {
+            if (i !== inputAtual) {
+                soma += parseFloat(i.value) || 0;
             }
-        }
-        // =========================
-        // FORMATA VALOR AO PERDER FOCO
-        // =========================
-        inputsPagamento.forEach(input => {
-
-            input.addEventListener('blur', function () {
-
-                let valor = this.value;
-
-                if (!valor) return;
-
-                // normaliza vírgula para ponto
-                valor = valor.replace(',', '.');
-
-                const numero = parseFloat(valor);
-
-                if (isNaN(numero)) {
-                    this.value = '';
-                    return;
-                }
-
-                this.value = numero.toFixed(2);
-
-                // força recálculo de restante / troco
-                this.dispatchEvent(new Event('input', { bubbles: true }));
-            });
-
         });
-        atualizarResumo();
-    });
 
-});
+        let restante = total - soma;
+        return restante > 0 ? restante : 0;
+    }
 
     // =========================
     // DINHEIRO: zera se total já fechado
@@ -291,8 +174,365 @@ inputsPagamento.forEach(input => {
         }
     }
 
+   
+    // function aplicarFormasPermitidas() {
+
+    //     if (!window.cliente) return;
+
+    //     const saldo = window.cliente.saldo || 0;
+    //     const status = (window.cliente.status_credito || '').toLowerCase();
+
+    //     inputsPagamento.forEach(input => {
+
+    //         const forma = input.dataset.forma;
+    //         let permitido = true;
+
+    //         if (forma === 'carteira') {
+
+    //             // 🔥 bloqueia se status inválido
+    //             const statusBloqueado = ['bloqueado', 'cancelado'].includes(status);
+
+    //             permitido = !statusBloqueado && saldo > 0;
+    //         }
+
+    //         input.disabled = !permitido;
+
+    //         if (!permitido) {
+    //             input.value = '';
+
+    //             if (['bloqueado', 'cancelado'].includes(status)) {
+    //                 input.placeholder = 'Crédito indisponível';
+    //             } else {
+    //                 input.placeholder = 'Sem saldo disponível';
+    //             }
+    //         }
+    //     });
+    // } 
+    
+    // function aplicarFormasPermitidas() {
+
+    //     if (!window.cliente) return;
+
+    //     const status = window.cliente.status_credito;
+
+    //     inputsPagamento.forEach(input => {
+
+    //         const forma = input.dataset.forma;
+
+    //         let permitido = true;
+
+    //         // 🔥 carteira só se ativo
+    //         if (forma === 'carteira') {
+    //             permitido = status === 'ativo';
+    //         }
+
+    //         input.disabled = !permitido;
+
+    //         if (!permitido) {
+    //             input.value = '';
+
+    //             if (status === 'bloqueado') {
+    //                 input.placeholder = 'Crédito bloqueado';
+    //             } else if (status === 'cancelado') {
+    //                 input.placeholder = 'Crédito cancelado';
+    //             } else {
+    //                 input.placeholder = 'Sem crédito disponível';
+    //             }
+    //         }
+    //     });
+    // }
+
+    // function aplicarFormasPermitidas() {
+
+    //     if (!window.cliente) return;
+
+    //     const saldo = Number(window.cliente.saldo || 0);
+    //     const status = window.cliente.status_credito;
+
+    //     const carteiraAtiva = status === 'ativo';
+
+    //     inputsPagamento.forEach(input => {
+
+    //         const forma = input.dataset.forma;
+
+    //         let permitido = true;
+
+    //         // 🔥 CARTEIRA (regra principal corrigida)
+    //         if (forma === 'carteira') {
+    //             permitido = carteiraAtiva && saldo > 0;
+    //         }
+
+    //         input.disabled = !permitido;
+
+    //         if (!permitido) {
+    //             input.value = '';
+
+    //             // 🔥 mensagens de forma consistente (sem duplicação de ifs)
+    //             if (forma === 'carteira') {
+
+    //                 if (!carteiraAtiva) {
+    //                     input.placeholder = 'Carteira indisponível';
+    //                 } else if (saldo <= 0) {
+    //                     input.placeholder = 'Sem saldo disponível';
+    //                 } else {
+    //                     input.placeholder = 'Indisponível';
+    //                 }
+    //             }
+    //         }
+    //     });
+    // }
+
+    function aplicarFormasPermitidas() {
+
+    if (!window.cliente) return;
+
+    const saldo = Number(window.cliente.saldo || 0);
+
+    const status = (window.cliente.status_credito || '').toLowerCase();
+
+    const carteiraAtiva = status === 'ativo';
+
+    inputsPagamento.forEach(input => {
+
+        const forma = input.dataset.forma;
+
+        let permitido = true;
+
+        // 🔴 CARTEIRA
+        if (forma === 'carteira') {
+
+            // regra única e clara
+            if (!carteiraAtiva) {
+                permitido = false;
+            } else {
+                permitido = saldo > 0;
+            }
+        }
+
+        input.disabled = !permitido;
+
+        if (!permitido) {
+            input.value = '';
+
+            if (forma === 'carteira') {
+
+                if (status === 'bloqueado') {
+                    input.placeholder = 'Carteira bloqueada';
+                } 
+                else if (status === 'cancelado') {
+                    input.placeholder = 'Carteira cancelada';
+                } 
+                 else if (status === 'inativo') {
+                    input.placeholder = 'Carteira cancelada';
+                    console.log('Inativo');
+                } 
+                else {
+                    input.placeholder = 'Carteira indisponível';
+                }
+            }
+        }
+    });
+}
+    
+    function atualizarResumo() {
+
+        const total = obterTotalVenda();
+
+        let soma = 0;
+        inputsPagamento.forEach(i => {
+            soma += parseFloat(i.value) || 0;
+        });
+
+        let restante = total - soma;
+        let troco = 0;
+
+        if (restante < 0) {
+            troco = Math.abs(restante);
+            restante = 0;
+        }
+
+        if (restanteEl) {
+            restanteEl.textContent = restante.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+        }
+
+        if (trocoEl) {
+            trocoEl.textContent = troco.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+        }
+
+        // 🔥 CARTEIRA
+        const inputCarteira = modalEl.querySelector('[data-forma="carteira"]');
+
+            if (inputCarteira) {
+
+                const saldo = obterSaldoCarteira();
+
+                // 🔥 agora só bloque
+                // ia se não tiver saldo nenhum
+                const bloqueado = saldo <= 0;
+                
+                // console.log('Saldo carteira:', saldo);
+
+                inputCarteira.disabled = bloqueado;
+
+                if (bloqueado) {
+                    inputCarteira.value = '';
+                    inputCarteira.placeholder = 'Sem saldo disponível';
+                } else {
+                    const limite = Math.min(restante, saldo);
+                    inputCarteira.placeholder = `Até R$ ${limite.toFixed(2)}`;
+                }
+            }
+    }
+
     // =========================
-    // Tecla F6 abre modal
+    // CARREGAR CLIENTE
+    // =========================
+    // function carregarClienteFinanceiro(clienteId) {
+
+    //     if (!clienteId) return;
+
+    //     fetch(`/api/cliente/financeiro/${clienteId}`)
+    //         .then(res => {
+    //             if (!res.ok) throw new Error('Erro na API');
+    //             return res.json();
+    //         })
+    //         .then(data => {
+
+    //             // window.cliente = {
+    //             //     id: clienteId,
+    //             //     nome: data.cliente,
+    //             //     saldo: Number(data.saldo_carteira || 0),
+    //             //     limite: Number(data.limite_credito || 0),
+    //             //     credito_usado: Number(data.credito_usado || 0),
+    //             //     formas: data.formas_pagamento || []
+    //             // };
+    //             window.cliente = {
+    //                 id: clienteId,
+    //                 nome: data.cliente,
+    //                 saldo: Number(data.saldo_apos || 0),
+    //                 limite: Number(data.limite_credito || 0),
+    //                 credito_usado: Number(data.credito_usado || 0),
+    //                 status_credito: data.status_credito, // 🔥 NOVO
+    //                 formas: data.formas_pagamento || []
+    //             };
+
+    //             console.log('Cliente carregado:', window.cliente);
+    //             // 🔥 AGORA sim o saldo existe
+    //             aplicarFormasPermitidas();
+    //             atualizarResumo();
+
+    //         })
+    //         .catch(err => console.error('Erro cliente:', err));
+    // }
+
+    function carregarClienteFinanceiro(clienteId) {
+
+        if (!clienteId) return;
+
+        fetch(`/api/cliente/financeiro/${clienteId}`)
+            .then(async res => {
+
+                if (!res.ok) {
+                    const erro = await res.text(); // 🔥 pega erro real
+                    console.error('🔥 ERRO BACKEND:', erro);
+                    throw new Error('Erro na API');
+                }
+
+                return res.json();
+            })
+            .then(data => {
+
+                window.cliente = {
+                    id: clienteId,
+                    nome: data.cliente,
+                    saldo: Number(data.saldo_apos || 0),
+                    limite: Number(data.limite_credito || 0),
+                    credito_usado: Number(data.credito_usado || 0),
+                    status_credito: data.status_credito,
+                    formas: data.formas_pagamento || []
+                };
+
+                console.log('Cliente carregado:', window.cliente);
+
+                aplicarFormasPermitidas();
+                atualizarResumo();
+
+            })
+            .catch(err => console.error('Erro cliente:', err));
+    }
+
+    function abrirModalFinalizar() {
+
+        const clienteId = document.querySelector('input[name="cliente_id"]')?.value;
+
+        carregarClienteFinanceiro(clienteId);
+
+        const total = obterTotalVenda();
+
+        totalModalEl.textContent = total.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+
+        inputsPagamento.forEach(i => i.value = '');
+
+        // aplicarFormasPermitidas();
+        // atualizarResumo();
+
+        modal?.show();
+        inputsPagamento[0]?.focus();
+    }
+
+    // =========================
+    // INPUTS
+    // =========================
+    inputsPagamento.forEach(input => {
+
+        input.addEventListener('input', function () {
+
+            const forma = this.dataset.forma;
+            let valor = parseFloat(this.value) || 0;
+
+            const restante = calcularRestante(this);
+
+            let limite = restante;
+
+            if (forma === 'carteira') {
+                const saldo = obterSaldoCarteira();
+                limite = Math.min(restante, saldo);
+            }
+
+            if (valor > limite) {
+                this.value = limite.toFixed(2);
+            }
+
+            atualizarResumo();
+        });
+
+        input.addEventListener('blur', function () {
+
+            let valor = this.value.replace(',', '.');
+            const numero = parseFloat(valor);
+
+            if (isNaN(numero)) {
+                this.value = '';
+                return;
+            }
+
+            this.value = numero.toFixed(2);
+            this.dispatchEvent(new Event('input'));
+        });
+    });
+
+    
+    // =========================
+    // F6
     // =========================
     document.addEventListener('keydown', function (e) {
         if (e.key === 'F6') {
@@ -301,137 +541,55 @@ inputsPagamento.forEach(input => {
         }
     });
 
-    // Certifique-se de declarar a variável fora de qualquer função
-    let carrinhoAtual = [];
+    // =========================
+    // FINALIZAR VENDA
+    // =========================
+    if (btnFinalizar) {
+        btnFinalizar.addEventListener('click', async function (e) {
 
-    // Função para adicionar itens (exemplo)
-    function adicionarAoCarrinho(item) {
-        carrinhoAtual.push(item);
-    }
-   
-    // BOTÃO FINALIZAR VENDA - MODAL
-    document.addEventListener('click', async function(e) {
-        if (e.target && e.target.id === 'btnFinalizar') {
             e.preventDefault();
 
-            console.log('🔹 Botão Finalizar clicado');
+            const clienteId = document.querySelector('input[name="cliente_id"]')?.value;
 
-            const token = document.querySelector('meta[name="csrf-token"]').content;
-
-            // Recupera todos os itens do carrinho do DOM
-            const tabelaItens = document.getElementById('lista-itens');
-            if (!tabelaItens) {
-                console.warn('⚠️ Tabela do carrinho não encontrada.');
-                return;
-            }
-
-            const trs = tabelaItens.querySelectorAll('tr:not(.d-none)');
-            if (!trs.length) {
-                alert('Carrinho vazio');
-                return;
-            }
-
-            // Monta array de itens
-            const itens = Array.from(trs).map(tr => ({
-                produto_id: tr.dataset.produto,
-                lote_id: tr.dataset.lote || null,
-                quantidade: parseFloat(tr.children[3].textContent) || 0,
-                valor_unitario: parseFloat(tr.children[5].textContent.replace(',', '.')) || 0
-            }));
-
-            console.log('Itens a enviar:', itens);
-
-            // Coleta pagamentos
-            const modalEl = document.getElementById('modalFinalizarVenda');
-            const inputsPagamento = modalEl ? modalEl.querySelectorAll('.pagamento-modal') : [];
             const pagamentos = [];
 
             inputsPagamento.forEach(input => {
-                const valor = parseFloat(input.value.replace(',', '.')) || 0;
+                const valor = parseFloat(input.value) || 0;
                 if (valor > 0) {
-                    pagamentos.push({ forma: input.dataset.forma, valor });
+                    pagamentos.push({
+                        forma: input.dataset.forma,
+                        valor
+                    });
                 }
             });
 
             if (!pagamentos.length) {
-                alert('Informe ao menos uma forma de pagamento');
+                alert('Informe uma forma de pagamento');
                 return;
             }
 
-            // Monta payload
-            const payload = {
-                cliente_id: clienteId,
-                caixa_id: caixaId,
-                terminal_id: terminalId,
-                funcionario_id: operadorId,
-                dataVenda: dataVenda,
-                endereco: endereco,
-                itens,
-                pagamentos
-            };
-
-            console.log('Payload a ser enviado:', payload);
-
             try {
-                // 1️⃣ Cria a venda
-                const response = await fetch('/vendas', {
+
+                const res = await fetch('/vendas', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
                         'X-CSRF-TOKEN': token
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ cliente_id: clienteId, pagamentos })
                 });
 
-                const data = await response.json();
-                console.log('Resposta do servidor (store):', data);
+                const data = await res.json();
 
-                if (!response.ok || !data.success) {
-                    throw new Error(data.message || 'Erro ao criar venda');
-                }
+                if (!data.success) throw new Error(data.message);
 
-                // 2️⃣ Recupera o ID da venda criado
-                const vendaId = data.venda_id;
-                if (!vendaId) {
-                    throw new Error('ID da venda não retornado pelo servidor.');
-                }
-
-                // 3️⃣ Chama o endpoint de finalizar venda
-                const responseFinalizar = await fetch(`/venda/finalizar/${vendaId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': token
-                    },
-                    body: JSON.stringify({ pagamentos })
-                });
-
-                const dataFinalizar = await responseFinalizar.json();
-                console.log('Resposta do servidor (finalizar):', dataFinalizar);
-
-                if (!responseFinalizar.ok || !dataFinalizar.success) {
-                    throw new Error(dataFinalizar.erro || 'Erro ao finalizar venda');
-                }
-
-                alert(`Venda finalizada com sucesso! Total: ${dataFinalizar.total}`);
-
-                // ✅ Limpa carrinho do DOM
-                trs.forEach(tr => tr.remove());
-
-                // ✅ Limpa inputs de pagamento
-                inputsPagamento.forEach(i => i.value = '');
-
-                // Atualiza total
-                const totalVenda = document.getElementById('totalGeral');
-                if (totalVenda) totalVenda.textContent = 'R$ 0,00';
+                modal?.hide();
 
             } catch (err) {
-                console.error('Erro no fetch de finalizar venda:', err);
+                console.error(err);
                 alert(err.message);
             }
-        }
-    });
+        });
+    }
 
 });
