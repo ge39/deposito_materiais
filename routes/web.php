@@ -313,20 +313,24 @@ Route::middleware('auth')->group(function () {
     });
 
     //Sangria
+   // No seu arquivo de rotas
     Route::prefix('pdv')->group(function() {
-        // Formulário de sangria para um caixa específico
-        Route::get('caixa/{caixa}/sangria', [SangriaController::class, 'criarForm'])
-            ->name('caixa.sangria.form');
+        
+        // RETORNA OS DADOS DE BLOQUEIO E SALDO DO PDV
+        Route::get('verificar-sangria', [PdvController::class, 'verificarSangria'])
+            ->name('pdv.verificar-sangria');
 
-        // Registrar a sangria
-        Route::post('caixa/{caixa}/sangria', [SangriaController::class, 'registrar'])
-            ->name('caixa.sangria.registrar');
-
-        // Imprimir comprovante
-        Route::get('sangria/{sangria}/imprimir', [SangriaController::class, 'imprimir'])
-            ->name('sangria.imprimir');
-            
+        // Suas rotas atuais de sangria...
+        Route::get('caixa/{caixa}/sangria', [SangriaController::class, 'criarForm'])->name('caixa.sangria.form');
+        Route::post('caixa/{caixa}/sangria', [SangriaController::class, 'registrar'])->name('caixa.sangria.registrar');
+        Route::get('sangria/{sangria}/imprimir', [SangriaController::class, 'imprimir'])->name('sangria.imprimir');
     });
+     //Sangria conf
+    Route::get('/sangria-config', [SangriaConfigController::class, 'index'])
+    ->name('sangria-config.index');
+
+    Route::post('/sangria-config', [SangriaConfigController::class, 'store'])
+    ->name('sangria-config.store');
 
     // conta corrente
     Route::get('/clientes/{id}/conta-corrente', 
@@ -347,14 +351,6 @@ Route::middleware('auth')->group(function () {
 
     // Rota para o caixa receber o pagamento do fiado/carteira do cliente
     Route::post('/clientes/{id}/conta-corrente/receber', [ContaCorrenteController::class, 'receberPagamentoFiado'])->name('clientes.conta_corrente.receber');
-
-
-     //Sangria conf
-    Route::get('/sangria-config', [SangriaConfigController::class, 'index'])
-    ->name('sangria-config.index');
-
-    Route::post('/sangria-config', [SangriaConfigController::class, 'store'])
-    ->name('sangria-config.store');
 
         //Relatorio tabela itens_orcamento quantidade_pendente
     Route::get('/relatorio/reposicao', [RelatorioReposicaoController::class, 'index'])

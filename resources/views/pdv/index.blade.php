@@ -370,6 +370,28 @@
     </div>
     <!-- FIM OVERLAY -->
 
+    <!-- validar sangria -->
+    <!-- @if($avisarSangria && !$bloquearPDV)
+        <div class="alert alert-warning d-flex align-items-center justify-content-between border-0 shadow-sm mb-4" style="border-radius: 10px; background-color: #fff3cd;">
+            <div class="d-flex align-items-center">
+                <span style="font-size: 1.5rem; margin-right: 12px;">⚠️</span>
+                <div>
+                    <strong style="color: #664d03;">Aviso de Sangria Recomendada</strong>
+                    <div class="small text-secondary">
+                        O saldo em dinheiro (R$ {{ number_format($saldoAtual, 2, ',', '.') }}) atingiu o limite sugerido de R$ {{ number_format($limiteSangria, 2, ',', '.') }}. 
+                        Fique atento para realizar a sangria assim que a fila esvaziar.
+                    </div>
+                </div>
+            </div>
+            <div>
+                <a href="{{ route('caixa.sangria.form', $caixa_id) }}" class="btn btn-sm btn-warning fw-bold text-dark px-3" style="border-radius: 6px;">
+                    Fazer Sangria Agora
+                </a>
+            </div>
+        </div>
+    @endif -->
+
+
      <!-- Informações do status do Caixa -->
     <div class="container-fluid p-0" 
          style="background:#e6e6e6; margin-top:-40px; overflow-x:hidden">

@@ -146,7 +146,7 @@ unset($__errorArgs, $__bag); ?>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('formSangria');
     const btn = document.getElementById('btnSangria');
     const saldoSpan = document.getElementById('saldoAtualTexto');
@@ -185,19 +185,47 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(data.erro || data.message || 'Erro ao registrar sangria.');
             }
 
+            // if (data.success) {
+            //     alert('Sangria realizada com sucesso.');
+                
+            //     const novoSaldo = parseFloat(data.saldo_atual ?? 0);
+
+            //     // Atualiza elementos visuais da interface de forma síncrona
+            //     if (saldoSpan) saldoSpan.innerText = novoSaldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            //     if (valorSugerido) valorSugerido.innerText = novoSaldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                
+            //     // Trata exibição dinâmica do link do cupom térmico retornado pelo controller
+            //     if (data.sangria_id && btnImprimir && imprimirContainer) {
+            //         btnImprimir.href = `/pdv/sangria/imprimir/${data.sangria_id}`;
+            //         imprimirContainer.classList.remove('d-none');
+            //     }
+
+            //     if (novoSaldo <= 0) {
+            //         btn.disabled = true;
+            //         btn.innerText = 'Saldo Zerado';
+            //         if (inputValor) inputValor.disabled = true;
+            //         if (selectMotivo) selectMotivo.disabled = true;
+            //     } else {
+            //         btn.disabled = false;
+            //         btn.innerText = 'Efetuar Sangria';
+            //         if (inputValor) inputValor.value = novoSaldo.toFixed(2);
+            //     }
+            //     form.reset();
+            // }
             if (data.success) {
                 alert('Sangria realizada com sucesso.');
                 
+                // Obtém o novo saldo retornado pelo controller
                 const novoSaldo = parseFloat(data.saldo_atual ?? 0);
 
                 // Atualiza elementos visuais da interface de forma síncrona
                 if (saldoSpan) saldoSpan.innerText = novoSaldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 if (valorSugerido) valorSugerido.innerText = novoSaldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                
-                // Trata exibição dinâmica do link do cupom térmico retornado pelo controller
+
+                // 🎯 CORREÇÃO DO PADRÃO DA SUA ROTA: /pdv/sangria/{id}/imprimir
                 if (data.sangria_id && btnImprimir && imprimirContainer) {
-                    btnImprimir.href = `/pdv/sangria/imprimir/${data.sangria_id}`;
-                    imprimirContainer.classList.remove('d-none');
+                    btnImprimir.href = `/pdv/sangria/${data.sangria_id}/imprimir`; // 👈 Corrigido padrão da URL
+                    imprimirContainer.classList.remove('d-none'); // 👈 Exibe o botão de impressão na tela
                 }
 
                 if (novoSaldo <= 0) {
@@ -207,11 +235,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (selectMotivo) selectMotivo.disabled = true;
                 } else {
                     btn.disabled = false;
-                    btn.innerText = 'Efetuar Sangria';
-                    if (inputValor) inputValor.value = novoSaldo.toFixed(2);
+                    btn.innerText = '✅ Efetuar Sangria';
+                    if (inputValor) {
+                        inputValor.value = novoSaldo.toFixed(2);
+                        inputValor.max = novoSaldo.toFixed(2); // Atualiza o limite máximo do input em tempo real
+                    }
                 }
+                
                 form.reset();
             }
+
+
         } catch (error) {
             alert(error.message || 'Erro inesperado.');
             btn.disabled = false;
@@ -229,9 +263,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Executa validação de carga útil na montagem da tela
     validarSaldoAoCarregar();
-});
+    });
 
-function validarSaldoAoCarregar() {
+    function validarSaldoAoCarregar() {
     fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.ok ? response.json() : null)
         .then(data => {

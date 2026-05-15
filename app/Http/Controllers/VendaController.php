@@ -686,10 +686,6 @@ class VendaController extends Controller
         } 
     }
 
-
-
-
-
     //criar qrcode
     // public function gerarPix($venda)
     // {
