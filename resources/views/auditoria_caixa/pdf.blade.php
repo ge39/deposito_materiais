@@ -122,7 +122,7 @@
     </table>
 
     {{-- ================= CORREÇÕES DA AUDITORIA ================= --}}
-    <h4>Correções Realizadas pela Auditoria</h4>
+    <h4>Total de Valores Auditados R$ {{ number_format($auditoria->total_fisico,2,',','.') }}</h4>
     <table>
         <thead>
             <tr>

@@ -234,7 +234,7 @@ Route::middleware('auth')->group(function () {
          //Vendas
         Route::post('/vendas', [VendaController::class, 'store'])->name('vendas.store');
         // Route::post('/vendas/finalizar/{venda}', [VendaController::class, 'finalizar']);
-         Route::post('/vendas/finalizar', [VendaController::class, 'finalizar']);
+        Route::post('/vendas/finalizar', [VendaController::class, 'finalizar']);
         Route::get('/venda/{id}/cupom', [VendaController::class, 'cupom'])->name('venda.cupom');
 
     // ===============================

@@ -310,9 +310,6 @@
 
 <form method="POST" action="<?php echo e(route('caixa.store')); ?>">
 
-
-        
-
         <form method="POST" action="<?php echo e(route('caixa.store')); ?>">
             <?php echo csrf_field(); ?>
 

@@ -35,7 +35,8 @@
                 </div>
 
                 <div class="mb-2">
-                    <strong>Data:</strong> {{ $caixa->data_fechamento->format('d/m/Y H:i') }}
+                    <strong>Data:</strong> {{ $caixa->data_fechamento?->format('d/m/Y H:i') }}
+
                 </div>
 
                 <div>

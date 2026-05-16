@@ -56,228 +56,7 @@ class CaixaController extends Controller
     /**
      * Salva um novo caixa na tabela caixas e registra a abertura
      */
-    // public function store(Request $request)
-    // {
-
-    //     $user = Auth::user();
-    //     $terminal = $request->attributes->get('terminal');
-
-    //     if (!$terminal) {
-    //         return redirect()->back()->withErrors('Terminal não identificado.');
-    //     }
-
-              
-    //     $caixaAberto = Caixa::where('terminal_id', $terminal->id)
-    //         ->where('status', 'aberto')
-    //         ->first();
-
-    //     if ($caixaAberto) {
-    //         return redirect()->route('pdv.index')
-    //             ->with('warning', 'Caixa já aberto para este terminal.');
-    //     }
-
-    //     $valorFundoAnterior = $request->input('valor_fundo_anterior', 0.00);
-    //     $fundoTroco         = $request->input('fundo_troco', 0.00);
-    //     $valorAbertura      = $request->input('fundo_troco', 0.00);
-
-    //     // Pega o primeiro ID da tabela empresa
-    //     $empresaId = Empresa::query()->first()?->id;
-
-    //     if (!$empresaId) {
-    //         return redirect()->back()->withErrors('Não existe nenhuma empresa cadastrada.');
-    //     }
-
-    //     $caixa = Caixa::create([
-    //         'user_id' => $user->id,
-    //         'empresa_id' => $empresaId,
-    //         'terminal_id' => $terminal->id,
-    //         'terminal' => $terminal->identificador,
-    //         'valor_fundo_anterior' => $valorFundoAnterior,
-    //         'fundo_troco' => $fundoTroco,
-    //         'divergencia_abertura' => $fundoTroco - $valorFundoAnterior,
-    //         'valor' => $fundoTroco,
-    //         'status' => 'aberto',
-    //         'observacao' => $request->input('observacao'),
-    //     ]);
-
-    //         // Aqui chamamos o CaixaService para registrar a movimentação
-    //         CaixaService::registrarMovimentacaoCaixa([
-    //             'caixa_id'   => $caixa->id,
-    //             'user_id'    => $user->id,
-    //             'tipo'       => 'abertura',  
-    //             'forma_pagamento' => 'abertura',         
-    //             'valor'      => $valorAbertura,
-    //             'origem_id'  => $caixa->id,  // VÍNCULO CORRETO
-    //             'observacao' => 'Abertura de caixa',
-    //         ]);
-
-
-    //         return redirect()->route('pdv.index')
-    //                         ->with('success', 'Caixa aberto com sucesso.')
-    //                         ->with('caixa_id', $caixa->id);
-    // }
-
-//    public function store(Request $request) 
-//     {
-//         $user = Auth::user();
-//         $terminal = $request->attributes->get('terminal');
-
-//         if (!$terminal) {
-//             return redirect()->back()->withErrors('Terminal não identificado.');
-//         }
-
-//         // 1. Evita abertura duplicada no mesmo terminal
-//         $caixaAberto = Caixa::where('terminal_id', $terminal->id)
-//             ->where('status', 'aberto')
-//             ->first();
-
-//         if ($caixaAberto) {
-//             return redirect()->route('pdv.index')
-//                 ->with('warning', 'Caixa já aberto para este terminal.');
-//         }
-
-//         // 2. Captura e valida o ID da empresa vindo do usuário logado
-//         $empresaId = $user->empresa_id ?? null;
-
-//         if (!$empresaId) {
-//             return redirect()->back()->withErrors('O seu usuário não está vinculado a nenhuma empresa/filial.');
-//         }
-
-//         // Valida se a empresa está ativa no status 9
-//         $empresaAtiva = Empresa::where('id', $empresaId)->where('ativo', 9)->exists();
-//         if (!$empresaAtiva) {
-//             return redirect()->back()->withErrors('Sua empresa/filial está inativa no sistema.');
-//         }
-
-//         $valorFundoAnterior = (float) $request->input('valor_fundo_anterior', 0.00);
-//         $fundoTroco = (float) $request->input('fundo_troco', 0.00);
-
-//         // 3. Criação do caixa usando os nomes exatos das colunas do seu banco
-//         $caixa = Caixa::create([
-//             'user_id'              => $user->id,
-//             'empresa_id'           => $empresaId,
-//             'terminal_id'          => $terminal->id,
-//             'terminal'             => $terminal->identificador,
-//             'valor_fundo_anterior' => $valorFundoAnterior,
-//             'fundo_troco'          => $fundoTroco,
-//             'divergencia_abertura' => $fundoTroco - $valorFundoAnterior,
-//             'valor_abertura'       => $fundoTroco, // 👈 Ajustado (no código anterior estava 'valor')
-//             'status'               => 'aberto',
-//             'data_abertura'        => now(),
-//             'observacao'           => $request->input('observacao'),
-//         ]);
-
-//         // 4. Registro da movimentação no service
-//         CaixaService::registrarMovimentacaoCaixa([
-//             'caixa_id'        => $caixa->id,
-//             'user_id'         => $user->id,
-//             'tipo'            => 'abertura',
-//             'forma_pagamento' => 'abertura',
-//             'valor'           => $fundoTroco,
-//             'origem_id'       => $caixa->id,
-//             'observacao'      => 'Abertura de caixa',
-//         ]);
-
-//         return redirect()->route('pdv.index')
-//             ->with('success', 'Caixa aberto com sucesso.')
-//             ->with('caixa_id', $caixa->id);
-//     }
-
-    // public function store(Request $request) 
-    // {
-    //     try {
-    //         \Log::info('--- INICIANDO ABERTURA DE CAIXA ---');
-            
-    //         $user = Auth::user();
-    //         \Log::info('Usuário Logado:', ['id' => $user?->id, 'empresa_id' => $user?->empresa_id]);
-
-    //         $terminal = $request->attributes->get('terminal');
-    //         \Log::info('Terminal Identificado:', ['terminal' => $terminal]);
-
-    //         if (!$terminal) {
-    //             \Log::warning('Falha: Terminal não identificado via request attributes.');
-    //             return redirect()->back()->withErrors('Terminal não identificado.');
-    //         }
-
-    //         $caixaAberto = Caixa::where('terminal_id', $terminal->id)
-    //             ->where('status', 'aberto')
-    //             ->first();
-
-    //         if ($caixaAberto) {
-    //             \Log::warning('Falha: Já existe caixa aberto para este terminal.', ['caixa_id' => $caixaAberto->id]);
-    //             return redirect()->route('pdv.index')->with('warning', 'Caixa já aberto para este terminal.');
-    //         }
-
-    //         // Diagnóstico do ID da empresa
-    //         $empresaId = $user->empresa_id ?? null;
-    //         \Log::info('Empresa ID avaliado:', ['empresa_id' => $empresaId]);
-
-    //         if (!$empresaId) {
-    //             \Log::warning('Falha: O usuário não possui empresa_id preenchido.');
-    //             return redirect()->back()->withErrors('O seu usuário não está vinculado a nenhuma empresa/filial.');
-    //         }
-
-    //         $empresaAtiva = Empresa::where('id', $empresaId)->where('ativo', 9)->exists();
-    //         \Log::info('Resultado da validação de empresa ativa (status 9):', ['ativa' => $empresaAtiva]);
-
-    //         if (!$empresaAtiva) {
-    //             \Log::warning('Falha: Empresa encontrada, mas o status não é 9 (Ativo).');
-    //             return redirect()->back()->withErrors('Sua empresa/filial está inativa no sistema.');
-    //         }
-
-    //         $valorFundoAnterior = (float) $request->input('valor_fundo_anterior', 0.00);
-    //         $fundoTroco = (float) $request->input('fundo_troco', 0.00);
-
-    //         \Log::info('Dados financeiros capturados:', [
-    //             'fundo_anterior' => $valorFundoAnterior,
-    //             'fundo_troco' => $fundoTroco
-    //         ]);
-
-    //         \Log::info('Tentando persistir dados no banco...');
-            
-    //         $caixa = Caixa::create([
-    //             'user_id'              => $user->id,
-    //             'empresa_id'           => $empresaId,
-    //             'terminal_id'          => $terminal->id,
-    //             'terminal'             => $terminal->identificador,
-    //             'valor_fundo_anterior' => $valorFundoAnterior,
-    //             'fundo_troco'          => $fundoTroco,
-    //             'divergencia_abertura' => $fundoTroco - $valorFundoAnterior,
-    //             'valor_abertura'       => $fundoTroco,
-    //             'status'               => 'aberto',
-    //             'data_abertura'        => now(),
-    //             'observacao'           => $request->input('observacao'),
-    //         ]);
-
-    //         \Log::info('Caixa salvo com sucesso no banco. ID gerado: ' . $caixa->id);
-
-    //         \Log::info('Chamando CaixaService...');
-    //         CaixaService::registrarMovimentacaoCaixa([
-    //             'caixa_id'        => $caixa->id,
-    //             'user_id'         => $user->id,
-    //             'tipo'            => 'abertura',
-    //             'forma_pagamento' => 'abertura',
-    //             'valor'           => $fundoTroco,
-    //             'origem_id'       => $caixa->id,
-    //             'observacao'      => 'Abertura de caixa',
-    //         ]);
-            
-    //         \Log::info('CaixaService finalizado com sucesso.');
-
-    //         return redirect()->route('pdv.index')
-    //             ->with('success', 'Caixa aberto com sucesso.')
-    //             ->with('caixa_id', $caixa->id);
-
-    //     } catch (\Exception $e) {
-    //         \Log::error('EXCEÇÃO LANÇADA NA ABERTURA:', [
-    //             'mensagem' => $e->getMessage(),
-    //             'arquivo'  => $e->getFile(),
-    //             'linha'    => $e->getLine()
-    //         ]);
-    //         return redirect()->back()->withErrors('Erro interno: ' . $e->getMessage());
-    //     }
-    // }
-
+ 
     public function store(Request $request) 
     {
         $user = Auth::user();
@@ -388,4 +167,33 @@ class CaixaController extends Controller
 
         return $pdf->stream("relatorio-caixa-{$caixa->id}.pdf");
     }
+    
+    public function fecharCaixa(Request $request, $caixaId)
+    {
+        // Busca o caixa e valida se está aberto
+        $caixa = Caixa::findOrFail($caixaId);
+        
+        // Soma os valores por forma de pagamento associados a este caixa hoje
+        $faturamento = DB::table('pagamentos_vendas') // Substitua pelo nome real da sua tabela de pagamentos
+            ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
+            ->where('caixa_id', $caixaId)
+            ->whereDate('created_at', now()->toDateString())
+            ->groupBy('forma_pagamento')
+            ->get()
+            ->keyBy('forma_pagamento');
+
+        // Monta o resumo financeiro formatado
+        $resumo = [
+            'dinheiro'       => $faturamento->get('dinheiro')->total ?? 0.00,
+            'pix'            => $faturamento->get('pix')->total ?? 0.00,
+            'cartao_credito' => $faturamento->get('cartao_credito')->total ?? 0.00,
+            'cartao_debito'  => $faturamento->get('cartao_debito')->total ?? 0.00,
+            'carteira'       => $faturamento->get('carteira')->total ?? 0.00,
+        ];
+
+        $totalGeral = array_sum($resumo);
+
+        return view('caixa.fechamento', compact('caixa', 'resumo', 'totalGeral'));
+    }
+
 }

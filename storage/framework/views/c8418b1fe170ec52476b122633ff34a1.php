@@ -316,7 +316,7 @@
     
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-primary text-light ">
-            Correções Realizadas pela Auditoria  - R$ <?php echo e(number_format($auditoria->total_sistema,2,',','.')); ?>
+            Total de Valores Auditados  - R$ <?php echo e(number_format($auditoria->total_sistema,2,',','.')); ?>
 
         </div>
 

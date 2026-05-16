@@ -295,7 +295,7 @@
                     </h3>
 
                     <h2 class="display-6 fw-bold text-success">
-                        R$ <?php echo e(number_format(($valorSugeridoSangria ?? $saldoAtual) ?? 0, 2, ',', '.')); ?>
+                        R$ <?php echo e(number_format(($saldoAtual ?? $valorSugeridoSangria) ?? 0, 2, ',', '.')); ?>
 
                         
                     </h2>

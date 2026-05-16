@@ -293,7 +293,7 @@
                     </h3>
 
                     <h2 class="display-6 fw-bold text-success">
-                        R$ {{ number_format(($valorSugeridoSangria ?? $saldoAtual) ?? 0, 2, ',', '.') }}
+                        R$ {{ number_format(($saldoAtual ?? $valorSugeridoSangria) ?? 0, 2, ',', '.') }}
                         
                     </h2>
 

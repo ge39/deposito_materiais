@@ -114,16 +114,10 @@
         let carrinho = window.carrinho || [];
 
         if (modalFinalizar) {
-             if (!window.financeiroCliente) return;
-
-            document.getElementById('saldo-cliente-modal').textContent =
-                'R$ ' + Number(window.financeiroCliente.saldo_apos)
-                    .toFixed(2)
-                    .replace('.', ',');
-
-            aplicarRegraCarteira();
+            modalFinalizar.addEventListener('shown.bs.modal', function () {
+                aplicarRegraCarteira();
+            });
         }
-        
 
         // ===============================
         // FUNÇÕES AUXILIARES
@@ -145,7 +139,7 @@
         if(!window.clienteSelecionado){
             document.getElementById('nome-cliente-modal').textContent = 'VENDA BALCAO';
             document.getElementById('saldo-cliente-modal').textContent = 'R$ 0,00';
-            } else {
+        } else {
             document.getElementById('nome-cliente-modal').textContent = clienteSelecionado.nome;
             document.getElementById('saldo-cliente-modal').textContent =
                 parseFloat(clienteSelecionado.saldo).toFixed(2).replace('.', ',');
@@ -254,15 +248,14 @@
             const saldoEl = document.getElementById('saldo-cliente-finalizar');
             const limiteEl = document.getElementById('limite-cliente-finalizar');
 
-            // Saldo Atual
             if (saldoEl) {
                 saldoEl.textContent =
-                    `R$ ${Number(window.cliente.saldo_apos || 0).toFixed(2).replace('.', ',')}`;
+                    `Saldo: R$ ${Number(window.cliente.saldo_apos || 0).toFixed(2).replace('.', ',')}`;
             }
-                // LImite de credito
+
             if (limiteEl) {
                 limiteEl.textContent =
-                    `R$ ${Number(window.cliente.limite_credito || 0).toFixed(2).replace('.', ',')}`;
+                    `Limite: R$ ${Number(window.cliente.limite_credito || 0).toFixed(2).replace('.', ',')}`;
             }
         }
 

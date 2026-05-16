@@ -292,7 +292,7 @@
     {{-- ================= CORREÇÕES DA AUDITORIA ================= --}}
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-primary text-light ">
-            Correções Realizadas pela Auditoria  - R$ {{ number_format($auditoria->total_sistema,2,',','.') }}
+            Total de Valores Auditados  - R$ {{ number_format($auditoria->total_sistema,2,',','.') }}
         </div>
 
         <div class="card-body p-0">
