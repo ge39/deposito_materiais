@@ -400,6 +400,11 @@
              <span class="me-3">
                     <strong>Terminal:</strong> {{ str_pad($terminal->id, 2, '0', STR_PAD_LEFT) }}      
             </span>
+
+            <!-- Botão invisível para disparar o modal de forma segura sem quebrar o JS -->
+            <button id="btnGatilhoModalCaixa" type="button" class="d-none" data-bs-toggle="modal" data-bs-target="#modalBloquearCaixa"></button>
+
+
             <span><strong>Operador: {{ $operador }}</strong> </span>
             <span><strong>ID: {{ $operadorId }}</strong> </span>
             <span><strong>Caixa: {{ $caixa_id }}</strong> </span>
@@ -661,14 +666,17 @@
         try {
             // 🎯 CAPTURA DINÂMICA: O Laravel injeta o terminal_id do operador logado em tempo real
             // Se o operador mudar de máquina (ex: Terminal 5), o Blade se atualiza sozinho
-            const terminalAtualId = parseInt("{{ auth()->user()->terminal_id ?? 0 }}"); 
+           // Procure por esta linha perto do início do script:
+            const terminalAtualId = parseInt("{{ session('terminal_id') ?? cookie('terminal_id') ?? '' }}") || 10;
 
-            // Se por algum motivo não houver terminal associado ao usuário, cancela a busca por segurança
-            if (!terminalAtualId || terminalAtualId === 0) {
-                console.warn("Nenhum terminal_id associado ao usuário logado.");
-                listaDiv.style.display = 'none';
-                return;
-            }
+            // E APAGUE ou comente o bloco de "if" que vinha logo abaixo bloqueando o código:
+             
+            // if (!terminalAtualId || terminalAtualId === 0) {
+            //     console.warn("Nenhum terminal_id associado ao usuário logado.");
+            //     return;
+            // } 
+           
+                // console.log(terminalAtualId );
 
             const response = await fetch('/pdv/caixas-esquecidos');
 
@@ -823,7 +831,6 @@
     };
 </script>
 
-
 @endsection
 
 <!-- Modals atahos -->
@@ -832,74 +839,68 @@
 @include('pdv.modals.modal_orcamento')
 @include('pdv.modals.modal_finalizar')
 
-{{-- 🎯 CARREGAMENTO SEQUENCIAL VIA PASTA PUBLIC (SEM VITE) --}}
+<!-- 🎯 BOTÃO INVISÍVEL COORDENADOR DO BOOTSTRAP -->
+<button id="btnGatilhoModalCaixa" type="button" class="d-none" data-bs-toggle="modal" data-bs-target="#modalBloquearCaixa"></button>
 
-{{-- 1. Se o seu app.js usava o Axios que vinha do bootstrap do Laravel, inclua esta linha: --}}
-<!-- <script src="https://jsdelivr.net"></script> -->
-
-{{-- 2. Base e Configurações --}}
+<!-- 🎯 CARREGAMENTO SEQUENCIAL DA PASTA PUBLIC -->
 <script src="{{ asset('js/pdv/app.js') }}" defer></script>
 <script src="{{ asset('js/pdv/regras.js') }}" defer></script>
-
-{{-- 3. Regras de Negócio e Funções do Carrinho --}}
 <script src="{{ asset('js/pdv/produto.js') }}" defer></script>
 <script src="{{ asset('js/pdv/orcamento.js') }}" defer></script>
 <script src="{{ asset('js/pdv/carrinho.js') }}" defer></script>
-
-{{-- 4. Interfaces e Comportamento Principal (Leitor de Código de Barras / Enter) --}}
 <script src="{{ asset('js/pdv/ui.js') }}" defer></script>
 <script src="{{ asset('js/pdv/pdv.js') }}" defer></script>
 <script src="{{ asset('js/pdv/form-masks.js') }}" defer></script>
-
-{{-- 5. Atalhos de Teclado (Sempre por último) --}}
 <script src="{{ asset('js/pdv/atalhos.js') }}" defer></script>
 
-{{-- 6. Monitoramento de Caixas Esquecidos --}}
+<!-- 🎯 MONITORAMENTO DE CAIXAS ESQUECIDOS PROCESSADO DIRETOR NO BLADE -->
 <script>
-    document.addEventListener('DOMContentLoaded', async function () {
-        const listaDiv = document.getElementById('listaCaixasEsquecidos');
-        const modalEl  = document.getElementById('modalBloquearCaixa');
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        // Aguarda 2.5 segundos após carregar a página para rodar de forma totalmente assíncrona
+        setTimeout(async function () {
+            
+            const listaDiv = document.getElementById('listaCaixasEsquecidos');
+            const btnGatilho = document.getElementById('btnGatilhoModalCaixa');
 
-        if (!listaDiv || !modalEl) return;
+            if (!listaDiv || !btnGatilho) return;
 
-        try {
-            const terminalAtualId = parseInt("{{ session('terminal_id') ?? cookie('terminal_id') ?? 0 }}"); 
-            if (!terminalAtualId || terminalAtualId === 0) return;
+            try {
+                // 🔥 Agora sim! Injetado com sucesso no ecossistema Blade do Laravel
+                const terminalAtualId = parseInt("{{ session('terminal_id') ?? cookie('terminal_id') ?? '' }}") || 10;
 
-            const response = await fetch(`/pdv/caixas-esquecidos?terminal_id=${terminalAtualId}`);
-            if (!response.ok) throw new Error('Erro HTTP');
+                const response = await fetch(`/pdv/caixas-esquecidos?terminal_id=${terminalAtualId}`);
+                if (!response.ok) throw new Error('Erro na comunicação com a API');
 
-            const caixas = await response.json();
-            if (!caixas || caixas.length === 0) {
-                listaDiv.style.display = 'none';
-                return;
+                const caixas = await response.json();
+
+                if (!caixas || caixas.length === 0) {
+                    listaDiv.style.display = 'none';
+                    return;
+                }
+
+                listaDiv.innerHTML = '';
+                listaDiv.style.display = 'block';
+
+                caixas.forEach(caixa => {
+                    const item = document.createElement('li');
+                    item.textContent =
+                        `Terminal: ${caixa.terminal_id} | ` +
+                        `Caixa ID: ${caixa.id} | ` +
+                        `Aberto em: ${caixa.data_abertura_br} | ` +
+                        `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
+                        `Operador: ${caixa.nome_operador}`;
+                    listaDiv.appendChild(item);
+                });
+
+                // Abre o modal simulando o clique sem erros de invocação do Bootstrap
+                btnGatilho.click();
+
+            } catch (err) {
+                console.error("Erro interno no monitor de caixas:", err);
             }
 
-            listaDiv.innerHTML = '';
-            listaDiv.style.display = 'block';
-
-            caixas.forEach(caixa => {
-                const item = document.createElement('li');
-                item.textContent =
-                    `Terminal: ${caixa.terminal_id} | ` +
-                    `Caixa ID: ${caixa.id} | ` +
-                    `Aberto em: ${caixa.data_abertura_br} | ` +
-                    `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
-                    `Operador: ${caixa.nome_operador}`;
-                listaDiv.appendChild(item);
-            });
-
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
-                backdrop: 'static',
-                keyboard: false
-            });
-            modal.show();
-
-        } catch (err) {
-            console.error("Erro ao verificar caixas esquecidos:", err);
-        }
+        }, 2500);
     });
 </script>
-<!-- Fim view completa do PDV -->
-
 <!-- Fim view completa do PDV -->

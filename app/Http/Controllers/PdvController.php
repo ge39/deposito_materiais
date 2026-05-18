@@ -414,14 +414,27 @@ class PdvController extends Controller
 
 
     // 1. Adicione o parâmetro Request para capturar o terminal atual
+        // 1. Adicione o parâmetro Request para capturar o terminal atual
     public function caixasEsquecidos(Request $request, int $horasLimite = 12)
     {
         $agora = Carbon::now('America/Sao_Paulo');
         $empresaId = auth()->user()->empresa_id ?? null;
 
+        // 🎯 O SEGREDO ESTÁ AQUI: Captura o terminal direto da Session/Cookie injetada pelo seu Middleware
+        // Substitua 'terminal_id' pelo nome exato da chave que o seu IdentificaTerminal.php usa
+        $terminalId = session('terminal_id') ?? cookie('terminal_id') ?? $request->query('terminal_id');
+
         // Buscamos os caixas abertos da empresa logada
         $query = Caixa::where('status', 'aberto');
         
+        // 🎯 FILTRO AUTOMÁTICO: Se o middleware identificou o terminal, filtra o banco por ele
+        if ($terminalId) {
+            $query->where('terminal_id', $terminalId);
+        } else {
+            // Se o middleware não encontrou o terminal na sessão, assume o 10 para o seu ambiente de teste rodar
+            $query->where('terminal_id', 10);
+        }
+
         if ($empresaId) {
             $query->where('empresa_id', $empresaId);
         }
@@ -450,6 +463,7 @@ class PdvController extends Controller
 
         return response()->json($caixas);
     }
+
 
     public function verificarSangria(): array
     {

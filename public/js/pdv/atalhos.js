@@ -1,7 +1,9 @@
+// ==========================================
+// 🛡️ ESCOPO DE MEMÓRIA GLOBAL DO PDV (COMPARTILHADO EM REDE)
+// ==========================================
 window.carrinho = window.carrinho || [];
 window.cliente = window.cliente || null;
 window.caixaBloqueado = false;
-// 🔥 Inicializa a variável global na memória do navegador
 window.CAIXA_ID = window.CAIXA_ID || null;
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -9,7 +11,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // 🔍 CAPTURADOR AUTOMÁTICO DE CAIXA_ID DO DOM
     // ==========================================
-    // Busca dinamicamente por qualquer input ou elemento que contenha o ID do caixa aberto na página
     const inputCaixa = document.querySelector('input[name="caixa_id"]') || 
                        document.getElementById('input-caixa-id') || 
                        document.getElementById('caixa_id');
@@ -46,9 +47,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // =========================
-    // ATALHOS GLOBAIS (CAPTURE)
-    // =========================
+    // ==========================================
+    // 🎹 CONTROLE DE ATALHOS GLOBAIS (CAPTURE: TRUE)
+    // ==========================================
     document.addEventListener('keydown', function (e) {
         // 🔒 Trava total do sistema caso o caixa esteja sob bloqueio de sangria
         if (window.caixaBloqueado) {
@@ -88,6 +89,30 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }, true);
 
+    // ==========================================
+    // 🛒 LEITOR DE CÓDIGO DE BARRAS / EVENTO ENTER BLINDADO
+    // ==========================================
+    const inputCodigoBarras = document.getElementById('codigo_barras') || document.querySelector('input[name="codigo_barras"]');
+    if (inputCodigoBarras) {
+        inputCodigoBarras.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault(); // Impede o Recarregamento/Submit indesejado da View no F5
+                
+                const valorBipado = this.value.trim();
+                if (valorBipado === "") return;
+
+                console.log("Código interceptado no escopo global tradicional:", valorBipado);
+                
+                // Dispara dinamicamente a função existente no seu arquivo produto.js ou carrinho.js
+                if (typeof window.adicionarProdutoAoCarrinho === 'function') {
+                    window.adicionarProdutoAoCarrinho(valorBipado);
+                } else if (typeof adicionarProduto === 'function') {
+                    adicionarProduto(valorBipado);
+                }
+            }
+        });
+    }
+
     // =========================
     // BOTÃO ABRIR CAIXA
     // =========================
@@ -108,7 +133,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.key === 'F10') {
             e.preventDefault();
 
-            // 🔥 Tenta uma segunda captura em tempo de execução caso o ID tenha sido injetado pós-abertura
             if (!window.CAIXA_ID) {
                 const inputCaixaReconferencia = document.querySelector('input[name="caixa_id"]') || document.getElementById('input-caixa-id');
                 if (inputCaixaReconferencia && inputCaixaReconferencia.value) {
@@ -121,7 +145,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Cláusula de barreira preventiva contra abandono de vendas por engano
             const itensNoCarrinho = window.carrinho || [];
             if (itensNoCarrinho.length > 0) {
                 const prosseguir = confirm('Atenção: Há itens pendentes no carrinho! Deseja realmente descartar esta venda para prosseguir ao fechamento do caixa?');
@@ -131,4 +154,52 @@ document.addEventListener('DOMContentLoaded', function () {
             window.location.href = `/fechamento_caixa/fechamento/${window.CAIXA_ID}`;
         }
     });
+
+    // ==========================================
+    // ⏱️ MONITORAMENTO ASSÍNCRONO DOS CAIXAS ESQUECIDOS (2,5 SEGUNDOS APÓS F5)
+    // ==========================================
+    setTimeout(async function () {
+        const listaDiv = document.getElementById('listaCaixasEsquecidos');
+        const btnGatilho = document.getElementById('btnGatilhoModalCaixa');
+
+        // Proteção contra views que não utilizam o modal de aviso
+        if (!listaDiv || !btnGatilho) return;
+
+        try {
+            // Puxa o terminal ativo direto da sessão gerenciada pelo seu Middleware IdentificaTerminal
+            const terminalAtualId = parseInt("{{ session('terminal_id') ?? cookie('terminal_id') ?? '' }}") || 10;
+
+            // Executa a busca em segundo plano na rede local
+            const response = await fetch(`/pdv/caixas-esquecidos?terminal_id=${terminalAtualId}`);
+            if (!response.ok) throw new Error('Erro na comunicação com a API do PDV');
+
+            const caixas = await response.json();
+
+            // Se o terminal atual não possuir pendências, encerra sem abrir modal
+            if (!caixas || caixas.length === 0) {
+                listaDiv.style.display = 'none';
+                return;
+            }
+
+            listaDiv.innerHTML = '';
+            listaDiv.style.display = 'block';
+
+            caixas.forEach(caixa => {
+                const item = document.createElement('li');
+                item.textContent =
+                    `Terminal: ${caixa.terminal_id} | ` +
+                    `Caixa ID: ${caixa.id} | ` +
+                    `Aberto em: ${caixa.data_abertura_br} | ` +
+                    `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
+                    `Operador: ${caixa.nome_operador}`;
+                listaDiv.appendChild(item);
+            });
+
+            // 🎯 DISPARO NATIVO À PROVA DE ERROS: Simula o clique no botão invisível que o Bootstrap monitora
+            btnGatilho.click();
+
+        } catch (err) {
+            console.error("Erro interno no rastreador assíncrono de caixas:", err);
+        }
+    }, 2500);
 });
