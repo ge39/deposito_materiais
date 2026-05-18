@@ -650,7 +650,6 @@
 </div>
 
 <!-- caixas esquecidos abertos acima de 12 horas -->
-<!-- caixas esquecidos abertos acima de 12 horas -->
 <script>
     document.addEventListener('DOMContentLoaded', async function () {
 
@@ -660,8 +659,16 @@
         if (!listaDiv || !modalEl) return;
 
         try {
-            // 🎯 ID numérico exato do terminal atual para o filtro funcionar
-            const terminalAtualId = 10; 
+            // 🎯 CAPTURA DINÂMICA: O Laravel injeta o terminal_id do operador logado em tempo real
+            // Se o operador mudar de máquina (ex: Terminal 5), o Blade se atualiza sozinho
+            const terminalAtualId = parseInt("{{ auth()->user()->terminal_id ?? 0 }}"); 
+
+            // Se por algum motivo não houver terminal associado ao usuário, cancela a busca por segurança
+            if (!terminalAtualId || terminalAtualId === 0) {
+                console.warn("Nenhum terminal_id associado ao usuário logado.");
+                listaDiv.style.display = 'none';
+                return;
+            }
 
             const response = await fetch('/pdv/caixas-esquecidos');
 
@@ -670,12 +677,12 @@
             const data = await response.json();
             const todosCaixas = Array.isArray(data) ? data : (data.data ?? []);
 
-            // 🎯 FILTRO: Compara estritamente o terminal_id numérico (10 === 10)
+            // 🎯 FILTRO DINÂMICO: Compara o banco com o terminal logado na sessão
             const caixasDoTerminal = todosCaixas.filter(caixa => {
-                return parseInt(caixa.terminal_id) === parseInt(terminalAtualId);
+                return parseInt(caixa.terminal_id) === terminalAtualId;
             });
 
-            // Se o terminal 10 não tiver caixas antigos pendentes, encerra silenciosamente
+            // Se o terminal logado não tiver caixas antigos pendentes, encerra silenciosamente
             if (caixasDoTerminal.length === 0) {
                 listaDiv.style.display = 'none';
                 return;
@@ -687,7 +694,7 @@
             caixasDoTerminal.forEach(caixa => {
                 const item = document.createElement('li');
 
-                // 🎯 EXIBIÇÃO: Mostra explicitamente o terminal_id numérico bruto solicitado
+                // Mantém a exibição do terminal_id numérico que você definiu
                 item.textContent =
                     `Terminal: ${caixa.terminal_id} | ` +
                     `Caixa ID: ${caixa.id} | ` +
@@ -698,7 +705,7 @@
                 listaDiv.appendChild(item);
             });
 
-            // 🔥 Exibe o modal do Bootstrap na tela do operador
+            // 🔥 Exibe o modal do Bootstrap na tela do operador logado
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
                 backdrop: 'static',
                 keyboard: false
@@ -712,8 +719,6 @@
         }
     });
 </script>
-
-
 
 <!-- script dos modais do pdv -->
 <script>
