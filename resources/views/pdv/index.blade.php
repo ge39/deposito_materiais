@@ -651,63 +651,6 @@
 
 <!-- caixas esquecidos abertos acima de 12 horas -->
 <!-- caixas esquecidos abertos acima de 12 horas -->
-<!-- <script>
-    document.addEventListener('DOMContentLoaded', function() {
-
-        const listaDiv = document.getElementById('listaCaixasEsquecidos');
-        const modalEl  = document.getElementById('modalBloquearCaixa');
-
-        if (!listaDiv) return;
-
-        fetch('/pdv/caixas-esquecidos')
-            .then(response => {
-                if (!response.ok) throw new Error('Erro HTTP');
-                return response.json();
-            })
-            .then(data => {
-
-                if (!data || data.length === 0) {
-                    listaDiv.style.display = 'none';
-                    return;
-                }
-
-                listaDiv.innerHTML = '';
-                listaDiv.style.display = 'block';
-
-                data.forEach(caixa => {
-
-                    const item = document.createElement('li');
-
-                    const operador = caixa.usuario?.name ?? '---';
-
-                    item.textContent =
-                        `Terminal: ${caixa.terminal_id} | ` +
-                        `Caixa ID: ${caixa.id} | ` +
-                        `Aberto em: ${caixa.data_abertura_br} | ` +
-                        `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
-                        `Operador: ${operador}`;
-
-                    listaDiv.appendChild(item);
-
-                });
-
-                if (modalEl && typeof bootstrap !== 'undefined') {
-                    const modal = new bootstrap.Modal(modalEl, {
-                        backdrop: 'static',
-                        keyboard: false
-                    });
-                    modal.show();
-                }
-
-            })
-            .catch(err => {
-                console.error("Erro ao buscar caixas:", err);
-                listaDiv.style.display = 'none';
-            });
-
-    });
-</script> -->
-
 <script>
     document.addEventListener('DOMContentLoaded', async function () {
 
@@ -717,15 +660,23 @@
         if (!listaDiv || !modalEl) return;
 
         try {
+            // 🎯 ID numérico exato do terminal atual para o filtro funcionar
+            const terminalAtualId = 10; 
+
             const response = await fetch('/pdv/caixas-esquecidos');
 
             if (!response.ok) throw new Error('Erro HTTP');
 
             const data = await response.json();
+            const todosCaixas = Array.isArray(data) ? data : (data.data ?? []);
 
-            const caixas = Array.isArray(data) ? data : (data.data ?? []);
+            // 🎯 FILTRO: Compara estritamente o terminal_id numérico (10 === 10)
+            const caixasDoTerminal = todosCaixas.filter(caixa => {
+                return parseInt(caixa.terminal_id) === parseInt(terminalAtualId);
+            });
 
-            if (caixas.length === 0) {
+            // Se o terminal 10 não tiver caixas antigos pendentes, encerra silenciosamente
+            if (caixasDoTerminal.length === 0) {
                 listaDiv.style.display = 'none';
                 return;
             }
@@ -733,23 +684,21 @@
             listaDiv.innerHTML = '';
             listaDiv.style.display = 'block';
 
-            caixas.forEach(caixa => {
-
+            caixasDoTerminal.forEach(caixa => {
                 const item = document.createElement('li');
 
-                const operador = caixa.usuario?.name ?? '---';
-
+                // 🎯 EXIBIÇÃO: Mostra explicitamente o terminal_id numérico bruto solicitado
                 item.textContent =
                     `Terminal: ${caixa.terminal_id} | ` +
                     `Caixa ID: ${caixa.id} | ` +
                     `Aberto em: ${caixa.data_abertura_br} | ` +
                     `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
-                    `Operador: ${operador}`;
+                    `Operador: ${caixa.nome_operador}`;
 
                 listaDiv.appendChild(item);
             });
 
-            // 🔥 evita recriar modal toda vez
+            // 🔥 Exibe o modal do Bootstrap na tela do operador
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
                 backdrop: 'static',
                 keyboard: false
@@ -761,9 +710,9 @@
             console.error("Erro ao buscar caixas:", err);
             listaDiv.style.display = 'none';
         }
-
     });
 </script>
+
 
 
 <!-- script dos modais do pdv -->
@@ -819,36 +768,36 @@
 
 <!-- Armazena total da venda globalmente e passa para view de finalizar -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function() {
 
-    const btnFinalizar = document.getElementById("btnF6");
-    const totalInput = document.getElementById("inputTotalGeral");
-    const modalTotal = document.getElementById("total-venda-modal");
+        const btnFinalizar = document.getElementById("btnF6");
+        const totalInput = document.getElementById("inputTotalGeral");
+        const modalTotal = document.getElementById("total-venda-modal");
 
-    if (btnFinalizar) {
+        if (btnFinalizar) {
 
-        btnFinalizar.addEventListener("click", function() {
+            btnFinalizar.addEventListener("click", function() {
 
-            if (totalInput && modalTotal) {
-                modalTotal.value = totalInput.value;
-            } else {
-                console.warn("Elemento de total não encontrado!");
-            }
+                if (totalInput && modalTotal) {
+                    modalTotal.value = totalInput.value;
+                } else {
+                    console.warn("Elemento de total não encontrado!");
+                }
 
-            const modalEl = document.getElementById('modalFinalizar');
+                const modalEl = document.getElementById('modalFinalizar');
 
-            if (modalEl && typeof bootstrap !== 'undefined') {
-                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                modal.show();
-            }
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                }
 
-        });
+            });
 
-    } else {
-        console.warn("btnF6 não encontrado no DOM");
-    }
+        } else {
+            console.warn("btnF6 não encontrado no DOM");
+        }
 
-});
+    });
 
 </script>
 

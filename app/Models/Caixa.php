@@ -165,42 +165,6 @@ class Caixa extends Model
         return round(max($totalVendasDinheiro - $totalSangrias, 0), 2);
     }
 
-
-    // public function verificarSangria(): array 
-    // {
-    //     // Busca a configuração da sangria ativa para a empresa deste caixa
-    //     $config = \App\Models\SangriaConfig::where('empresa_id', $this->empresa_id)->first();
-
-    //     if (!$config) {
-    //         return [
-    //             'saldoAtual' => 0.0,
-    //             'limiteSangria' => 0.0,
-    //             'limiteBloqueio' => 0.0,
-    //             'avisarSangria' => false,
-    //             'bloquearPDV' => false,
-    //         ];
-    //     }
-
-    //     $limite = (float) $config->valor_limite; // Agora vai ler os seus 200 configurados
-    //     $percentual = (float) ($config->percentual_bloqueio ?? 0); 
-    //     $bloqueioAtivo = (bool) ($config->bloqueio_ativo ?? true); 
-
-    //     $saldoAtual = (float) $this->saldoDinheiroAtual(); // Pega o saldo em dinheiro deste caixa específico
-    //     $valorSugeridoSangria = max(0, $saldoAtual - $limite);
-        
-    //     // Se houver percentual de bloqueio ex: 50% em cima de 200 = limite de bloqueio vira 300
-    //     $limiteBloqueio = $limite * (1 + ($percentual / 100)); 
-
-    //     return [
-    //         'saldoAtual' => $saldoAtual,
-    //         'limiteSangria' => $limite,
-    //         'limiteBloqueio' => $limiteBloqueio,
-    //         'avisarSangria' => $saldoAtual >= $limite,
-    //         'bloquearPDV' => $bloqueioAtivo && $saldoAtual >= $limiteBloqueio,
-    //         'valorSugeridoSangria' => $valorSugeridoSangria,
-    //     ];
-    // }
-
     public function verificarSangria(): array
     {
         // 1. Obtém o saldo real em dinheiro deste caixa específico

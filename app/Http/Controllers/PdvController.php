@@ -411,76 +411,45 @@ class PdvController extends Controller
      * @return \Illuminate\Support\Collection
      */
        
-    public function caixasEsquecidos(int $horasLimite = 12)
+
+
+    // 1. Adicione o parâmetro Request para capturar o terminal atual
+    public function caixasEsquecidos(Request $request, int $horasLimite = 12)
     {
         $agora = Carbon::now('America/Sao_Paulo');
-        $limite = (clone $agora)->subHours($horasLimite);
+        $empresaId = auth()->user()->empresa_id ?? null;
 
-        $caixas = Caixa::where('status', 'aberto')
-            ->where('data_abertura', '<', $limite)
-            ->with('usuario')
+        // Buscamos os caixas abertos da empresa logada
+        $query = Caixa::where('status', 'aberto');
+        
+        if ($empresaId) {
+            $query->where('empresa_id', $empresaId);
+        }
+
+        $caixas = $query->with(['usuario']) 
             ->get()
             ->map(function ($caixa) use ($agora) {
 
-                $abertura = Carbon::parse($caixa->data_abertura)
-                    ->setTimezone('America/Sao_Paulo');
+                // Força a leitura correta da data inserida no banco de dados
+                $abertura = Carbon::parse($caixa->data_abertura, 'America/Sao_Paulo');
 
-                // ⚠️ FORÇANDO horas inteiras (não existe decimal aqui)
-                $caixa->pdv_horas_aberto = (int) $abertura->diffInHours($agora);
-
-                // Datas formatadas PT-BR
+                // Calcula a diferença exata de horas
+                $horasAberto = (int) $abertura->diffInHours($agora);
+                
+                $caixa->pdv_horas_aberto = $horasAberto;
                 $caixa->data_abertura_br = $abertura->format('d/m/Y H:i');
-                $caixa->data_fechamento_br = $caixa->data_fechamento
-                    ? Carbon::parse($caixa->data_fechamento)
-                        ->setTimezone('America/Sao_Paulo')
-                        ->format('d/m/Y H:i')
-                    : null;
-
+                $caixa->nome_operador    = $caixa->usuario->name ?? '---';
+                
                 return $caixa;
-            });
+            })
+            // Filtra apenas os caixas que estouraram o limite de tempo configurado
+            ->filter(function ($caixa) use ($horasLimite) {
+                return $caixa->pdv_horas_aberto >= $horasLimite;
+            })
+            ->values();
 
         return response()->json($caixas);
     }
-
-    // public function verificarSangria(): array
-    // {
-    //     // 1. Busca a configuração de sangria específica para a empresa deste caixa
-    //     $config = \App\Models\SangriaConfig::where('empresa_id', $this->empresa_id)->first();
-
-    //     // Se não existir configuração para a empresa, retorna zerado sem bloquear nada
-    //     if (!$config) {
-    //         return [
-    //             'saldoAtual' => $this->saldoDinheiroAtual(),
-    //             'limiteSangria' => 0.0,
-    //             'limiteBloqueio' => 0.0,
-    //             'avisarSangria' => false,
-    //             'bloquearPDV' => false,
-    //         ];
-    //     }
-
-    //     // 2. Mapeia as variáveis usando estritamente os campos corretos da tabela sangria_configs
-    //     $limiteSangria = (float) ($config->valor_limite ?? 0.0); // Onde estão seus R$ 200
-    //     $percentual = (float) ($config->percentual_bloqueio ?? 0.0);
-    //     $bloqueioAtivo = (bool) ($config->bloqueio_ativo ?? false);
-
-    //     // 3. Obtém o saldo em dinheiro em tempo real deste terminal/caixa específico
-    //     $saldoAtual = $this->saldoDinheiroAtual();
-
-    //     // 4. Calcula o teto máximo permitido antes do travamento total (Ex: 200 + 50% = 300)
-    //     $limiteBloqueio = $limiteSangria * (1 + ($percentual / 100));
-
-    //     // 5. Define os gatilhos lógicos de resposta para o PDV
-    //     $deveAvisar = $saldoAtual >= $limiteSangria;
-    //     $deveBloquear = $bloqueioAtivo && ($saldoAtual >= $limiteBloqueio);
-
-    //     return [
-    //         'saldoAtual' => $saldoAtual,
-    //         'limiteSangria' => $limiteSangria,
-    //         'limiteBloqueio' => $limiteBloqueio,
-    //         'avisarSangria' => $deveAvisar,
-    //         'bloquearPDV' => $deveBloquear,
-    //     ];
-    // }
 
     public function verificarSangria(): array
     {

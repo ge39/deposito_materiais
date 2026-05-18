@@ -293,24 +293,25 @@ if (window.__pdvProdutoJsCarregado) {
         // ========================================================== //
 
         // 1️⃣ FAZ A TABELA ESCUTAR O SEU CLIQUE E MARCAR A LINHA SELECIONADA
-                tabelaItens?.addEventListener("click", function(e) {
+        tabelaItens?.addEventListener("click", function(e) {
             const linha = e.target.closest("tr");
             if (!linha || linha.rowIndex === 0) return; 
 
-            // 1. Remove a marcação de todas as outras linhas
             tabelaItens.querySelectorAll("tr").forEach(tr => tr.classList.remove("table-active"));
 
-            // 2. Define a linha selecionada de forma direta (sem o bloco "if" de alternância)
+            if (linhaSelecionada === linha) {
+                linhaSelecionada = null;
+                if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
+                return;
+            }
+
             linhaSelecionada = linha;
             linha.classList.add("table-active");
 
-            // 3. Força o painel flutuante a ficar visível sempre
             if (acoesCarrinho) {
                 acoesCarrinho.classList.remove("d-none");
-                acoesCarrinho.style.display = "block"; // Garante a exibição caso use display inline
             }
         });
-
 
         // 2️⃣ PROGRAMA O BOTÃO DE DIMINUIR QUANTIDADE (-1)
       // ========================================================== //
