@@ -894,14 +894,8 @@
 
 
 <?php echo app('Illuminate\Foundation\Vite')([
-    'resources/js/pdv/app.js',      
-    'resources/js/pdv/produto.js',
-    'resources/js/pdv/carrinho.js',
-    'resources/js/pdv/regras.js',
-    'resources/js/pdv/orcamento.js',
-    'resources/js/pdv/ui.js',
-    'resources/js/pdv/atalhos.js',
-    
+    'resources/js/pdv/app.js',
+    'resources/js/pdv/atalhos.js'
 ]); ?>
 <!-- Fim view completa do PDV -->
 <?php echo $__env->make('layouts.app2', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>

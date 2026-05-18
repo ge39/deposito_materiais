@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('content'); ?>
 <div class="container mt-4">
     <div class="card border-dark mx-auto" style="max-width: 380px;">

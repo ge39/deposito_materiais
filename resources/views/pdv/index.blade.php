@@ -878,15 +878,9 @@
 @include('pdv.modals.modal_orcamento')
 @include('pdv.modals.modal_finalizar')
 
-
+{{-- 🔥 CORRIGIDO: Carrega apenas o bundle principal que junta todos os scripts sem duplicar e quebrar as variáveis --}}
 @vite([
-    'resources/js/pdv/app.js',      {{-- BOOT --}}
-    'resources/js/pdv/produto.js',
-    'resources/js/pdv/carrinho.js',
-    'resources/js/pdv/regras.js',
-    'resources/js/pdv/orcamento.js',
-    'resources/js/pdv/ui.js',
-    'resources/js/pdv/atalhos.js',
-    
+    'resources/js/pdv/app.js',
+    'resources/js/pdv/atalhos.js'
 ])
 <!-- Fim view completa do PDV -->

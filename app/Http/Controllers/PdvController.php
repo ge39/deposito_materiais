@@ -306,7 +306,7 @@ class PdvController extends Controller
           
         return response()->json($resultado);
     }
-    // Buscar produto por codigo de barras
+       // Buscar produto por codigo de barras
     public function buscarProdutoPorCodigo($codigo)
     {
         // 🔹 Validação básica
@@ -317,7 +317,7 @@ class PdvController extends Controller
             ], 400);
         }
 
-        // 🔹 Autenticação (se necessário)
+        // 🔹 Autenticação
         if (!auth()->check()) {
             return response()->json([
                 'status' => 'erro',
@@ -347,22 +347,16 @@ class PdvController extends Controller
             ], 404);
         }
 
-        // 🔹 Unidade
+        // 🔹 Unidade Dinâmica vinda do relacionamento com a tabela unidade_medidas
         $produto->unidade_sigla = $produto->unidadeMedida->sigla ?? null;
 
-        // 🔹 Soma quantidade total disponível
+        // 🔹 Soma quantidade total disponível nos lotes ativos
         $produto->quantidade_total_disponivel = $produto->lotes->sum('quantidade_disponivel');
 
-        /*
-        |--------------------------------------------------------------------------
-        | 🔔 INFORMAÇÃO DE VALIDADE (APENAS INFORMATIVA)
-        |--------------------------------------------------------------------------
-        */
+        // 🔔 Informação de validade informativa
         $produto->alerta_validade = null;
 
         if ($produto->lotes->count() > 0) {
-
-            // Lote com validade mais próxima
             $loteMaisProximo = $produto->lotes->sortBy('validade_lote')->first();
 
             $diasParaVencer = now()->startOfDay()
@@ -382,6 +376,7 @@ class PdvController extends Controller
             'produto' => $produto
         ]);
     }
+
    
     /**
      * F8 – Abrir Gaveta (apenas backend registra)
