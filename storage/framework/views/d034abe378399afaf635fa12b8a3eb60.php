@@ -664,7 +664,6 @@
 </div>
 
 <!-- caixas esquecidos abertos acima de 12 horas -->
-<!-- caixas esquecidos abertos acima de 12 horas -->
 <script>
     document.addEventListener('DOMContentLoaded', async function () {
 
@@ -674,8 +673,16 @@
         if (!listaDiv || !modalEl) return;
 
         try {
-            // 🎯 ID numérico exato do terminal atual para o filtro funcionar
-            const terminalAtualId = 10; 
+            // 🎯 CAPTURA DINÂMICA: O Laravel injeta o terminal_id do operador logado em tempo real
+            // Se o operador mudar de máquina (ex: Terminal 5), o Blade se atualiza sozinho
+            const terminalAtualId = parseInt("<?php echo e(auth()->user()->terminal_id ?? 0); ?>"); 
+
+            // Se por algum motivo não houver terminal associado ao usuário, cancela a busca por segurança
+            if (!terminalAtualId || terminalAtualId === 0) {
+                console.warn("Nenhum terminal_id associado ao usuário logado.");
+                listaDiv.style.display = 'none';
+                return;
+            }
 
             const response = await fetch('/pdv/caixas-esquecidos');
 
@@ -684,12 +691,12 @@
             const data = await response.json();
             const todosCaixas = Array.isArray(data) ? data : (data.data ?? []);
 
-            // 🎯 FILTRO: Compara estritamente o terminal_id numérico (10 === 10)
+            // 🎯 FILTRO DINÂMICO: Compara o banco com o terminal logado na sessão
             const caixasDoTerminal = todosCaixas.filter(caixa => {
-                return parseInt(caixa.terminal_id) === parseInt(terminalAtualId);
+                return parseInt(caixa.terminal_id) === terminalAtualId;
             });
 
-            // Se o terminal 10 não tiver caixas antigos pendentes, encerra silenciosamente
+            // Se o terminal logado não tiver caixas antigos pendentes, encerra silenciosamente
             if (caixasDoTerminal.length === 0) {
                 listaDiv.style.display = 'none';
                 return;
@@ -701,7 +708,7 @@
             caixasDoTerminal.forEach(caixa => {
                 const item = document.createElement('li');
 
-                // 🎯 EXIBIÇÃO: Mostra explicitamente o terminal_id numérico bruto solicitado
+                // Mantém a exibição do terminal_id numérico que você definiu
                 item.textContent =
                     `Terminal: ${caixa.terminal_id} | ` +
                     `Caixa ID: ${caixa.id} | ` +
@@ -712,7 +719,7 @@
                 listaDiv.appendChild(item);
             });
 
-            // 🔥 Exibe o modal do Bootstrap na tela do operador
+            // 🔥 Exibe o modal do Bootstrap na tela do operador logado
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
                 backdrop: 'static',
                 keyboard: false
@@ -726,8 +733,6 @@
         }
     });
 </script>
-
-
 
 <!-- script dos modais do pdv -->
 <script>
@@ -842,9 +847,74 @@
 <?php echo $__env->make('pdv.modals.modal_finalizar', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
 
-<?php echo app('Illuminate\Foundation\Vite')([
-    'resources/js/pdv/app.js',
-    'resources/js/pdv/atalhos.js'
-]); ?>
+
+
+<!-- <script src="https://jsdelivr.net"></script> -->
+
+
+<script src="<?php echo e(asset('js/pdv/app.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/regras.js')); ?>" defer></script>
+
+
+<script src="<?php echo e(asset('js/pdv/produto.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/orcamento.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/carrinho.js')); ?>" defer></script>
+
+
+<script src="<?php echo e(asset('js/pdv/ui.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/pdv.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/form-masks.js')); ?>" defer></script>
+
+
+<script src="<?php echo e(asset('js/pdv/atalhos.js')); ?>" defer></script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', async function () {
+        const listaDiv = document.getElementById('listaCaixasEsquecidos');
+        const modalEl  = document.getElementById('modalBloquearCaixa');
+
+        if (!listaDiv || !modalEl) return;
+
+        try {
+            const terminalAtualId = parseInt("<?php echo e(session('terminal_id') ?? cookie('terminal_id') ?? 0); ?>"); 
+            if (!terminalAtualId || terminalAtualId === 0) return;
+
+            const response = await fetch(`/pdv/caixas-esquecidos?terminal_id=${terminalAtualId}`);
+            if (!response.ok) throw new Error('Erro HTTP');
+
+            const caixas = await response.json();
+            if (!caixas || caixas.length === 0) {
+                listaDiv.style.display = 'none';
+                return;
+            }
+
+            listaDiv.innerHTML = '';
+            listaDiv.style.display = 'block';
+
+            caixas.forEach(caixa => {
+                const item = document.createElement('li');
+                item.textContent =
+                    `Terminal: ${caixa.terminal_id} | ` +
+                    `Caixa ID: ${caixa.id} | ` +
+                    `Aberto em: ${caixa.data_abertura_br} | ` +
+                    `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
+                    `Operador: ${caixa.nome_operador}`;
+                listaDiv.appendChild(item);
+            });
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+                backdrop: 'static',
+                keyboard: false
+            });
+            modal.show();
+
+        } catch (err) {
+            console.error("Erro ao verificar caixas esquecidos:", err);
+        }
+    });
+</script>
+<!-- Fim view completa do PDV -->
+
 <!-- Fim view completa do PDV -->
 <?php echo $__env->make('layouts.app2', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>

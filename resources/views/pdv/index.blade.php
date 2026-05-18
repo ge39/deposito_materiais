@@ -832,9 +832,74 @@
 @include('pdv.modals.modal_orcamento')
 @include('pdv.modals.modal_finalizar')
 
-{{-- 🔥 CORRIGIDO: Carrega apenas o bundle principal que junta todos os scripts sem duplicar e quebrar as variáveis --}}
-@vite([
-    'resources/js/pdv/app.js',
-    'resources/js/pdv/atalhos.js'
-])
+{{-- 🎯 CARREGAMENTO SEQUENCIAL VIA PASTA PUBLIC (SEM VITE) --}}
+
+{{-- 1. Se o seu app.js usava o Axios que vinha do bootstrap do Laravel, inclua esta linha: --}}
+<!-- <script src="https://jsdelivr.net"></script> -->
+
+{{-- 2. Base e Configurações --}}
+<script src="{{ asset('js/pdv/app.js') }}" defer></script>
+<script src="{{ asset('js/pdv/regras.js') }}" defer></script>
+
+{{-- 3. Regras de Negócio e Funções do Carrinho --}}
+<script src="{{ asset('js/pdv/produto.js') }}" defer></script>
+<script src="{{ asset('js/pdv/orcamento.js') }}" defer></script>
+<script src="{{ asset('js/pdv/carrinho.js') }}" defer></script>
+
+{{-- 4. Interfaces e Comportamento Principal (Leitor de Código de Barras / Enter) --}}
+<script src="{{ asset('js/pdv/ui.js') }}" defer></script>
+<script src="{{ asset('js/pdv/pdv.js') }}" defer></script>
+<script src="{{ asset('js/pdv/form-masks.js') }}" defer></script>
+
+{{-- 5. Atalhos de Teclado (Sempre por último) --}}
+<script src="{{ asset('js/pdv/atalhos.js') }}" defer></script>
+
+{{-- 6. Monitoramento de Caixas Esquecidos --}}
+<script>
+    document.addEventListener('DOMContentLoaded', async function () {
+        const listaDiv = document.getElementById('listaCaixasEsquecidos');
+        const modalEl  = document.getElementById('modalBloquearCaixa');
+
+        if (!listaDiv || !modalEl) return;
+
+        try {
+            const terminalAtualId = parseInt("{{ session('terminal_id') ?? cookie('terminal_id') ?? 0 }}"); 
+            if (!terminalAtualId || terminalAtualId === 0) return;
+
+            const response = await fetch(`/pdv/caixas-esquecidos?terminal_id=${terminalAtualId}`);
+            if (!response.ok) throw new Error('Erro HTTP');
+
+            const caixas = await response.json();
+            if (!caixas || caixas.length === 0) {
+                listaDiv.style.display = 'none';
+                return;
+            }
+
+            listaDiv.innerHTML = '';
+            listaDiv.style.display = 'block';
+
+            caixas.forEach(caixa => {
+                const item = document.createElement('li');
+                item.textContent =
+                    `Terminal: ${caixa.terminal_id} | ` +
+                    `Caixa ID: ${caixa.id} | ` +
+                    `Aberto em: ${caixa.data_abertura_br} | ` +
+                    `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
+                    `Operador: ${caixa.nome_operador}`;
+                listaDiv.appendChild(item);
+            });
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+                backdrop: 'static',
+                keyboard: false
+            });
+            modal.show();
+
+        } catch (err) {
+            console.error("Erro ao verificar caixas esquecidos:", err);
+        }
+    });
+</script>
+<!-- Fim view completa do PDV -->
+
 <!-- Fim view completa do PDV -->
