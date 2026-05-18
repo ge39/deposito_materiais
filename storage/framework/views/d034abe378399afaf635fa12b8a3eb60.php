@@ -605,9 +605,10 @@
                         <td class="text-center" style="width:50px">Item</td>
                         <td class="text-center" style="width:90px">Lote</td>
                         <td class="text-center" style="width:200px;">Descrição</td>
+                        <td class="text-center" style="width:90px">Preço</td>
                         <td class="text-center" style="width:50px">Qtde</td>
                         <td class="text-center" style="width:50px">Unid</td>
-                        <td class="text-center" style="width:90px">Preço</td>
+                        
                         <td class="text-center" style="width:90px">SubTotal</td>
                         
 
@@ -829,7 +830,6 @@
 </script>
 
 <!-- armazendo id do caixa para o fechamento -->
-
 <script>
     const CAIXA_ID = <?php echo json_encode($caixa->id ?? null, 15, 512) ?>;
     const CAIXA_POSSUI_VENDAS = <?php echo json_encode($caixa->possui_vendas ?? false, 15, 512) ?>;
