@@ -547,136 +547,186 @@ document.addEventListener('DOMContentLoaded', function () {
   // ========================================== //
   // INTEGRADO: FINALIZAR VENDA COM ADIÇÕES     //
   // ========================================== //
-  async function finalizarVenda(e) {
-    e.preventDefault();
-    if (btnFinalizar.disabled) return;
+  // async function finalizarVenda(e) {
+  //   e.preventDefault();
+  //   if (btnFinalizar.disabled) return;
 
-    const inputCliente = document.querySelector('input[name="cliente_id"]') || document.getElementById('input-cliente-id');
-    const inputFuncionario = document.querySelector('input[name="operador_id"]') || document.querySelector('input[name="funcionario_id"]') || document.getElementById('input-operador-id');
-    const inputCaixa = document.querySelector('input[name="caixa_id"]') || document.getElementById('input-caixa-id');
-    const inputData = document.getElementById('dataVenda');
+  //   const inputCliente = document.querySelector('input[name="cliente_id"]') || document.getElementById('input-cliente-id');
+  //   const inputFuncionario = document.querySelector('input[name="operador_id"]') || document.querySelector('input[name="funcionario_id"]') || document.getElementById('input-operador-id');
+  //   const inputCaixa = document.querySelector('input[name="caixa_id"]') || document.getElementById('input-caixa-id');
+  //   const inputData = document.getElementById('dataVenda');
 
-    const cliente_id = inputCliente?.value || null;
-    const funcionario_id = inputFuncionario?.value || null;
-    const caixa_id = inputCaixa?.value || null;
-    const dataVenda = inputData?.value || null;
+  //   const cliente_id = inputCliente?.value || null;
+  //   const funcionario_id = inputFuncionario?.value || null;
+  //   const caixa_id = inputCaixa?.value || null;
+  //   const dataVenda = inputData?.value || null;
 
-    if (!funcionario_id || !caixa_id) {
-      alert(`Erro local: Operador (${funcionario_id}) ou Caixa (${caixa_id}) não identificados no formulário.`);
-      return;
-    }
+  //   if (!funcionario_id || !caixa_id) {
+  //     alert(`Erro local: Operador (${funcionario_id}) ou Caixa (${caixa_id}) não identificados no formulário.`);
+  //     return;
+  //   }
 
-    const itens = window.carrinho || [];
-    if (!itens.length) {
-      alert('Adicione itens antes de finalizar');
-      return;
-    }
+  //   const itens = window.carrinho || [];
+  //   if (!itens.length) {
+  //     alert('Adicione itens antes de finalizar');
+  //     return;
+  //   }
 
-    const pagamentos = [];
-    inputsPagamento.forEach(input => {
-      const valor = parseFloat(input.value) || 0;
-      if (valor > 0) {
-        pagamentos.push({ forma: input.dataset.forma, valor });
-      }
-    });
+  //   const pagamentos = [];
+  //   inputsPagamento.forEach(input => {
+  //     const valor = parseFloat(input.value) || 0;
+  //     if (valor > 0) {
+  //       pagamentos.push({ forma: input.dataset.forma, valor });
+  //     }
+  //   });
 
-    if (!pagamentos.length) {
-      alert('Informe uma forma de pagamento');
-      return;
-    }
+  //   if (!pagamentos.length) {
+  //     alert('Informe uma forma de pagamento');
+  //     return;
+  //   }
 
-    // 🪙 Extrai o valor do troco calculado em tempo real do elemento visual da tela
-    let valorTroco = 0;
-    if (trocoEl) {
-      const textoTroco = trocoEl.innerText || trocoEl.value || '0';
-      valorTroco = parseFloat(textoTroco.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-    }
+  //   // 🪙 Extrai o valor do troco calculado em tempo real do elemento visual da tela
+  //   let valorTroco = 0;
+  //   if (trocoEl) {
+  //     const textoTroco = trocoEl.innerText || trocoEl.value || '0';
+  //     valorTroco = parseFloat(textoTroco.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+  //   }
 
-    const textoOriginalBtn = btnFinalizar.innerHTML;
-    btnFinalizar.disabled = true;
-    btnFinalizar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...`;
+  //   const textoOriginalBtn = btnFinalizar.innerHTML;
+  //   btnFinalizar.disabled = true;
+  //   btnFinalizar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...`;
 
-    try {
-      const res = await fetch('/vendas/finalizar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': token
-        },
-        body: JSON.stringify({ cliente_id, funcionario_id, caixa_id, dataVenda, pagamentos, itens })
-      });
+  //   try {
+  //     const res = await fetch('/vendas/finalizar', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Accept': 'application/json',
+  //         'X-CSRF-TOKEN': token
+  //       },
+  //       body: JSON.stringify({ cliente_id, funcionario_id, caixa_id, dataVenda, pagamentos, itens })
+  //     });
 
-      const text = await res.text();
-      let dataFinal;
+  //     const text = await res.text();
+  //     let dataFinal;
 
-      try {
-        dataFinal = JSON.parse(text);
-      } catch (errParse) {
-        console.error("Retorno não-JSON recebido do servidor:", text);
-        throw new Error("O servidor retornou uma resposta inválida ou erro interno no formato HTML.");
-      }
+  //     try {
+  //       dataFinal = JSON.parse(text);
+  //     } catch (errParse) {
+  //       console.error("Retorno não-JSON recebido do servidor:", text);
+  //       throw new Error("O servidor retornou uma resposta inválida ou erro interno no formato HTML.");
+  //     }
 
-      if (!res.ok) {
-        console.error("ERRO HTTP DETALHADO:", res.status, text);
-        throw new Error(dataFinal.erro || "Erro no servidor ao processar venda");
-      }
+  //     if (!res.ok) {
+  //       console.error("ERRO HTTP DETALHADO:", res.status, text);
+  //       throw new Error(dataFinal.erro || "Erro no servidor ao processar venda");
+  //     }
 
-      if (!dataFinal.success) {
-        throw new Error(dataFinal.erro || 'Erro ao processar pagamentos');
-      }
+  //     if (!dataFinal.success) {
+  //       throw new Error(dataFinal.erro || 'Erro ao processar pagamentos');
+  //     }
 
-      window.carrinho = [];
-      modal?.hide();
+  //     window.carrinho = [];
+  //     modal?.hide();
 
-    //   alert('Venda finalizada com sucesso!');
+  //   //   alert('Venda finalizada com sucesso!');
 
-      // 🖨️ ABRE O CUPOM AUTOMATICAMENTE PASSANDO O TROCO DA TELA
-      if (dataFinal.cupom_url) {
-        const urlComTroco = `${dataFinal.cupom_url}?troco=${valorTroco}`;
-        window.open(urlComTroco, '_blank');
-      }
+  //     // 🖨️ ABRE O CUPOM AUTOMATICAMENTE PASSANDO O TROCO DA TELA
+  //     if (dataFinal.cupom_url) {
+  //       const urlComTroco = `${dataFinal.cupom_url}?troco=${valorTroco}`;
+  //       window.open(urlComTroco, '_blank');
+  //     }
 
-    // ... [Dentro do bloco Try da sua função finalizarVenda após o alert de sucesso] ...
-    alert('Venda finalizada com sucesso!');
+  //   // ... [Dentro do bloco Try da sua função finalizarVenda após o alert de sucesso] ...
+  //   alert('Venda finalizada com sucesso!');
 
-    // // 🖨️ IMPRESSÃO PROFISSIONAL VIA IFRAME OCULTO
-    if (dataFinal.cupom_url) {
-    const urlComTroco = `${dataFinal.cupom_url}?troco=${valorTroco}`;
+  //   // // 🖨️ IMPRESSÃO PROFISSIONAL VIA IFRAME OCULTO
+  //   if (dataFinal.cupom_url) {
+  //   const urlComTroco = `${dataFinal.cupom_url}?troco=${valorTroco}`;
     
-    // // Cria um iframe temporário e invisível na página
-    const iframeHtml = document.createElement('iframe');
-    iframeHtml.style.position = 'fixed';
-    iframeHtml.style.right = '0';
-    iframeHtml.style.bottom = '0';
-    iframeHtml.style.width = '0';
-    iframeHtml.style.height = '0';
-    iframeHtml.style.border = '0';
-    iframeHtml.src = urlComTroco;
+  //   // // Cria um iframe temporário e invisível na página
+  //   const iframeHtml = document.createElement('iframe');
+  //   iframeHtml.style.position = 'fixed';
+  //   iframeHtml.style.right = '0';
+  //   iframeHtml.style.bottom = '0';
+  //   iframeHtml.style.width = '0';
+  //   iframeHtml.style.height = '0';
+  //   iframeHtml.style.border = '0';
+  //   iframeHtml.src = urlComTroco;
     
-    // document.body.appendChild(iframeHtml);
+  //   // document.body.appendChild(iframeHtml);
 
-    // // Remove o iframe da tela 60 segundos após o disparo para não acumular lixo na memória
-    setTimeout(() => iframeHtml.remove(), 60000);
-    }
+  //   // // Remove o iframe da tela 60 segundos após o disparo para não acumular lixo na memória
+  //   setTimeout(() => iframeHtml.remove(), 60000);
+  //   }
 
-        // Controle de fluxo de regras de Sangria emitidas pelo backend
+  //       // Controle de fluxo de regras de Sangria emitidas pelo backend
    
-      if (dataFinal.redirect_sangria && dataFinal.url) {
-        // alert('O limite do caixa foi atingido. Redirecionando para Sangria...');
-        window.location.href = dataFinal.url;
-      } else {
-        window.location.reload();
-      }
+  //     if (dataFinal.redirect_sangria && dataFinal.url) {
+  //       // alert('O limite do caixa foi atingido. Redirecionando para Sangria...');
+  //       window.location.href = dataFinal.url;
+  //     } else {
+  //       window.location.reload();
+  //     }
 
-    } catch (err) {
-      console.error(err);
-      alert(err.message);
-      btnFinalizar.disabled = false;
-      btnFinalizar.innerHTML = textoOriginalBtn;
-      btnFinalizar.focus();
-    }
+  //   } catch (err) {
+  //     console.error(err);
+  //     alert(err.message);
+  //     btnFinalizar.disabled = false;
+  //     btnFinalizar.innerHTML = textoOriginalBtn;
+  //     btnFinalizar.focus();
+  //   }
+  // }
+
+  // Exemplo do fluxo que envia a venda para o Laravel (geralmente no modal_finalizar.js)
+  function finalizarVendaPdv() {
+      
+      const dadosVenda = {
+          caixa_id: window.PDV.caixa_id,
+          funcionario_id: window.PDV.funcionario_id,
+          dataVenda: window.PDV.dataVenda,
+          itens: window.carrinho // Envia o array de memória que o localStorage gerenciava
+      };
+
+      // Altere para a URL exata da sua rota do Laravel (ex: /pdv/finalizar ou /pdv/venda/store)
+      fetch('/pdv/venda/store', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'Accept': 'application/json'
+          },
+          body: JSON.stringify(dadosVenda)
+      })
+      .then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              alert("Venda realizada com sucesso!");
+
+              // 🔥 ONDE O MILAGRE ACONTECE:
+              // A venda salvou no banco de dados com segurança. Agora limpamos o navegador 
+              // e esvaziamos a tabela visual para o caixa ficar pronto para o próximo cliente.
+              if (typeof window.limparPdvLocalStorage === "function") {
+                  window.limparPdvLocalStorage();
+              }
+
+              // Fecha o modal do Bootstrap se necessário
+              const modalEl = document.getElementById('modalFinalizarVenda');
+              if (modalEl && typeof bootstrap !== 'undefined') {
+                  const modal = bootstrap.Modal.getInstance(modalEl);
+                  modal?.hide();
+              }
+
+          } else {
+              alert("Erro ao finalizar venda: " + (data.message || data.erro));
+          }
+      })
+      .catch(error => {
+          console.error('Erro na requisição:', error);
+          alert("Erro de comunicação com o servidor.");
+      });
   }
+
 
   btnFinalizar.addEventListener('click', finalizarVenda);
   btnFinalizar.addEventListener('keydown', function (e) {

@@ -1,4 +1,4 @@
-                    // ========================================================== //
+// ========================================================== //
 // 🪙 SOM DE BIP NATIVO (FLUXO ULTRA RÁPIDO VIA FREQUÊNCIA)   //
 // ========================================================== //
 window.emitirBipPDV = function() {
@@ -175,270 +175,151 @@ if (window.__pdvProdutoJsCarregado) {
                     }
                 }
             } else {
-                // 4️⃣ ADICIONA NOVO OBJETO AO ARRAY GLOBAL
+                // 4️⃣ INSERÇÃO DE NOVO ITEM NO CARRINHO
                 window.carrinho.push({
                     produto_id: produto.id,
                     lote_id: loteId,
-                    nome: produto.nome,
-                    unidade: produto.unidade_sigla || '',
                     quantidade: quantidade,
-                    preco_unitario: preco // Sincronizado estritamente com a chave usada no btnDiminuir
+                    preco_unitario: preco,
+                    desconto: 0
                 });
 
-                // 5️⃣ ADICIONA NOVA LINHA FÍSICA NA TABELA HTML
+                const numeroItem = tabelaItens.querySelectorAll("tr").length + 1;
                 const novaLinha = document.createElement("tr");
-                novaLinha.setAttribute("data-produto", produto.id);
-                novaLinha.setAttribute("data-lote", loteId);
+                novaLinha.dataset.produto = produto.id;
+                novaLinha.dataset.lote = loteId;
                 novaLinha.style.cursor = "pointer";
 
-                const subtotalOriginal = quantidade * preco;
-                const unidadeMedida = produto.unidade_sigla || "";
-
+                // Renderiza seu HTML nativo funcional perfeitamente alinhado
                 novaLinha.innerHTML = `
-                    <td></td>
-                    <td>${loteId}</td>
-                    <td>${produto.nome}</td>
-                    <td>${preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                    <td class="text-center item-quantidade">${quantidade}</td>
-                    <td>${unidadeMedida}</td>
-                    <td class="subtotal">${subtotalOriginal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td>${numeroItem}</td>
+                    <td>${produto.id}</td>
+                    <td class="text-start">${produto.nome}</td>
+                    <td>R$ ${preco.toFixed(2).replace('.', ',')}</td>
+                    <td class="item-quantidade">${quantidade}</td>
+                    <td>${produto.unidade_sigla || 'UN'}</td>
+                    <td class="subtotal fw-bold">${(quantidade * preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td class="text-muted d-none">Lote: ${loteSelecionado.numero_lote || 'S/L'}</td>
                 `;
-
-                novaLinha.addEventListener("click", function() {
-                    tabelaItens.querySelectorAll("tr").forEach(r => r.classList.remove("table-active"));
-                    
-                    if (linhaSelecionada === this) {
-                        linhaSelecionada = null;
-                        if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
-                        return;
-                    }
-
-                    linhaSelecionada = this;
-                    this.classList.add("table-active");
-
-                    if (acoesCarrinho) {
-                        acoesCarrinho.classList.remove("d-none");
-                    }
-                });
-
                 tabelaItens.appendChild(novaLinha);
             }
 
-            if (typeof window.emitirBipPDV === "function") window.emitirBipPDV();
+            // 5️⃣ ATUALIZAÇÃO DOS INDICADORES FINANCEIROS E FEEDBACK VISUAL/SONORO
             atualizarNumeroItens();
             atualizarTotalCarrinho();
+            
+            if (typeof window.emitirBipPDV === "function") {
+                window.emitirBipPDV();
+            }
+
+            // 6️⃣ LIMPA O FORMULÁRIO DO TOPO E DEVOLVE O FOCO PARA A PRÓXIMA COMPRA
             resetarProdutoAtual();
         };
 
-        // ========================================== //
-        // ARRASTAR DIV DE AÇÕES                      //
-        // ========================================== //
-        let isDragging = false;
-        let offsetX = 0, offsetY = 0;
-        acoesCarrinho?.addEventListener("mousedown", (e) => {
-            isDragging = true;
-            offsetX = e.clientX - acoesCarrinho.offsetLeft;
-            offsetY = e.clientY - acoesCarrinho.offsetTop;
-            acoesCarrinho.style.transition = "none";
-        });
-        document.addEventListener("mousemove", (e) => {
-            if (!isDragging) return;
-            acoesCarrinho.style.left = `${e.clientX - offsetX}px`;
-            acoesCarrinho.style.top  = `${e.clientY - offsetY}px`;
-        });
-        document.addEventListener("mouseup", () => {
-            if (isDragging) isDragging = false;
-        });
+        // ========================================================== //
+        // 📡 GATILHO: LEITOR DE CÓDIGO DE BARRAS / BARRA PRINCIPAL   //
+        // ========================================================== //
+        inputCodigo?.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation(); // Trava barreira no DOM
 
-        // ========================================== //
-        // GATILHO DA BUSCA INTEGRADA (ENTER / X*)    //
-        // ========================================== //
-        // if (inputCodigo) {
-        //     inputCodigo.addEventListener("keydown", (e) => {
-        //         if (e.key === "Enter") {
-        //             e.preventDefault();
+                let valorInput = inputCodigo.value.trim();
+                if (!valorInput) return;
 
-        //             let termoOriginal = inputCodigo.value.trim();
-        //             if (!termoOriginal) return;
+                let quantidadeDefinida = 1;
+                let codigoFinal = valorInput;
 
-        //             let quantidadeDefinida = 1;
-        //             let codigoFinal = termoOriginal;
-
-        //             if (termoOriginal.includes('*')) {
-        //                 const partes = termoOriginal.split('*');
-        //                 const qtdInformada = parseFloat(partes[0]);
-        //                 if (!isNaN(qtdInformada) && qtdInformada > 0) {
-        //                     quantidadeDefinida = qtdInformada;
-        //                     codigoFinal = partes[1].trim();
-        //                 }
-        //             }
-
-        //             if (!codigoFinal) {
-        //                 alert("Código de barras inválido.");
-        //                 return;
-        //             }
-
-        //             if (inputQuantidade) inputQuantidade.value = quantidadeDefinida;
-
-        //             // Executa a requisição direta isolada de escopo usando o código higienizado
-        //             fetch(`/pdv/produto/${encodeURIComponent(codigoFinal)}`, { headers: { "Accept": "application/json" } })
-        //                 .then(res => res.json())
-        //                 .then(dataRes => {
-        //                     if (dataRes.status === "ok" && dataRes.produto) {
-        //                         const produto = dataRes.produto;
-        //                         window.produtoAtual = produto;
-
-        //                         if (inputId_produto) inputId_produto.value = produto.id;
-        //                         if (inputDescricao) inputDescricao.value = produto.nome;
-        //                         if (inputPrecoVenda) inputPrecoVenda.value = Number(produto.preco_venda).toFixed(2);
-                                
-        //                         const qtdDisp = produto.quantidade_total_disponivel || 1;
-        //                         if (qtdDisponivelInput) qtdDisponivelInput.value = qtdDisp;
-
-        //                         const inputUnidade = document.getElementById("unidade");
-        //                         if (inputUnidade) {
-        //                             inputUnidade.value = produto.unidade || produto.unidade_medida || "UN";
-        //                         }
-
-        //                         calcularTotalProduto();
-
-        //                         // Executa o fluxo contínuo de inserção
-        //                         window.adicionarItemCarrinho(produto);
-                                
-        //                     } else {
-        //                         alert(dataRes.mensagem || "Produto não encontrado.");
-        //                         if (inputCodigo) inputCodigo.value = "";
-        //                     }
-        //                 })
-        //                 .catch(err => {
-        //                     console.error(err);
-        //                     if (inputCodigo) inputCodigo.value = "";
-        //                 });
-        //         }
-        //     }); 
-        // }
-
-                // =========================================================================
-        // 🔥 CORRIGIDO: GATILHO DA BUSCA POR TECLADO (ENTER / X*) COM FIX DOS BUGS
-        // =========================================================================
-        if (inputCodigo) {
-            // 🔥 CORREÇÃO BUG 1: Garante que ao focar na barra amarela, o cursor vá para o início (esquerda) e não selecione o texto
-            inputCodigo.addEventListener("focus", function() {
-                setTimeout(() => {
-                    this.setSelectionRange(0, 0);
-                }, 10);
-            });
-
-            inputCodigo.addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                    e.preventDefault();
-
-                    let termoOriginal = inputCodigo.value.trim();
-                    if (!termoOriginal) return;
-
-                    let quantidadeDefinida = 1;
-                    let codigoFinal = termoOriginal;
-
-                    // Processa o fator multiplicador (Ex: 3*789)
-                    if (termoOriginal.includes('*')) {
-                        const partes = termoOriginal.split('*');
-                        const qtdInformada = parseFloat(partes[0]); // Pega estritamente a parte antes do asterisco
-                        if (!isNaN(qtdInformada) && qtdInformada > 0) {
-                            quantidadeDefinida = qtdInformada;
-                            codigoFinal = partes[1].trim(); // Pega o código após o asterisco
-                        }
+                // Regra de negócio do multiplicador (Qtd * Código)
+                if (valorInput.includes("*")) {
+                    const partes = valorInput.split("*");
+                    const qtdInformada = Number(partes[0]);
+                    
+                    if (!isNaN(qtdInformada) && qtdInformada > 0) {
+                        quantidadeDefinida = qtdInformada;
+                        codigoFinal = partes[1] ? partes[1].trim() : "";
                     }
-
-                    if (!codigoFinal) {
-                        alert("Código de barras inválido.");
-                        return;
-                    }
-
-                    // Executa a requisição direta isolada de escopo usando o código higienizado
-                    fetch(`/pdv/produto/${encodeURIComponent(codigoFinal)}`, { headers: { "Accept": "application/json" } })
-                        .then(res => res.json())
-                        .then(dataRes => {
-                            if (dataRes.status === "ok" && dataRes.produto) {
-                                const produto = dataRes.produto;
-                                window.produtoAtual = produto;
-
-                                if (inputId_produto) inputId_produto.value = produto.id;
-                                if (inputDescricao) inputDescricao.value = produto.nome;
-                                if (inputPrecoVenda) inputPrecoVenda.value = Number(produto.preco_venda).toFixed(2);
-                                
-                                const qtdDisp = produto.quantidade_total_disponivel || 1;
-                                if (qtdDisponivelInput) qtdDisponivelInput.value = qtdDisp;
-
-                                const inputUnidade = document.getElementById("unidade");
-                                if (inputUnidade) {
-                                    inputUnidade.value = produto.unidade || produto.unidade_medida || "UN";
-                                }
-
-                                // 🔥 CORREÇÃO BUG 2: Força o input de quantidade a receber o valor do multiplicador antes de calcular o total e inserir
-                                if (inputQuantidade) {
-                                    inputQuantidade.value = quantidadeDefinida;
-                                    inputQuantidade.max = qtdDisp;
-                                }
-
-                                calcularTotalProduto();
-
-                                // Executa o fluxo contínuo de inserção no carrinho rústico
-                                window.adicionarItemCarrinho(produto);
-                                
-                                // 🔥 CORREÇÃO BUG 2 (Complemento): Se o usuário usou multiplicador (ex: 3*), mantém o valor "3" visível no input 
-                                // para ele ver o que foi inserido, em vez de resetar bruscamente para "1".
-                                if (termoOriginal.includes('*') && inputQuantidade) {
-                                    inputQuantidade.value = quantidadeDefinida;
-                                    calcularTotalProduto();
-                                }
-                                
-                            } else {
-                                alert(dataRes.mensagem || "Produto não encontrado.");
-                                if (inputCodigo) inputCodigo.value = "";
-                            }
-                        })
-                        .catch(err => {
-                            console.error(err);
-                            if (inputCodigo) inputCodigo.value = "";
-                        });
                 }
-            }); 
-        }
 
+                if (!codigoFinal) {
+                    alert("Código de barras ou formato multiplicador inválido.");
+                    inputCodigo.value = "";
+                    return;
+                }
+
+                if (inputQuantidade) {
+                    inputQuantidade.value = quantidadeDefinida;
+                }
+
+                // Executa a requisição direta isolada de escopo usando o código higienizado
+                fetch(`/pdv/produto/${encodeURIComponent(codigoFinal)}`, { headers: { "Accept": "application/json" } })
+                    .then(res => res.json())
+                    .then(dataRes => {
+                        if (dataRes.status === "ok" && dataRes.produto) {
+                            const produto = dataRes.produto;
+                            window.produtoAtual = produto;
+
+                            if (inputId_produto) inputId_produto.value = produto.id;
+                            if (inputDescricao) inputDescricao.value = produto.nome;
+                            if (inputPrecoVenda) inputPrecoVenda.value = Number(produto.preco_venda).toFixed(2);
+                            
+                            const qtdDisp = produto.quantidade_total_disponivel || 1;
+                            if (qtdDisponivelInput) qtdDisponivelInput.value = qtdDisp;
+
+                            const inputUnidade = document.getElementById("unidade");
+                            if (inputUnidade) {
+                                inputUnidade.value = produto.unidade || produto.unidade_medida || "UN";
+                            }
+
+                            calcularTotalProduto();
+
+                            // Executa o fluxo contínuo de inserção
+                            window.adicionarItemCarrinho(produto);
+                            
+                        } else {
+                            alert(dataRes.mensagem || "Produto não encontrado.");
+                            if (inputCodigo) inputCodigo.value = "";
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        if (inputCodigo) inputCodigo.value = "";
+                    });
+            }
+        }); // 🌟 O EVENTO DO ENTER FECHA EXATAMENTE AQUI!
 
         // ========================================================== //
         // 🎯 SEPARADO E ISOLADO: CONTROLE DE MANUTENÇÃO DO CARRINHO  //
         // ========================================================== //
 
         // 1️⃣ FAZ A TABELA ESCUTAR O SEU CLIQUE E MARCAR A LINHA SELECIONADA
-        tabelaItens?.addEventListener("click", function(e) {
+                tabelaItens?.addEventListener("click", function(e) {
             const linha = e.target.closest("tr");
             if (!linha || linha.rowIndex === 0) return; 
 
+            // 1. Remove a marcação de todas as outras linhas
             tabelaItens.querySelectorAll("tr").forEach(tr => tr.classList.remove("table-active"));
 
-            if (linhaSelecionada === linha) {
-                linhaSelecionada = null;
-                if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
-                return;
-            }
-
+            // 2. Define a linha selecionada de forma direta (sem o bloco "if" de alternância)
             linhaSelecionada = linha;
             linha.classList.add("table-active");
 
+            // 3. Força o painel flutuante a ficar visível sempre
             if (acoesCarrinho) {
                 acoesCarrinho.classList.remove("d-none");
+                acoesCarrinho.style.display = "block"; // Garante a exibição caso use display inline
             }
         });
 
+
         // 2️⃣ PROGRAMA O BOTÃO DE DIMINUIR QUANTIDADE (-1)
-        // ========================================================== //
+      // ========================================================== //
         // ➖ AÇÃO: DIMINUIR QUANTIDADE (BLINDADO CONTRA REPETIÇÃO)   //
         // ========================================================== //
-        btnDiminuir?.replaceWith(btnDiminuir.cloneNode(true)); 
+        btnDiminuir?.replaceWith(btnDiminuir.cloneNode(true)); // Limpa escutas fantasmas empilhados
         document.getElementById("btnDiminuir")?.addEventListener("click", function(e) {
             e.preventDefault();
-            e.stopPropagation(); 
+            e.stopPropagation(); // 🌟 Impede que o clique suba e execute duas vezes
 
             if (!linhaSelecionada) {
                 alert("Clique em um item da tabela primeiro para selecioná-lo.");
@@ -451,7 +332,7 @@ if (window.__pdvProdutoJsCarregado) {
             const item = window.carrinho.find(i => i.produto_id == produtoId && i.lote_id == loteId);
 
             if (item) {
-                item.quantidade--; 
+                item.quantidade--; // Reduz exatamente 1
 
                 if (item.quantidade <= 0) {
                     window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
@@ -478,10 +359,10 @@ if (window.__pdvProdutoJsCarregado) {
         // ========================================================== //
         // ❌ AÇÃO: REMOVER ITEM INTEIRO (BLINDADO CONTRA REPETIÇÃO)  //
         // ========================================================== //
-        btnRemover?.replaceWith(btnRemover.cloneNode(true)); 
+        btnRemover?.replaceWith(btnRemover.cloneNode(true)); // Limpa escutas fantasmas empilhados
         document.getElementById("btnRemover")?.addEventListener("click", function(e) {
             e.preventDefault();
-            e.stopPropagation(); 
+            e.stopPropagation(); // 🌟 Impede execução duplicada no DOM
 
             if (!linhaSelecionada) {
                 alert("Clique em um item da tabela primeiro para selecioná-lo.");
@@ -503,6 +384,7 @@ if (window.__pdvProdutoJsCarregado) {
             if (inputCodigo) inputCodigo.focus();
         });
 
+
         // 3️⃣ PROGRAMA O BOTÃO DE REMOVER O PRODUTO INTEIRO
         btnRemover?.addEventListener("click", function() {
             if (!linhaSelecionada) {
@@ -513,8 +395,10 @@ if (window.__pdvProdutoJsCarregado) {
             const produtoId = linhaSelecionada.dataset.produto;
             const loteId    = linhaSelecionada.dataset.lote;
 
+            // Deleta o item direto do array de memória
             window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
 
+            // Remove a linha visual do HTML
             linhaSelecionada.remove();
             linhaSelecionada = null;
 
@@ -532,6 +416,7 @@ if (window.__pdvProdutoJsCarregado) {
             if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
             if (inputCodigo) inputCodigo.focus();
         });
+
 
         inputQuantidade?.addEventListener("input", calcularTotalProduto);
 
