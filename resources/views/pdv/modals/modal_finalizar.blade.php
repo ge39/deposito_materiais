@@ -130,7 +130,7 @@
                             .toFixed(2)
                             .replace('.', ',');
                 }
-
+                 calcularPagamentos();
                 aplicarRegraCarteira();
             });
         }
