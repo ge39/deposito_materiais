@@ -441,6 +441,7 @@
                 </strong></span>
             </span>
         </div>
+        
     </div>
 
     <!-- FILTROS DA VENDA -->

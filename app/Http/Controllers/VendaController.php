@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Log; // 🔥 Garanta que essa linha esteja no topo do arquivo
 use App\Models\Venda;
-Use App\Models\Empresa;
+use App\Models\Empresa;
 use Mguimaraes\Pix\Payload;
 use App\Models\Cliente;
 use App\Models\Caixa;
@@ -21,61 +21,112 @@ class VendaController extends Controller
      * Responsabilidade TOTAL do backend
      */
 
-    public function store(Request $request)
+   public function store(Request $request, CreditoService $creditoService)
     {
+        // 1️⃣ Resgata e trata o dado bruto do cliente antes da validação para evitar quebras
+        $clienteIdRaw = $request->input('cliente_id');
         
-        // 1️⃣ Validação
+        if (empty($clienteIdRaw) || $clienteIdRaw == '6' || strtoupper($clienteIdRaw) === 'VENDA BALCAO') {
+            // Se for balcão ou vazio, remove do request para passar na regra 'nullable' da validação
+            $request->merge(['cliente_id' => null]);
+        }
+
+        // 2️⃣ Validação Original Ajustada
         $request->validate([
-            'cliente_id'     => 'nullable|exists:clientes,id', // pode ser null, usamos fallback
-            'funcionario_id' => 'required|exists:users,id',
-            'caixa_id'       => 'required|exists:caixas,id',
-            'dataVenda'      => 'required|date',
-            'endereco'       => 'nullable|string|max:255',
-            'itens'          => 'required|array|min:1',
+            'cliente_id'             => 'nullable|exists:clientes,id', 
+            'funcionario_id'         => 'required|exists:users,id',
+            'caixa_id'               => 'required|exists:caixas,id',
+            'dataVenda'              => 'required|date',
+            'endereco'               => 'nullable|string|max:255',
+            'itens'                  => 'required|array|min:1',
             'itens.*.produto_id'     => 'required|exists:produtos,id',
             'itens.*.quantidade'     => 'required|numeric|min:1',
             'itens.*.valor_unitario' => 'required|numeric|min:0',
-            'itens.*.lote_id'        => 'nullable|exists:lotes,id',
         ]);
 
         DB::beginTransaction();
         try {
-            // 2️⃣ Fallback cliente "VENDA BALCÃO" caso não seja enviado
-            $clienteId = $request->input('cliente_id');
-            if (!$clienteId) {
-                $clienteBalcao = Cliente::where('nome', 'VENDA BALCAO')
-                                        ->where('ativo', 1)
-                                        ->firstOrFail();
-                $clienteId = $clienteBalcao->id;
+            // 2️⃣ Fallback cliente "VENDA BALCÃO" (ID 6 do seu banco de dados)
+            $clienteIdRaw = $request->input('cliente_id');
+    
+            // Se o front-end mandar vazio, nulo ou o texto "VENDA BALCAO", o PHP força o ID 6 real do seu banco
+            if (empty($clienteIdRaw) || $clienteIdRaw == '' || strtoupper($clienteIdRaw) === 'VENDA BALCAO') {
+                $clienteId = 6; // 🔥 Força o ID real do seu banco de dados para a Venda Balcão!
+            } else {
+                $clienteId = (int) $clienteIdRaw; // Se for um cliente cadastrado (ID 2, 3...), usa o ID dele
             }
 
-            // 3️⃣ Cria a venda
+            // 4️⃣ Cria a venda usando a sua fórmula matemática original limpa
             $totalVenda = collect($request->input('itens', []))
                             ->sum(fn($i) => $i['quantidade'] * $i['valor_unitario']);
             
             $venda = Venda::create([
-                // 'cliente_id'     => $request->input('cliente_id'),
                 'cliente_id'     => $clienteId,
                 'funcionario_id' => $request->input('funcionario_id'),
                 'caixa_id'       => $request->input('caixa_id'),
                 'data_venda'     => $request->input('dataVenda'),
                 'endereco'       => $request->input('endereco'),
                 'total'          => $totalVenda,
+                'status'         => 'finalizada' // Garante o status correto do ciclo
             ]);
 
-            // 4️⃣ Persiste itens da venda
+            // 5️⃣ Persiste itens da venda e realiza baixa real das quantidades nos lotes (FIFO)
             foreach ($request->input('itens', []) as $item) {
-                $venda->itens()->create([
-                    'produto_id'     => $item['produto_id'],
-                    'lote_id'        => $item['lote_id'] ?? null,
-                    'quantidade'     => $item['quantidade'],
-                    'preco_unitario' => $item['valor_unitario'],
-                ]);
+                $produtoId            = $item['produto_id'];
+                $quantidadeNecessaria = floatval($item['quantidade']);
+                $precoUnitario        = floatval($item['valor_unitario']);
+
+                // Busca os lotes ativos com estoque por ordem cronológica (FIFO)
+                $lotesDisponiveis = DB::table('lotes')
+                    ->where('produto_id', $produtoId)
+                    ->where('quantidade_disponivel', '>', 0)
+                    ->orderBy('created_at', 'asc')
+                    ->lockForUpdate()
+                    ->get();
+
+                if ($lotesDisponiveis->isEmpty()) {
+                    // Fallback: Se não houver lotes cadastrados, grava com lote_id nulo
+                    $venda->itens()->create([
+                        'produto_id'     => $produtoId,
+                        'lote_id'        => null,
+                        'quantidade'     => $quantidadeNecessaria,
+                        'preco_unitario' => $precoUnitario,
+                    ]);
+                } else {
+                    // Distribui a quantidade vendida nos lotes disponíveis
+                    foreach ($lotesDisponiveis as $lote) {
+                        if ($quantidadeNecessaria <= 0) break;
+                        $qtdConsumir = min($quantidadeNecessaria, $lote->quantidade_disponivel);
+
+                        $venda->itens()->create([
+                            'produto_id'     => $produtoId,
+                            'lote_id'        => $lote->id,
+                            'quantidade'     => $qtdConsumir,
+                            'preco_unitario' => $precoUnitario,
+                        ]);
+
+                        // 📉 Dá a baixa real e imediata diminuindo o saldo do lote no banco
+                        DB::table('lotes')
+                            ->where('id', $lote->id)
+                            ->decrement('quantidade_disponivel', $qtdConsumir);
+
+                        $quantidadeNecessaria -= $qtdConsumir;
+                    }
+
+                    // Se houver estouro de estoque (Venda acima do limite físico dos lotes)
+                    if ($quantidadeNecessaria > 0) {
+                        $venda->itens()->create([
+                            'produto_id'     => $produtoId,
+                            'lote_id'        => null,
+                            'quantidade'     => $quantidadeNecessaria,
+                            'preco_unitario' => $precoUnitario,
+                        ]);
+                    }
+                }
             }
 
             DB::commit();
 
-            // 5️⃣ Retorna sucesso
             return response()->json([
                 'success'  => true,
                 'message'  => 'Venda criada com sucesso',
@@ -84,13 +135,13 @@ class VendaController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 500);
         }
     }
+
 
     //pagamentos de venda (pagamentos_venda)
  

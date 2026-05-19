@@ -377,6 +377,9 @@
         // ========================================================
         // ENVIO AJAX COMPATÍVEL VIA FETCH (FLUXO CONTINUO)
         // ========================================================
+               // ========================================================
+        // ENVIO AJAX COMPATÍVEL VIA FETCH (CORRIGIDO E ALINHADO)
+        // ========================================================
         btnFinalizar?.addEventListener('click', function() {
             let totalPagamento = 0;
 
@@ -389,29 +392,43 @@
                 return;
             }
 
-            let idClienteFinal = "";
-            if (window.clienteSelecionado) {
-                idClienteFinal = parseInt(window.clienteSelecionado.id || window.clienteSelecionado, 10);
+            // 👤 RESOLUÇÃO DINÂMICA DO CLIENTE_ID (Lê o campo real onde seu modal injeta os dados)
+                       // 👤 RESOLUÇÃO DINÂMICA DO CLIENTE_ID
+            let idClienteFinal = null;
+            
+            // Tenta ler o input que muda quando você usa o modal de clientes
+            const inputClienteHidden = document.getElementById('cliente_id') || document.querySelector('input[name="cliente_id"]');
+            
+            // Só envia o ID se ele for um número de cliente selecionado e não for o texto "VENDA BALCAO"
+            if (inputClienteHidden && inputClienteHidden.value && inputClienteHidden.value.trim() !== '' && inputClienteHidden.value !== 'VENDA BALCAO') {
+                idClienteFinal = parseInt(inputClienteHidden.value, 10);
             }
 
+
+            // 🧑‍💼 ID do Operador Logado
             let idFuncionarioFinal = parseInt(window.auth_user_id, 10) || 
                                      parseInt(document.getElementById('funcionario_id')?.value, 10) || 1;
 
-            let idCaixaFinal = parseInt(window.caixa_id, 10) || 
-                               parseInt(document.getElementById('caixa_id')?.value, 10) || 1;
-
+            // 🏪 CORREÇÃO CAIXA: Inverte a ordem para ler primeiro o input hidden do Blade (que tem o 310) 
+            const inputCaixaHidden = document.querySelector('input[name="caixa_id"]') || document.getElementById('caixa_id');
+            let idCaixaFinal = parseInt(inputCaixaHidden?.value, 10) || parseInt(window.caixa_id, 10) || 1;
+            
             let formData = new FormData();
-            formData.append('cliente_id', idClienteFinal);
+            formData.append('cliente_id', idClienteFinal || '');
             formData.append('funcionario_id', idFuncionarioFinal);
             formData.append('caixa_id', idCaixaFinal);
             formData.append('dataVenda', new Date().toISOString().slice(0, 19).replace('T', ' '));
 
+            // Processamento dos Itens do Carrinho
             if (window.carrinho && window.carrinho.length > 0) {
                 window.carrinho.forEach((item, index) => {
                     formData.append(`itens[${index}][produto_id]`, item.produto_id || item.id || "");
                     formData.append(`itens[${index}][quantidade]`, item.quantidade || item.qtd || 1);
-                    formData.append(`itens[${index}][valor_unitario]`, item.valor_unitario || item.preco || 0);
+                    formData.append(`itens[${index}][valor_unitario]`, item.valor_unitario || item.preco || item.preco_venda || 0);
                     formData.append(`itens[${index}][desconto]`, item.desconto || 0);
+                    if (item.lote_id) {
+                        formData.append(`itens[${index}][lote_id]`, item.lote_id);
+                    }
                 });
             }
 
@@ -420,6 +437,17 @@
                 formData.append(`pagamentos[${input.dataset.forma}]`, valorForma);
                 formData.append(input.dataset.forma, valorForma);
             });
+
+            // Extrai o troco calculado na interface para repassar à URL do cupom
+            let valorTroco = 0;
+            if (trocoEl) {
+                valorTroco = parseFloat(trocoEl.innerText.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+            }
+
+            // Altera o estado do botão para processando
+            const textoOriginalBtn = btnFinalizar.innerHTML;
+            btnFinalizar.disabled = true;
+            btnFinalizar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...`;
 
             fetch('/vendas/finalizar', {
                 method: 'POST',
@@ -438,31 +466,48 @@
                 let idDaVendaGerada = data.venda_id || data.id || (data.venda && data.venda.id);
 
                 if (data.success && idDaVendaGerada) {
+                    alert('Venda finalizada com sucesso!');
                     
+                    // Impressão via Iframe oculto
                     const iframe = document.createElement('iframe');
                     iframe.style.display = 'none';
-                    iframe.src = `/venda/${idDaVendaGerada}/cupom`;
+                    iframe.src = `/venda/${idDaVendaGerada}/cupom?troco=${valorTroco}`;
                     document.body.appendChild(iframe);
                     
                     iframe.onload = function() {
                         iframe.contentWindow.focus();
                         iframe.contentWindow.print();
                         
-                        executarLimpezaEResetPDV();
+                        // Limpeza nativa sem dar reload na página
+                        if (typeof executarLimpezaEResetPDV === 'function') {
+                            executarLimpezaEResetPDV();
+                        } else {
+                            window.carrinho = [];
+                            inputsPagamento.forEach(input => input.value = '');
+                            if (typeof calcularPagamentos === 'function') calcularPagamentos();
+                        }
                         
                         setTimeout(() => {
                             if (iframe.parentNode) document.body.removeChild(iframe);
                         }, 1000);
                     };
 
+                    // Fecha o modal de forma nativa
+                    if (typeof bootstrap !== 'undefined' && modalFinalizar) {
+                        bootstrap.Modal.getInstance(modalFinalizar)?.hide();
+                    }
+
                 } else {
-                    let mensagemErro = data.message || data.erro || 'Erro desconhecido.';
-                    alert('Atenção: O sistema recusou a operação.\nMotivo: ' + mensagemErro);
+                    alert('Atenção: O sistema recusou a operação.\nMotivo: ' + (data.message || data.erro || 'Erro desconhecido.'));
                 }
             })
             .catch(error => {
-                console.error('Erro detectado no processamento:', error);
-                alert('Falha ao processar venda no banco. Verifique os valores ou o console.');
+                console.error(error);
+                alert('Erro de comunicação: ' + error.message);
+            })
+            .finally(() => {
+                btnFinalizar.disabled = false;
+                btnFinalizar.innerHTML = textoOriginalBtn;
             });
         });
 
