@@ -108,49 +108,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // ========================================== //
-  // ATALHOS TECLADO COM DESBLOQUEIO DE SELEÇÃO //
-  // ========================================== //
-  // document.addEventListener('keydown', function (e) {
-  //   if (!modalEl || !modalEl.classList.contains('show')) return;
-  //   const tecla = e.key.toLowerCase();
-  //   window.__pdvBufferForma = (window.__pdvBufferForma || '') + tecla;
-  //   window.__pdvBufferForma = window.__pdvBufferForma.slice(-2);
-    
-  //   let forma = null;
-  //   switch (window.__pdvBufferForma) {
-  //     case 'dd': forma = 'dinheiro'; break;
-  //     case 'cc': forma = 'cartao_credito'; break;
-  //     case 'cd': forma = 'cartao_debito'; break;
-  //     case 'pi': forma = 'pix'; break;
-  //     case 'ca': forma = 'carteira'; break;
-  //   }
-    
-  //   if (!forma) return;
-  //   const input = modalEl.querySelector(`.pagamento-modal[data-forma="${forma}"]`);
-  //   if (!input) return;
-    
-  //   e.preventDefault();
-  //   window.__pdvUltimaFormaFocada = forma;
-  //   const totalVenda = obtenerTotalVenda();
-  //   let somaOutros = 0;
-  //   inputsPagamento.forEach(i => {
-  //     if (i !== input) {
-  //       const v = parseFloat(i.value) || 0;
-  //       if (v > 0) somaOutros += v;
-  //     }
-  //   });
-    
-  //   let valorDisponivel = totalVenda - somaOutros;
-  //   if (valorDisponivel < 0) valorDisponivel = 0;
-    
-  //   input.focus();
-  //   input.value = valorDisponivel.toFixed(2);
-  //   setTimeout(() => input.select(), 50);
-  //   input.dispatchEvent(new Event('input', { bubbles: true }));
-  //   window.__pdvBufferForma = '';
-  // });
-
    // ==========================================
     // ATALHOS TECLADO: PREENCHE EXATAMENTE O RESTANTE DA FOTO
     // ==========================================
@@ -378,76 +335,76 @@ document.addEventListener('DOMContentLoaded', function () {
   // ========================================== //
   // INPUTS EVENTS COM CAPTURA DE FOCO ATIVO    //
   // ========================================== //
-  // inputsPagamento.forEach(input => {
-  //   input.addEventListener('focus', function() {
-  //     window.__pdvUltimaFormaFocada = this.dataset.forma;
-  //   });
+  inputsPagamento.forEach(input => {
+    input.addEventListener('focus', function() {
+      window.__pdvUltimaFormaFocada = this.dataset.forma;
+    });
 
-  //   input.addEventListener('input', function () {
-  //     const forma = this.dataset.forma;
-  //     let valor = parseFloat(this.value) || 0;
-  //     const restanteSemEsteInput = calcularRestante(this);
+    input.addEventListener('input', function () {
+      const forma = this.dataset.forma;
+      let valor = parseFloat(this.value) || 0;
+      const restanteSemEsteInput = calcularRestante(this);
 
-  //     if (forma === 'carteira') {
-  //       const saldoDisponivel = obtenerSaldoCarteira();
-  //       const statusCredito = window.cliente?.status;
-  //       if (statusCredito === 'bloqueado' || saldoDisponivel <= 0) {
-  //         this.value = '';
-  //         atualizarResumo();
-  //         return;
-  //       }
-  //       if (valor > saldoDisponivel) {
-  //         this.value = saldoDisponivel.toFixed(2);
-  //         valor = saldoDisponivel;
-  //       }
-  //     }
+      if (forma === 'carteira') {
+        const saldoDisponivel = obtenerSaldoCarteira();
+        const statusCredito = window.cliente?.status;
+        if (statusCredito === 'bloqueado' || saldoDisponivel <= 0) {
+          this.value = '';
+          atualizarResumo();
+          return;
+        }
+        if (valor > saldoDisponivel) {
+          this.value = saldoDisponivel.toFixed(2);
+          valor = saldoDisponivel;
+        }
+      }
 
-  //     if (forma !== 'dinheiro' && valor > restanteSemEsteInput) {
-  //       this.value = restanteSemEsteInput.toFixed(2);
-  //     }
-  //     atualizarResumo();
-  //   });
+      if (forma !== 'dinheiro' && valor > restanteSemEsteInput) {
+        this.value = restanteSemEsteInput.toFixed(2);
+      }
+      atualizarResumo();
+    });
 
-  //   input.addEventListener('blur', function () {
-  //     let valor = this.value.replace(',', '.');
-  //     const n = parseFloat(valor);
-  //     if (isNaN(n) || n <= 0) {
-  //       this.value = '';
-  //       atualizarResumo();
-  //       return;
-  //     }
-  //     this.value = n.toFixed(2);
-  //     atualizarResumo();
-  //   });
+    input.addEventListener('blur', function () {
+      let valor = this.value.replace(',', '.');
+      const n = parseFloat(valor);
+      if (isNaN(n) || n <= 0) {
+        this.value = '';
+        atualizarResumo();
+        return;
+      }
+      this.value = n.toFixed(2);
+      atualizarResumo();
+    });
 
-  //   input.addEventListener('keydown', function (e) {
-  //     if (e.key === 'Enter') {
-  //       let valorTexto = this.value.replace(',', '.');
-  //       const n = parseFloat(valorTexto);
-  //       if (!isNaN(n) && n > 0) {
-  //         this.value = n.toFixed(2);
-  //       } else {
-  //         this.value = '';
-  //       }
-  //       const totalVenda = obterTotalVenda();
-  //       let somaTotalInputs = 0;
-  //       inputsPagamento.forEach(i => {
-  //         somaTotalInputs += parseFloat(i.value) || 0;
-  //       });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        let valorTexto = this.value.replace(',', '.');
+        const n = parseFloat(valorTexto);
+        if (!isNaN(n) && n > 0) {
+          this.value = n.toFixed(2);
+        } else {
+          this.value = '';
+        }
+        const totalVenda = obterTotalVenda();
+        let somaTotalInputs = 0;
+        inputsPagamento.forEach(i => {
+          somaTotalInputs += parseFloat(i.value) || 0;
+        });
 
-  //       let valorRestanteReal = totalVenda - somaTotalInputs;
+        let valorRestanteReal = totalVenda - somaTotalInputs;
 
-  //       if (valorRestanteReal < 0) valorRestanteReal = 0;
-  //         if (Math.abs(valorRestanteReal) < 0.01) {
-  //           e.preventDefault();
-  //           atualizarResumo();
-  //           if (btnFinalizar) {
-  //             btnFinalizar.focus();
-  //           }
-  //         }
-  //       }
-  //   });
-  // });
+        if (valorRestanteReal < 0) valorRestanteReal = 0;
+          if (Math.abs(valorRestanteReal) < 0.01) {
+            e.preventDefault();
+            atualizarResumo();
+            if (btnFinalizar) {
+              btnFinalizar.focus();
+            }
+          }
+        }
+    });
+  });
 
     // ========================================== //
   // INPUTS EVENTS COM CAPTURA DE FOCO ATIVO    //
