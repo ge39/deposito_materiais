@@ -1,102 +1,100 @@
 <!-- Modal Finalizar Venda -->
 <div class="modal fade" id="modalFinalizarVenda" tabindex="-1">
   <div class="modal-dialog" style="max-width:520px;">
-    <div class="modal-content">
-      
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title fw-bold">Finalizar Venda</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-
-        {{-- Total --}}
-        <div class="alert alert-secondary fs-5 text-center">
-            Total a pagar:<br>
-            <strong id="total-venda-modal">0,00</strong>
+    <form id="formFinalizarVenda" method="POST" action="">
+      @csrf
+      <div class="modal-content">
+        
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold">Finalizar Venda</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
 
-        {{-- Dados cliente carteira --}}
-        <div class="alert alert-light py-1 px-2 d-flex justify-content-between align-items-center mb-2">
+        <div class="modal-body">
 
-            <div>
-                <span class="text-muted">Cliente:</span>
-                <span id="nome-cliente-modal" class="fw-semibold text-primary">
-                    VENDA BALCAO
-                </span>
-            </div>
-
-            <div>
-                <span class="text-muted">Saldo Atual:</span>
-                <span id="saldo-cliente-modal" class="fw-bold text-success">
-                    R$ 0,00
-                </span>
-            </div>
-
-        </div>
-
-        {{-- Resumo --}}
-        <div class="alert alert-light text-center mb-3">
-            <div class="fw-semibold">
-                Restante:
-                <span id="valor-restante" class="text-danger fw-bold">R$ 0,00</span>
-            </div>
-
-            <div class="fw-bold fs-5 mt-1">
-                Troco:
-                <span id="valor-troco" class="text-success">R$ 0,00</span>
-            </div>
-        </div>
-
-        {{-- Pagamentos --}}
-        <div class="card shadow-sm">
-          <div class="card-body">
-
-            @php
-                $formas = [
-                    'dinheiro' => 'DD - Dinheiro',
-                    'cartao_credito' => 'CC - Crédito',
-                    'cartao_debito' => 'CD - Débito',
-                    'pix' => 'PI - PIX',
-                    'carteira' => 'CA - Carteira'
-                ];
-            @endphp
-
-            @foreach($formas as $key => $label)
-            <div class="row mb-2 align-items-center">
-                <div class="col-5">
-                    <label class="form-label fw-semibold">{{ $label }}</label>
-                </div>
-                <div class="col-7">
-                    <input  
-                        type="number" 
-                        step="0.01"  
-                        class="form-control pagamento-modal" 
-                        data-forma="{{ $key }}"
-                        placeholder="0,00" 
-                        min="0"
-                        style="max-width:150px;font-weight:bold"
-                        @if($loop->first) autofocus @endif
-                    >
-                </div>
-            </div>
-            @endforeach
-
+          {{-- Total --}}
+          <div class="alert alert-secondary fs-5 text-center">
+              Total a pagar:<br>
+              <strong id="total-venda-modal">0,00</strong>
           </div>
+
+          {{-- Dados cliente carteira --}}
+          <div class="alert alert-light py-1 px-2 d-flex justify-content-between align-items-center mb-2">
+              <div>
+                  <span class="text-muted">Cliente:</span>
+                  <span id="nome-cliente-modal" class="fw-semibold text-primary">
+                      VENDA BALCAO
+                  </span>
+              </div>
+              <div>
+                  <span class="text-muted">Saldo Atual:</span>
+                  <span id="saldo-cliente-modal" class="fw-bold text-success">
+                      R$ 0,00
+                  </span>
+              </div>
+          </div>
+
+          {{-- Resumo --}}
+          <div class="alert alert-light text-center mb-3">
+              <div class="fw-semibold">
+                  Restante:
+                  <span id="valor-restante" class="text-danger fw-bold">R$ 0,00</span>
+              </div>
+              <div class="fw-bold fs-5 mt-1">
+                  Troco:
+                  <span id="valor-troco" class="text-success">R$ 0,00</span>
+              </div>
+          </div>
+
+          {{-- Pagamentos --}}
+          <div class="card shadow-sm">
+            <div class="card-body">
+              @php
+                  $formas = [
+                      'dinheiro' => 'DD - Dinheiro',
+                      'cartao_credito' => 'CC - Crédito',
+                      'cartao_debito' => 'CD - Débito',
+                      'pix' => 'PI - PIX',
+                      'carteira' => 'CA - Carteira'
+                  ];
+              @endphp
+
+              @foreach($formas as $key => $label)
+              <div class="row mb-2 align-items-center">
+                  <div class="col-5">
+                      <label class="form-label fw-semibold">{{ $label }}</label>
+                  </div>
+                  <div class="col-7">
+                      <input  
+                          type="number" 
+                          step="0.01"  
+                          class="form-control pagamento-modal" 
+                          name="pagamentos[{{ $key }}]"
+                          data-forma="{{ $key }}"
+                          placeholder="0,00" 
+                          min="0"
+                          style="max-width:150px;font-weight:bold"
+                          @if($loop->first) autofocus @endif
+                      >
+                  </div>
+              </div>
+              @endforeach
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer d-grid gap-1">
+          <button type="button" class="btn btn-success btn-custom btn-SM" id="btnFinalizar">
+              Finalizar Venda
+          </button>
+          <button type="button" class="btn btn-SM btn-outline-secondary" data-bs-dismiss="modal">
+              Cancelar
+          </button>
         </div>
 
       </div>
-
-      <div class="modal-footer d-grid gap-1">
-        <button type="button" class="btn btn-success btn-SM" id="btnFinalizar">
-            Finalizar Venda
-        </button>
-        <button type="button" class="btn btn-SM btn-outline-secondary" data-bs-dismiss="modal">
-            Cancelar
-        </button>
-      </div>
-
-    </div>
+    </form>
   </div>
 </div>
 
@@ -113,7 +111,6 @@
 
         let carrinho = window.carrinho || [];
 
-        // Ao abrir o modal, busca o valor total real da tela principal do seu PDV
         if (modalFinalizar) {
             modalFinalizar.addEventListener('shown.bs.modal', function () {
                 const totalGeralPDV = document.getElementById('totalGeral');
@@ -163,12 +160,6 @@
         inputsPagamento.forEach(input => {
             input.addEventListener('input', function() {
                 calcularPagamentos();
-                
-                // Se o usuário digitar manualmente e zerar o restante, foca no botão
-                let restante = parseMoney(restanteEl.textContent);
-                if (restante <= 0) {
-                    btnFinalizar?.focus();
-                }
             });
         });
 
@@ -176,15 +167,11 @@
         // ATALHOS TECLADO (DD, CC, CD, PI, CA)
         // ===============================
         document.addEventListener('keydown', function (e) {
-            // Só executa se o modal de finalização estiver aberto na tela
             if (!modalFinalizar || !modalFinalizar.classList.contains('show')) return;
-            
-            // Ignora se o operador estiver pressionando as teclas junto com Ctrl, Alt ou Cmd
             if (e.ctrlKey || e.altKey || e.metaKey) return;
 
             const tecla = e.key.toLowerCase();
             
-            // Registra os últimos dois caracteres digitados para formar a combinação
             window.__pdvBufferForma = (window.__pdvBufferForma || '') + tecla;
             window.__pdvBufferForma = window.__pdvBufferForma.slice(-2);
 
@@ -202,15 +189,12 @@
             const input = document.querySelector(`.pagamento-modal[data-forma="${forma}"]`);
             if (!input) return;
 
-            // Previne a digitação das letras dentro do input
             e.preventDefault();
 
-            // Pega o valor atual pendente (restante) na tela
             let valorRestante = parseMoney(restanteEl.textContent);
             let valorAtualDoCampo = parseFloat(input.value) || 0;
             let valorParaPreencher = valorRestante + valorAtualDoCampo;
 
-            // Restrição específica para a Carteira do Cliente
             if (forma === 'carteira') {
                 let saldoDisponivel = parseFloat(window.clienteSelecionado?.saldo || 0);
                 if (!window.clienteSelecionado || saldoDisponivel <= 0) {
@@ -223,47 +207,56 @@
             }
 
             input.value = valorParaPreencher.toFixed(2);
-            
-            // Dispara a atualização dos cálculos na tela
             calcularPagamentos();
-            window.__pdvBufferForma = '';
+            
+            input.focus();
+            input.select();
 
-            // 🔥 REGRA SOLICITADA: Se o restante zerou, manda o foco para o botão finalizar. Se não, foca no input.
-            let novoRestante = parseMoney(restanteEl.textContent);
-            if (novoRestante <= 0) {
-                btnFinalizar?.focus();
-            } else {
-                input.focus();
-                input.select();
-            }
+            window.__pdvBufferForma = '';
         });
 
-        // ===============================
-        // ENTER INTELIGENTE
-        // ===============================
+        // ========================================================
+        // ENTER NOS INPUTS DOS ATALHOS: SE RESTANTE FOR 0, FOCO NO BOTÃO
+        // ========================================================
         inputsPagamento.forEach(input => {
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
-                    e.preventDefault();
+                    e.preventDefault(); // Impede o envio precoce ou comportamento indesejado do navegador
 
                     let restante = parseMoney(restanteEl.textContent);
                     let valorAtual = parseFloat(input.value) || 0;
 
+                    // Se o operador der Enter com o campo zerado, preenche com o saldo restante
                     if (valorAtual <= 0 && restante > 0) {
                         input.value = restante.toFixed(2);
                         calcularPagamentos();
-                        
-                        // Recalcula o restante após o preenchimento automático do Enter
-                        let novoRestante = parseMoney(restanteEl.textContent);
-                        if (novoRestante <= 0) {
-                            btnFinalizar?.focus();
-                            return;
-                        }
                     }
 
-                    btnFinalizar?.click();
+                    // Pega o restante final após a digitação/preenchimento
+                    let restanteFinal = parseMoney(restanteEl.textContent);
+                    
+                    // Condição estrita solicitada: Se Restante for igual a R$ 0,00 -> Foco no botão
+                    if (restanteFinal <= 0) {
+                        setTimeout(() => {
+                            if (btnFinalizar) {
+                                btnFinalizar.focus();
+                            }
+                        }, 10);
+                    } else {
+                        // Se ainda restar valor, mantém o operador no campo atual para edição
+                        input.focus();
+                        input.select();
+                    }
                 }
             });
+        });
+
+        // Se o operador apertar Enter com o botão já focado, finaliza a venda
+        btnFinalizar?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                btnFinalizar.click();
+            }
         });
 
         // ===============================
@@ -316,38 +309,44 @@
             }
 
             calcularPagamentos();
-
-            // Ao abrir o modal, se a carteira já cobrir tudo e o restante for zero, move o foco para o botão salvar
-            let restante = parseMoney(restanteEl.textContent);
-            if (restante <= 0) {
-                btnFinalizar?.focus();
-            }
         }
 
-        // ===============================
-        // FINALIZAR
-        // ===============================
+        // ========================================================
+        // AÇÃO DO BOTÃO FINALIZAR (CLIQUE / SUBMIT)
+        // ========================================================
         btnFinalizar?.addEventListener('click', function() {
             let totalPagamento = 0;
-            let pagamentoData = {};
 
             inputsPagamento.forEach(input => {
                 let val = parseFloat(input.value) || 0;
                 input.value = val.toFixed(2);
                 totalPagamento += val;
-                pagamentoData[input.dataset.forma] = val.toFixed(2);
             });
 
             if (totalPagamento <= 0) {
-                alert('Informe a forma de pagamento');
+                alert('Informe ao menos uma forma de pagamento.');
                 return;
             }
+
+            window.carrinho = [];
+            
+            if (typeof atualizarTabelaCarrinho === 'function') {
+                atualizarTabelaCarrinho();
+            }
+
+            setTimeout(() => {
+                const inputBarras = document.getElementById('codigo_barras');
+                if (inputBarras) {
+                    inputBarras.value = ''; 
+                    inputBarras.focus();    
+                }
+            }, 100);
 
             formVenda?.submit();
         });
 
         function atualizarResumoClienteFinalizar() {
-            // Mantida para compatibilidade externa
+            // Mantida intacta para evitar quebra de chamadas externas de escopo
         }
     });
 </script>
