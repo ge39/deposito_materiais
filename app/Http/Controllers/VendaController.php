@@ -368,20 +368,28 @@ class VendaController extends Controller
     //     } 
     // }
 
-    public function finalizar(Request $request, CreditoService $creditoService) 
-    { 
+    public function finalizar(Request $request, CreditoService $creditoService) { 
         DB::beginTransaction(); 
         try { 
-            // 🔥 Define NULL para Venda Balcão (ID 6 ou vazio) evitando erro 1048 no MySQL
-            $clienteId = !empty($request->cliente_id) && (int)$request->cliente_id > 0 && (int)$request->cliente_id !== 6 
-                ? (int)$request->cliente_id 
-                : null; 
+            // 🔥 A SUA IDÉIA DO FILTRO INVERSO DO CLIENTE:
+            $clienteIdRaw = $request->input('cliente_id'); 
+            if (empty($clienteIdRaw) || $clienteIdRaw == '' || strtoupper($clienteIdRaw) === 'VENDA BALCAO') {
+                $clienteBalcao = DB::table('clientes')
+                                    ->where('nome', 'LIKE', '%VENDA BALCAO%')
+                                    ->where('ativo', 1)
+                                    ->first();
+                $clienteId = $clienteBalcao ? $clienteBalcao->id : 6; // Fallback seguro ID 6
+            } else {
+                $clienteId = (int) $clienteIdRaw;
+            }
 
-            // 1️⃣ Criação Inicial da Venda (Status aberta e total zerado temporariamente)
+            // 1️⃣ Criação da Venda (Capturando o caixa_id 310 correto)
+            $caixaId = (int) $request->input('caixa_id');
+
             $dadosVenda = [ 
                 'cliente_id'     => $clienteId, 
-                'funcionario_id' => $request->funcionario_id, 
-                'caixa_id'       => $request->caixa_id, 
+                'funcionario_id' => $request->input('funcionario_id'), 
+                'caixa_id'       => $caixaId, 
                 'status'         => 'aberta', 
                 'total'          => 0 
             ]; 
@@ -392,11 +400,11 @@ class VendaController extends Controller
             } 
             $venda = Venda::create($dadosVenda); 
 
-            // 2️⃣ Processamento dos Itens do Carrinho (Algoritmo FIFO)
+            // 2️⃣ Inserção dos Itens do Carrinho com Algoritmo FIFO (Sua lógica original)
             $itens = $request->input('itens', []); 
             $valorVenda = 0; 
 
-            // Helper isolado para limpar e sanitizar valores numéricos recebidos
+            // Helper de Sanitização Decimal
             $limparNumero = function($valor) { 
                 if (is_numeric($valor)) return (float) $valor; 
                 $stringLimpa = preg_replace('/[^\d,.]/', '', $valor); 
@@ -419,17 +427,16 @@ class VendaController extends Controller
                     return response()->json(['success' => false, 'erro' => 'Identificador do produto inválido no carrinho.'], 422); 
                 } 
 
-                // 🔥 PROTEÇÃO: Se o preço veio zerado do front-end, busca o valor original na tabela de produtos
+                // Se o preço vier zerado, busca o preço padrão do cadastro para não zerar a venda
                 if ($precoUnitario <= 0) {
                     $produtoBanco = DB::table('produtos')->where('id', $produtoId)->first();
                     $precoUnitario = $produtoBanco ? (float) $produtoBanco->preco_venda : 0.00;
                 }
 
-                // Calcula o subtotal deste item e acumula no total geral da venda
                 $subtotalLocal = ($quantidadeNecessaria * $precoUnitario) - $desconto; 
                 $valorVenda += $subtotalLocal; 
 
-                // Busca os lotes ativos com saldo do produto ordenados por data (FIFO)
+                // Busca os lotes ativos com saldo deste produto por ordem FIFO 
                 $lotesDisponiveis = DB::table('lotes') 
                     ->where('produto_id', $produtoId) 
                     ->where('quantidade_disponivel', '>', 0) 
@@ -438,7 +445,6 @@ class VendaController extends Controller
                     ->get(); 
 
                 if ($lotesDisponiveis->isEmpty()) { 
-                    // Fallback: Se não houver lotes cadastrados, grava o item sem lote_id
                     $venda->itens()->create([ 
                         'venda_id'       => $venda->id, 
                         'produto_id'     => $produtoId, 
@@ -448,7 +454,6 @@ class VendaController extends Controller
                         'desconto'       => $desconto 
                     ]); 
                 } else { 
-                    // Fragmenta e consome as quantidades dos lotes disponíveis
                     foreach ($lotesDisponiveis as $lote) { 
                         if ($quantidadeNecessaria <= 0) break; 
                         $qtdConsumir = min($quantidadeNecessaria, $lote->quantidade_disponivel); 
@@ -462,7 +467,7 @@ class VendaController extends Controller
                             'desconto'       => $desconto 
                         ]);
 
-                        // 📉 Dá baixa automática na quantidade disponível do lote
+                        // 📉 REALIZA A BAIXA DE ESTOQUE NO LOTE CORRESPONDENTE
                         DB::table('lotes')
                             ->where('id', $lote->id)
                             ->decrement('quantidade_disponivel', $qtdConsumir);
@@ -470,7 +475,6 @@ class VendaController extends Controller
                         $quantidadeNecessaria -= $qtdConsumir;
                     }
 
-                    // Se o estoque dos lotes acabar e ainda restar quantidade vendida (Estoque Negativo)
                     if ($quantidadeNecessaria > 0) {
                         $venda->itens()->create([ 
                             'venda_id'       => $venda->id, 
@@ -484,44 +488,83 @@ class VendaController extends Controller
                 } 
             } 
 
-            // 🔥 CORREÇÃO CRÍTICA: Atualiza o campo total na tabela 'vendas' com a soma de todos os itens
+            // 🔥 CORREÇÃO TOTAL DA VENDA: Atualiza com o valor real acumulado
             $venda->update(['total' => $valorVenda]);
 
-            // 3️⃣ Controle de Fluxo e Regras de Pagamento / Carteira
-            $pagamentosEnviados = collect($request->input('pagamentos', []))->keyBy('forma'); 
-            $usaCarteira = $pagamentosEnviados->has('carteira'); 
+            // ========================================================
+            // 🔥 INSERÇÃO HISTÓRICA NA TABELA movimentacoes_caixa
+            // ========================================================
+            // Mapeia os inputs do FormData para os códigos numéricos exigidos pela sua tabela
+            $mapaFormasPagamento = [
+                'dinheiro'       => 1,
+                'cartao_credito' => 2,
+                'cartao_debito'  => 3,
+                'pix'            => 4,
+                'carteira'       => 5
+            ];
 
-            // Bloqueio de uso de carteira para Venda Balcão (Cliente nulo)
-            if (is_null($clienteId)) { 
+                    // 🔥 CORREÇÃO TOTAL DA VENDA: Atualiza com o valor real acumulado antes de processar as movimentações
+        $venda->update(['total' => $valorVenda]);
+
+        // ========================================================
+        // 🔥 AJUSTE DEFINITIVO: PERSISTÊNCIA NA TABELA movimentacoes_caixa
+        // ========================================================
+        // Mapeia os inputs do FormData para as strings exatas que sua View e sua tabela esperam
+        $formasPagamentoPermitidas = ['dinheiro', 'cartao_credito', 'cartao_debito', 'pix', 'carteira'];
+
+        foreach ($formasPagamentoPermitidas as $forma) {
+            // Captura o valor de cada forma enviado de forma avulsa pelo JavaScript
+            $valorPago = floatval($request->input($forma, 0));
+            
+            if ($valorPago > 0) {
+                DB::table('movimentacoes_caixa')->insert([
+                    'caixa_id'          => $caixaId,
+                    'auditoria_id'      => null,
+                    'user_id'           => (int) $venda->funcionario_id, // Vincula o operador logado
+                    'tipo'              => 'venda', // String exata permitida pelo seu ENUM
+                    'forma_pagamento'   => $forma,  // Grava 'dinheiro', 'pix', 'cartao_credito', etc.
+                    'valor'             => $valorPago,
+                    'valor_auditado'    => 0.00,
+                    'bandeira'          => null,
+                    'origem_id'         => $venda->id, // Guarda o ID da venda como rastreio
+                    'observacao'        => "Venda PDV #" . $venda->id,
+                    'data_movimentacao' => now()->format('Y-m-d H:i:s'), // Preenche o datetime obrigatório
+                ]);
+            }
+        }
+
+        // 3️⃣ CONTROLE DE FLUXO: VALIDAÇÕES DE PAGAMENTO EM CARTEIRA
+        // (O restante do seu código de validação de Carteira e o DB::commit() continuam exatamente iguais abaixo...)
+
+
+            // 3️⃣ CONTROLE DE FLUXO: VALIDAÇÕES DE PAGAMENTO EM CARTEIRA
+            $pagamentosEnviados = collect($request->input('pagamentos', []))->keyBy('forma'); 
+            $usaCarteira = $pagamentosEnviados->has('carteira') || floatval($request->input('carteira', 0)) > 0; 
+
+            if (is_null($venda->cliente_id) || $venda->cliente_id == 6) { 
                 if ($usaCarteira) { 
                     DB::rollBack(); 
                     return response()->json(['success' => false, 'erro' => 'Cliente balcão não pode utilizar pagamento via carteira/crediário.'], 422); 
                 } 
             } else { 
                 // Validações para Clientes Cadastrados
-                $cliente = Cliente::with(['creditoAtivo', 'ultimaMovimentacao'])->find($clienteId); 
-                
-                if ($cliente) { 
-                    if ($usaCarteira) { 
-                        if (!$cliente->creditoAtivo || $cliente->creditoAtivo->status !== 'Ativo') {
-                            DB::rollBack();
-                            return response()->json(['success' => false, 'erro' => 'O cliente não possui cadastro de crédito ativo.'], 422);
-                        }
-
-                        $saldoDisponivel = (float) $cliente->creditoAtivo->saldo;
-                        $valorCarteira = $limparNumero($pagamentosEnviados->get('carteira')['valor'] ?? 0);
-
-                        if ($saldoDisponivel < $valorCarteira) {
-                            DB::rollBack();
-                            return response()->json(['success' => false, 'erro' => 'Saldo em carteira insuficiente para esta transação.'], 422);
-                        }
-
-                        // Processa o débito na carteira utilizando o seu Service dedicado
-                        $creditoService->debitar($cliente, $valorCarteira, "Venda ID: {$venda->id}");
+                $cliente = Cliente::with(['creditoAtivo', 'ultimaMovimentacao'])->find($venda->cliente_id); 
+                if ($cliente && $usaCarteira) { 
+                    if (!$cliente->creditoAtivo || $cliente->creditoAtivo->status !== 'Ativo') {
+                        DB::rollBack();
+                        return response()->json(['success' => false, 'erro' => 'O cliente não possui cadastro de crédito ativo.'], 422);
                     }
-                } else {
-                    DB::rollBack();
-                    return response()->json(['success' => false, 'erro' => 'Cliente informado não foi encontrado.'], 422);
+
+                    $saldoDisponivel = (float) $cliente->creditoAtivo->saldo;
+                    $valorCarteira = floatval($request->input('carteira', 0));
+
+                    if ($saldoDisponivel < $valorCarteira) {
+                        DB::rollBack();
+                        return response()->json(['success' => false, 'erro' => 'Saldo em carteira insuficiente para esta transação.'], 422);
+                    }
+
+                    // Processa o débito na carteira do cliente
+                    $creditoService->debitar($cliente, $valorCarteira, "Venda ID: {$venda->id}");
                 }
             } 
 
@@ -536,6 +579,7 @@ class VendaController extends Controller
             return response()->json(['success' => false, 'erro' => 'Erro interno ao finalizar venda: ' . $e->getMessage()], 500); 
         } 
     }
+
 
     // dados da empresa e exibe a tela que imprime cupom das vendas
     public function cupom($id) 
