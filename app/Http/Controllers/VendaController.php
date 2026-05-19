@@ -355,23 +355,6 @@ class VendaController extends Controller
         )); 
     }
 
-
-     //criar qrcode
-    // public function gerarPix($venda)
-    // {
-    //     $payload = new Payload();
-
-    //     $payload->setPixKey('11999999999'); // chave pix da empresa
-    //     $payload->setDescription('Venda '.$venda->id);
-    //     $payload->setMerchantName('DEPOSITO MATERIAIS');
-    //     $payload->setMerchantCity('POA');
-    //     $payload->setAmount(number_format($venda->total,2,'.',''));
-    //     $payload->setTxid($venda->id);
-
-    //     return $payload->getPayload();
-    // }
-
-        
     
 
 }

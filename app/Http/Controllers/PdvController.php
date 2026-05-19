@@ -416,53 +416,53 @@ class PdvController extends Controller
     // 1. Adicione o parâmetro Request para capturar o terminal atual
         // 1. Adicione o parâmetro Request para capturar o terminal atual
     public function caixasEsquecidos(Request $request, int $horasLimite = 12)
-    {
-        $agora = Carbon::now('America/Sao_Paulo');
-        $empresaId = auth()->user()->empresa_id ?? null;
+        {
+            $agora = Carbon::now('America/Sao_Paulo');
+            $empresaId = auth()->user()->empresa_id ?? null;
 
-        // 🎯 O SEGREDO ESTÁ AQUI: Captura o terminal direto da Session/Cookie injetada pelo seu Middleware
-        // Substitua 'terminal_id' pelo nome exato da chave que o seu IdentificaTerminal.php usa
-        $terminalId = session('terminal_id') ?? cookie('terminal_id') ?? $request->query('terminal_id');
+            // 🎯 O SEGREDO ESTÁ AQUI: Captura o terminal direto da Session/Cookie injetada pelo seu Middleware
+            // Substitua 'terminal_id' pelo nome exato da chave que o seu IdentificaTerminal.php usa
+            $terminalId = session('terminal_id') ?? cookie('terminal_id') ?? $request->query('terminal_id');
 
-        // Buscamos os caixas abertos da empresa logada
-        $query = Caixa::where('status', 'aberto');
-        
-        // 🎯 FILTRO AUTOMÁTICO: Se o middleware identificou o terminal, filtra o banco por ele
-        if ($terminalId) {
-            $query->where('terminal_id', $terminalId);
-        } else {
-            // Se o middleware não encontrou o terminal na sessão, assume o 10 para o seu ambiente de teste rodar
-            $query->where('terminal_id', 10);
+            // Buscamos os caixas abertos da empresa logada
+            $query = Caixa::where('status', 'aberto');
+            
+            // 🎯 FILTRO AUTOMÁTICO: Se o middleware identificou o terminal, filtra o banco por ele
+            if ($terminalId) {
+                $query->where('terminal_id', $terminalId);
+            } else {
+                // Se o middleware não encontrou o terminal na sessão, assume o 10 para o seu ambiente de teste rodar
+                $query->where('terminal_id', 10);
+            }
+
+            if ($empresaId) {
+                $query->where('empresa_id', $empresaId);
+            }
+
+            $caixas = $query->with(['usuario']) 
+                ->get()
+                ->map(function ($caixa) use ($agora) {
+
+                    // Força a leitura correta da data inserida no banco de dados
+                    $abertura = Carbon::parse($caixa->data_abertura, 'America/Sao_Paulo');
+
+                    // Calcula a diferença exata de horas
+                    $horasAberto = (int) $abertura->diffInHours($agora);
+                    
+                    $caixa->pdv_horas_aberto = $horasAberto;
+                    $caixa->data_abertura_br = $abertura->format('d/m/Y H:i');
+                    $caixa->nome_operador    = $caixa->usuario->name ?? '---';
+                    
+                    return $caixa;
+                })
+                // Filtra apenas os caixas que estouraram o limite de tempo configurado
+                ->filter(function ($caixa) use ($horasLimite) {
+                    return $caixa->pdv_horas_aberto >= $horasLimite;
+                })
+                ->values();
+
+            return response()->json($caixas);
         }
-
-        if ($empresaId) {
-            $query->where('empresa_id', $empresaId);
-        }
-
-        $caixas = $query->with(['usuario']) 
-            ->get()
-            ->map(function ($caixa) use ($agora) {
-
-                // Força a leitura correta da data inserida no banco de dados
-                $abertura = Carbon::parse($caixa->data_abertura, 'America/Sao_Paulo');
-
-                // Calcula a diferença exata de horas
-                $horasAberto = (int) $abertura->diffInHours($agora);
-                
-                $caixa->pdv_horas_aberto = $horasAberto;
-                $caixa->data_abertura_br = $abertura->format('d/m/Y H:i');
-                $caixa->nome_operador    = $caixa->usuario->name ?? '---';
-                
-                return $caixa;
-            })
-            // Filtra apenas os caixas que estouraram o limite de tempo configurado
-            ->filter(function ($caixa) use ($horasLimite) {
-                return $caixa->pdv_horas_aberto >= $horasLimite;
-            })
-            ->values();
-
-        return response()->json($caixas);
-    }
 
 
     public function verificarSangria(): array

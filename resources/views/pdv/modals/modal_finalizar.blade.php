@@ -1,107 +1,110 @@
 <!-- Modal Finalizar Venda -->
 <div class="modal fade" id="modalFinalizarVenda" tabindex="-1">
   <div class="modal-dialog" style="max-width:520px;">
-    <form id="formFinalizarVenda" method="POST" action="">
-      @csrf
-      <div class="modal-content">
-        
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title fw-bold">Finalizar Venda</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-content">
+      
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">Finalizar Venda</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        {{-- Total --}}
+        <div class="alert alert-secondary fs-5 text-center">
+            Total a pagar:<br>
+            <strong id="total-venda-modal">0,00</strong>
         </div>
 
-        <div class="modal-body">
+        {{-- Dados cliente carteira --}}
+        <div class="alert alert-light py-1 px-2 d-flex justify-content-between align-items-center mb-2">
 
-          {{-- Total --}}
-          <div class="alert alert-secondary fs-5 text-center">
-              Total a pagar:<br>
-              <strong id="total-venda-modal">0,00</strong>
-          </div>
-
-          {{-- Dados cliente carteira --}}
-          <div class="alert alert-light py-1 px-2 d-flex justify-content-between align-items-center mb-2">
-              <div>
-                  <span class="text-muted">Cliente:</span>
-                  <span id="nome-cliente-modal" class="fw-semibold text-primary">
-                      VENDA BALCAO
-                  </span>
-              </div>
-              <div>
-                  <span class="text-muted">Saldo Atual:</span>
-                  <span id="saldo-cliente-modal" class="fw-bold text-success">
-                      R$ 0,00
-                  </span>
-              </div>
-          </div>
-
-          {{-- Resumo --}}
-          <div class="alert alert-light text-center mb-3">
-              <div class="fw-semibold">
-                  Restante:
-                  <span id="valor-restante" class="text-danger fw-bold">R$ 0,00</span>
-              </div>
-              <div class="fw-bold fs-5 mt-1">
-                  Troco:
-                  <span id="valor-troco" class="text-success">R$ 0,00</span>
-              </div>
-          </div>
-
-          {{-- Pagamentos --}}
-          <div class="card shadow-sm">
-            <div class="card-body">
-              @php
-                  $formas = [
-                      'dinheiro' => 'DD - Dinheiro',
-                      'cartao_credito' => 'CC - Crédito',
-                      'cartao_debito' => 'CD - Débito',
-                      'pix' => 'PI - PIX',
-                      'carteira' => 'CA - Carteira'
-                  ];
-              @endphp
-
-              @foreach($formas as $key => $label)
-              <div class="row mb-2 align-items-center">
-                  <div class="col-5">
-                      <label class="form-label fw-semibold">{{ $label }}</label>
-                  </div>
-                  <div class="col-7">
-                      <input  
-                          type="number" 
-                          step="0.01"  
-                          class="form-control pagamento-modal" 
-                          name="pagamentos[{{ $key }}]"
-                          data-forma="{{ $key }}"
-                          placeholder="0,00" 
-                          min="0"
-                          style="max-width:150px;font-weight:bold"
-                          @if($loop->first) autofocus @endif
-                      >
-                  </div>
-              </div>
-              @endforeach
+            <div>
+                <span class="text-muted">Cliente:</span>
+                <span id="nome-cliente-modal" class="fw-semibold text-primary">
+                    VENDA BALCAO
+                </span>
             </div>
-          </div>
+
+            <div>
+                <span class="text-muted">Saldo Atual:</span>
+                <span id="saldo-cliente-modal" class="fw-bold text-success">
+                    R$ 0,00
+                </span>
+            </div>
 
         </div>
 
-        <div class="modal-footer d-grid gap-1">
-          <button type="button" class="btn btn-success btn-custom btn-SM" id="btnFinalizar">
-              Finalizar Venda
-          </button>
-          <button type="button" class="btn btn-SM btn-outline-secondary" data-bs-dismiss="modal">
-              Cancelar
-          </button>
+        {{-- Resumo --}}
+        <div class="alert alert-light text-center mb-3">
+            <div class="fw-semibold">
+                Restante:
+                <span id="valor-restante" class="text-danger fw-bold">R$ 0,00</span>
+            </div>
+
+            <div class="fw-bold fs-5 mt-1">
+                Troco:
+                <span id="valor-troco" class="text-success">R$ 0,00</span>
+            </div>
+        </div>
+
+        {{-- Pagamentos --}}
+        <div class="card shadow-sm">
+          <div class="card-body">
+
+            @php
+                $formas = [
+                    'dinheiro' => 'DD - Dinheiro',
+                    'cartao_credito' => 'CC - Crédito',
+                    'cartao_debito' => 'CD - Débito',
+                    'pix' => 'PI - PIX',
+                    'carteira' => 'CA - Carteira'
+                ];
+            @endphp
+
+            @foreach($formas as $key => $label)
+            <div class="row mb-2 align-items-center">
+                <div class="col-5">
+                    <label class="form-label fw-semibold">{{ $label }}</label>
+                </div>
+                <div class="col-7">
+                    <input  
+                        type="number" 
+                        step="0.01"  
+                        class="form-control pagamento-modal" 
+                        data-forma="{{ $key }}"
+                        placeholder="0,00" 
+                        min="0"
+                        style="max-width:150px;font-weight:bold"
+                        @if($loop->first) autofocus @endif
+                    >
+                </div>
+            </div>
+            @endforeach
+
+          </div>
         </div>
 
       </div>
-    </form>
+
+      <div class="modal-footer d-grid gap-1">
+        <button type="button" class="btn btn-success btn-SM" id="btnFinalizar">
+            Finalizar Venda
+        </button>
+        <button type="button" class="btn btn-SM btn-outline-secondary" data-bs-dismiss="modal">
+            Cancelar
+        </button>
+      </div>
+
+    </div>
   </div>
 </div>
 
 <script>
+    window.carrinho = window.carrinho || [];
+
     document.addEventListener('DOMContentLoaded', function () {
 
-        const formVenda       = document.getElementById('formFinalizarVenda');
         const inputsPagamento = document.querySelectorAll('.pagamento-modal');
         const restanteEl      = document.getElementById('valor-restante');
         const trocoEl         = document.getElementById('valor-troco');
@@ -110,6 +113,9 @@
         const modalFinalizar  = document.getElementById('modalFinalizarVenda');
 
         let carrinho = window.carrinho || [];
+        
+        window.__pdvUltimaFormaFocada = 'dinheiro';
+
 
         if (modalFinalizar) {
             modalFinalizar.addEventListener('shown.bs.modal', function () {
@@ -117,20 +123,33 @@
                 if (totalGeralPDV) {
                     totalModalEl.innerText = totalGeralPDV.innerText || totalGeralPDV.textContent;
                 }
+
+                if (window.financeiroCliente) {
+                    document.getElementById('saldo-cliente-modal').textContent =
+                        'R$ ' + Number(window.financeiroCliente.saldo_apos)
+                            .toFixed(2)
+                            .replace('.', ',');
+                }
+
                 aplicarRegraCarteira();
             });
         }
+        
 
         // ===============================
         // FUNÇÕES AUXILIARES
         // ===============================
         function formatMoney(valor) {
+
             const numero = Number(valor);
+
             if (isNaN(numero)) {
                 return 'R$ 0,00';
             }
+
             return 'R$ ' + numero.toFixed(2).replace('.', ',');
         }
+
 
         function parseMoney(valor) {
             if (!valor) return 0;
@@ -142,29 +161,28 @@
             return parseFloat(limpo) || 0;
         }
 
-        // ===============================
-        // CLIENTE
-        // ===============================
-        if(!window.clienteSelecionado){
-            document.getElementById('nome-cliente-modal').textContent = 'VENDA BALCAO';
-            document.getElementById('saldo-cliente-modal').textContent = 'R$ 0,00';
-        } else {
-            document.getElementById('nome-cliente-modal').textContent = window.clienteSelecionado.nome;
-            document.getElementById('saldo-cliente-modal').textContent =
-                formatMoney(window.clienteSelecionado.saldo);
+
+        function obtenerTotalVenda() {
+            const totalGeralEl = document.getElementById('totalGeral');
+            if (!totalGeralEl) return 0;
+            return parseFloat(totalGeralEl.textContent.replace(/\D/g, '')) / 100 || 0;
         }
 
-        // ===============================
-        // OUVINTE DE INPUTS
-        // ===============================
+
+        function obtenerSaldoCarteira() {
+            return window.cliente?.saldo || window.clienteSelecionado?.saldo || 0;
+        }
+
+
         inputsPagamento.forEach(input => {
-            input.addEventListener('input', function() {
-                calcularPagamentos();
+            input.addEventListener('focus', function() {
+                window.__pdvUltimaFormaFocada = this.dataset.forma;
             });
         });
 
+
         // ===============================
-        // ATALHOS TECLADO (DD, CC, CD, PI, CA)
+        // ATALHOS TECLADO RÁPIDOS
         // ===============================
         document.addEventListener('keydown', function (e) {
             if (!modalFinalizar || !modalFinalizar.classList.contains('show')) return;
@@ -196,8 +214,10 @@
             let valorParaPreencher = valorRestante + valorAtualDoCampo;
 
             if (forma === 'carteira') {
-                let saldoDisponivel = parseFloat(window.clienteSelecionado?.saldo || 0);
-                if (!window.clienteSelecionado || saldoDisponivel <= 0) {
+                let saldoDisponivel = obtenerSaldoCarteira();
+                let statusCredito = window.cliente?.status || window.clienteSelecionado?.status;
+
+                if (statusCredito === 'bloqueado' || saldoDisponivel <= 0) {
                     window.__pdvBufferForma = '';
                     return;
                 }
@@ -215,35 +235,38 @@
             window.__pdvBufferForma = '';
         });
 
-        // ========================================================
-        // ENTER NOS INPUTS DOS ATALHOS: SE RESTANTE FOR 0, FOCO NO BOTÃO
-        // ========================================================
+
+        // OUVINTE DE INPUT EM TEMPO REAL
+        inputsPagamento.forEach(input => {
+            input.addEventListener('input', function() {
+                calcularPagamentos(this);
+            });
+        });
+
+
+        // ===============================
+        // ENTER INTELIGENTE NO BOTÃO
+        // ===============================
         inputsPagamento.forEach(input => {
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
-                    e.preventDefault(); // Impede o envio precoce ou comportamento indesejado do navegador
+                    e.preventDefault();
 
                     let restante = parseMoney(restanteEl.textContent);
                     let valorAtual = parseFloat(input.value) || 0;
 
-                    // Se o operador der Enter com o campo zerado, preenche com o saldo restante
                     if (valorAtual <= 0 && restante > 0) {
                         input.value = restante.toFixed(2);
-                        calcularPagamentos();
+                        calcularPagamentos(this);
                     }
 
-                    // Pega o restante final após a digitação/preenchimento
                     let restanteFinal = parseMoney(restanteEl.textContent);
                     
-                    // Condição estrita solicitada: Se Restante for igual a R$ 0,00 -> Foco no botão
                     if (restanteFinal <= 0) {
                         setTimeout(() => {
-                            if (btnFinalizar) {
-                                btnFinalizar.focus();
-                            }
+                            if (btnFinalizar) btnFinalizar.focus();
                         }, 10);
                     } else {
-                        // Se ainda restar valor, mantém o operador no campo atual para edição
                         input.focus();
                         input.select();
                     }
@@ -251,7 +274,7 @@
             });
         });
 
-        // Se o operador apertar Enter com o botão já focado, finaliza a venda
+
         btnFinalizar?.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -259,94 +282,231 @@
             }
         });
 
-        // ===============================
-        // CÁLCULO
-        // ===============================
-        function calcularPagamentos() {
-            let total = parseMoney(totalModalEl.innerText);
-            let soma = 0;
 
+        // ========================================================
+        // REGRA DO TROCO INTELIGENTE REFORMULADA POR COMPLETO
+        // ========================================================
+        function calcularPagamentos(inputModificado = null) {
+            
+            let totalVenda = parseMoney(totalModalEl.innerText);
+            
+            let somaOutrasFormas = 0;
             inputsPagamento.forEach(input => {
-                soma += parseFloat(input.value) || 0;
+                if (input.dataset.forma !== 'dinheiro') {
+                    somaOutrasFormas += parseFloat(input.value) || 0;
+                }
             });
 
-            let restante = total - soma;
-            let troco = 0;
+            let restanteParaDinheiro = totalVenda - somaOutrasFormas;
+            if (restanteParaDinheiro < 0) restanteParaDinheiro = 0;
 
-            if (restante < 0) {
-                troco = Math.abs(restante);
-                restante = 0;
+
+            if (inputModificado && inputModificado.dataset.forma !== 'dinheiro') {
+                let valorDigitado = parseFloat(inputModificado.value) || 0;
+                let somaSemOAtual = 0;
+                
+                inputsPagamento.forEach(input => {
+                    if (input !== inputModificado && input.dataset.forma !== 'dinheiro') {
+                        somaSemOAtual += parseFloat(input.value) || 0;
+                    }
+                });
+
+                if (somaSemOAtual + valorDigitado > totalVenda) {
+                    valorDigitado = totalVenda - somaSemOAtual;
+                    if (valorDigitado < 0) valorDigitado = 0;
+                    inputModificado.value = valorDigitado > 0 ? valorDigitado.toFixed(2) : '';
+                }
             }
 
-            restanteEl.innerText = formatMoney(restante);
-            trocoEl.innerText = formatMoney(troco);
+
+            const inputDinheiro = document.querySelector('.pagamento-modal[data-forma="dinheiro"]');
+            let valorDinheiro = inputDinheiro ? (parseFloat(inputDinheiro.value) || 0) : 0;
+
+
+            let somaTotalInformada = 0;
+            inputsPagamento.forEach(input => {
+                somaTotalInformada += parseFloat(input.value) || 0;
+            });
+
+
+            let restanteFinal = totalVenda - somaTotalInformada;
+            let trocoFinal = 0;
+
+
+            if (restanteFinal < 0) {
+                if (valorDinheiro > restanteParaDinheiro) {
+                    trocoFinal = valorDinheiro - restanteParaDinheiro;
+                } else {
+                    trocoFinal = Math.abs(restanteFinal);
+                }
+                restanteFinal = 0;
+            }
+
+
+            restanteEl.innerText = formatMoney(restanteFinal);
+            trocoEl.innerText = formatMoney(trocoFinal);
         }
 
+
         // ===============================
-        // REGRA CARTEIRA
+        // REGRA CARTEIRA ORIGINAL
         // ===============================
         function aplicarRegraCarteira() {
-            let total = parseMoney(totalModalEl.innerText);
-            let inputCarteira = document.querySelector('[data-forma="carteira"]');
-            if (!inputCarteira) return;
 
-            if (!window.clienteSelecionado) {
-                inputCarteira.value = '';
-                inputCarteira.disabled = true;
-                calcularPagamentos();
-                return;
-            }
+            if (!window.clienteSelecionado) return;
 
             let saldo = parseFloat(window.clienteSelecionado.saldo || 0);
+            let total = parseMoney(totalModalEl.innerText);
+
+            let inputCarteira = document.querySelector('[data-forma="carteira"]');
+            if (!inputCarteira) return;
 
             if (saldo >= total) {
                 inputCarteira.value = total.toFixed(2);
             } else if (saldo > 0) {
                 inputCarteira.value = saldo.toFixed(2);
             } else {
-                inputCarteira.value = '';
+                inputCarteira.value = 0;
                 inputCarteira.disabled = true;
             }
 
             calcularPagamentos();
         }
 
+
         // ========================================================
-        // AÇÃO DO BOTÃO FINALIZAR (CLIQUE / SUBMIT)
+        // ENVIO AJAX COMPATÍVEL VIA FETCH (FLUXO CONTINUO)
         // ========================================================
         btnFinalizar?.addEventListener('click', function() {
             let totalPagamento = 0;
 
             inputsPagamento.forEach(input => {
-                let val = parseFloat(input.value) || 0;
-                input.value = val.toFixed(2);
-                totalPagamento += val;
+                totalPagamento += parseFloat(input.value) || 0;
             });
 
             if (totalPagamento <= 0) {
-                alert('Informe ao menos uma forma de pagamento.');
+                alert('Informe a forma de pagamento');
                 return;
             }
 
+            let idClienteFinal = "";
+            if (window.clienteSelecionado) {
+                idClienteFinal = parseInt(window.clienteSelecionado.id || window.clienteSelecionado, 10);
+            }
+
+            let idFuncionarioFinal = parseInt(window.auth_user_id, 10) || 
+                                     parseInt(document.getElementById('funcionario_id')?.value, 10) || 1;
+
+            let idCaixaFinal = parseInt(window.caixa_id, 10) || 
+                               parseInt(document.getElementById('caixa_id')?.value, 10) || 1;
+
+            let formData = new FormData();
+            formData.append('cliente_id', idClienteFinal);
+            formData.append('funcionario_id', idFuncionarioFinal);
+            formData.append('caixa_id', idCaixaFinal);
+            formData.append('dataVenda', new Date().toISOString().slice(0, 19).replace('T', ' '));
+
+            if (window.carrinho && window.carrinho.length > 0) {
+                window.carrinho.forEach((item, index) => {
+                    formData.append(`itens[${index}][produto_id]`, item.produto_id || item.id || "");
+                    formData.append(`itens[${index}][quantidade]`, item.quantidade || item.qtd || 1);
+                    formData.append(`itens[${index}][valor_unitario]`, item.valor_unitario || item.preco || 0);
+                    formData.append(`itens[${index}][desconto]`, item.desconto || 0);
+                });
+            }
+
+            inputsPagamento.forEach(input => {
+                let valorForma = parseFloat(input.value) || 0;
+                formData.append(`pagamentos[${input.dataset.forma}]`, valorForma);
+                formData.append(input.dataset.forma, valorForma);
+            });
+
+            fetch('/vendas/finalizar', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(texto => { throw new Error(texto) });
+                }
+                return response.json();
+            })
+            .then(data => {
+                let idDaVendaGerada = data.venda_id || data.id || (data.venda && data.venda.id);
+
+                if (data.success && idDaVendaGerada) {
+                    
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.src = `/venda/${idDaVendaGerada}/cupom`;
+                    document.body.appendChild(iframe);
+                    
+                    iframe.onload = function() {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                        
+                        executarLimpezaEResetPDV();
+                        
+                        setTimeout(() => {
+                            if (iframe.parentNode) document.body.removeChild(iframe);
+                        }, 1000);
+                    };
+
+                } else {
+                    let mensagemErro = data.message || data.erro || 'Erro desconhecido.';
+                    alert('Atenção: O sistema recusou a operação.\nMotivo: ' + mensagemErro);
+                }
+            })
+            .catch(error => {
+                console.error('Erro detectado no processamento:', error);
+                alert('Falha ao processar venda no banco. Verifique os valores ou o console.');
+            });
+        });
+
+
+        function verificarNovoCaixa() {
+            // Gatilho interno original mantido em escopo
+        }
+
+
+        function executarLimpezaEResetPDV() {
             window.carrinho = [];
             
             if (typeof atualizarTabelaCarrinho === 'function') {
                 atualizarTabelaCarrinho();
             }
+            if (typeof renderizarCarrinho === 'function') {
+                renderizarCarrinho();
+            }
+
+            if (typeof bootstrap !== 'undefined' && modalFinalizar) {
+                let modalInstance = bootstrap.Modal.getInstance(modalFinalizar);
+                modalInstance?.hide();
+            }
+
+            inputsPagamento.forEach(input => input.value = '');
+
+            const totalGeralPDV = document.getElementById('totalGeral');
+            if (totalGeralPDV) {
+                totalGeralPDV.textContent = 'R$ 0,00';
+            }
 
             setTimeout(() => {
                 const inputBarras = document.getElementById('codigo_barras');
                 if (inputBarras) {
-                    inputBarras.value = ''; 
-                    inputBarras.focus();    
+                    inputBarras.value = '';
+                    inputBarras.focus();
                 }
-            }, 100);
+            }, 150);
+        }
 
-            formVenda?.submit();
-        });
 
         function atualizarResumoClienteFinalizar() {
-            // Mantida intacta para evitar quebra de chamadas externas de escopo
+            // Mantida íntegra para interceptações de escopo externo
         }
+
     });
 </script>
