@@ -64,24 +64,12 @@
     }
 
     /* Headers de cartões coloridos */
-    .card-header.bg-success {
-        background: #198754;
-    }
-    .card-header.bg-danger {
-        background: #dc3545;
-    }
-    .card-header.bg-primary {
-        background: #0d6efd;
-    }
+    .card-header.bg-success { background: #198754; }
+    .card-header.bg-danger { background: #dc3545; }
+    .card-header.bg-primary { background: #0d6efd; }
 
-    /* Row dos inputs */
-    .row.align-items-center {
-        margin-bottom: 10px;
-    }
-
-    .fw-semibold {
-        font-weight: 600;
-    }
+    .row.align-items-center { margin-bottom: 10px; }
+    .fw-semibold { font-weight: 600; }
 
     /* Botões finais */
     .btn-submit {
@@ -92,22 +80,21 @@
         transition: all 0.2s ease-in-out;
     }
 
-    .btn-submit:hover {
-        transform: scale(1.03);
-    }
+    .btn-submit:hover { transform: scale(1.03); }
 </style>
 
 <div class="fechamento-container">
 
-    <h4 class="bg-secondary text-center text-white ">Fechamento do Caixa {{ $caixa->id }} </h4>
+    <h4 class="bg-secondary text-center text-white p-2 rounded">Fechamento do Caixa #{{ $caixa->id }}</h4>
 
     <form method="POST" action="{{ route('fechamento.fechar', $caixa->id) }}">
         @csrf
 
         {{-- DADOS DO CAIXA --}}
-        <div class="card mb-4 border-primary">
+        <div class="card mb-4 border-primary shadow-sm">
+            {{-- 🌟 CORREGIDO: Removido o texto estático fixo "- Sem Movimento" --}}
             <div class="card-header bg-primary text-white">
-                ✅ Dados do Caixa - Fechamento #{{ $caixa->id }} - Sem Movimento
+                ✅ Dados do Caixa - Fechamento #{{ $caixa->id }}
             </div>
             <div class="card-body">
                 <div class="row mb-3">
@@ -117,7 +104,7 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-4"><strong>Abertura</strong><br>{{ \Carbon\Carbon::parse($caixa->data_abertura)->format('d/m/Y H:i') }}</div>
+                    <div class="col-md-4"><strong>Abertura</strong><br>{{ $caixa->data_abertura ? \Carbon\Carbon::parse($caixa->data_abertura)->format('d/m/Y H:i') : '-' }}</div>
                     
                     <div class="col-md-4">
                         <strong>Status</strong><br>
@@ -138,10 +125,13 @@
             </div>
         </div>
 
-        {{-- SEM MOVIMENTAÇÃO --}}
-        @if(!$caixa->possuiVendas())
+        {{-- ==========================================================================
+            🌟 CORREÇÃO DE LOGICA: Se não existirem linhas do tipo 'venda' na fita 
+            do caixa aberto no banco, exibe o bloco de fechamento sem movimentação.
+        ========================================================================== --}}
+        @if(!DB::table('movimentacoes_caixa')->where('caixa_id', $caixa->id)->where('tipo', 'venda')->exists())
             <div class="card mb-4 border-success shadow-sm">
-                <div class="card-header bg-success text-white">Fechamento sem Movimentação</div>
+                <div class="card-header bg-success text-white">Fechamento sem Movimentação Comercial</div>
                 <div class="card-body">
                     <div class="form-group">
                         <label for="motivo_fechamento" class="fw-bold">Motivo do fechamento</label>
@@ -158,20 +148,20 @@
                 </div>
             </div>
 
-        {{-- COM MOVIMENTAÇÃO --}}
+        {{-- SE HOUVER LINHAS DE VENDA REGISTRADAS NA FITA, LIBERA OS VALORES FÍSICOS --}}
         @else
             <div class="row mt-4">
-
-                {{-- Valores por Forma de Pagamento --}}
+                {{-- Valores por Forma de Pagamento (Valores pré-preenchidos se já existirem no array) --}}
                 <div class="col-md-6">
                     <div class="card shadow-sm">
-                        <div class="card-header bg-primary text-white fw-bold">Valores por Forma de Pagamento</div>
+                        <div class="card-header bg-primary text-white fw-bold">Valores por Forma de Pagamento (Gaveta)</div>
                         <div class="card-body">
                             @foreach (['dinheiro'=>'Dinheiro','pix'=>'Pix','carteira'=>'Carteira','cartao_debito'=>'Cartão Débito','cartao_credito'=>'Cartão Crédito'] as $name => $label)
                                 <div class="row align-items-center">
                                     <div class="col-4 fw-semibold">{{ $label }}</div>
                                     <div class="col-8">
-                                        <input type="number" step="0.01" name="{{ $name }}" class="form-control input-financeiro" value="{{ old($name,0) }}" required>
+                                        <input type="number" step="0.01" name="{{ $name }}" class="form-control input-financeiro" 
+                                               value="{{ old($name, (isset($totaisPorForma[$name]) ? $totaisPorForma[$name] : 0)) }}" required>
                                     </div>
                                 </div>
                             @endforeach
@@ -188,77 +178,20 @@
                                 <div class="row align-items-center">
                                     <div class="col-4 fw-bold">{{ $label }}</div>
                                     <div class="col-8">
-                                        <input type="number" step="0.01" name="{{ $name }}" class="form-control input-financeiro text-end" value="{{ old($name,0) }}">
+                                        <input type="number" step="0.01" name="{{ $name }}" class="form-control input-financeiro text-end" value="{{ old($name, 0) }}">
                                     </div>
                                 </div>
                             @endforeach
                         </div>
                     </div>
                 </div>
-                {{-- Bandeiras de Cartão --}}
-                <!-- <div class="col-md-6">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-primary text-white fw-bold">Bandeiras de Cartão</div>
-                        <div class="card-body">
-                            @foreach (['bandeira_visa'=>'Visa','bandeira_mastercard'=>'Mastercard','bandeira_elo'=>'Elo','bandeira_amex'=>'Amex','bandeira_hipercard'=>'Hipercard'] as $name => $label)
-                                <div class="row align-items-center">
-                                    <div class="col-4 fw-semibold">{{ $label }}</div>
-                                    <div class="col-8">
-                                        <input type="number" step="0.01" name="{{ $name }}" class="form-control input-financeiro" value="{{ old($name,0) }}">
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div> -->
             </div>
-
-            {{-- Entradas e Saídas --}}
-            <!-- <div class="row mt-4">
-                {{-- Entradas --}}
-                <div class="col-md-6">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-success text-white fw-bold">Entradas de Caixa</div>
-                        <div class="card-body">
-                            @foreach (['entrada_suprimento'=>'Suprimento','entrada_ajuste'=>'Ajuste Positivo','entrada_devolucao'=>'Devolução em Dinheiro','entrada_outros'=>'Outras Entradas'] as $name => $label)
-                                <div class="row align-items-center">
-                                    <div class="col-4 fw-bold">{{ $label }}</div>
-                                    <div class="col-8">
-                                        <input type="number" step="0.01" name="{{ $name }}" class="form-control input-financeiro text-end" value="{{ old($name,0) }}">
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Saídas --}}
-                <div class="col-md-6">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-danger text-white fw-bold">Saídas de Caixa</div>
-                        <div class="card-body">
-                            @foreach (['saida_sangria'=>'Sangria','saida_despesa'=>'Despesas','saida_ajuste'=>'Ajuste Negativo','saida_outros'=>'Outras Saídas'] as $name => $label)
-                                <div class="row align-items-center">
-                                    <div class="col-4 fw-bold">{{ $label }}</div>
-                                    <div class="col-8">
-                                        <input type="number" step="0.01" name="{{ $name }}" class="form-control input-financeiro text-end" value="{{ old($name,0) }}">
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div> -->
-            <!-- </div> -->
         @endif
 
-        {{-- Botões --}}
-        <div class="text-end mt-4">
-            <button type="submit" class="btn btn-success btn-submit">Confirmar Fechamento</button>
-            <a href="{{ url()->previous() }}" class="btn btn-secondary btn-submit">Cancelar</a>
+        {{-- Botão de envio final do formulário --}}
+        <div class="d-flex justify-content-end mt-3">
+            <button type="submit" class="btn btn-success btn-submit shadow-sm">Confirmar Fechamento do Caixa</button>
         </div>
-
     </form>
-
 </div>
-
 @endsection

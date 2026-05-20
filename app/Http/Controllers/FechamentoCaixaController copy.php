@@ -19,143 +19,68 @@ class FechamentoCaixaController extends Controller
      * Mostra a view de fechamento/auditoria
      */
 
-    // public function index($caixaId)
-    // {
-    //     $caixa = Caixa::with('movimentacoes')->findOrFail($caixaId);
+    public function index($caixaId)
+    {
+        $caixa = Caixa::with('movimentacoes')->findOrFail($caixaId);
     
-    //     $total_esperado = CaixaService::total_esperado($caixaId);
+        $total_esperado = CaixaService::total_esperado($caixaId);
 
-    //     $total_entradas = DB::table('movimentacoes_caixa')
-    //         ->where('caixa_id', $caixaId)
-    //         // ->whereIn('tipo', ['abertura', 'entrada_manual', 'venda'])
-    //         // ->where('tipo', 'venda')
-    //         ->sum('valor');
+        $total_entradas = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            // ->whereIn('tipo', ['abertura', 'entrada_manual', 'venda'])
+            // ->where('tipo', 'venda')
+            ->sum('valor');
            
 
-    //     $total_saidas = DB::table('movimentacoes_caixa')
-    //     ->where('caixa_id', $caixaId)
-    //     ->whereIn('tipo', ['saida_manual', 'cancelamento_venda'])
-    //     ->sum('valor');
+        $total_saidas = DB::table('movimentacoes_caixa')
+        ->where('caixa_id', $caixaId)
+        ->whereIn('tipo', ['saida_manual', 'cancelamento_venda'])
+        ->sum('valor');
         
 
-    //     /** ============================
-    //      * INICIALIZAÇÃO SEGURA
-    //      * ============================ */
-    //     $divergencia = 0;
-    //     $totaisPorForma = [];
-    //     $totalGeralSistema = 0;
-    //     $total_sangrias = 0;
+        /** ============================
+         * INICIALIZAÇÃO SEGURA
+         * ============================ */
+        $divergencia = 0;
+        $totaisPorForma = [];
+        $totalGeralSistema = 0;
+        $total_sangrias = 0;
 
-    //      $total_sangrias = DB::table('movimentacoes_caixa')
-    //     ->where('caixa_id', $caixaId)
-    //     ->where('tipo', 'sangria')
-    //     ->where('forma_pagamento', 'sangria')
-    //     ->sum('valor');
-
-    //     /** ============================
-    //      * TOTAIS DO SISTEMA POR FORMA
-    //      * ============================ */
-    //     if ($caixa->vendas->count()) {
-    //         foreach ($caixa->vendas as $venda) {
-    //             foreach ($venda->pagamentos as $pag) {
-    //                 if ($pag->status !== 'confirmado') {
-    //                     continue;
-    //                 }
-
-    //                 $forma = $pag->forma_pagamento;
-    //                 $totaisPorForma[$forma] = ($totaisPorForma[$forma] ?? 0) + $pag->valor;
-    //             }
-    //         }
-
-    //         $totalGeralSistema = array_sum($totaisPorForma);
-    //     }
-
-    //         return view('fechamento_caixa.index', compact(
-    //             'caixa',
-    //             'total_entradas',
-    //             'total_saidas',
-    //             'total_esperado',
-    //             'divergencia',
-    //             'totaisPorForma',
-    //             'totalGeralSistema',
-    //             'total_sangrias'
-    //         ));
-    // }
-
-    public function index($caixaId)
-{
-    // 1️⃣ Carrega o caixa garantindo que ele exista
-    $caixa = Caixa::findOrFail($caixaId);
-
-    // 2️⃣ TOTAL ENTRADAS: Soma tudo o que injetou dinheiro (Abertura, Vendas do PDV, Aportes/Entradas Manuais)
-    $total_entradas = DB::table('movimentacoes_caixa')
-        ->where('caixa_id', $caixaId)
-        ->whereIn('tipo', ['abertura', 'entrada_manual', 'venda', 'entrada'])
-        ->sum('valor');
-
-    // 3️⃣ TOTAL SAÍDAS: Soma retiradas manuais, despesas e cancelamentos
-    $total_saidas = DB::table('movimentacoes_caixa')
-        ->where('caixa_id', $caixaId)
-        ->whereIn('tipo', ['saida_manual', 'cancelamento_venda', 'saida', 'despesa'])
-        ->sum('valor');
-
-    // 4️⃣ SANGRIAS: Isola o total de sangrias para dedução ou exibição limpa
-    $total_sangrias = DB::table('movimentacoes_caixa')
+         $total_sangrias = DB::table('movimentacoes_caixa')
         ->where('caixa_id', $caixaId)
         ->where('tipo', 'sangria')
+        ->where('forma_pagamento', 'sangria')
         ->sum('valor');
 
-    // 5️⃣ FORMAS DE PAGAMENTO DO SISTEMA: Inicializa a matriz zerada para a Blade
-    $totaisPorForma = [
-        'dinheiro'       => 0.00,
-        'pix'            => 0.00,
-        'carteira'       => 0.00,
-        'cartao_debito'  => 0.00,
-        'cartao_credito' => 0.00
-    ];
+        /** ============================
+         * TOTAIS DO SISTEMA POR FORMA
+         * ============================ */
+        if ($caixa->vendas->count()) {
+            foreach ($caixa->vendas as $venda) {
+                foreach ($venda->pagamentos as $pag) {
+                    if ($pag->status !== 'confirmado') {
+                        continue;
+                    }
 
-    // Busca e agrupa os valores de vendas ou lançamentos manuais já consolidados nesta fita
-    $movimentosAgrupados = DB::table('movimentacoes_caixa')
-        ->where('caixa_id', $caixaId)
-        ->whereIn('tipo', ['venda', 'entrada_manual']) // Lê as vendas do dia E os fechamentos dos caixas antigos
-        ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
-        ->groupBy('forma_pagamento')
-        ->get();
+                    $forma = $pag->forma_pagamento;
+                    $totaisPorForma[$forma] = ($totaisPorForma[$forma] ?? 0) + $pag->valor;
+                }
+            }
 
-    foreach ($movimentosAgrupados as $mov) {
-        $forma = strtolower(trim($mov->forma_pagamento));
-        // Remove possíveis variações de escrita (ex: "cartao debito" vira "cartao_debito")
-        $forma = str_replace(' ', '_', $forma); 
-
-        if (array_key_exists($forma, $totaisPorForma)) {
-            $totaisPorForma[$forma] = (float) $mov->total;
+            $totalGeralSistema = array_sum($totaisPorForma);
         }
+
+            return view('fechamento_caixa.index', compact(
+                'caixa',
+                'total_entradas',
+                'total_saidas',
+                'total_esperado',
+                'divergencia',
+                'totaisPorForma',
+                'totalGeralSistema',
+                'total_sangrias'
+            ));
     }
-
-    // 6️⃣ MATEMÁTICA CONSOLIDADA DO SISTEMA
-    $totalGeralSistema = array_sum($totaisPorForma);
-
-    // O esperado em dinheiro físico é: Fundo de Troco + Entradas em Dinheiro Vivo - Saídas/Sangrias
-    $dinheiroDoSistema = $totaisPorForma['dinheiro'] ?? 0.00;
-    $total_esperado = ($caixa->fundo_troco + $dinheiroDoSistema) - ($total_saidas + $total_sangrias);
-    
-    $divergencia = 0.00;
-
-    // Carrega o histórico completo de movimentações para alimentar a tabela do rodapé da Blade
-    $caixa->setRelation('movimentacoes', $caixa->movimentacoes()->orderBy('id', 'asc')->get());
-
-    return view('fechamento_caixa.index', compact(
-        'caixa',
-        'total_entradas',
-        'total_saidas',
-        'total_esperado',
-        'divergencia',
-        'totaisPorForma',
-        'totalGeralSistema',
-        'total_sangrias'
-    ));
-}
-
    
     public function listaCaixas()
     {

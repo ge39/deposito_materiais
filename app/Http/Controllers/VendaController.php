@@ -142,232 +142,7 @@ class VendaController extends Controller
         }
     }
 
-
     //pagamentos de venda (pagamentos_venda)
- 
-    // public function finalizar(Request $request, CreditoService $creditoService) { 
-    //     DB::beginTransaction(); 
-    //     try { 
-    //         // 🔥 Se vier vazio, zero ou o ID 6 da Venda Balcão, define como NULL para o banco 
-    //         $clienteId = !empty($request->cliente_id) && (int)$request->cliente_id > 0 && (int)$request->cliente_id !== 6 ? (int)$request->cliente_id : null; 
-
-    //         // 1️⃣ Criação da Venda (Agora o MySQL vai aceitar o NULL sem dar o erro 1048) 
-    //         $dadosVenda = [ 
-    //             'cliente_id' => $clienteId, 
-    //             'funcionario_id' => $request->funcionario_id, 
-    //             'caixa_id' => $request->caixa_id, 
-    //             'status' => 'aberta', 
-    //             'total' => 0 
-    //         ]; 
-
-    //         $dataVendaOriginal = $request->dataVenda ?? now();
-    //         if (\Schema::hasColumn('vendas', 'data_venda')) { 
-    //             $dadosVenda['data_venda'] = $dataVendaOriginal; 
-    //         } 
-    //         $venda = Venda::create($dadosVenda); 
-
-    //         // 2️⃣ Inserção dos Itens do Carrinho com Algoritmo FIFO Corrigido (Priorizando produto_id)
-    //         // 2️⃣ Inserção dos Itens do Carrinho com Sanitização Antimeta e Algoritmo FIFO Corrigido
-    //         $itens = $request->input('itens', []); 
-    //         $valorVenda = 0; 
-
-    //         foreach ($itens as $item) { 
-    //             // 🧼 HELPER DE SANITIZAÇÃO DECIMAL
-    //             $limparNumero = function($valor) { 
-    //                 if (is_numeric($valor)) return (float) $valor; 
-    //                 $stringLimpa = preg_replace('/[^\d,.]/', '', $valor); 
-    //                 if (strpos($stringLimpa, ',') !== false && strpos($stringLimpa, '.') !== false) { 
-    //                     $stringLimpa = str_replace(',', '', $stringLimpa); 
-    //                 } else { 
-    //                     $stringLimpa = str_replace(',', '.', $stringLimpa); 
-    //                 } 
-    //                 return (float) $stringLimpa; 
-    //             }; 
-
-    //             // Aplica a sanitização nos dados brutos vindos do front-end
-    //             $quantidadeNecessaria = $limparNumero($item['quantidade'] ?? $item['qtd'] ?? 1); 
-                
-    //             // 🔥 CORREÇÃO CRÍTICA: Adicionado 'valor_unitario' para capturar o preço real do seu print
-    //             $precoUnitario        = $limparNumero($item['valor_unitario'] ?? $item['preco_unitario'] ?? $item['preco'] ?? $item['valor'] ?? 0); 
-    //             $desconto             = $limparNumero($item['desconto'] ?? 0.00); 
-
-    //             // Mapeamento do ID do produto
-    //             $produtoId = $item['produto_id'] ?? $item['id'] ?? null; 
-
-    //             if (!$produtoId) { 
-    //                 DB::rollBack(); 
-    //                 return response()->json(['success' => false, 'erro' => 'Identificador do produto inválido no carrinho.'], 422); 
-    //             } 
-
-    //             // Calcula o subtotal e alimenta o acumulador geral de forma garantida no PHP
-    //             $subtotalLocal = ($quantidadeNecessaria * $precoUnitario) - $desconto; 
-    //             $valorVenda += $subtotalLocal; 
-
-    //             // Busca os lotes ativos com saldo deste produto por ordem FIFO 
-    //             $lotesDisponiveis = DB::table('lotes') 
-    //                 ->where('produto_id', $produtoId) 
-    //                 ->where('quantidade_disponivel', '>', 0) 
-    //                 ->orderBy('created_at', 'asc') 
-    //                 ->lockForUpdate() 
-    //                 ->get(); 
-
-    //             if ($lotesDisponiveis->isEmpty()) { 
-    //                 // Fallback: Grava com as propriedades resolvidas e lote_id nulo 
-    //                 $venda->itens()->create([ 
-    //                     'venda_id'       => $venda->id, 
-    //                     'produto_id'     => $produtoId, 
-    //                     'lote_id'        => null, 
-    //                     'quantidade'     => (int) $quantidadeNecessaria, 
-    //                     'preco_unitario' => $precoUnitario, 
-    //                     'desconto'       => $desconto 
-    //                 ]); 
-    //             } else { 
-    //                 // Distribui e fragmenta a quantidade nos lotes respeitando o FIFO 
-    //                 foreach ($lotesDisponiveis as $lote) { 
-    //                     if ($quantidadeNecessaria <= 0) break; 
-    //                     $qtdConsumir = min($quantidadeNecessaria, $lote->quantidade_disponivel); 
-
-    //                     // Gravação Completa de todas as colunas 
-    //                     $venda->itens()->create([ 
-    //                         'venda_id'       => $venda->id, 
-    //                         'produto_id'     => $produtoId, 
-    //                         'lote_id'        => $lote->id, 
-    //                         'quantidade'     => (int) $qtdConsumir, 
-    //                         'preco_unitario' => $precoUnitario, 
-    //                         'desconto'       => $desconto 
-    //                     ]);
-
-    //                     // 📉 Realiza a baixa do estoque físico na tabela de lotes
-    //                     DB::table('lotes')
-    //                         ->where('id', $lote->id)
-    //                         ->decrement('quantidade_disponivel', $qtdConsumir);
-
-    //                     $quantidadeNecessaria -= $qtdConsumir;
-    //                 }
-
-    //                 // Se passar por todos os lotes e ainda restar quantidade necessária (Estoque insuficiente/negativo)
-    //                 if ($quantidadeNecessaria > 0) {
-    //                     $venda->itens()->create([ 
-    //                         'venda_id'       => $venda->id, 
-    //                         'produto_id'     => $produtoId, 
-    //                         'lote_id'        => null, 
-    //                         'quantidade'     => (int) $quantidadeNecessaria, 
-    //                         'preco_unitario' => $precoUnitario, 
-    //                         'desconto'       => $desconto 
-    //                     ]);
-    //                 }
-    //             } 
-    //         } 
-
-    //         // 3️⃣ CONTROLE DE FLUXO: ISOLAMENTO TOTAL DA VENDA BALCÃO 
-    //         $pagamentosEnviados = collect($request->input('pagamentos', []))->keyBy('forma'); 
-    //         $usaCarteira = $pagamentosEnviados->has('carteira'); 
-    //         $formasPermitidas = ['dinheiro', 'pix', 'cartao_credito', 'cartao_debito']; 
-
-    //         // 🔴 SE FOR NULL (Venda Balcão): Barra a carteira direto sem consultar services 
-    //         if (is_null($clienteId)) { 
-    //             if ($usaCarteira) { 
-    //                 DB::rollBack(); 
-    //                 return response()->json(['success' => false, 'erro' => 'Cliente balcão não pode utilizar pagamento via carteira/crediário.'], 422); 
-    //             } 
-    //         } else { 
-    //             // 🟢 SE FOR CLIENTE CADASTRADO: Executa as validações normais de crédito 
-    //             $cliente = Cliente::with(['creditoAtivo', 'ultimaMovimentacao'])->find($clienteId); 
-    //             if ($cliente) { 
-    //                 if ($usaCarteira) { 
-    //                     if (!$cliente->creditoAtivo) { 
-    //                         DB::rollBack(); 
-    //                         return response()->json(['success' => false, 'erro' => 'Este cliente não possui crediário ativo no sistema.'], 422); 
-    //                     } 
-    //                     $validacao = $creditoService->validarCredito($cliente, $valorVenda, $request->input('pagamentos', [])); 
-    //                     if (!$validacao['aprovado']) { 
-    //                         DB::rollBack(); 
-    //                         return response()->json(['success' => false, 'erro' => $validacao['mensagem']], 422); 
-    //                     } 
-    //                 } 
-    //                 $formasPermitidas = $creditoService->formasPermitidas($cliente, $valorVenda); 
-    //             } 
-    //         } 
-
-    //         // 4️⃣ Processamento das Formas de Pagamento 
-    //         $formasPossiveis = ['dinheiro', 'cartao_credito', 'cartao_debito', 'carteira', 'pix']; 
-    //         $totalPagamentos = 0; 
-    //         foreach ($formasPossiveis as $forma) { 
-    //             $valor = isset($pagamentosEnviados[$forma]) ? (float) $pagamentosEnviados[$forma]['valor'] : 0; 
-    //             if ($valor <= 0) continue; 
-
-    //             if (!in_array($forma, $formasPermitidas)) { 
-    //                 DB::rollBack(); 
-    //                 return response()->json(['success' => false, 'erro' => "A forma de pagamento '{$forma}' não está disponível ou autorizada para esta venda"], 422); 
-    //             } 
-
-    //             $pagamentoSalvo = $venda->pagamentos()->create([ 
-    //                 'user_id' => auth()->id() ?? $venda->funcionario_id ?? $request->funcionario_id, 
-    //                 'caixa_id' => $venda->caixa_id, 
-    //                 'forma_pagamento' => $forma, 
-    //                 'valor' => $valor, 
-    //                 'status' => 'confirmado', 
-    //             ]); 
-
-    //             if ($forma === 'carteira' && !is_null($clienteId)) { 
-    //                 app(\App\Services\ContaCorrenteService::class)->registrarMovimentacao($pagamentoSalvo); 
-    //             } 
-    //             $totalPagamentos += $valor; 
-    //         } 
-
-    //         // 5️⃣ Validação Matemática de Suficiência 
-    //         if (($valorVenda - $totalPagamentos) > 0.01) { 
-    //             DB::rollBack(); 
-    //             return response()->json([ 
-    //                 'success' => false, 
-    //                 'erro' => "Pagamento insuficiente. Restante: R$ " . number_format(($valorVenda - $totalPagamentos), 2, ',', '.') 
-    //             ], 422); 
-    //         } 
-
-    //         // 6️⃣ Consolida o encerramento da venda no banco de dados 
-    //         $dadosUpdate = [ 
-    //             'status' => 'finalizada', 
-    //             'total' => $valorVenda, 
-    //         ];
-    //         if (\Schema::hasColumn('vendas', 'data_venda')) { 
-    //             $dadosUpdate['data_venda'] = $dataVendaOriginal; 
-    //         }
-    //         $venda->update($dadosUpdate); 
-
-    //         DB::commit(); 
-
-    //        // 7️⃣ Verificação de regras de Sangria de Caixa
-    //         $caixa = Caixa::find($venda->caixa_id);
-    //         if ($caixa) {
-    //             $verificacao = $caixa->verificarSangria();
-    //             if (!empty($verificacao['bloquearPDV']) || !empty($verificacao['avisarSangria'])) {
-    //                 return response()->json([
-    //                     'success' => true,
-    //                     'redirect_sangria' => true,
-    //                     'url' => route('caixa.sangria.form', $caixa->id),
-    //                     'cupom_url' => route('venda.cupom', $venda->id) 
-    //                 ]);
-    //             }
-    //         }
-
-    //         // 🔥 RETORNO ATUALIZADO: Envia a URL do cupom gerada dinamicamente
-    //         return response()->json([
-    //             'success' => true,
-    //             'total' => $valorVenda,
-    //             'message' => 'Venda finalizada com sucesso',
-    //             'venda_id' => $venda->id,
-    //             'cupom_url' => route('venda.cupom', $venda->id) 
-    //         ]);
-
-    //         } catch (\Exception $e) { 
-    //             DB::rollBack(); 
-    //             return response()->json([ 
-    //                 'success' => false, 
-    //                 'erro' => 'Erro interno ao processar transação: ' . $e->getMessage() . ' na linha ' . $e->getLine() 
-    //             ], 500); 
-    //     } 
-    // }
-
     public function finalizar(Request $request, CreditoService $creditoService) { 
         DB::beginTransaction(); 
         try { 
@@ -488,50 +263,41 @@ class VendaController extends Controller
                 } 
             } 
 
-            // 🔥 CORREÇÃO TOTAL DA VENDA: Atualiza com o valor real acumulado
-            $venda->update(['total' => $valorVenda]);
-
-            // ========================================================
-            // 🔥 INSERÇÃO HISTÓRICA NA TABELA movimentacoes_caixa
-            // ========================================================
-            // Mapeia os inputs do FormData para os códigos numéricos exigidos pela sua tabela
-            $mapaFormasPagamento = [
-                'dinheiro'       => 1,
-                'cartao_credito' => 2,
-                'cartao_debito'  => 3,
-                'pix'            => 4,
-                'carteira'       => 5
-            ];
-
-                    // 🔥 CORREÇÃO TOTAL DA VENDA: Atualiza com o valor real acumulado antes de processar as movimentações
+        // ========================================================
+        // 🔥 CORREÇÃO TOTAL DA VENDA: Atualiza com o valor real acumulado
+        // ========================================================
         $venda->update(['total' => $valorVenda]);
 
         // ========================================================
         // 🔥 AJUSTE DEFINITIVO: PERSISTÊNCIA NA TABELA movimentacoes_caixa
         // ========================================================
-        // Mapeia os inputs do FormData para as strings exatas que sua View e sua tabela esperam
+        // Formas que o seu banco e a sua View esperam receber como texto
         $formasPagamentoPermitidas = ['dinheiro', 'cartao_credito', 'cartao_debito', 'pix', 'carteira'];
 
         foreach ($formasPagamentoPermitidas as $forma) {
-            // Captura o valor de cada forma enviado de forma avulsa pelo JavaScript
-            $valorPago = floatval($request->input($forma, 0));
+            // Captura o valor tratando strings, vírgulas ou pontos vindos do FormData do JS
+            $valorRaw = $request->input($forma, 0);
+            $valorPago = is_numeric($valorRaw) ? floatval($valorRaw) : floatval(str_replace(',', '.', $valorRaw));
             
             if ($valorPago > 0) {
                 DB::table('movimentacoes_caixa')->insert([
                     'caixa_id'          => $caixaId,
                     'auditoria_id'      => null,
-                    'user_id'           => (int) $venda->funcionario_id, // Vincula o operador logado
-                    'tipo'              => 'venda', // String exata permitida pelo seu ENUM
-                    'forma_pagamento'   => $forma,  // Grava 'dinheiro', 'pix', 'cartao_credito', etc.
+                    'user_id'           => (int) $venda->funcionario_id, 
+                    'tipo'              => 'venda', 
+                    'forma_pagamento'   => $forma,  // Mantido como string padrão conforme seu banco varchar(25)
                     'valor'             => $valorPago,
                     'valor_auditado'    => 0.00,
                     'bandeira'          => null,
-                    'origem_id'         => $venda->id, // Guarda o ID da venda como rastreio
+                    'origem_id'         => (int) $venda->id, // 👈 CORRIGIDO: Agora aponta para o ID da VENDA real!
                     'observacao'        => "Venda PDV #" . $venda->id,
-                    'data_movimentacao' => now()->format('Y-m-d H:i:s'), // Preenche o datetime obrigatório
+                    'data_movimentacao' => now(), 
+                    'created_at'        => now(),
+                    'updated_at'        => now(),
                 ]);
             }
         }
+
 
         // 3️⃣ CONTROLE DE FLUXO: VALIDAÇÕES DE PAGAMENTO EM CARTEIRA
         // (O restante do seu código de validação de Carteira e o DB::commit() continuam exatamente iguais abaixo...)
@@ -579,6 +345,187 @@ class VendaController extends Controller
             return response()->json(['success' => false, 'erro' => 'Erro interno ao finalizar venda: ' . $e->getMessage()], 500); 
         } 
     }
+
+    // public function finalizar(Request $request, CreditoService $creditoService) { 
+    //     DB::beginTransaction(); 
+    //     try { 
+    //         // 1️⃣ Mapeamento e Filtro Inverso do Cliente (Venda Balcão)
+    //         $clienteIdRaw = $request->input('cliente_id'); 
+    //         if (empty($clienteIdRaw) || $clienteIdRaw == '' || strtoupper($clienteIdRaw) === 'VENDA BALCAO') {
+    //             $clienteBalcao = DB::table('clientes')
+    //                                 ->where('nome', 'LIKE', '%VENDA BALCAO%')
+    //                                 ->where('ativo', 1)
+    //                                 ->first();
+    //             $clienteId = $clienteBalcao ? $clienteBalcao->id : 6; 
+    //         } else {
+    //             $clienteId = (int) $clienteIdRaw;
+    //         }
+
+    //         $caixaId = (int) $request->input('caixa_id');
+    //         $funcionarioId = (int) $request->input('funcionario_id');
+
+    //         // 2️⃣ Criação Inicial do Cabeçalho da Venda
+    //         $dadosVenda = [ 
+    //             'cliente_id'     => $clienteId, 
+    //             'funcionario_id' => $funcionarioId, 
+    //             'caixa_id'       => $caixaId, 
+    //             'status'         => 'finalizada', 
+    //             'total'          => 0 
+    //         ]; 
+
+    //         if (\Schema::hasColumn('vendas', 'data_venda')) { 
+    //             $dadosVenda['data_venda'] = $request->input('dataVenda') ?? now(); 
+    //         } 
+    //         $venda = Venda::create($dadosVenda); 
+
+    //         // 3️⃣ Processamento dos Itens do Carrinho (Algoritmo FIFO)
+    //         $itens = $request->input('itens', []); 
+    //         $valorVenda = 0; 
+
+    //         $limparNumero = function($valor) { 
+    //             if (is_numeric($valor)) return (float) $valor; 
+    //             $stringLimpa = preg_replace('/[^\d,.]/', '', $valor); 
+    //             if (strpos($stringLimpa, ',') !== false && strpos($stringLimpa, '.') !== false) { 
+    //                 $stringLimpa = str_replace(',', '', $stringLimpa); 
+    //             } else { 
+    //                 $stringLimpa = str_replace(',', '.', $stringLimpa); 
+    //             } 
+    //             return (float) $stringLimpa; 
+    //         }; 
+
+    //         foreach ($itens as $item) { 
+    //             $quantidadeNecessaria = $limparNumero($item['quantidade'] ?? $item['qtd'] ?? 1); 
+    //             $precoUnitario        = $limparNumero($item['valor_unitario'] ?? $item['preco_unitario'] ?? $item['preco'] ?? 0); 
+    //             $desconto             = $limparNumero($item['desconto'] ?? 0.00); 
+    //             $produtoId            = $item['produto_id'] ?? $item['id'] ?? null; 
+
+    //             if (!$produtoId) { 
+    //                 DB::rollBack(); 
+    //                 return response()->json(['success' => false, 'erro' => 'Identificador do produto inválido.'], 422); 
+    //             } 
+
+    //             if ($precoUnitario <= 0) {
+    //                 $produtoBanco = DB::table('produtos')->where('id', $produtoId)->first();
+    //                 $precoUnitario = $produtoBanco ? (float) $produtoBanco->preco_venda : 0.00;
+    //             }
+
+    //             $subtotalLocal = ($quantidadeNecessaria * $precoUnitario) - $desconto; 
+    //             $valorVenda += $subtotalLocal; 
+
+    //             $lotesDisponiveis = DB::table('lotes') 
+    //                 ->where('produto_id', $produtoId) 
+    //                 ->where('quantidade_disponivel', '>', 0) 
+    //                 ->orderBy('created_at', 'asc') 
+    //                 ->lockForUpdate() 
+    //                 ->get(); 
+
+    //             if ($lotesDisponiveis->isEmpty()) { 
+    //                 $venda->itens()->create([ 
+    //                     'produto_id'     => $produtoId, 
+    //                     'lote_id'        => null, 
+    //                     'quantidade'     => $quantidadeNecessaria, 
+    //                     'preco_unitario' => $precoUnitario, 
+    //                     'desconto'       => $desconto 
+    //                 ]); 
+    //             } else { 
+    //                 foreach ($lotesDisponiveis as $lote) { 
+    //                     if ($quantidadeNecessaria <= 0) break; 
+    //                     $qtdConsumir = min($quantidadeNecessaria, $lote->quantidade_disponivel); 
+
+    //                     $venda->itens()->create([ 
+    //                         'produto_id'     => $produtoId, 
+    //                         'lote_id'        => $lote->id, 
+    //                         'quantidade'     => $qtdConsumir, 
+    //                         'preco_unitario' => $precoUnitario, 
+    //                         'desconto'       => $desconto 
+    //                     ]);
+
+    //                     DB::table('lotes')->where('id', $lote->id)->decrement('quantidade_disponivel', $qtdConsumir);
+    //                     $quantidadeNecessaria -= $qtdConsumir;
+    //                 }
+
+    //                 if ($quantidadeNecessaria > 0) {
+    //                     $venda->itens()->create([ 
+    //                         'produto_id'     => $produtoId, 
+    //                         'lote_id'        => null, 
+    //                         'quantidade'     => $quantidadeNecessaria, 
+    //                         'preco_unitario' => $precoUnitario, 
+    //                         'desconto'       => $desconto 
+    //                     ]);
+    //                 }
+    //             } 
+    //         } 
+
+    //         // Atualiza o valor real finalizado da venda
+    //         $venda->update(['total' => $valorVenda]);
+
+    //         // ========================================================
+    //         // 🔥 CORREÇÃO SINCRO: CAPTURA EXATA DO ARRAY 'pagamentos' DO JS
+    //         // ========================================================
+    //         $pagamentosEnviados = collect($request->input('pagamentos', []))->keyBy('forma');
+    //         $formasPermitidas = ['dinheiro', 'cartao_credito', 'cartao_debito', 'pix', 'carteira'];
+    //         $valorCarteira = 0.00;
+
+    //         foreach ($formasPermitidas as $forma) {
+    //             $valorPago = 0.00;
+
+    //             // Busca pelo índice 'forma' mapeado do seu código JavaScript
+    //             if ($pagamentosEnviados->has($forma)) {
+    //                 $valorPago = $limparNumero($pagamentosEnviados->get($forma)['valor'] ?? 0);
+    //             }
+
+    //             if ($forma === 'carteira') {
+    //                 $valorCarteira = $valorPago;
+    //             }
+
+    //             if ($valorPago > 0) {
+    //                 // Criação via Model respeitando as travas de validação
+    //                 \App\Models\MovimentacaoCaixa::create([
+    //                     'caixa_id'          => $caixaId,
+    //                     'auditoria_id'      => null,
+    //                     'user_id'           => $funcionarioId, 
+    //                     'tipo'              => 'venda', 
+    //                     'forma_pagamento'   => $forma,  
+    //                     'valor'             => $valorPago,
+    //                     'valor_auditado'    => null, 
+    //                     'bandeira'          => null,
+    //                     'origem_id'         => (int) $venda->id, 
+    //                     'observacao'        => "Venda PDV #" . $venda->id,
+    //                     'data_movimentacao' => now(), 
+    //                 ]);
+    //             }
+    //         }
+
+    //         // 4️⃣ Executa a verificação de crediário/carteira se necessário
+    //         if ($valorCarteira > 0) {
+    //             $creditoService->lancarDebitoCliente($clienteId, $valorCarteira, $venda->id);
+    //         }
+
+    //         // 5️⃣ INTEGRAÇÃO COM AS REGRAS DE SANGRIA E REDIRECIONAMENTO DO SEU MODEL
+    //         $caixa = Caixa::findOrFail($caixaId);
+    //         $dadosSangria = $caixa->verificarSangria(); // Chama o método do seu model!
+
+    //         DB::commit(); 
+
+    //         // Resposta JSON estruturada perfeitamente para satisfazer o seu Fetch API
+    //         return response()->json([
+    //             'success'          => true,
+    //             'message'          => 'Venda processada com sucesso!',
+    //             'venda_id'         => $venda->id,
+    //             'cupom_url'        => route('vendas.cupom', $venda->id), // Altere se o nome da sua rota de cupom for diferente
+    //             'redirect_sangria' => $dadosSangria['bloquearPDV'],
+    //             'url'              => route('sangrias.lancar', ['caixa' => $caixaId]) // Rota para onde o operador deve ir sangrar
+    //         ], 200);
+
+    //     } catch (\Exception $e) { 
+    //         DB::rollBack(); 
+    //         return response()->json([
+    //             'success' => false, 
+    //             'erro'    => 'Erro interno no servidor: ' . $e->getMessage()
+    //         ], 500); 
+    //     } 
+    // }
+
 
 
     // dados da empresa e exibe a tela que imprime cupom das vendas

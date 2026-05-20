@@ -64,24 +64,12 @@
     }
 
     /* Headers de cartões coloridos */
-    .card-header.bg-success {
-        background: #198754;
-    }
-    .card-header.bg-danger {
-        background: #dc3545;
-    }
-    .card-header.bg-primary {
-        background: #0d6efd;
-    }
+    .card-header.bg-success { background: #198754; }
+    .card-header.bg-danger { background: #dc3545; }
+    .card-header.bg-primary { background: #0d6efd; }
 
-    /* Row dos inputs */
-    .row.align-items-center {
-        margin-bottom: 10px;
-    }
-
-    .fw-semibold {
-        font-weight: 600;
-    }
+    .row.align-items-center { margin-bottom: 10px; }
+    .fw-semibold { font-weight: 600; }
 
     /* Botões finais */
     .btn-submit {
@@ -92,22 +80,22 @@
         transition: all 0.2s ease-in-out;
     }
 
-    .btn-submit:hover {
-        transform: scale(1.03);
-    }
+    .btn-submit:hover { transform: scale(1.03); }
 </style>
 
 <div class="fechamento-container">
 
-    <h4 class="bg-secondary text-center text-white ">Fechamento do Caixa <?php echo e($caixa->id); ?> </h4>
+    <h4 class="bg-secondary text-center text-white p-2 rounded">Fechamento do Caixa #<?php echo e($caixa->id); ?></h4>
 
     <form method="POST" action="<?php echo e(route('fechamento.fechar', $caixa->id)); ?>">
         <?php echo csrf_field(); ?>
 
         
-        <div class="card mb-4 border-primary">
+        <div class="card mb-4 border-primary shadow-sm">
+            
             <div class="card-header bg-primary text-white">
-                ✅ Dados do Caixa - Fechamento #<?php echo e($caixa->id); ?> - Sem Movimento
+                ✅ Dados do Caixa - Fechamento #<?php echo e($caixa->id); ?>
+
             </div>
             <div class="card-body">
                 <div class="row mb-3">
@@ -117,7 +105,7 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-4"><strong>Abertura</strong><br><?php echo e(\Carbon\Carbon::parse($caixa->data_abertura)->format('d/m/Y H:i')); ?></div>
+                    <div class="col-md-4"><strong>Abertura</strong><br><?php echo e($caixa->data_abertura ? \Carbon\Carbon::parse($caixa->data_abertura)->format('d/m/Y H:i') : '-'); ?></div>
                     
                     <div class="col-md-4">
                         <strong>Status</strong><br>
@@ -139,9 +127,9 @@
         </div>
 
         
-        <?php if(!$caixa->possuiVendas()): ?>
+        <?php if(!DB::table('movimentacoes_caixa')->where('caixa_id', $caixa->id)->where('tipo', 'venda')->exists()): ?>
             <div class="card mb-4 border-success shadow-sm">
-                <div class="card-header bg-success text-white">Fechamento sem Movimentação</div>
+                <div class="card-header bg-success text-white">Fechamento sem Movimentação Comercial</div>
                 <div class="card-body">
                     <div class="form-group">
                         <label for="motivo_fechamento" class="fw-bold">Motivo do fechamento</label>
@@ -161,17 +149,17 @@
         
         <?php else: ?>
             <div class="row mt-4">
-
                 
                 <div class="col-md-6">
                     <div class="card shadow-sm">
-                        <div class="card-header bg-primary text-white fw-bold">Valores por Forma de Pagamento</div>
+                        <div class="card-header bg-primary text-white fw-bold">Valores por Forma de Pagamento (Gaveta)</div>
                         <div class="card-body">
                             <?php $__currentLoopData = ['dinheiro'=>'Dinheiro','pix'=>'Pix','carteira'=>'Carteira','cartao_debito'=>'Cartão Débito','cartao_credito'=>'Cartão Crédito']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <div class="row align-items-center">
                                     <div class="col-4 fw-semibold"><?php echo e($label); ?></div>
                                     <div class="col-8">
-                                        <input type="number" step="0.01" name="<?php echo e($name); ?>" class="form-control input-financeiro" value="<?php echo e(old($name,0)); ?>" required>
+                                        <input type="number" step="0.01" name="<?php echo e($name); ?>" class="form-control input-financeiro" 
+                                               value="<?php echo e(old($name, (isset($totaisPorForma[$name]) ? $totaisPorForma[$name] : 0))); ?>" required>
                                     </div>
                                 </div>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -188,79 +176,22 @@
                                 <div class="row align-items-center">
                                     <div class="col-4 fw-bold"><?php echo e($label); ?></div>
                                     <div class="col-8">
-                                        <input type="number" step="0.01" name="<?php echo e($name); ?>" class="form-control input-financeiro text-end" value="<?php echo e(old($name,0)); ?>">
+                                        <input type="number" step="0.01" name="<?php echo e($name); ?>" class="form-control input-financeiro text-end" value="<?php echo e(old($name, 0)); ?>">
                                     </div>
                                 </div>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </div>
                     </div>
                 </div>
-                
-                <!-- <div class="col-md-6">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-primary text-white fw-bold">Bandeiras de Cartão</div>
-                        <div class="card-body">
-                            <?php $__currentLoopData = ['bandeira_visa'=>'Visa','bandeira_mastercard'=>'Mastercard','bandeira_elo'=>'Elo','bandeira_amex'=>'Amex','bandeira_hipercard'=>'Hipercard']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                <div class="row align-items-center">
-                                    <div class="col-4 fw-semibold"><?php echo e($label); ?></div>
-                                    <div class="col-8">
-                                        <input type="number" step="0.01" name="<?php echo e($name); ?>" class="form-control input-financeiro" value="<?php echo e(old($name,0)); ?>">
-                                    </div>
-                                </div>
-                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        </div>
-                    </div>
-                </div> -->
             </div>
-
-            
-            <!-- <div class="row mt-4">
-                
-                <div class="col-md-6">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-success text-white fw-bold">Entradas de Caixa</div>
-                        <div class="card-body">
-                            <?php $__currentLoopData = ['entrada_suprimento'=>'Suprimento','entrada_ajuste'=>'Ajuste Positivo','entrada_devolucao'=>'Devolução em Dinheiro','entrada_outros'=>'Outras Entradas']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                <div class="row align-items-center">
-                                    <div class="col-4 fw-bold"><?php echo e($label); ?></div>
-                                    <div class="col-8">
-                                        <input type="number" step="0.01" name="<?php echo e($name); ?>" class="form-control input-financeiro text-end" value="<?php echo e(old($name,0)); ?>">
-                                    </div>
-                                </div>
-                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        </div>
-                    </div>
-                </div>
-
-                
-                <div class="col-md-6">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-danger text-white fw-bold">Saídas de Caixa</div>
-                        <div class="card-body">
-                            <?php $__currentLoopData = ['saida_sangria'=>'Sangria','saida_despesa'=>'Despesas','saida_ajuste'=>'Ajuste Negativo','saida_outros'=>'Outras Saídas']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                <div class="row align-items-center">
-                                    <div class="col-4 fw-bold"><?php echo e($label); ?></div>
-                                    <div class="col-8">
-                                        <input type="number" step="0.01" name="<?php echo e($name); ?>" class="form-control input-financeiro text-end" value="<?php echo e(old($name,0)); ?>">
-                                    </div>
-                                </div>
-                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        </div>
-                    </div>
-                </div> -->
-            <!-- </div> -->
         <?php endif; ?>
 
         
-        <div class="text-end mt-4">
-            <button type="submit" class="btn btn-success btn-submit">Confirmar Fechamento</button>
-            <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary btn-submit">Cancelar</a>
+        <div class="d-flex justify-content-end mt-3">
+            <button type="submit" class="btn btn-success btn-submit shadow-sm">Confirmar Fechamento do Caixa</button>
         </div>
-
     </form>
-
 </div>
-
 <?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/fechamento_caixa/fechamento.blade.php ENDPATH**/ ?>
