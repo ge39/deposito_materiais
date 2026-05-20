@@ -155,38 +155,60 @@
         </div>
     </div>
 
-    {{-- ===================== BLOCO 4: HISTÓRICO ===================== --}}
+        {{-- ===================== BLOCO 4: HISTÓRICO COM CORES POR TIPO ===================== --}}
     <div class="card shadow-sm border-left border-secondary">
         <div class="card-header bg-light font-weight-bold">
             Histórico de Movimentações
         </div>
 
         <div class="card-body p-0">
-            <table class="table table-sm table-striped mb-0">
-                <thead class="thead-light">
-                    <tr>
-                        <th>Tipo</th>
-                        <th>Forma</th>
-                        <th>Valor</th>
-                        <th>Data</th>
-                        <th>Observação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($caixa->movimentacoes as $mov)
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="thead-light">
                         <tr>
-                            <td>{{ $mov->tipo }}</td>
-                            <td>{{ $mov->forma_pagamento }}</td>
-                            <td>R$ {{ number_format($mov->valor,2,',','.') }}</td>
-                            <td>{{ $mov->data_movimentacao }}</td>
-                            <td>{{ $mov->observacao }}</td>
+                            <th>Tipo</th>
+                            <th>Forma</th>
+                            <th>Valor</th>
+                            <th>Data</th>
+                            <th>Observação</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach($caixa->movimentacoes as $mov)
+                            @php
+                                // Determina a cor de fundo da linha com base no ENUM 'tipo' do banco
+                                $classeCor = match(strtolower(trim($mov->tipo))) {
+                                    'abertura'                 => 'table-primary',  // Azul suave para o fundo inicial
+                                    'venda'                    => 'table-success',  // Verde suave para vendas comerciais
+                                    'entrada_manual'           => 'table-info',     // Azul ciano para aportes e conferências
+                                    'saida_manual', 'sangria'  => 'table-danger',   // Vermelho suave para despesas e sangrias
+                                    default                    => 'table-light'     // Cor padrão para outros tipos administrativos
+                                };
+                            @endphp
+
+                            <tr class="{{ $classeCor }} align-middle">
+                                <td class="fw-bold">
+                                    {{ strtoupper(str_replace('_', ' ', $mov->tipo)) }}
+                                </td>
+                                <td>
+                                    {{ $mov->forma_pagamento ? ucfirst(str_replace('_', ' ', $mov->forma_pagamento)) : '-' }}
+                                </td>
+                                <td class="fw-bold">
+                                    R$ {{ number_format($mov->valor, 2, ',', '.') }}
+                                </td>
+                                <td class="text-muted">
+                                    {{ $mov->data_movimentacao instanceof \Carbon\Carbon ? $mov->data_movimentacao->format('d/m/Y H:i:s') : \Carbon\Carbon::parse($mov->data_movimentacao)->format('d/m/Y H:i:s') }}
+                                </td>
+                                <td title="{{ $mov->observacao }}" class="text-truncate" style="max-width: 250px;">
+                                    {{ $mov->observacao ?? '-' }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-
 </div>
 
 @endsection

@@ -345,35 +345,35 @@ class CaixaController extends Controller
         // $totalGeralSistema = array_sum($totaisPorForma);
 
             // 🔥 RESOLUÇÃO: LEITURA DIRETA DA TABELA DE MOVIMENTAÇÕES (A FONTE DA VERDADE)
-    // ==========================================================================
-    $totaisPorForma = [
-        'dinheiro'       => 0.00,
-        'pix'            => 0.00,
-        'carteira'       => 0.00,
-        'cartao_debito'  => 0.00,
-        'cartao_credito' => 0.00
-    ];
+        // ==========================================================================
+        $totaisPorForma = [
+            'dinheiro'       => 0.00,
+            'pix'            => 0.00,
+            'carteira'       => 0.00,
+            'cartao_debito'  => 0.00,
+            'cartao_credito' => 0.00
+        ];
 
-    // Busca todas as somas de formas de pagamento direto na fita de auditoria do caixa atual
-    $movimentosBanco = DB::table('movimentacoes_caixa')
-        ->where('caixa_id', $caixaId)
-        ->whereIn('tipo', ['venda', 'entrada_manual']) // Captura vendas novas e lançamentos antigos
-        ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
-        ->groupBy('forma_pagamento')
-        ->get();
+        // Busca todas as somas de formas de pagamento direto na fita de auditoria do caixa atual
+        $movimentosBanco = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->whereIn('tipo', ['venda', 'entrada_manual']) // Captura vendas novas e lançamentos antigos
+            ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
+            ->groupBy('forma_pagamento')
+            ->get();
 
-    foreach ($movimentosBanco as $mov) {
-        // Normaliza os nomes do banco (Garante que "Cartao debito" ou "cartao_debito" virem a mesma chave)
-        $forma = strtolower(trim($mov->forma_pagamento));
-        $forma = str_replace(' ', '_', $forma);
+        foreach ($movimentosBanco as $mov) {
+            // Normaliza os nomes do banco (Garante que "Cartao debito" ou "cartao_debito" virem a mesma chave)
+            $forma = strtolower(trim($mov->forma_pagamento));
+            $forma = str_replace(' ', '_', $forma);
 
-        if (array_key_exists($forma, $totaisPorForma)) {
-            $totaisPorForma[$forma] = (float) $mov->total;
+            if (array_key_exists($forma, $totaisPorForma)) {
+                $totaisPorForma[$forma] = (float) $mov->total;
+            }
         }
-    }
 
-    // Alimenta o total geral que o círculo azul exibe
-    $totalGeralSistema = array_sum($totaisPorForma);
+        // Alimenta o total geral que o círculo azul exibe
+        $totalGeralSistema = array_sum($totaisPorForma);
 
         
         // Tipo 1 = Entradas, Tipo 2 = Saídas (Ex: sangrias)

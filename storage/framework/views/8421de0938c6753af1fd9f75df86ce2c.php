@@ -165,38 +165,65 @@
         </div>
     </div>
 
-    
+        
     <div class="card shadow-sm border-left border-secondary">
         <div class="card-header bg-light font-weight-bold">
             Histórico de Movimentações
         </div>
 
         <div class="card-body p-0">
-            <table class="table table-sm table-striped mb-0">
-                <thead class="thead-light">
-                    <tr>
-                        <th>Tipo</th>
-                        <th>Forma</th>
-                        <th>Valor</th>
-                        <th>Data</th>
-                        <th>Observação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php $__currentLoopData = $caixa->movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="thead-light">
                         <tr>
-                            <td><?php echo e($mov->tipo); ?></td>
-                            <td><?php echo e($mov->forma_pagamento); ?></td>
-                            <td>R$ <?php echo e(number_format($mov->valor,2,',','.')); ?></td>
-                            <td><?php echo e($mov->data_movimentacao); ?></td>
-                            <td><?php echo e($mov->observacao); ?></td>
+                            <th>Tipo</th>
+                            <th>Forma</th>
+                            <th>Valor</th>
+                            <th>Data</th>
+                            <th>Observação</th>
                         </tr>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php $__currentLoopData = $caixa->movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php
+                                // Determina a cor de fundo da linha com base no ENUM 'tipo' do banco
+                                $classeCor = match(strtolower(trim($mov->tipo))) {
+                                    'abertura'                 => 'table-primary',  // Azul suave para o fundo inicial
+                                    'venda'                    => 'table-success',  // Verde suave para vendas comerciais
+                                    'entrada_manual'           => 'table-info',     // Azul ciano para aportes e conferências
+                                    'saida_manual', 'sangria'  => 'table-danger',   // Vermelho suave para despesas e sangrias
+                                    default                    => 'table-light'     // Cor padrão para outros tipos administrativos
+                                };
+                            ?>
+
+                            <tr class="<?php echo e($classeCor); ?> align-middle">
+                                <td class="fw-bold">
+                                    <?php echo e(strtoupper(str_replace('_', ' ', $mov->tipo))); ?>
+
+                                </td>
+                                <td>
+                                    <?php echo e($mov->forma_pagamento ? ucfirst(str_replace('_', ' ', $mov->forma_pagamento)) : '-'); ?>
+
+                                </td>
+                                <td class="fw-bold">
+                                    R$ <?php echo e(number_format($mov->valor, 2, ',', '.')); ?>
+
+                                </td>
+                                <td class="text-muted">
+                                    <?php echo e($mov->data_movimentacao instanceof \Carbon\Carbon ? $mov->data_movimentacao->format('d/m/Y H:i:s') : \Carbon\Carbon::parse($mov->data_movimentacao)->format('d/m/Y H:i:s')); ?>
+
+                                </td>
+                                <td title="<?php echo e($mov->observacao); ?>" class="text-truncate" style="max-width: 250px;">
+                                    <?php echo e($mov->observacao ?? '-'); ?>
+
+                                </td>
+                            </tr>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-
 </div>
 
 <?php $__env->stopSection(); ?>

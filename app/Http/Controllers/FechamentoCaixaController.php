@@ -524,7 +524,7 @@ class FechamentoCaixaController extends Controller
             }
         }
     }
-    public function ajustarDivergencias(Request $request, int $caixaId)
+   public function ajustarDivergencias(Request $request, int $caixaId)
     {
         $request->validate([
             'formas'   => 'required|array|min:1',
@@ -533,36 +533,45 @@ class FechamentoCaixaController extends Controller
         
         DB::transaction(function () use ($request, $caixaId) {
 
-            // Antes de criar o fechamento, calcule o total das vendas do sistema:
-           $totalVendas = PagamentoVenda::whereHas('venda', function ($query) use ($caixaId) {
-                $query->where('caixa_id', $caixaId);
-            })
-            ->where('status', 'confirmado')
-            ->sum('valor');
- 
+            // 1️⃣ CÁLCULO DAS VENDAS REAIS DO SISTEMA DIRETO DA FITA OFICIAL
+            $totalVendas = DB::table('movimentacoes_caixa')
+                ->where('caixa_id', $caixaId)
+                ->where('tipo', 'venda')
+                ->sum('valor');
 
             $caixa = Caixa::lockForUpdate()->findOrFail($caixaId);
 
-            if ($caixa->status !== 'inconsistente') {
-                throw new \Exception('Caixa não está inconsistente para auditoria.');
+            if ($caixa->status !== 'inconsistente' && $caixa->status !== 'aberto') {
+                throw new \Exception('Este caixa não está disponível para auditoria ou correção.');
             }
 
             $userId = auth()->id();
-            $totalAuditado = 0;
+            $totalAuditado = 0.00; // Acumulador do fechamento físico real
+
+            // 2️⃣ BUSCA O CABEÇALHO DA AUDITORIA GERAL PARA CONEXÃO DE DETALHES
+            $auditoria = DB::table('auditorias_caixa')
+                ->where('caixa_id', $caixaId)
+                ->latest('data_auditoria')
+                ->first();
 
             foreach ($request->formas as $forma => $valorStr) {
-
+                // Conversão segura usando o helper do seu sistema
                 $valorAuditado = $this->parseValorBR($valorStr);
+                $totalAuditado += $valorAuditado; // 👈 CORRIGIDO: Acumula o valor físico real para fechar o caixa
 
-                // valor real do sistema (vendas)
-               $valorSistema = PagamentoVenda::whereHas('venda', function ($query) use ($caixa) {
-                    $query->where('caixa_id', $caixa->id);
-                })
-                ->where('forma_pagamento', $forma)
-                ->where('status', 'confirmado')
-                ->sum('valor');
+                // Captura o valor real do sistema direto da fita de movimentações
+                $valorSistema = DB::table('movimentacoes_caixa')
+                    ->where('caixa_id', $caixaId)
+                    ->where('tipo', 'venda')
+                    ->where('forma_pagamento', $forma)
+                    ->sum('valor');
 
-                // 🔹 grava auditoria POR FORMA
+                // Se for dinheiro vivo, adiciona o fundo de troco inicial ao esperado do sistema
+                if ($forma === 'dinheiro') {
+                    $valorSistema += (float)$caixa->fundo_troco;
+                }
+
+                // 3️⃣ ATUALIZAÇÃO DA TABELA HISTÓRICA DO CAIXA
                 MovimentacaoCaixa::updateOrCreate(
                     [
                         'caixa_id'        => $caixa->id,
@@ -571,114 +580,146 @@ class FechamentoCaixaController extends Controller
                     ],
                     [
                         'user_id'         => $userId,
-                        'valor'           => $valorSistema,     // valor do sistema
-                        'valor_auditado'  => $valorAuditado,    // valor corrigido
-                        'observacao'      => 'Auditoria por forma de pagamento',
+                        'valor'           => $valorSistema,     
+                        'valor_auditado'  => $valorAuditado,    
+                        'observacao'      => 'Auditoria por forma de pagamento realizada com sucesso',
                         'data_movimentacao'=> now(),
                     ]
                 );
 
-                // 🔹 se houver diferença, gera ajuste contábil
+                // 4️⃣ SINCRO COM A TABELA auditoria_detalhes QUE ATIVAMOS
+                if ($auditoria) {
+                    $novaDiferencaForma = $valorAuditado - $valorSistema;
+                    
+                    DB::table('auditoria_detalhes')
+                        ->where('auditoria_id', $auditoria->id)
+                        ->where('forma_pagamento', $forma)
+                        ->update([
+                            'total_fisico' => $valorAuditado, // ou valor_informado conforme seu banco
+                            'diferenca'    => $novaDiferencaForma,
+                            'status'       => abs($novaDiferencaForma) <= 0.01 ? 'correto' : 'divergente',
+                            'updated_at'   => now()
+                        ]);
+                }
+
+                // 5️⃣ GERAÇÃO DE AJUSTES CONTÁBEIS SE HOUVER DIFERENÇA
                 $diferenca = $valorAuditado - $valorSistema;
 
-                if ($diferenca != 0) {
-                    MovimentacaoCaixa::create([
-                        'caixa_id'        => $caixa->id,
-                        'user_id'         => $userId,
-                        'tipo'            => $diferenca > 0 ? 'entrada_manual' : 'saida_manual',
-                        'forma_pagamento' => $forma,
-                        'valor'           => abs($diferenca),
-                        'observacao'      => "[AJUSTE AUDITORIA] Forma: {$forma}",
-                        'data_movimentacao'=> now(),
+                if (abs($diferenca) > 0.01) {
+                    DB::table('movimentacoes_caixa')->insert([
+                        'caixa_id'          => $caixa->id,
+                        'auditoria_id'      => $auditoria ? $auditoria->id : null,
+                        'user_id'           => $userId,
+                        'tipo'              => $diferenca > 0 ? 'entrada_manual' : 'saida_manual',
+                        'forma_pagamento'   => $forma,
+                        'valor'             => abs($diferenca),
+                        'valor_auditado'    => 0.00,
+                        'bandeira'          => null,
+                        'origem_id'         => null,
+                        'observacao'        => "[AJUSTE AUDITORIA FISCAL] Forma: " . ucfirst($forma),
+                        'data_movimentacao' => now(),
+                        'created_at'        => now(),
+                        'updated_at'        => now()
                     ]);
                 }
             }
 
-            // 🔒 SOMENTE O FECHAMENTO RECEBE valor_auditado
+            // 6️⃣ ATUALIZAÇÃO DO MODEL DE CONFERÊNCIA ADMINISTRATIVA
             MovimentacaoCaixa::where('caixa_id', $caixa->id)
                 ->where('tipo', 'fechamento')
                 ->latest('id')
                 ->update([
-                    // 'valor_auditado' => $totalAuditado,
-                    'valor_auditado' => $totalVendas,               // ✅ OBRIGATÓRIO
-                    'observacao'     => 'Auditoria concluída por forma de pagamento',
+                    'valor_auditado' => $totalVendas,               
+                    'observacao'     => 'Auditoria concluída e homologada por forma de pagamento',
                     'user_id'        => $userId,
                     'updated_at'     => now(),
                 ]);
 
+            // 7️⃣ ATUALIZAÇÃO DEFINITIVA DO CABEÇALHO DO CAIXA (Preenche a data e o valor da imagem!)
             $caixa->update([
-                'status'          => 'fechado',
-                'data_fechamento' => now(),
-                'fechado_por'     => $userId,
+                'valor_fechamento' => $totalAuditado, // 👈 CORRIGIDO: Injeta o valor real no card da imagem
+                'status'           => 'fechado',       // Força o status definitivo para Fechado
+                'data_fechamento'  => now(),          // 👈 CORRIGIDO: Registra o relógio e remove o traço (-) da imagem
+                'fechado_por'      => $userId,
             ]);
+
+            // Atualiza a tabela auditorias_caixa se ela existir
+            if ($auditoria) {
+                $novaDiferencaGeral = $totalAuditado - (float)$auditoria->total_sistema;
+                DB::table('auditorias_caixa')
+                    ->where('id', $auditoria->id)
+                    ->update([
+                        'total_fisico' => $totalAuditado,
+                        'diferenca'    => $novaDiferencaGeral,
+                        'status'       => abs($novaDiferencaGeral) <= 0.01 ? 'concluida' : 'corrigida',
+                    ]);
+            }
         });
 
-         // Busca o caixa no banco
-        $caixa = Caixa::findOrFail($caixaId);
-
-       return redirect()->route('fechamento.auditoria', $caixa->id)
-        ->with('auditoria_sucesso', 'A divergência do Caixa #' . $caixa->id . ' foi corrigida pela auditoria.');
-
+        // 8️⃣ REDIRECIONAMENTO SEGURO POR LINK LIMPO DIRETO
+        // Envia o alerta com a chave 'auditoria_sucesso' idêntica à que a sua View espera receber
+        return redirect("/fechamento_caixa/confirmacao/{$caixaId}")
+            ->with('auditoria_sucesso', 'A divergência do Caixa #' . $caixaId . ' foi corrigida pela auditoria.');
     }
 
    public function divergencias($caixaId)
-{
-    // 1️⃣ Busca o caixa atual do depósito com as movimentações
-    $caixa = Caixa::with(['usuario', 'movimentacoes'])->findOrFail($caixaId);
+    {
+        // 1️⃣ Busca o caixa atual do depósito com as movimentações
+        $caixa = Caixa::with(['usuario', 'movimentacoes'])->findOrFail($caixaId);
 
-    // 2️⃣ Busca o cabeçalho de auditoria do fechamento
-    $auditoria = DB::table('auditorias_caixa')
-        ->where('caixa_id', $caixaId)
-        ->latest('data_auditoria')
-        ->first();
+        // 2️⃣ Busca o cabeçalho de auditoria do fechamento
+        $auditoria = DB::table('auditorias_caixa')
+            ->where('caixa_id', $caixaId)
+            ->latest('data_auditoria')
+            ->first();
 
-    // Inicialização estrita das matrizes em minúsculo com underline para a sua Blade
-    $totaisPorForma = [
-        'dinheiro'       => 0.00,
-        'pix'            => 0.00,
-        'carteira'       => 0.00,
-        'cartao_debito'  => 0.00,
-        'cartao_credito' => 0.00
-    ];
-    $totaisInformados = $totaisPorForma;
+        // Inicialização estrita das matrizes em minúsculo com underline para a sua Blade
+        $totaisPorForma = [
+            'dinheiro'       => 0.00,
+            'pix'            => 0.00,
+            'carteira'       => 0.00,
+            'cartao_debito'  => 0.00,
+            'cartao_credito' => 0.00
+        ];
+        $totaisInformados = $totaisPorForma;
 
-    // 3️⃣ CAPTURA DAS COLUNAS DA TABELA auditoria_detalhes (Suporta total_ ou valor_)
-    if ($auditoria) {
-        $detalhes = DB::table('auditoria_detalhes')
-            ->where('auditoria_id', $auditoria->id)
-            ->get();
+        // 3️⃣ CAPTURA DAS COLUNAS DA TABELA auditoria_detalhes (Suporta total_ ou valor_)
+        if ($auditoria) {
+            $detalhes = DB::table('auditoria_detalhes')
+                ->where('auditoria_id', $auditoria->id)
+                ->get();
 
-        foreach ($detalhes as $det) {
-            $forma = str_replace(' ', '_', strtolower(trim($det->forma_pagamento)));
+            foreach ($detalhes as $det) {
+                $forma = str_replace(' ', '_', strtolower(trim($det->forma_pagamento)));
 
-            if (array_key_exists($forma, $totaisPorForma)) {
-                // 🌟 CORREÇÃO CIRÚRGICA: Tenta ler 'total_sistema' ou 'valor_sistema' para não zerar o array
-                $totaisPorForma[$forma] = (float) ($det->total_sistema ?? $det->valor_sistema ?? 0.00);
-                
-                // Tenta ler 'total_fisico' ou 'valor_informado' para preencher a gaveta
-                $totaisInformados[$forma] = (float) ($det->total_fisico ?? $det->valor_informado ?? $det->valor_fisico ?? 0.00);
+                if (array_key_exists($forma, $totaisPorForma)) {
+                    // 🌟 CORREÇÃO CIRÚRGICA: Tenta ler 'total_sistema' ou 'valor_sistema' para não zerar o array
+                    $totaisPorForma[$forma] = (float) ($det->total_sistema ?? $det->valor_sistema ?? 0.00);
+                    
+                    // Tenta ler 'total_fisico' ou 'valor_informado' para preencher a gaveta
+                    $totaisInformados[$forma] = (float) ($det->total_fisico ?? $det->valor_informado ?? $det->valor_fisico ?? 0.00);
+                }
             }
         }
+
+        // 4️⃣ VARIÁVEIS MACRO DO BLOCO SUPERIOR AZUL
+        $totalGeralSistema = $auditoria ? (float)$auditoria->total_sistema : 0.00;
+        $total_entradas    = $auditoria ? (float)$auditoria->total_fisico : 0.00;
+        
+        $total_saidas = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->whereIn('tipo', ['saida_manual', 'cancelamento_venda', 'sangria'])
+            ->sum('valor');
+
+        return view('fechamento_caixa.corrigir_divergencias', compact(
+            'caixa',
+            'totaisPorForma',
+            'totaisInformados',
+            'totalGeralSistema',
+            'total_entradas',
+            'total_saidas'
+        ));
     }
-
-    // 4️⃣ VARIÁVEIS MACRO DO BLOCO SUPERIOR AZUL
-    $totalGeralSistema = $auditoria ? (float)$auditoria->total_sistema : 0.00;
-    $total_entradas    = $auditoria ? (float)$auditoria->total_fisico : 0.00;
-    
-    $total_saidas = DB::table('movimentacoes_caixa')
-        ->where('caixa_id', $caixaId)
-        ->whereIn('tipo', ['saida_manual', 'cancelamento_venda', 'sangria'])
-        ->sum('valor');
-
-    return view('fechamento_caixa.corrigir_divergencias', compact(
-        'caixa',
-        'totaisPorForma',
-        'totaisInformados',
-        'totalGeralSistema',
-        'total_entradas',
-        'total_saidas'
-    ));
-}
 
 
     private function parseValorBR($valor): float
@@ -766,5 +807,37 @@ class FechamentoCaixaController extends Controller
 
     }
 
-    
+    public function show($auditoriaId)
+    {
+        // 1️⃣ Busca o cabeçalho da auditoria fiscal
+        $auditoria = DB::table('auditorias_caixa')->findOrFail($auditoriaId);
+        
+        // Busca o caixa vinculado a essa auditoria
+        $caixa = DB::table('caixas')->where('id', $auditoria->caixa_id)->first();
+
+        // 2️⃣ TABELA 1: Lançamentos Manuais - Retiradas do Caixa (Sangrias, Despesas e Saídas)
+        // Busca na fita de movimentações tudo o que reduziu o saldo do caixa
+        $retiradas = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $auditoria->caixa_id)
+            ->whereIn('tipo', ['saida_manual', 'sangria', 'cancelamento_venda', 'despesa'])
+            ->orderBy('id', 'asc')
+            ->get();
+
+        // 3️⃣ TABELA 2: Total de Valores Auditados (O pente-fino corrigido salvo em auditoria_detalhes!)
+        // Faz um JOIN com a tabela de usuários para capturar o nome do Auditor por extenso
+        $valoresAuditados = DB::table('auditoria_detalhes')
+            ->join('auditorias_caixa', 'auditoria_detalhes.auditoria_id', '=', 'auditorias_caixa.id')
+            ->join('users', 'auditorias_caixa.user_id', '=', 'users.id')
+            ->where('auditoria_detalhes.auditoria_id', $auditoriaId)
+            ->select(
+                'auditoria_detalhes.forma_pagamento as forma',
+                'auditoria_detalhes.total_fisico as valor', // ou valor_informado dependendo do seu banco
+                'users.name as auditor_nome',
+                'auditoria_detalhes.created_at as data'
+            )
+            ->get();
+
+        return view('auditoria_caixa.show', compact('auditoria', 'caixa', 'retiradas', 'valoresAuditados'));
+    }
+
 }

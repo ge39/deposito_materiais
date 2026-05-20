@@ -94,97 +94,160 @@ class AuditoriaCaixaController extends Controller
         ));
     }
 
-public function exportar(AuditoriaCaixa $auditoria)
+    // public function show(AuditoriaCaixa $auditoria)
+    // {
+    //     // 1️⃣ Eager Loading dos relacionamentos fundamentais do cabeçalho
+    //     $auditoria->load([
+    //         'caixa',
+    //         'caixa.usuario', 
+    //         'usuario'
+    //     ]);
 
-    {
-    // Carrega relacionamentos necessários
-    $auditoria->load([
-        'caixa',
-        'usuario',
-        'detalhes',
-        'movimentacoesAuditoria.usuario'
-    ]);
+    //     /*
 
-    // Carrega lançamentos manuais do caixa
-    $lancamentosManuais = \App\Models\MovimentacaoCaixa::where('caixa_id', $auditoria->caixa_id)
-        ->where('tipo', 'entrada_manual')
-        ->get();
+    //     |--------------------------------------------------------------------------
+    //     | 2️⃣ TABELA 1: Lançamentos Manuais - Retiradas do Caixa (Sangrias e Saídas)
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     // Captura de forma limpa tudo o que retirou dinheiro do caixa no expediente
+    //     $lancamentosManuais = MovimentacaoCaixa::with('usuario')
+    //         ->where('caixa_id', $auditoria->caixa_id)
+    //         ->whereIn('tipo', ['saida_manual', 'sangria', 'cancelamento_venda', 'despesa']) // 👈 CORRIGIDO: Escopo amplo e limpo
+    //         ->orderBy('data_movimentacao', 'asc')
+    //         ->get();
 
-    // Movimentações de correções da auditoria
-    $movimentacoesAuditoria = $auditoria->movimentacoesAuditoria;
+    //     /*
 
-    // Gera PDF
-    $pdf = Pdf::loadView('auditoria_caixa.pdf', compact(
-        'auditoria',
-        'lancamentosManuais',
-        'movimentacoesAuditoria'
-    ))->setPaper('a4', 'portrait');
+    //     |--------------------------------------------------------------------------
+    //     | 3️⃣ TABELA 2: Total de Valores Auditados (O pente-fino real corrigido!)
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     // 🌟 CORREÇÃO CIRÚRGICA: Lê os dados diretamente da tabela auditoria_detalhes
+    //     // que passamos a povoar com os status 'correto' e 'divergente'
+    //     $movimentacoesAuditoria = DB::table('auditoria_detalhes')
+    //         ->where('auditoria_id', $auditoria->id)
+    //         ->get();
 
-    return $pdf->download('auditoria_'.$auditoria->codigo_auditoria.'.pdf');
-    }
-    /**
-     * Iniciar auditoria de um caixa
-     */
-    public function iniciar(Request $request, Caixa $caixa)
-    {
-        $request->validate([
-            'dinheiro'        => 'required|numeric|min:0',
-            'pix'             => 'required|numeric|min:0',
-            'carteira'        => 'required|numeric|min:0',
-            'cartao_debito'   => 'required|numeric|min:0',
-            'cartao_credito'  => 'required|numeric|min:0',
+    //     /*
+
+    //     |--------------------------------------------------------------------------
+    //     | Pagamentos confirmados do sistema por forma (Para uso auxiliar da tela)
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     $pagamentosSistema = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $auditoria->caixa_id)
+    //         ->where('tipo', 'venda')
+    //         ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
+    //         ->groupBy('forma_pagamento')
+    //         ->get();
+
+    //     $total_sangrias = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $auditoria->caixa_id)
+    //         ->whereIn('tipo', ['saida_manual', 'sangria'])
+    //         ->where('forma_pagamento', 'sangria')
+    //         ->sum('valor');
+
+    //     return view('auditoria_caixa.show', compact(
+    //         'auditoria',
+    //         'lancamentosManuais',
+    //         'pagamentosSistema',
+    //         'total_sangrias',
+    //         'movimentacoesAuditoria'
+    //     ));
+    // }
+
+
+    public function exportar(AuditoriaCaixa $auditoria)
+
+        {
+        // Carrega relacionamentos necessários
+        $auditoria->load([
+            'caixa',
+            'usuario',
+            'detalhes',
+            'movimentacoesAuditoria.usuario'
         ]);
 
-        $userId = Auth::id();
+        // Carrega lançamentos manuais do caixa
+        $lancamentosManuais = \App\Models\MovimentacaoCaixa::where('caixa_id', $auditoria->caixa_id)
+            ->where('tipo', 'entrada_manual')
+            ->get();
 
-        return DB::transaction(function () use ($request, $caixa, $userId) {
+        // Movimentações de correções da auditoria
+        $movimentacoesAuditoria = $auditoria->movimentacoesAuditoria;
 
-            $valoresFisicos = $request->only([
-                'dinheiro','pix','carteira','cartao_debito','cartao_credito'
+        // Gera PDF
+        $pdf = Pdf::loadView('auditoria_caixa.pdf', compact(
+            'auditoria',
+            'lancamentosManuais',
+            'movimentacoesAuditoria'
+        ))->setPaper('a4', 'portrait');
+
+        return $pdf->download('auditoria_'.$auditoria->codigo_auditoria.'.pdf');
+        }
+        /**
+         * Iniciar auditoria de um caixa
+         */
+        public function iniciar(Request $request, Caixa $caixa)
+        {
+            $request->validate([
+                'dinheiro'        => 'required|numeric|min:0',
+                'pix'             => 'required|numeric|min:0',
+                'carteira'        => 'required|numeric|min:0',
+                'cartao_debito'   => 'required|numeric|min:0',
+                'cartao_credito'  => 'required|numeric|min:0',
             ]);
 
-            $pagamentos = $caixa->vendas
-                ->flatMap->pagamentos
-                ->where('status', 'confirmado');
+            $userId = Auth::id();
 
-            $totalSistema = $pagamentos->sum('valor');
-            $totalFisico  = array_sum($valoresFisicos);
-            $diferenca    = $totalFisico - $totalSistema;
+            return DB::transaction(function () use ($request, $caixa, $userId) {
 
-            $auditoria = AuditoriaCaixa::create([
-                'caixa_id'        => $caixa->id,
-                'user_id'         => $userId,
-                'codigo_auditoria'=> $this->gerarCodigoAuditoria($caixa->id),
-                'total_sistema'   => $totalSistema,
-                'total_fisico'    => $totalFisico,
-                'diferenca'       => $diferenca,
-                'status'          => $diferenca == 0 ? 'concluida' : 'inconsistente',
-                'data_auditoria'  => now(),
-            ]);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Vincular movimentações à auditoria
-            |--------------------------------------------------------------------------
-            */
-            MovimentacaoCaixa::where('caixa_id', $caixa->id)
-                ->whereNull('auditoria_id')
-                ->update([
-                    'auditoria_id' => $auditoria->id
+                $valoresFisicos = $request->only([
+                    'dinheiro','pix','carteira','cartao_debito','cartao_credito'
                 ]);
 
-            $caixa->update([
-                'status' => $diferenca == 0 ? 'fechado' : 'inconsistente'
-            ]);
+                $pagamentos = $caixa->vendas
+                    ->flatMap->pagamentos
+                    ->where('status', 'confirmado');
 
-            return redirect()
-                ->route('fechamento.confirmacao', $caixa->id)
-                ->with('success', 'Auditoria realizada com sucesso.');
-        });
-    }
+                $totalSistema = $pagamentos->sum('valor');
+                $totalFisico  = array_sum($valoresFisicos);
+                $diferenca    = $totalFisico - $totalSistema;
 
-    private function gerarCodigoAuditoria($caixaId)
-    {
-        return 'AUD-' . $caixaId . '-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+                $auditoria = AuditoriaCaixa::create([
+                    'caixa_id'        => $caixa->id,
+                    'user_id'         => $userId,
+                    'codigo_auditoria'=> $this->gerarCodigoAuditoria($caixa->id),
+                    'total_sistema'   => $totalSistema,
+                    'total_fisico'    => $totalFisico,
+                    'diferenca'       => $diferenca,
+                    'status'          => $diferenca == 0 ? 'concluida' : 'inconsistente',
+                    'data_auditoria'  => now(),
+                ]);
+
+                /*
+                |--------------------------------------------------------------------------
+                | Vincular movimentações à auditoria
+                |--------------------------------------------------------------------------
+                */
+                MovimentacaoCaixa::where('caixa_id', $caixa->id)
+                    ->whereNull('auditoria_id')
+                    ->update([
+                        'auditoria_id' => $auditoria->id
+                    ]);
+
+                $caixa->update([
+                    'status' => $diferenca == 0 ? 'fechado' : 'inconsistente'
+                ]);
+
+                return redirect()
+                    ->route('fechamento.confirmacao', $caixa->id)
+                    ->with('success', 'Auditoria realizada com sucesso.');
+            });
+        }
+
+        private function gerarCodigoAuditoria($caixaId)
+        {
+            return 'AUD-' . $caixaId . '-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+        }
     }
-}
