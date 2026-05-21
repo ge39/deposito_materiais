@@ -73,8 +73,8 @@
                                 </td>
 
                                 <td class="text-center pe-3">
-                                    {{-- Link fixo direto para a rota física do relatório, prevenindo erros de rotas nomeadas --}}
-                                    <a href="/auditoria_caixa/show/{{ $auditoria->id }}" class="btn btn-sm btn-primary fw-bold px-3">
+                                   {{-- 🌟 CORREGIDO: Alterado para o padrão físico real de hífen do seu Laravel --}}
+                                    <a href="/auditoria-caixa/{{ $auditoria->id }}" class="btn btn-sm btn-primary fw-bold px-3">
                                         🔍 Ver Relatório
                                     </a>
                                 </td>

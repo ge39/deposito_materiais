@@ -238,105 +238,120 @@
     <!-- OVERLAY -->
     <!-- //modal verificar sangria -->
   
-    <div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg border-0">
+   <!-- O Modal permanece na Blade para poder ser chamado -->
+<div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
 
-                <!-- Header -->
-                <div class="modal-header 
-                    @if($bloquearPDV) bg-danger text-white 
-                    @else bg-warning text-dark 
-                    @endif">
-
-                    <h5 class="modal-title fw-bold">
-                        @if($bloquearPDV)
-                            🚫 BLOQUEIO DE CAIXA
-                        @else
-                            ⚠️ LIMITE DE SANGRIA ATINGIDO
-                        @endif
-                    </h5>
-
-                </div>
-
-                <!-- Body -->
-                <div class="modal-body text-center py-4">
-
-                    <h4 class="fw-bold mb-3">
-                        Saldo Atual:
-                        <span class="text-dark">
-                            R$ {{ number_format($saldoAtual, 2, ',', '.') }}
-                        </span>
-                    </h4>
-
-                    <p class="fs-5 mb-2">
-                        Limite configurado:
-                        <strong>
-                            R$ {{ number_format($limiteSangria, 2, ',', '.') }}
-                        </strong>
-                    </p>
-
+            <!-- Header -->
+            <div class="modal-header @if($bloquearPDV) bg-danger text-white @else bg-warning text-dark @endif">
+                <h5 class="modal-title fw-bold">
                     @if($bloquearPDV)
-                        <div class="alert alert-danger fw-bold fs-5 shadow-sm">
-                            PDV BLOQUEADO<br>
-                            Realize sangria para continuar as vendas.
-                        </div>
+                        🚫 BLOQUEIO DE CAIXA
                     @else
-                        <div class="alert alert-warning fw-bold fs-5 shadow-sm">
-                            Recomendado realizar sangria.
-                        </div>
+                        ⚠️ LIMITE DE SANGRIA ATINGIDO
                     @endif
+                </h5>
+            </div>
 
-                    <hr>
+            <!-- Body -->
+            <div class="modal-body text-center py-4">
+                <h4 class="fw-bold mb-3">
+                    Saldo Atual:
+                    <span class="text-dark">
+                        R$ {{ number_format($saldoAtual, 2, ',', '.') }}
+                    </span>
+                </h4>
 
-                    <h3 class="fw-bold text-primary">
-                        💰 Valor sugerido para sangria:
-                    </h3>
+                <p class="fs-5 mb-2">
+                    Limite configurado:
+                    <strong>
+                        R$ {{ number_format($limiteSangria, 2, ',', '.') }}
+                    </strong>
+                </p>
 
-                    <h2 class="display-6 fw-bold text-success">
-                        R$ {{ number_format(($saldoAtual ?? $valorSugeridoSangria) ?? 0, 2, ',', '.') }}
-                        
-                    </h2>
+                @if($bloquearPDV)
+                    <div class="alert alert-danger fw-bold fs-5 shadow-sm">
+                        PDV BLOQUEADO<br>
+                        Realize sangria para continuar as vendas.
+                    </div>
+                @else
+                    <div class="alert alert-warning fw-bold fs-5 shadow-sm">
+                        Recomendado realizar sangria.
+                    </div>
+                @endif
 
-                    <p class="text-muted">
-                        Oriente a operadora a retirar este valor do caixa.
-                    </p>
+                <hr>
 
-                </div>
+                <h3 class="fw-bold text-primary">
+                    💰 Valor sugerido para sangria:
+                </h3>
 
-                <!-- Footer -->
-                <div class="modal-footer justify-content-between">
-                    <div class="d-flex gap-2">
+                <h2 class="display-6 fw-bold text-success">
+                    R$ {{ number_format($saldoAtual ?? 0, 2, ',', '.') }}
+                </h2>
 
-                        <!-- <button onclick="window.print()" class="btn btn-outline-dark px-4">
-                            🖨 Imprimir
-                        </button> -->
-        
-                        <a href="{{ route('caixa.sangria.form', $caixa->id) }}" 
-                        class="btn btn-success px-4 fw-bold">
-                            ✅ Efetuar Sangria
-                        </a>
+                <p class="text-muted">
+                    Oriente a operadora a retirar este valor do caixa.
+                </p>
+            </div>
 
+            <!-- Footer -->
+            <div class="modal-footer justify-content-between">
+                <div class="d-flex gap-2">
+                    <a href="{{ route('caixa.sangria.form', $caixa->id) }}" class="btn btn-success px-4 fw-bold">
+                        ✅ Efetuar Sangria
+                    </a>
+                    
+                    <!-- Só permite fechar o modal se o PDV NÃO estiver bloqueado -->
+                    @if(!$bloquearPDV)
                         <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
                             ❌ Cancelar
                         </button>
-
-                    </div>
-
+                    @endif
+                    
+                     <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                        ❌ Cancelar
+                    </button>
                 </div>
-
             </div>
+
         </div>
     </div>
+</div>
 
-    <!-- Script para abrir o modal automaticamente -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            @if($saldoAtual >= $limiteSangria)
-                var modal = new bootstrap.Modal(document.getElementById('modalSangria'));
+<!-- 📜 Script Corrigido para abrir baseado nos alertas do Controller -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Transforma os booleanos do PHP em booleanos nativos do JavaScript
+        var deveAvisar = {{ $avisarSangria ? 'true' : 'false' }};
+        var deveBloquear = {{ $bloquearPDV ? 'true' : 'false' }};
+        
+        if (deveAvisar || deveBloquear) {
+            var modalElement = document.getElementById('modalSangria');
+            if (modalElement) {
+                var modal = new bootstrap.Modal(modalElement);
                 modal.show();
-            @endif
-        });
-    </script>
+            }
+        }
+    });
+        function fecharModalSangria() {
+        var modalElement = document.getElementById('modalSangria');
+        if (modalElement) {
+            // Oculta o modal
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            
+            // Remove o fundo escuro artificial do DOM
+            var backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
+        }
+    }
+
+</script>
 
     <!-- bloquear caixa -->
     <div id="modalBloquearCaixa" style="display: none;">
@@ -390,7 +405,6 @@
             </div>
         </div>
     @endif -->
-
 
      <!-- Informações do status do Caixa -->
     <div class="container-fluid p-0" 

@@ -20,27 +20,110 @@ class PdvController extends Controller
     }
    
 
+    // public function index(Request $request)
+    // {
+    //     // 1️⃣ Cliente padrão
+    //     $clienteBalcao = Cliente::select(
+    //         'id','nome','tipo','telefone','endereco','endereco_entrega'
+    //     )->where('nome','VENDA BALCAO')
+    //     ->where('ativo',1)
+    //     ->first();
+
+    //     if (!$clienteBalcao) {
+    //         abort(403, 'O cliente "VENDA BALCAO" precisa estar ativo.');
+    //     }
+
+    //     // 2️⃣ Terminal identificado pelo middleware
+    //     $terminal = $request->attributes->get('terminal');
+
+    //     if (!$terminal) {
+    //         abort(403, 'Terminal não identificado.');
+    //     }
+
+    //     // 3️⃣ Busca caixa aberto no terminal
+    //     $caixa = Caixa::where('terminal_id', $terminal->id)
+    //         ->where('status', 'aberto')
+    //         ->latest('data_abertura')
+    //         ->first();
+
+    //     if (!$caixa) {
+    //         return redirect()
+    //             ->route('caixa.abrir')
+    //             ->with('info', 'Nenhum caixa aberto. Abra um caixa para continuar.');
+    //     }
+
+    //     // 4️⃣ Operador
+    //     $operadorId = $caixa->usuario?->id;
+    //     $operador   = $caixa->usuario?->name ?? 'Nenhum';
+
+    //     // 5️⃣ Status formatado
+    //     $status = match ($caixa->status) {
+    //         'aberto'        => 'Aberto',
+    //         'pendente'      => 'Pendente',
+    //         'inconsistente' => 'Inconsistente',
+    //         default         => 'Fechado',
+    //     };
+
+    //     // 6️⃣ Verificação de sangria
+    //     $verificacao = $caixa->verificarSangria();
+
+    //     $saldoAtual         = $verificacao['saldoAtual'];
+    //     $limiteSangria      = $verificacao['limiteSangria'];
+    //     $avisarSangria      = $verificacao['avisarSangria'];
+    //     $bloquearPDV        = $verificacao['bloquearPDV'];
+
+    //     // if ($bloquearPDV) {
+    //     //     return redirect()
+    //     //         ->route('caixa.sangria.form', ['caixa' => $caixa->id])
+    //     //         ->with('error', 'Limite de dinheiro excedido. Realize a sangria para continuar.');
+    //     // }
+
+    //        // 7️⃣ Retorna view
+    //     return view('pdv.index', [
+    //         'clienteBalcao'        => $clienteBalcao,
+    //         'tipo'                 => $clienteBalcao->tipo,
+    //         'telefone'             => $clienteBalcao->telefone,
+    //         'terminal'             => $terminal,
+    //         'caixaAberto'          => $caixa,
+    //         'caixa'                => $caixa,
+    //         'caixa_id'             => $caixa->id,
+    //         'operador'             => $operador,
+    //         'operadorId'           => $operadorId,
+    //         'status'               => $status,
+    //         'saldoAtual'           => $saldoAtual,
+            
+    //         // Envia as duas variações de nome para garantir compatibilidade com o Blade
+    //         'limiteSangria'        => $limiteSangria, // camelCase
+    //         'limite_sangria'       => $limiteSangria, // snake_case 👈 Seu Blade deve estar procurando esta
+            
+    //         // Força booleano estrito: só ativa se o backend mandou true E o saldo for maior que zero
+    //         'avisarSangria'        => $avisarSangria && ($saldoAtual > 0),
+    //         'bloquearPDV'          => $bloquearPDV && ($saldoAtual > 0),
+    //         'valorSugeridoSangria' => $verificacao['valorSugeridoSangria'],
+    //     ]);
+    // }
+
     public function index(Request $request)
     {
-        // 1️⃣ Cliente padrão
+        // 1️⃣ Cliente padrão (Venda Balcão ID 6 do banco)
         $clienteBalcao = Cliente::select(
-            'id','nome','tipo','telefone','endereco','endereco_entrega'
-        )->where('nome','VENDA BALCAO')
-        ->where('ativo',1)
+            'id', 'nome', 'tipo', 'telefone', 'endereco', 'endereco_entrega'
+        )->where('nome', 'VENDA BALCAO')
+        ->where('ativo', 1)
         ->first();
 
         if (!$clienteBalcao) {
-            abort(403, 'O cliente "VENDA BALCAO" precisa estar ativo.');
+            abort(403, 'O cliente "VENDA BALCAO" precisa estar ativo no cadastro.');
         }
 
-        // 2️⃣ Terminal identificado pelo middleware
+        // 2️⃣ Terminal identificado via Middleware do XAMPP
         $terminal = $request->attributes->get('terminal');
 
         if (!$terminal) {
-            abort(403, 'Terminal não identificado.');
+            abort(403, 'Terminal operacional não identificado no sistema.');
         }
 
-        // 3️⃣ Busca caixa aberto no terminal
+        // 3️⃣ Busca o caixa que se encontra com o status 'aberto' neste terminal
         $caixa = Caixa::where('terminal_id', $terminal->id)
             ->where('status', 'aberto')
             ->latest('data_abertura')
@@ -52,57 +135,102 @@ class PdvController extends Controller
                 ->with('info', 'Nenhum caixa aberto. Abra um caixa para continuar.');
         }
 
-        // 4️⃣ Operador
-        $operadorId = $caixa->usuario?->id;
-        $operador   = $caixa->usuario?->name ?? 'Nenhum';
+        // 4️⃣ Vinculação do Operador logado na sessão
+        $operadorId = $caixa->usuario?->id ?? auth()->id();
+        $operador   = $caixa->usuario?->name ?? 'Não identificado';
 
-        // 5️⃣ Status formatado
+        // 5️⃣ Status formatado para a cor do cabeçalho do PDV
         $status = match ($caixa->status) {
             'aberto'        => 'Aberto',
             'pendente'      => 'Pendente',
             'inconsistente' => 'Inconsistente',
             default         => 'Fechado',
         };
+        
 
-        // 6️⃣ Verificação de sangria
+        // 6️⃣ EXECUÇÃO DO APURADOR DE TETOS DE SANGRIA NO MODEL CAIXA
         $verificacao = $caixa->verificarSangria();
 
-        $saldoAtual         = $verificacao['saldoAtual'];
-        $limiteSangria      = $verificacao['limiteSangria'];
-        $avisarSangria      = $verificacao['avisarSangria'];
-        $bloquearPDV        = $verificacao['bloquearPDV'];
+        $saldoAtual         = (float) $verificacao['saldoAtual']; // Volte para a consulta real
+        $limiteSangria      = (float) $verificacao['limiteSangria'];
+        $avisarSangria      = (bool)  $verificacao['avisarSangria']; // Volte para a consulta real
+        $bloquearPDV        = (bool)  $verificacao['bloquearPDV'];
 
-        // if ($bloquearPDV) {
-        //     return redirect()
-        //         ->route('caixa.sangria.form', ['caixa' => $caixa->id])
-        //         ->with('error', 'Limite de dinheiro excedido. Realize a sangria para continuar.');
-        // }
 
-           // 7️⃣ Retorna view
+        // 7️⃣ Retorna a View enviando as chaves exatas sincronizadas com os Scripts da Blade
         return view('pdv.index', [
             'clienteBalcao'        => $clienteBalcao,
             'tipo'                 => $clienteBalcao->tipo,
             'telefone'             => $clienteBalcao->telefone,
             'terminal'             => $terminal,
             'caixaAberto'          => $caixa,
+            
+            // Injeta as duas variações de objeto para garantir que o Eloquent e o JS leiam o ID
             'caixa'                => $caixa,
-            'caixa_id'             => $caixa->id,
+            'caixa_id'             => (int) $caixa->id, 
+            
             'operador'             => $operador,
             'operadorId'           => $operadorId,
             'status'               => $status,
             'saldoAtual'           => $saldoAtual,
             
-            // Envia as duas variações de nome para garantir compatibilidade com o Blade
-            'limiteSangria'        => $limiteSangria, // camelCase
-            'limite_sangria'       => $limiteSangria, // snake_case 👈 Seu Blade deve estar procurando esta
+            // Dobra os padrões para satisfazer buscas snake_case e camelCase na Blade
+            'limiteSangria'        => $limiteSangria,
+            'limite_sangria'       => $limiteSangria, 
             
-            // Força booleano estrito: só ativa se o backend mandou true E o saldo for maior que zero
-            'avisarSangria'        => $avisarSangria && ($saldoAtual > 0),
-            'bloquearPDV'          => $bloquearPDV && ($saldoAtual > 0),
-            'valorSugeridoSangria' => $verificacao['valorSugeridoSangria'],
+            // 🌟 CORREGIDO: Remove a trava do saldo > 0 para permitir que caixas esquecidos vazios bloqueiem o PDV!
+            'avisarSangria'        => $avisarSangria,
+            'bloquearPDV'          => $bloquearPDV,
+            'valorSugeridoSangria' => (float) $verificacao['valorSugeridoSangria'],
         ]);
     }
+
+     public function verificarSangria(): array
+    {
+        // 1. Obtém o saldo real em dinheiro deste caixa específico
+        $saldoAtual = $this->saldoDinheiroAtual();
         
+        // 2. Busca a configuração amarrada à empresa deste caixa
+        $config = \App\Models\SangriaConfig::where('empresa_id', $this->empresa_id)->first();
+
+        // 3. Fallback de Segurança: se não achar para esta filial, pega a primeira configuração do banco
+        if (!$config) {
+            $config = \App\Models\SangriaConfig::first();
+        }
+
+        // 4. Se mesmo assim a tabela estiver vazia, assume valores padrão seguros
+        if (!$config) {
+            return [
+                'saldoAtual' => $saldoAtual,
+                'limiteSangria' => 200.00,
+                'limiteBloqueio' => 300.00,
+                'avisarSangria' => true,
+                'bloquearPDV' => false,
+                'valorSugeridoSangria' => 0.00,
+            ];
+        }
+
+        // 5. MAPEAMENTO EXATO COM OS NOMES DAS SUAS COLUNAS DO BANCO
+        $limiteSangria = (float) ($config->valor_limite ?? 200.00); // R$ 200 (Início do aviso)
+        $limiteBloqueio = (float) ($config->valor_maximo_caixa ?? $limiteSangria); // Teto máximo para travar o PDV
+
+        // 6. Regras lógicas de ativação (Garante que saldo R$ 0,00 nunca ativa o modal)
+        $deveAvisar = ($saldoAtual >= $limiteSangria) && ($saldoAtual > 0);
+        $deveBloquear = ($saldoAtual >= $limiteBloqueio) && ($saldoAtual > 0);
+
+        // 7. Calcula o valor sugerido com base no saldo que excedeu o limite principal
+        $valorSugeridoSangria = max(0, $saldoAtual - $limiteSangria);
+
+        return [
+            'saldoAtual' => $saldoAtual,
+            'limiteSangria' => $limiteSangria,
+            'limiteBloqueio' => $limiteBloqueio,
+            'avisarSangria' => $deveAvisar,
+            'bloquearPDV' => $deveBloquear,
+            'valorSugeridoSangria' => round($valorSugeridoSangria, 2),
+        ];
+    }
+
    /**
      * F2 – Buscar Cliente (Modal de cliente) */
     
@@ -410,107 +538,57 @@ class PdvController extends Controller
      * @param int $diasLimite Quantos dias considerar para "esquecido"
      * @return \Illuminate\Support\Collection
      */
-       
-
 
     // 1. Adicione o parâmetro Request para capturar o terminal atual
         // 1. Adicione o parâmetro Request para capturar o terminal atual
     public function caixasEsquecidos(Request $request, int $horasLimite = 12)
-        {
-            $agora = Carbon::now('America/Sao_Paulo');
-            $empresaId = auth()->user()->empresa_id ?? null;
-
-            // 🎯 O SEGREDO ESTÁ AQUI: Captura o terminal direto da Session/Cookie injetada pelo seu Middleware
-            // Substitua 'terminal_id' pelo nome exato da chave que o seu IdentificaTerminal.php usa
-            $terminalId = session('terminal_id') ?? cookie('terminal_id') ?? $request->query('terminal_id');
-
-            // Buscamos os caixas abertos da empresa logada
-            $query = Caixa::where('status', 'aberto');
-            
-            // 🎯 FILTRO AUTOMÁTICO: Se o middleware identificou o terminal, filtra o banco por ele
-            if ($terminalId) {
-                $query->where('terminal_id', $terminalId);
-            } else {
-                // Se o middleware não encontrou o terminal na sessão, assume o 10 para o seu ambiente de teste rodar
-                $query->where('terminal_id', 10);
-            }
-
-            if ($empresaId) {
-                $query->where('empresa_id', $empresaId);
-            }
-
-            $caixas = $query->with(['usuario']) 
-                ->get()
-                ->map(function ($caixa) use ($agora) {
-
-                    // Força a leitura correta da data inserida no banco de dados
-                    $abertura = Carbon::parse($caixa->data_abertura, 'America/Sao_Paulo');
-
-                    // Calcula a diferença exata de horas
-                    $horasAberto = (int) $abertura->diffInHours($agora);
-                    
-                    $caixa->pdv_horas_aberto = $horasAberto;
-                    $caixa->data_abertura_br = $abertura->format('d/m/Y H:i');
-                    $caixa->nome_operador    = $caixa->usuario->name ?? '---';
-                    
-                    return $caixa;
-                })
-                // Filtra apenas os caixas que estouraram o limite de tempo configurado
-                ->filter(function ($caixa) use ($horasLimite) {
-                    return $caixa->pdv_horas_aberto >= $horasLimite;
-                })
-                ->values();
-
-            return response()->json($caixas);
-        }
-
-
-    public function verificarSangria(): array
     {
-        // 1. Obtém o saldo real em dinheiro deste caixa específico
-        $saldoAtual = $this->saldoDinheiroAtual();
+        $agora = Carbon::now('America/Sao_Paulo');
+        $empresaId = auth()->user()->empresa_id ?? null;
 
-        // 2. Busca a configuração amarrada à empresa deste caixa
-        $config = \App\Models\SangriaConfig::where('empresa_id', $this->empresa_id)->first();
+        // 🎯 O SEGREDO ESTÁ AQUI: Captura o terminal direto da Session/Cookie injetada pelo seu Middleware
+        // Substitua 'terminal_id' pelo nome exato da chave que o seu IdentificaTerminal.php usa
+        $terminalId = session('terminal_id') ?? cookie('terminal_id') ?? $request->query('terminal_id');
 
-        // 3. Fallback de Segurança: se não achar para esta filial, pega a primeira configuração do banco
-        if (!$config) {
-            $config = \App\Models\SangriaConfig::first();
+        // Buscamos os caixas abertos da empresa logada
+        $query = Caixa::where('status', 'aberto');
+        
+        // 🎯 FILTRO AUTOMÁTICO: Se o middleware identificou o terminal, filtra o banco por ele
+        if ($terminalId) {
+            $query->where('terminal_id', $terminalId);
+        } else {
+            // Se o middleware não encontrou o terminal na sessão, assume o 10 para o seu ambiente de teste rodar
+            $query->where('terminal_id', 10);
         }
 
-        // 4. Se mesmo assim a tabela estiver vazia, assume valores padrão seguros
-        if (!$config) {
-            return [
-                'saldoAtual' => $saldoAtual,
-                'limiteSangria' => 200.00,
-                'limiteBloqueio' => 300.00,
-                'avisarSangria' => false,
-                'bloquearPDV' => false,
-                'valorSugeridoSangria' => 0.00,
-            ];
+        if ($empresaId) {
+            $query->where('empresa_id', $empresaId);
         }
 
-        // 5. MAPEAMENTO EXATO COM OS NOMES DAS SUAS COLUNAS DO BANCO
-        $limiteSangria = (float) ($config->valor_limite ?? 200.00); // R$ 200 (Início do aviso)
-        $limiteBloqueio = (float) ($config->valor_maximo_caixa ?? $limiteSangria); // Teto máximo para travar o PDV
+        $caixas = $query->with(['usuario']) 
+            ->get()
+            ->map(function ($caixa) use ($agora) {
 
-        // 6. Regras lógicas de ativação (Garante que saldo R$ 0,00 nunca ativa o modal)
-        $deveAvisar = ($saldoAtual >= $limiteSangria) && ($saldoAtual > 0);
-        $deveBloquear = ($saldoAtual >= $limiteBloqueio) && ($saldoAtual > 0);
+                // Força a leitura correta da data inserida no banco de dados
+                $abertura = Carbon::parse($caixa->data_abertura, 'America/Sao_Paulo');
 
-        // 7. Calcula o valor sugerido com base no saldo que excedeu o limite principal
-        $valorSugeridoSangria = max(0, $saldoAtual - $limiteSangria);
+                // Calcula a diferença exata de horas
+                $horasAberto = (int) $abertura->diffInHours($agora);
+                
+                $caixa->pdv_horas_aberto = $horasAberto;
+                $caixa->data_abertura_br = $abertura->format('d/m/Y H:i');
+                $caixa->nome_operador    = $caixa->usuario->name ?? '---';
+                
+                return $caixa;
+            })
+            // Filtra apenas os caixas que estouraram o limite de tempo configurado
+            ->filter(function ($caixa) use ($horasLimite) {
+                return $caixa->pdv_horas_aberto >= $horasLimite;
+            })
+            ->values();
 
-        return [
-            'saldoAtual' => $saldoAtual,
-            'limiteSangria' => $limiteSangria,
-            'limiteBloqueio' => $limiteBloqueio,
-            'avisarSangria' => $deveAvisar,
-            'bloquearPDV' => $deveBloquear,
-            'valorSugeridoSangria' => round($valorSugeridoSangria, 2),
-        ];
+        return response()->json($caixas);
     }
-   
 }
 
 

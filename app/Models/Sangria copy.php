@@ -40,4 +40,20 @@ class Sangria extends Model
     {
         return $this->belongsTo(Empresa::class);
     }
+
+    public function saldoDinheiroEntradas(): float
+    {
+        return $this->movimentacoes()
+            ->where('forma_pagamento', 'dinheiro')
+            ->whereIn('tipo', ['entrada_manual', 'entrada', 'venda'])
+            ->sum('valor');
+    }
+
+    public function saldoDinheiroSaidas(): float
+    {
+        return $this->movimentacoes()
+            ->where('forma_pagamento', 'dinheiro')
+            ->whereIn('tipo', ['sangria','despesa','ajuste_negativo','outras_saidas'])
+            ->sum('valor');
+    }
 }
