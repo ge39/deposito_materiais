@@ -7,27 +7,23 @@ use App\Services\BloqueioCreditoService;
 
 class VendaObserver 
 { 
-    // public function saved(Venda $venda): void 
-    // { 
-    //     // 🔥 CLÁUSULA DE SALVAGUARDA: Se for Venda Balcão (null), ignora a reavaliação de crédito
-    //     if (is_null($venda->cliente_id)) {
-    //         return;
-    //     }
+    /**
+     * 🔥 EVITA TRAVAMENTOS (DEADLOCKS)
+     * Garante que as consultas pesadas de crédito só rodem DEPOIS 
+     * que a transação da venda for confirmada (commit) no banco.
+     */
+    public $afterCommit = true; 
 
-    //     $cliente = $venda->cliente; 
-    //     app(BloqueioCreditoService::class)->reavaliarCliente($cliente); 
-    // } 
-    
     public function saved(Venda $venda): void 
     { 
-        // 1. Ignora se o ID for nulo (Venda Balcão Padrão)
+        // 1. CLÁUSULA DE SALVAGUARDA: Ignora se for Venda Balcão padrão (ID nulo)
         if (is_null($venda->cliente_id)) {
             return;
         }
 
-        // 2. Ignora se for o ID específico do cadastro de "Venda Balcão" do seu banco
-        // Substitua o '1' pelo ID real do seu cliente balcão, se aplicável
-        if ($venda->cliente_id === 1) { 
+        // 2. CLÁUSULA DE SALVAGUARDA 2: Caso seu sistema use um ID fixo para Venda Balcão no banco (Ex: ID 1)
+        // Se aplicável, mude o número abaixo para o ID real do seu cliente balcão genérico
+        if ($venda->cliente_id === 1) {
             return;
         }
 
@@ -35,11 +31,10 @@ class VendaObserver
         app(BloqueioCreditoService::class)->reavaliarCliente($cliente); 
     } 
 
-
     public function deleted(Venda $venda): void 
     { 
-        // 🔥 CLÁUSULA DE SALVAGUARDA: Se for Venda Balcão (null), ignora a reavaliação de crédito
-        if (is_null($venda->cliente_id)) {
+        // Aplica as mesmas travas de segurança na exclusão de uma venda
+        if (is_null($venda->cliente_id) || $venda->cliente_id === 1) {
             return;
         }
 

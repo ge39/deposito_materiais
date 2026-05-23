@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Observers;
 
 use App\Models\PagamentoVenda;
@@ -9,36 +8,19 @@ use Illuminate\Support\Facades\Log;
 
 class PagamentoVendaObserver
 {
-    /**
-     * 🔥 ACABA COM OS LOCKS DE BANCO DE DADOS
-     * Garante que a movimentação de conta corrente e reavaliação de crédito
-     * só rodem DEPOIS que o pagamento estiver fisicamente gravado e liberado no banco.
-     */
-    public $afterCommit = true;
-
     public function saved(PagamentoVenda $pagamento): void
     {
         $venda = $pagamento->venda;
 
         if (!$venda) {
             Log::warning("PagamentoVendaObserver: venda não encontrada para pagamento ID {$pagamento->id}");
-            return;
-        }
-
-        // 🛑 CLÁUSULA DE SALVAGUARDA DE PERFORMANCE: Ignora Venda Balcão (Cliente Nulo) imediatamente
-        if (is_null($venda->cliente_id)) {
-            return;
-        }
-
-        // 🛑 CLÁUSULA DE SALVAGUARDA 2: Ignora se for o ID fixo de Venda Balcão (Ex: ID 1) do seu banco
-        if ($venda->cliente_id === 1) {
-            return;
+            return; // evita continuar se venda não existir
         }
 
         $cliente = $venda->cliente;
 
         if (!$cliente) {
-            Log::warning("PagamentoVendaObserver: cliente não cadastrado na venda ID {$venda->id}");
+            Log::warning("PagamentoVendaObserver: cliente não encontrado para venda ID {$venda->id}");
             return;
         }
 
@@ -66,14 +48,10 @@ class PagamentoVendaObserver
             return;
         }
 
-        // 🛑 Aplica as mesmas salvaguardas para o Balcão na deleção
-        if (is_null($venda->cliente_id) || $venda->cliente_id === 1) {
-            return;
-        }
-
         $cliente = $venda->cliente;
 
         if (!$cliente) {
+            Log::warning("PagamentoVendaObserver: cliente não encontrado ao deletar pagamento ID {$pagamento->id}");
             return;
         }
 

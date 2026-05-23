@@ -21,127 +21,6 @@ class VendaController extends Controller
      * Responsabilidade TOTAL do backend
      */
 
-   public function store(Request $request, CreditoService $creditoService)
-    {
-        // 1️⃣ Resgata e trata o dado bruto do cliente antes da validação para evitar quebras
-        $clienteIdRaw = $request->input('cliente_id');
-        
-        if (empty($clienteIdRaw) || $clienteIdRaw == '6' || strtoupper($clienteIdRaw) === 'VENDA BALCAO') {
-            // Se for balcão ou vazio, remove do request para passar na regra 'nullable' da validação
-            $request->merge(['cliente_id' => null]);
-        }
-
-        // 2️⃣ Validação Original Ajustada
-        $request->validate([
-            'cliente_id'             => 'nullable|exists:clientes,id', 
-            'funcionario_id'         => 'required|exists:users,id',
-            'caixa_id'               => 'required|exists:caixas,id',
-            'dataVenda'              => 'required|date',
-            'endereco'               => 'nullable|string|max:255',
-            'itens'                  => 'required|array|min:1',
-            'itens.*.produto_id'     => 'required|exists:produtos,id',
-            'itens.*.quantidade'     => 'required|numeric|min:1',
-            'itens.*.valor_unitario' => 'required|numeric|min:0',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            // 2️⃣ Fallback cliente "VENDA BALCÃO" (ID 6 do seu banco de dados)
-            $clienteIdRaw = $request->input('cliente_id');
-    
-            // Se o front-end mandar vazio, nulo ou o texto "VENDA BALCAO", o PHP força o ID 6 real do seu banco
-            if (empty($clienteIdRaw) || $clienteIdRaw == '' || strtoupper($clienteIdRaw) === 'VENDA BALCAO') {
-                $clienteId = 6; // 🔥 Força o ID real do seu banco de dados para a Venda Balcão!
-            } else {
-                $clienteId = (int) $clienteIdRaw; // Se for um cliente cadastrado (ID 2, 3...), usa o ID dele
-            }
-
-            // 4️⃣ Cria a venda usando a sua fórmula matemática original limpa
-            $totalVenda = collect($request->input('itens', []))
-                            ->sum(fn($i) => $i['quantidade'] * $i['valor_unitario']);
-            
-            $venda = Venda::create([
-                'cliente_id'     => $clienteId,
-                'funcionario_id' => $request->input('funcionario_id'),
-                'caixa_id'       => $request->input('caixa_id'),
-                'data_venda'     => $request->input('dataVenda'),
-                'endereco'       => $request->input('endereco'),
-                'total'          => $totalVenda,
-                'status'         => 'finalizada' // Garante o status correto do ciclo
-            ]);
-
-            // 5️⃣ Persiste itens da venda e realiza baixa real das quantidades nos lotes (FIFO)
-            foreach ($request->input('itens', []) as $item) {
-                $produtoId            = $item['produto_id'];
-                $quantidadeNecessaria = floatval($item['quantidade']);
-                $precoUnitario        = floatval($item['valor_unitario']);
-
-                // Busca os lotes ativos com estoque por ordem cronológica (FIFO)
-                $lotesDisponiveis = DB::table('lotes')
-                    ->where('produto_id', $produtoId)
-                    ->where('quantidade_disponivel', '>', 0)
-                    ->orderBy('created_at', 'asc')
-                    ->lockForUpdate()
-                    ->get();
-
-                if ($lotesDisponiveis->isEmpty()) {
-                    // Fallback: Se não houver lotes cadastrados, grava com lote_id nulo
-                    $venda->itens()->create([
-                        'produto_id'     => $produtoId,
-                        'lote_id'        => null,
-                        'quantidade'     => $quantidadeNecessaria,
-                        'preco_unitario' => $precoUnitario,
-                    ]);
-                } else {
-                    // Distribui a quantidade vendida nos lotes disponíveis
-                    foreach ($lotesDisponiveis as $lote) {
-                        if ($quantidadeNecessaria <= 0) break;
-                        $qtdConsumir = min($quantidadeNecessaria, $lote->quantidade_disponivel);
-
-                        $venda->itens()->create([
-                            'produto_id'     => $produtoId,
-                            'lote_id'        => $lote->id,
-                            'quantidade'     => $qtdConsumir,
-                            'preco_unitario' => $precoUnitario,
-                        ]);
-
-                        // 📉 Dá a baixa real e imediata diminuindo o saldo do lote no banco
-                        DB::table('lotes')
-                            ->where('id', $lote->id)
-                            ->decrement('quantidade_disponivel', $qtdConsumir);
-
-                        $quantidadeNecessaria -= $qtdConsumir;
-                    }
-
-                    // Se houver estouro de estoque (Venda acima do limite físico dos lotes)
-                    if ($quantidadeNecessaria > 0) {
-                        $venda->itens()->create([
-                            'produto_id'     => $produtoId,
-                            'lote_id'        => null,
-                            'quantidade'     => $quantidadeNecessaria,
-                            'preco_unitario' => $precoUnitario,
-                        ]);
-                    }
-                }
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success'  => true,
-                'message'  => 'Venda criada com sucesso',
-                'venda_id' => $venda->id,
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
     public function finalizar(Request $request, CreditoService $creditoService) 
     { 
         // Helper de Sanitização Decimal
@@ -210,8 +89,81 @@ class VendaController extends Controller
         return (int) $clienteIdRaw;
     }
 
-    /**
+        /**
      * Processa a baixa de estoque dos itens utilizando o algoritmo FIFO.
+     */
+    // private function processarItensVenda(Venda $venda, array $itens, $limparNumero): float
+    // {
+    //     $valorTotalVenda = 0;
+
+    //     foreach ($itens as $item) {
+    //         $quantidadeNecessaria = $limparNumero($item['quantidade'] ?? $item['qtd'] ?? 1);
+    //         $precoUnitario        = $limparNumero($item['valor_unitario'] ?? $item['preco_unitario'] ?? $item['preco'] ?? $item['valor'] ?? 0);
+    //         $desconto             = $limparNumero($item['desconto'] ?? 0.00);
+    //         $produtoId            = $item['produto_id'] ?? $item['id'] ?? null;
+
+    //         if (!$produtoId) {
+    //             throw new \InvalidArgumentException('Identificador do produto inválido no carrinho.');
+    //         }
+
+    //         if ($precoUnitario <= 0) {
+    //             $produtoBanco = DB::table('produtos')->where('id', $produtoId)->first();
+    //             $precoUnitario = $produtoBanco ? (float) $produtoBanco->preco_venda : 0.00;
+    //         }
+
+    //         $valorTotalVenda += ($quantidadeNecessaria * $precoUnitario) - $desconto;
+
+    //         // 🚀 OTIMIZAÇÃO CRÍTICA: Removido lockForUpdate() para impedir o travamento em cascata entre os caixas
+    //         $lotes = DB::table('lotes')
+    //             ->where('produto_id', $produtoId)
+    //             ->where('quantidade_disponivel', '>', 0)
+    //             ->orderBy('created_at', 'asc')
+    //             ->get();
+
+    //         if ($lotes->isEmpty()) {
+    //             $venda->itens()->create([
+    //                 'produto_id'     => $produtoId,
+    //                 'lote_id'        => null,
+    //                 'quantidade'     => $quantidadeNecessaria,
+    //                 'preco_unitario' => $precoUnitario,
+    //                 'desconto'       => $desconto
+    //             ]);
+    //         } else {
+    //             foreach ($lotes as $lote) {
+    //                 if ($quantidadeNecessaria <= 0) break;
+    //                 $qtdConsumir = min($quantidadeNecessaria, $lote->quantidade_disponivel);
+
+    //                 $venda->itens()->create([
+    //                     'produto_id'     => $produtoId,
+    //                     'lote_id'        => $lote->id,
+    //                     'quantidade'     => $qtdConsumir,
+    //                     'preco_unitario' => $precoUnitario,
+    //                     'desconto'       => $desconto
+    //                 ]);
+
+    //                 // O decrement opera de forma isolada e segura a nível de banco
+    //                 DB::table('lotes')->where('id', $lote->id)->decrement('quantidade_disponivel', $qtdConsumir);
+    //                 $quantidadeNecessaria -= $qtdConsumir;
+    //             }
+
+    //             if ($quantidadeNecessaria > 0) {
+    //                 $venda->itens()->create([
+    //                     'produto_id'     => $produtoId,
+    //                     'lote_id'        => null,
+    //                     'quantidade'     => $quantidadeNecessaria,
+    //                     'preco_unitario' => $precoUnitario,
+    //                     'desconto'       => $desconto
+    //                 ]);
+    //             }
+    //         }
+    //     }
+
+    //     return $valorTotalVenda;
+    // }
+
+        /**
+     * Processa a baixa de estoque dos itens utilizando o algoritmo FIFO.
+     * Protegido contra concorrência multi-lote via Lock Cirúrgico de milissegundos.
      */
     private function processarItensVenda(Venda $venda, array $itens, $limparNumero): float
     {
@@ -234,11 +186,14 @@ class VendaController extends Controller
 
             $valorTotalVenda += ($quantidadeNecessaria * $precoUnitario) - $desconto;
 
+            // 🔒 LOCK CIRÚRGICO: Trava apenas as linhas dos lotes ativos deste produto.
+            // Como a venda agora é gravada em um único passo no controller, esse lock dura apenas
+            // alguns milissegundos, garantindo o FIFO perfeito sem congelar as outras frentes de caixa.
             $lotes = DB::table('lotes')
                 ->where('produto_id', $produtoId)
                 ->where('quantidade_disponivel', '>', 0)
                 ->orderBy('created_at', 'asc')
-                ->lockForUpdate()
+                ->lockForUpdate() // 🔥 Reativado de forma otimizada para consistência multi-lote
                 ->get();
 
             if ($lotes->isEmpty()) {
@@ -252,6 +207,8 @@ class VendaController extends Controller
             } else {
                 foreach ($lotes as $lote) {
                     if ($quantidadeNecessaria <= 0) break;
+                    
+                    // 🧠 Garante o cálculo exato baseado no valor atualizado e travado pelo lock
                     $qtdConsumir = min($quantidadeNecessaria, $lote->quantidade_disponivel);
 
                     $venda->itens()->create([
@@ -262,10 +219,15 @@ class VendaController extends Controller
                         'desconto'       => $desconto
                     ]);
 
-                    DB::table('lotes')->where('id', $lote->id)->decrement('quantidade_disponivel', $qtdConsumir);
+                    // Subtração segura e isolada
+                    DB::table('lotes')
+                        ->where('id', $lote->id)
+                        ->decrement('quantidade_disponivel', $qtdConsumir);
+                        
                     $quantidadeNecessaria -= $qtdConsumir;
                 }
 
+                // Fallback: Se a venda estourar o estoque físico dos lotes cadastrados
                 if ($quantidadeNecessaria > 0) {
                     $venda->itens()->create([
                         'produto_id'     => $produtoId,
@@ -281,11 +243,13 @@ class VendaController extends Controller
         return $valorTotalVenda;
     }
 
+
     /**
-     * Registra os pagamentos de forma isolada (Sua solicitação principal).
+     * Registra os pagamentos de forma isolada.
      */
     private function pagamentos_venda(int $vendaId, Request $request, int $userId, $limparNumero): array
     {
+        // Alinhado 100% com as opções válidas do seu enum do banco de dados
         $formasPermitidas = ['dinheiro', 'pix', 'cartao_credito', 'cartao_debito', 'carteira', 'boleto', 'outros'];
         $pagamentosProcessados = [];
 
@@ -293,6 +257,7 @@ class VendaController extends Controller
             $valorPago = $limparNumero($request->input($forma, 0));
 
             if ($valorPago > 0) {
+                // 🚀 Mantido o nome correto e confirmado da sua tabela: pagamentos_venda
                 DB::table('pagamentos_venda')->insert([
                     'user_id'          => $userId,
                     'venda_id'         => $vendaId,
@@ -314,20 +279,22 @@ class VendaController extends Controller
     }
 
     /**
-     * Registra o fluxo de caixa e aciona regras de carteira externa.Movimentacoes_caixa
+     * Registra o fluxo de caixa e aciona regras de carteira externa.
      */
     private function finalizarFluxoFinanceiro(Venda $venda, array $pagamentos, int $caixaId, CreditoService $creditoService): void
     {
+        // 🚀 CORREÇÃO: Captura com segurança o ID do usuário logado localmente para evitar variáveis indefinidas
+        $userIdAtual = auth()->id() ?? $venda->funcionario_id ?? 1;
+
         foreach ($pagamentos as $forma => $valor) {
             if ($caixaId > 0) {
                 DB::table('movimentacoes_caixa')->insert([
-                    'user_id'         => $userId ?? auth()->id() ?? 1,
+                    'user_id'         => $userIdAtual,
                     'caixa_id'         => $caixaId,
-                    // 'venda_id'         => $venda->id,
                     'tipo'             => 'venda',
                     'forma_pagamento'  => $forma,
                     'valor'            => $valor,
-                    'observacao'        => "Venda PDV#{$venda->id}",
+                    'observacao'       => "Venda PDV#{$venda->id}",
                     'created_at'       => now(),
                     'updated_at'       => now()
                 ]);
@@ -337,14 +304,6 @@ class VendaController extends Controller
                 $creditoService->adicionarDebito($venda->cliente_id, $valor, $venda->id);
             }
         }
-    }
-    /**
-     * Exibe ou gera o cupom da venda concluída.
-     */
-
-    public function funcionario()
-    {
-        return $this->belongsTo(Funcionario::class, 'funcionario_id');
     }
 
        // dados da empresa e exibe a tela que imprime cupom das vendas

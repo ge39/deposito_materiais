@@ -19,32 +19,35 @@ class ContaCorrenteService
             return;
         }
 
-        // Carrega o cliente com seu crédito ativo para obter o limite base se necessário
-        $cliente = $pagamento->venda->cliente()->with('creditoAtivo')->first();
+        // 🚀 OTIMIZAÇÃO: Evita queries redundantes puxando o cliente diretamente da relação já carregada
+        $venda = $pagamento->venda;
+        $cliente = $venda ? $venda->cliente : null;
+
         if (!$cliente) {
             throw new \Exception('Cliente não encontrado para registrar movimentação.');
         }
 
         DB::transaction(function () use ($cliente, $pagamento) {
-            // 🔒 Trava o último registro de conta corrente do cliente para evitar concorrência (Race Condition)
+            // 🔒 Mantido o lock protetivo, mas agora executado em milissegundos após o commit da venda
             $ultimaMovimentacao = ClienteContaCorrente::where('cliente_id', $cliente->id)
                 ->orderByDesc('id')
                 ->lockForUpdate()
                 ->first();
 
-            // 💰 Se nunca movimentou, o saldo base é o limite de crédito do cliente
+            // Garante o carregamento do crédito ativo de forma leve se for o primeiro uso
+            if ($ultimaMovimentacao === null) {
+                $cliente->loadMissing('creditoAtivo');
+            }
+
             $limiteCredito = (float)(optional($cliente->creditoAtivo)->limite_credito ?? 0);
             $saldoAtual = $ultimaMovimentacao !== null ? (float)$ultimaMovimentacao->saldo_apos : $limiteCredito;
 
-            // ❌ Valida se o saldo atual suporta o débito
             if ($saldoAtual < (float)$pagamento->valor) {
                 throw new \Exception('Saldo insuficiente na carteira para processar este pagamento.');
             }
 
-            // ➖ Calcula o novo saldo após o débito
             $novoSaldo = $saldoAtual - (float)$pagamento->valor;
 
-            // 💾 Registra a movimentação mantendo o histórico perfeito do saldo_apos
             ClienteContaCorrente::create([
                 'cliente_id'         => $cliente->id,
                 'venda_id'           => $pagamento->venda_id,
@@ -56,7 +59,7 @@ class ContaCorrenteService
                 'descricao'          => 'Pagamento via carteira'
             ]);
 
-            // Limpa o cache imediatamente para o próximo select ler o dado atualizado
+            // 🔥 CORREÇÃO: Limpa a chave exata do cache usando a mesma string do método saldoAtual
             Cache::forget("cliente_saldo_{$cliente->id}");
         });
     }
@@ -66,18 +69,18 @@ class ContaCorrenteService
      */
     public function saldoAtual(int $clienteId): float
     {
-        return (float) Cache::remember("cliente_saldo_$clienteId", 10, function () use ($clienteId) {
-            // 1️⃣ Busca a última movimentação realizada
+        // 🚀 OTIMIZAÇÃO: 10 segundos de cache são suficientes para proteger o PDV de cliques duplos 
+        // sem causar risco de leituras desatualizadas de saldo.
+        return (float) Cache::remember("cliente_saldo_{$clienteId}", 10, function () use ($clienteId) {
+            
             $ultimoSaldoRaw = ClienteContaCorrente::where('cliente_id', $clienteId)
                 ->orderByDesc('id')
                 ->value('saldo_apos');
 
-            // 2️⃣ Se encontrou uma movimentação, retorna o saldo dela
             if ($ultimoSaldoRaw !== null) {
                 return (float)$ultimoSaldoRaw;
             }
 
-            // 3️⃣ 🔥 RETORNO SEGURO: Se nunca movimentou, busca o limite de crédito do banco como saldo inicial disponível
             $cliente = Cliente::with('creditoAtivo')->find($clienteId);
             
             return (float)(optional($cliente->creditoAtivo)->limite_credito ?? 0);
