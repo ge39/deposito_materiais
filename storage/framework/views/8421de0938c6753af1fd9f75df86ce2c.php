@@ -165,10 +165,26 @@
         </div>
     </div>
 
-        
-    <div class="card shadow-sm border-left border-secondary">
-        <div class="card-header bg-light font-weight-bold">
-            Histórico de Movimentações
+        <?php
+        // Grupo 1: Filtrando apenas Movimentações Operacionais (Abertura e Vendas Reais do PDV)
+        $movimentacoesOperacionais = $caixa->movimentacoes->filter(function($mov) {
+            return in_array(strtolower(trim($mov->tipo)), ['venda', 'abertura']);
+        });
+
+        // Grupo 2: Filtrando estritamente as entradas manuais do fechamento
+        $lancamentosFechamento = $caixa->movimentacoes->filter(function($mov) {
+            return strtolower(trim($mov->tipo)) === 'entrada_manual';
+        });
+
+        // Faturamento real do dia para exibição no rodapé da tabela
+        $totalGeralVendas = $movimentacoesOperacionais->where('tipo', 'venda')->sum('valor');
+    ?>
+
+    
+    <div class="card shadow-sm border-left border-secondary mb-4">
+        <div class="card-header bg-light font-weight-bold d-flex justify-content-between align-items-center">
+            <span>Histórico de Movimentações Operacionais</span>
+            <span class="badge badge-secondary">Faturamento & Abertura</span>
         </div>
 
         <div class="card-body p-0">
@@ -184,15 +200,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php $__currentLoopData = $caixa->movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php $__currentLoopData = $movimentacoesOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <?php
-                                // Determina a cor de fundo da linha com base no ENUM 'tipo' do banco
                                 $classeCor = match(strtolower(trim($mov->tipo))) {
-                                    'abertura'                 => 'table-primary',  // Azul suave para o fundo inicial
-                                    'venda'                    => 'table-success',  // Verde suave para vendas comerciais
-                                    'entrada_manual'           => 'table-info',     // Azul ciano para aportes e conferências
-                                    'saida_manual', 'sangria'  => 'table-danger',   // Vermelho suave para despesas e sangrias
-                                    default                    => 'table-light'     // Cor padrão para outros tipos administrativos
+                                    'abertura' => 'table-primary',
+                                    'venda'    => 'table-success',
+                                    default    => 'table-light'
                                 };
                             ?>
 
@@ -220,10 +233,86 @@
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
+                    <tfoot class="bg-light font-weight-bold border-top">
+                        <tr>
+                            <td colspan="2" class="text-primary text-uppercase font-weight-bold py-2 px-3">📊 FATURAMENTO REAL (PDV):</td>
+                            <td class="text-success font-weight-bold py-2" style="font-size: 1.05rem;">
+                                R$ <?php echo e(number_format($totalGeralVendas, 2, ',', '.')); ?>
+
+                            </td>
+                            <td colspan="2" class="text-muted font-weight-normal text-right py-2 px-3" style="font-size: 0.85rem;">
+                                *Este valor totaliza apenas as vendas do dia e deduz o fundo de troco.
+                            </td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
     </div>
+
+    
+    <div class="card shadow-sm border-left border-warning">
+        <div class="card-header bg-warning text-dark font-weight-bold">
+            ⚠️ LANÇAMENTO MANUAL DE FECHAMENTO DO CAIXA #<?php echo e($caixa->id); ?>
+
+        </div>
+
+        <div class="card-body p-0">
+            <div class="p-3 bg-white border-bottom text-dark" style="font-size: 0.95rem; background-color: #fffdf5 !important;">
+                <strong>Aviso de Auditoria:</strong> Os registros abaixo foram lançados manualmente no fechamento pelo 
+                <strong>Colaborador (<?php echo e($caixa->funcionario->nome ?? 'Operador do Caixa'); ?>)</strong>. Eles representam a contagem física declarada da gaveta.
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Forma</th>
+                            <th>Valor</th>
+                            <th>Data</th>
+                            <th>Observação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if($lancamentosFechamento->isEmpty()): ?>
+                            <tr>
+                                <td colspan="5" class="text-center text-muted font-italic py-3">
+                                    Nenhum lançamento manual de conferência foi registrado.
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php $__currentLoopData = $lancamentosFechamento; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <tr class="table-info align-middle" style="border-left: 4px solid #0dcaf0;">
+                                    <td class="fw-bold text-info">
+                                        <?php echo e(strtoupper(str_replace('_', ' ', $mov->tipo))); ?>
+
+                                    </td>
+                                    <td class="font-weight-bold">
+                                        <?php echo e($mov->forma_pagamento ? ucfirst(str_replace('_', ' ', $mov->forma_pagamento)) : '-'); ?>
+
+                                    </td>
+                                    <td class="fw-bold text-dark">
+                                        R$ <?php echo e(number_format($mov->valor, 2, ',', '.')); ?>
+
+                                    </td>
+                                    <td class="text-muted">
+                                        <?php echo e($mov->data_movimentacao instanceof \Carbon\Carbon ? $mov->data_movimentacao->format('d/m/Y H:i:s') : \Carbon\Carbon::parse($mov->data_movimentacao)->format('d/m/Y H:i:s')); ?>
+
+                                    </td>
+                                    <td title="<?php echo e($mov->observacao); ?>" class="text-dark font-weight-bold" style="max-width: 250px;">
+                                        📌 <?php echo e($mov->observacao ?? '-'); ?>
+
+                                    </td>
+                                </tr>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <?php $__env->stopSection(); ?>
