@@ -202,7 +202,7 @@
 
             {{-- Cabeçalho --}}
             <div class="row bg-light fw-bold py-2 px-3 border-bottom">
-                <div class="col-1">ID</div>
+                <!-- <div class="col-1">ID</div> -->
                 <div class="col-2">Tipo</div>
                 <div class="col-2">Forma</div>
                 <div class="col-2">Valor</div>
@@ -211,18 +211,62 @@
                 <div class="col-2">Observação</div>
             </div>
 
-            {{-- Linhas de movimentação --}}
-            @foreach($caixa->movimentacoes as $mov)
+            {{-- Linhas de movimentação agrupadas por Forma de Pagamento --}}
+            @php
+                $movimentacoesAgrupadas = $caixa->movimentacoes->groupBy(function($mov) {
+                    $forma = strtolower(trim($mov->forma_pagamento));
+                    // Se for abertura, joga no grupo do dinheiro para somar junto
+                    return $forma === 'abertura' ? 'dinheiro' : $forma;
+                });
+            @endphp
+
+            @foreach($movimentacoesAgrupadas as $formaGrupo => $itensDoGrupo)
+                @php
+                    // Soma todos os valores pertencentes a este grupo específico
+                    $totalDoGrupo = $itensDoGrupo->sum('valor');
+                    // Pega o primeiro item do grupo para exibir informações genéricas de layout
+                    $primeiroItem = $itensDoGrupo->first();
+                @endphp
                 <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
-                    <div class="col-1">{{ $mov->id }}</div>
-                    <div class="col-2">{{ ucfirst($mov->tipo) }}</div>
-                    <div class="col-2">{{ ucfirst(str_replace('_',' ',$mov->forma_pagamento)) }}</div>
-                    <div class="col-2">R$ {{ number_format($mov->valor, 2, ',', '.') }}</div>
-                    <div class="col-1">{{ $mov->origem_id ?? '-' }}</div>
-                    <div class="col-2">{{ $mov->data_movimentacao->format('d/m/Y H:i') }}</div>
-                    <div class="col-2">{{ $mov->observacao ?? '-' }}</div>
+                    <!-- {{-- Exibe uma lista com todos os IDs que compõem esse grupo --}}
+                    <div class="col-1 text-muted" style="font-size: 0.85rem;">
+                        {{ $itensDoGrupo->pluck('id')->implode(', ') }}
+                    </div>
+                     -->
+                    {{-- Tipo: Se houver mais de um tipo (ex: abertura e venda), exibe 'Mix' ou o principal --}}
+                    <div class="col-2">
+                        {{ $itensDoGrupo->pluck('tipo')->unique()->count() > 1 ? 'Entradas' : ucfirst($primeiroItem->tipo) }}
+                    </div>
+                    
+                    {{-- Forma de Pagamento Padronizada --}}
+                    <div class="col-2 font-weight-bold">
+                        {{ ucfirst(str_replace('_', ' ', $formaGrupo)) }}
+                    </div>
+                    
+                    {{-- Valor Total Consolidado do Grupo --}}
+                    <div class="col-2 text-success font-weight-bold">
+                        R$ {{ number_format($totalDoGrupo, 2, ',', '.') }}
+                    </div>
+                    
+                    <div class="col-1">
+                         Caixa {{$caixa->id }}
+                    </div>
+                    
+                    {{-- Data do último lançamento desse grupo --}}
+                    <div class="col-2">
+                        {{ $itensDoGrupo->max('data_movimentacao')->format('d/m/Y') }}
+                    </div>
+                    
+                    {{-- Observação Consolidadora --}}
+                    <div class="col-2 text-muted" style="font-size: 0.9rem;">
+                         Consol. {{ $itensDoGrupo->count() }} venda(s)
+                         
+                    </div>
                 </div>
+                
             @endforeach
+            <strong>✅ Movimentações:</strong> R$ {{ number_format($total_entradas, 2, ',', '.') }}<br>
+
 
         </div>
 

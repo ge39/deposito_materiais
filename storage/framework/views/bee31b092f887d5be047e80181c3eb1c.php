@@ -201,7 +201,7 @@
 
             
             <div class="row bg-light fw-bold py-2 px-3 border-bottom">
-                <div class="col-1">ID</div>
+                <!-- <div class="col-1">ID</div> -->
                 <div class="col-2">Tipo</div>
                 <div class="col-2">Forma</div>
                 <div class="col-2">Valor</div>
@@ -211,17 +211,67 @@
             </div>
 
             
-            <?php $__currentLoopData = $caixa->movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php
+                $movimentacoesAgrupadas = $caixa->movimentacoes->groupBy(function($mov) {
+                    $forma = strtolower(trim($mov->forma_pagamento));
+                    // Se for abertura, joga no grupo do dinheiro para somar junto
+                    return $forma === 'abertura' ? 'dinheiro' : $forma;
+                });
+            ?>
+
+            <?php $__currentLoopData = $movimentacoesAgrupadas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $formaGrupo => $itensDoGrupo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php
+                    // Soma todos os valores pertencentes a este grupo específico
+                    $totalDoGrupo = $itensDoGrupo->sum('valor');
+                    // Pega o primeiro item do grupo para exibir informações genéricas de layout
+                    $primeiroItem = $itensDoGrupo->first();
+                ?>
                 <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
-                    <div class="col-1"><?php echo e($mov->id); ?></div>
-                    <div class="col-2"><?php echo e(ucfirst($mov->tipo)); ?></div>
-                    <div class="col-2"><?php echo e(ucfirst(str_replace('_',' ',$mov->forma_pagamento))); ?></div>
-                    <div class="col-2">R$ <?php echo e(number_format($mov->valor, 2, ',', '.')); ?></div>
-                    <div class="col-1"><?php echo e($mov->origem_id ?? '-'); ?></div>
-                    <div class="col-2"><?php echo e($mov->data_movimentacao->format('d/m/Y H:i')); ?></div>
-                    <div class="col-2"><?php echo e($mov->observacao ?? '-'); ?></div>
+                    <!-- 
+                    <div class="col-1 text-muted" style="font-size: 0.85rem;">
+                        <?php echo e($itensDoGrupo->pluck('id')->implode(', ')); ?>
+
+                    </div>
+                     -->
+                    
+                    <div class="col-2">
+                        <?php echo e($itensDoGrupo->pluck('tipo')->unique()->count() > 1 ? 'Entradas' : ucfirst($primeiroItem->tipo)); ?>
+
+                    </div>
+                    
+                    
+                    <div class="col-2 font-weight-bold">
+                        <?php echo e(ucfirst(str_replace('_', ' ', $formaGrupo))); ?>
+
+                    </div>
+                    
+                    
+                    <div class="col-2 text-success font-weight-bold">
+                        R$ <?php echo e(number_format($totalDoGrupo, 2, ',', '.')); ?>
+
+                    </div>
+                    
+                    <div class="col-1">
+                         Caixa <?php echo e($caixa->id); ?>
+
+                    </div>
+                    
+                    
+                    <div class="col-2">
+                        <?php echo e($itensDoGrupo->max('data_movimentacao')->format('d/m/Y')); ?>
+
+                    </div>
+                    
+                    
+                    <div class="col-2 text-muted" style="font-size: 0.9rem;">
+                         Consol. <?php echo e($itensDoGrupo->count()); ?> venda(s)
+                         
+                    </div>
                 </div>
+                
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            <strong>✅ Movimentações:</strong> R$ <?php echo e(number_format($total_entradas, 2, ',', '.')); ?><br>
+
 
         </div>
 

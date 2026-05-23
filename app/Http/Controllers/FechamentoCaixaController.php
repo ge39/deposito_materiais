@@ -82,15 +82,89 @@ class FechamentoCaixaController extends Controller
     //         ));
     // }
 
+    // public function index($caixaId)
+    // {
+    //     // 1️⃣ Carrega o caixa garantindo que ele exista
+    //     $caixa = Caixa::findOrFail($caixaId);
+
+    //     // 2️⃣ TOTAL ENTRADAS: Soma tudo o que injetou dinheiro (Abertura, Vendas do PDV, Aportes/Entradas Manuais)
+    //     $total_entradas = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->whereIn('tipo', ['abertura', 'venda'])
+    //         ->sum('valor');
+
+    //     // 3️⃣ TOTAL SAÍDAS: Soma retiradas manuais, despesas e cancelamentos
+    //     $total_saidas = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->whereIn('tipo', ['saida_manual', 'cancelamento_venda', 'saida', 'despesa'])
+    //         ->sum('valor');
+
+    //     // 4️⃣ SANGRIAS: Isola o total de sangrias para dedução ou exibição limpa
+    //     $total_sangrias = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('tipo', 'sangria')
+    //         ->sum('valor');
+
+    //     // 5️⃣ FORMAS DE PAGAMENTO DO SISTEMA: Inicializa a matriz zerada para a Blade
+    //     $totaisPorForma = [
+    //         'dinheiro'       => 0.00,
+    //         'pix'            => 0.00,
+    //         'carteira'       => 0.00,
+    //         'cartao_debito'  => 0.00,
+    //         'cartao_credito' => 0.00
+    //     ];
+
+    //     // Busca e agrupa os valores de vendas ou lançamentos manuais já consolidados nesta fita
+    //     $movimentosAgrupados = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->whereIn('tipo', ['venda', 'entrada_manual']) // Lê as vendas do dia E os fechamentos dos caixas antigos
+    //         ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
+    //         ->groupBy('forma_pagamento')
+    //         ->get();
+
+    //     foreach ($movimentosAgrupados as $mov) {
+    //         $forma = strtolower(trim($mov->forma_pagamento));
+    //         // Remove possíveis variações de escrita (ex: "cartao debito" vira "cartao_debito")
+    //         $forma = str_replace(' ', '_', $forma); 
+
+    //         if (array_key_exists($forma, $totaisPorForma)) {
+    //             $totaisPorForma[$forma] = (float) $mov->total;
+    //         }
+    //     }
+
+    //     // 6️⃣ MATEMÁTICA CONSOLIDADA DO SISTEMA
+    //     $totalGeralSistema = array_sum($totaisPorForma);
+
+    //     // O esperado em dinheiro físico é: Fundo de Troco + Entradas em Dinheiro Vivo - Saídas/Sangrias
+    //     $dinheiroDoSistema = $totaisPorForma['dinheiro'] ?? 0.00;
+    //     $total_esperado = ($caixa->fundo_troco + $dinheiroDoSistema) - ($total_saidas + $total_sangrias);
+        
+    //     $divergencia = 0.00;
+
+    //     // Carrega o histórico completo de movimentações para alimentar a tabela do rodapé da Blade
+    //     $caixa->setRelation('movimentacoes', $caixa->movimentacoes()->orderBy('id', 'asc')->get());
+
+    //     return view('fechamento_caixa.index', compact(
+    //         'caixa',
+    //         'total_entradas',
+    //         'total_saidas',
+    //         'total_esperado',
+    //         'divergencia',
+    //         'totaisPorForma',
+    //         'totalGeralSistema',
+    //         'total_sangrias'
+    //     ));
+    // }
+
     public function index($caixaId)
     {
         // 1️⃣ Carrega o caixa garantindo que ele exista
         $caixa = Caixa::findOrFail($caixaId);
 
-        // 2️⃣ TOTAL ENTRADAS: Soma tudo o que injetou dinheiro (Abertura, Vendas do PDV, Aportes/Entradas Manuais)
+        // 2️⃣ TOTAL ENTRADAS: Soma tudo o que injetou dinheiro no caixa_id
         $total_entradas = DB::table('movimentacoes_caixa')
             ->where('caixa_id', $caixaId)
-            ->whereIn('tipo', ['abertura', 'venda'])
+            ->whereIn('tipo', ['abertura', 'venda', 'entrada', 'aporte', 'entrada_manual'])
             ->sum('valor');
 
         // 3️⃣ TOTAL SAÍDAS: Soma retiradas manuais, despesas e cancelamentos
@@ -114,30 +188,40 @@ class FechamentoCaixaController extends Controller
             'cartao_credito' => 0.00
         ];
 
-        // Busca e agrupa os valores de vendas ou lançamentos manuais já consolidados nesta fita
+        // Busca e agrupa os valores diretamente pelo caixa_id, independente de ID da venda
         $movimentosAgrupados = DB::table('movimentacoes_caixa')
             ->where('caixa_id', $caixaId)
-            ->whereIn('tipo', ['venda', 'entrada_manual']) // Lê as vendas do dia E os fechamentos dos caixas antigos
+            ->whereIn('tipo', ['venda', 'entrada_manual', 'entrada', 'aporte']) // Ignora 'abertura' aqui para não duplicar no dinheiro de venda
             ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
             ->groupBy('forma_pagamento')
             ->get();
 
         foreach ($movimentosAgrupados as $mov) {
             $forma = strtolower(trim($mov->forma_pagamento));
-            // Remove possíveis variações de escrita (ex: "cartao debito" vira "cartao_debito")
-            $forma = str_replace(' ', '_', $forma); 
+            $forma = str_replace(' ', '_', $forma);
+            
+            // Remove acentuações para bater com as chaves
+            $forma = preg_replace('/[áàãâä]/u', 'a', $forma);
+            $forma = preg_replace('/[éèêë]/u', 'e', $forma);
+            $forma = preg_replace('/[íìîï]/u', 'i', $forma);
+            $forma = preg_replace('/[óòõôö]/u', 'o', $forma);
+            $forma = preg_replace('/[úùûü]/u', 'u', $forma);
+            $forma = str_replace('ç', 'c', $forma);
 
             if (array_key_exists($forma, $totaisPorForma)) {
                 $totaisPorForma[$forma] = (float) $mov->total;
             }
         }
 
-        // 6️⃣ MATEMÁTICA CONSOLIDADA DO SISTEMA
-        $totalGeralSistema = array_sum($totaisPorForma);
-
-        // O esperado em dinheiro físico é: Fundo de Troco + Entradas em Dinheiro Vivo - Saídas/Sangrias
-        $dinheiroDoSistema = $totaisPorForma['dinheiro'] ?? 0.00;
-        $total_esperado = ($caixa->fundo_troco + $dinheiroDoSistema) - ($total_saidas + $total_sangrias);
+        // 6️⃣ MATEMÁTICA CONSOLIDADA E ISOLADA DO DINHEIRO
+        $dinheiroDasVendas = $totaisPorForma['dinheiro'] ?? 0.00; // R$ 986,00
+        
+        // 🔥 FÓRMULA SOMA SOMENTE O DINHEIRO: Abertura (220) + Vendas Dinheiro (986) - Saídas - Sangrias
+        // Dá exatamente o total esperado em espécie na gaveta: R$ 1.206,00
+        $total_esperado = ($caixa->fundo_troco + $dinheiroDasVendas) - ($total_saidas + $total_sangrias);
+        
+        // Total Geral do Sistema (Soma de todas as formas + Fundo Inicial) para bater com as Entradas Totais (R$ 1.358,00)
+        $totalGeralSistema = array_sum($totaisPorForma) + $caixa->fundo_troco;
         
         $divergencia = 0.00;
 
