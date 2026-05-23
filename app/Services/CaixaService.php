@@ -90,7 +90,7 @@ class CaixaService
     public static function totalEntradasDinheiro(int $caixaId): float
     {
         return (float) DB::table('pagamentos_venda')
-            // ->where('caixa_id', $caixaId)
+            ->where('caixa_id', $caixaId)
             ->where('status', 'confirmado')
             ->where('forma_pagamento', 'dinheiro')
             ->sum('valor');
@@ -102,8 +102,8 @@ class CaixaService
     public static function totalEntradasManuais(int $caixaId): float
     {
         
-    // Total entradas e saídas do caixa 'abertura',
-     return (float) DB::table('movimentacoes_caixa')
+        // Total entradas e saídas do caixa 'abertura',
+         return (float) DB::table('movimentacoes_caixa')
             ->where('caixa_id', $caixaId)
             ->where('tipo', 'entrada_manual')
             ->sum('valor');
@@ -158,27 +158,58 @@ class CaixaService
      *   ...
      * ]
      */
+    // public static function totaisPorForma($caixaId)
+    // {
+    //     $caixa = Caixa::with(['vendas.pagamentos'])->findOrFail($caixaId);
+
+    //     $totais = [];
+
+    //     foreach ($caixa->vendas as $venda) {
+    //         foreach ($venda->pagamentos as $pag) {
+    //             if ($pag->status !== 'confirmado') {
+    //                 continue;
+    //             }
+
+    //             $forma = $pag->forma_pagamento;
+
+    //             // Se for cartão, separar por bandeira
+    //             if ($forma === 'cartao' && !empty($pag->bandeira)) {
+    //                 $bandeira = strtolower($pag->bandeira);
+    //                 $totais[$bandeira] = ($totais[$bandeira] ?? 0) + $pag->valor;
+    //             } else {
+    //                 $totais[$forma] = ($totais[$forma] ?? 0) + $pag->valor;
+    //             }
+    //         }
+    //     }
+
+    //     return $totais;
+    // }
+
     public static function totaisPorForma($caixaId)
     {
-        $caixa = Caixa::with(['vendas.pagamentos'])->findOrFail($caixaId);
+        // Busca os totais agrupados direto no banco de dados
+        $pagamentos = DB::table('pagamentos_venda')
+            ->join('vendas', 'pagamentos_venda.venda_id', '=', 'vendas.id')
+            ->where('vendas.caixa_id', $caixaId)
+            ->where('pagamentos_venda.status', 'confirmado')
+            ->select(
+                'pagamentos_venda.forma_pagamento',
+                'pagamentos_venda.bandeira',
+                DB::raw('SUM(pagamentos_venda.valor) as total')
+            )
+            ->groupBy('pagamentos_venda.forma_pagamento', 'pagamentos_venda.bandeira')
+            ->get();
 
         $totais = [];
 
-        foreach ($caixa->vendas as $venda) {
-            foreach ($venda->pagamentos as $pag) {
-                if ($pag->status !== 'confirmado') {
-                    continue;
-                }
+        foreach ($pagamentos as $pag) {
+            $forma = $pag->forma_pagamento;
 
-                $forma = $pag->forma_pagamento;
-
-                // Se for cartão, separar por bandeira
-                if ($forma === 'cartao' && !empty($pag->bandeira)) {
-                    $bandeira = strtolower($pag->bandeira);
-                    $totais[$bandeira] = ($totais[$bandeira] ?? 0) + $pag->valor;
-                } else {
-                    $totais[$forma] = ($totais[$forma] ?? 0) + $pag->valor;
-                }
+            if ($forma === 'cartao' && !empty($pag->bandeira)) {
+                $bandeira = strtolower($pag->bandeira);
+                $totais[$bandeira] = (float) $pag->total;
+            } else {
+                $totais[$forma] = (float) $pag->total;
             }
         }
 

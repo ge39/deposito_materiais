@@ -9,6 +9,12 @@ class BloqueioCreditoService
 {
     public function reavaliarCliente(Cliente $cliente): void
     {
+       
+        // Se o cliente for explicitamente do tipo balcão ou não usar crédito, sai na hora!
+        if ($cliente->tipo_cliente === 'balcao' || $cliente->limite_credito <= 0) {
+            return;
+        }
+
         $credito = app(CreditoService::class);
 
         $saldo = $credito->saldoDevedor($cliente);
@@ -29,6 +35,7 @@ class BloqueioCreditoService
         }
     }
 
+    
     private function bloquear(Cliente $cliente): void
     {
         $cliente->bloqueado_credito = 1;
