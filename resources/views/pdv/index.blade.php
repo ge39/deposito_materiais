@@ -298,17 +298,17 @@
 
             <!-- Footer -->
             <div class="modal-footer justify-content-between">
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 ">
                     <a href="{{ route('caixa.sangria.form', $caixa->id) }}" class="btn btn-success px-4 fw-bold">
                         ✅ Efetuar Sangria
                     </a>
                     
                     <!-- Só permite fechar o modal se o PDV NÃO estiver bloqueado -->
-                    @if(!$bloquearPDV)
-                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                    <!-- @if(!$bloquearPDV)
+                        <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">
                             ❌ Cancelar
                         </button>
-                    @endif
+                    @endif -->
                     
                      <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
                         ❌ Cancelar

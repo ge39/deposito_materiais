@@ -94,7 +94,7 @@ class SangriaController extends Controller
                     'empresa_id'      => $caixa->empresa_id,
                     'caixa_id'        => $caixa->id,
                     'user_id'         => auth()->id(),
-                    'codigo_operacao' => 'SNG-' . $caixa->id . '-' . now()->format('YmdHis'),
+                    'codigo_operacao' => 'SNG-' . $caixa->id . '-' . now()->format('dmYHis'),
                     'numero_pdv'      => $caixa->id,
                     'valor'           => $valor,
                     'saldo_antes'     => $saldoAntes,
@@ -107,7 +107,7 @@ class SangriaController extends Controller
                 MovimentacaoCaixa::create([
                     'caixa_id'          => $caixa->id,
                     'user_id'           => auth()->id(),
-                    'tipo'              => 'Saida_manual',
+                    'tipo'              => 'saida_manual',
                     'forma_pagamento'   => 'Sangria',
                     'origem_id'         => $sangriaCriada->id,
                     'valor'             => $valor,

@@ -135,80 +135,80 @@ class Caixa extends Model
                     ->where('tipo', 'sangria');
     }
 
-   
-    // public function saldoDinheiroAtual(bool $comLock = false): float
-    // {
-    //     $query = self::where('id', $this->id)
-    //         ->where('status', 'aberto');
-
-    //     if ($comLock) {
-    //         $query->lockForUpdate();
-    //     }
-
-    //     $caixa = $query->first();
-
-    //     if (!$caixa) {
-    //         return 0.00;
-    //     }
-
-    //     // 1️⃣ Soma as entradas em dinheiro
-    //     $totalEntradasDinheiro = DB::table('movimentacoes_caixa')
-    //         ->where('caixa_id', $caixa->id)
-    //         ->where('forma_pagamento', 'dinheiro')
-    //         ->whereIn('tipo', ['venda', 'entrada_manual', 'entrada'])
-    //         ->sum('valor');
-
-    //     // 2️⃣ CORREÇÃO AQUI: Garante a busca tanto pelo tipo 'sangria' quanto 'saida_manual'
-    //     $totalSaidasDinheiro = DB::table('movimentacoes_caixa')
-    //         ->where('caixa_id', $caixa->id)
-    //         ->where('forma_pagamento', 'dinheiro')
-    //         ->whereIn('tipo', ['sangria', 'saida_manual', 'saida', 'despesa', 'ajuste_negativo'])
-    //         ->sum('valor');
-
-    //     // 🎯 O saldo acumulado disponível após abater o valor retirado:
-    //     // (R$ 1050,00 de entrada - R$ 1050,00 de saida_manual = R$ 0,00)
-    //     $saldoParaSangria = $totalEntradasDinheiro - $totalSaidasDinheiro;
-
-    //     return round(max($saldoParaSangria, 0), 2);
-    // }
-
 
     //aqui verifica o valor que vai verificar o saldo para sangria
-   public function saldoDinheiroAtual(bool $comLock = false): float
+//    public function saldoDinheiroAtual(bool $comLock = false): float
+//     {
+//         $query = self::where('id', $this->id)
+//             ->where('status', 'aberto');
+
+//         if ($comLock) {
+//             $query->lockForUpdate();
+//         }
+
+//         $caixa = $query->first();
+
+//         if (!$caixa) {
+//             return 0.00;
+//         }
+
+//         // 1️⃣ Soma TODAS as entradas em dinheiro registradas para este caixa (vendas, entradas manuais, suprimentos)
+//         // O seu registro (tipo: 'venda', forma_pagamento: 'dinheiro', valor: 1050) entrará exatamente aqui.
+//         $totalEntradasDinheiro = DB::table('movimentacoes_caixa')
+//             ->where('caixa_id', $caixa->id)
+//             ->where('forma_pagamento', 'dinheiro')
+//             ->whereIn('tipo', ['venda', 'entrada_manual', 'entrada'])
+//             ->sum('valor');
+
+//         // 2️⃣ Soma TODAS as saídas em dinheiro efetuadas (sangrias antigas, saídas manuais, despesas)
+//         $totalSaidasDinheiro = DB::table('movimentacoes_caixa')
+//             ->where('caixa_id', $caixa->id)
+//             ->where('forma_pagamento', 'dinheiro')
+//             ->whereIn('tipo', ['sangria', 'saida_manual', 'saida', 'despesa', 'ajuste_negativo'])
+//             ->sum('valor');
+
+//         // 🎯 O saldo acumulado vivo no caixa é: Entradas menos Saídas (Fundo de troco isolado fora da sangria)
+//         $saldoParaSangria = $totalEntradasDinheiro - $totalSaidasDinheiro;
+
+//         return round(max($saldoParaSangria, 0), 2);
+//     }
+    public function saldoDinheiroAtual(): float
     {
-        $query = self::where('id', $this->id)
-            ->where('status', 'aberto');
-
-        if ($comLock) {
-            $query->lockForUpdate();
-        }
-
-        $caixa = $query->first();
-
-        if (!$caixa) {
-            return 0.00;
-        }
-
-        // 1️⃣ Soma TODAS as entradas em dinheiro registradas para este caixa (vendas, entradas manuais, suprimentos)
-        // O seu registro (tipo: 'venda', forma_pagamento: 'dinheiro', valor: 1050) entrará exatamente aqui.
-        $totalEntradasDinheiro = DB::table('movimentacoes_caixa')
-            ->where('caixa_id', $caixa->id)
+        // 1. Soma absolutamente tudo o que colocou dinheiro na gaveta deste caixa
+        $entradas = \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $this->id)
+            ->whereIn('tipo', ['abertura', 'venda', 'entrada', 'aporte', 'entrada_manual'])
             ->where('forma_pagamento', 'dinheiro')
-            ->whereIn('tipo', ['venda', 'entrada_manual', 'entrada'])
             ->sum('valor');
 
-        // 2️⃣ Soma TODAS as saídas em dinheiro efetuadas (sangrias antigas, saídas manuais, despesas)
-        $totalSaidasDinheiro = DB::table('movimentacoes_caixa')
-            ->where('caixa_id', $caixa->id)
+        // 2. Soma as saídas manuais e despesas administrativas registradas em dinheiro
+        $saidasManuais = \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $this->id)
+            ->whereIn('tipo', ['saida_manual', 'cancelamento_venda', 'saida', 'despesa'])
             ->where('forma_pagamento', 'dinheiro')
-            ->whereIn('tipo', ['sangria', 'saida_manual', 'saida', 'despesa', 'ajuste_negativo'])
             ->sum('valor');
 
-        // 🎯 O saldo acumulado vivo no caixa é: Entradas menos Saídas (Fundo de troco isolado fora da sangria)
-        $saldoParaSangria = $totalEntradasDinheiro - $totalSaidasDinheiro;
+        // 3. 🔥 DEDUÇÃO COMPLETA DE SANGRIA: Busca pelos dois termos (antigo e novo) na tabela de movimentações
+        $sangriasPelasMovimentacoes = \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $this->id)
+            ->whereIn('tipo', ['sangria', 'Saida_manual']) // Captura o padrão novo e o antigo com "S" maiúsculo
+            ->whereIn('forma_pagamento', ['dinheiro', 'Sangria']) // Captura as duas formas salvas no banco
+            ->sum('valor');
 
-        return round(max($saldoParaSangria, 0), 2);
+        // 4. 🔥 DUPLA SEGURANÇA: Busca também direto na tabela física de sangrias para garantir o abatimento
+        $sangriasPelaTabelaFisica = \Illuminate\Support\Facades\DB::table('sangrias')
+            ->where('caixa_id', $this->id)
+            ->sum('valor');
+
+        // Escolhe o maior valor de sangria encontrado para garantir que a gaveta baixe de qualquer forma
+        $totalSangrias = max($sangriasPelasMovimentacoes, $sangriasPelaTabelaFisica);
+
+        // 5. MATEMÁTICA DA GAVETA: Entradas (1750) - Saídas (0) - Sangria Realizada (250) = R$ 1.500,00
+        $saldoReal = $entradas - ($saidasManuais + $totalSangrias);
+
+        return (float) max(0, $saldoReal);
     }
+
 
     public function verificarSangria(): array
     {

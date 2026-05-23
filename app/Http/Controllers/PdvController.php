@@ -185,9 +185,55 @@ class PdvController extends Controller
         ]);
     }
 
-     public function verificarSangria(): array
+    // public function verificarSangria(): array
+    // {
+    //     // 1. Obtém o saldo real em dinheiro deste caixa específico
+    //     $saldoAtual = $this->saldoDinheiroAtual();
+        
+    //     // 2. Busca a configuração amarrada à empresa deste caixa
+    //     $config = \App\Models\SangriaConfig::where('empresa_id', $this->empresa_id)->first();
+
+    //     // 3. Fallback de Segurança: se não achar para esta filial, pega a primeira configuração do banco
+    //     if (!$config) {
+    //         $config = \App\Models\SangriaConfig::first();
+    //     }
+
+    //     // 4. Se mesmo assim a tabela estiver vazia, assume valores padrão seguros
+    //     if (!$config) {
+    //         return [
+    //             'saldoAtual' => $saldoAtual,
+    //             'limiteSangria' => 200.00,
+    //             'limiteBloqueio' => 300.00,
+    //             'avisarSangria' => true,
+    //             'bloquearPDV' => false,
+    //             'valorSugeridoSangria' => 0.00,
+    //         ];
+    //     }
+
+    //     // 5. MAPEAMENTO EXATO COM OS NOMES DAS SUAS COLUNAS DO BANCO
+    //     $limiteSangria = (float) ($config->valor_limite ?? 200.00); // R$ 200 (Início do aviso)
+    //     $limiteBloqueio = (float) ($config->valor_maximo_caixa ?? $limiteSangria); // Teto máximo para travar o PDV
+
+    //     // 6. Regras lógicas de ativação (Garante que saldo R$ 0,00 nunca ativa o modal)
+    //     $deveAvisar = ($saldoAtual >= $limiteSangria) && ($saldoAtual > 0);
+    //     $deveBloquear = ($saldoAtual >= $limiteBloqueio) && ($saldoAtual > 0);
+
+    //     // 7. Calcula o valor sugerido com base no saldo que excedeu o limite principal
+    //     $valorSugeridoSangria = max(0, $saldoAtual - $limiteSangria);
+
+    //     return [
+    //         'saldoAtual' => $saldoAtual,
+    //         'limiteSangria' => $limiteSangria,
+    //         'limiteBloqueio' => $limiteBloqueio,
+    //         'avisarSangria' => $deveAvisar,
+    //         'bloquearPDV' => $deveBloquear,
+    //         'valorSugeridoSangria' => round($valorSugeridoSangria, 2),
+    //     ];
+    // }
+
+    public function verificarSangria(): array
     {
-        // 1. Obtém o saldo real em dinheiro deste caixa específico
+        // 1. Obtém o saldo real em dinheiro deduzido de sangrias anteriores
         $saldoAtual = $this->saldoDinheiroAtual();
         
         // 2. Busca a configuração amarrada à empresa deste caixa
@@ -200,36 +246,36 @@ class PdvController extends Controller
 
         // 4. Se mesmo assim a tabela estiver vazia, assume valores padrão seguros
         if (!$config) {
-            return [
-                'saldoAtual' => $saldoAtual,
-                'limiteSangria' => 200.00,
-                'limiteBloqueio' => 300.00,
-                'avisarSangria' => true,
-                'bloquearPDV' => false,
-                'valorSugeridoSangria' => 0.00,
-            ];
+            $limiteSangria = 200.00;
+            $limiteBloqueio = 300.00;
+        } else {
+            // 5. MAPEAMENTO EXATO COM OS NOMES DAS SUAS COLUNAS DO BANCO
+            $limiteSangria = (float) ($config->valor_limite ?? 200.00); 
+            $limiteBloqueio = (float) ($config->valor_maximo_caixa ?? $limiteSangria); 
         }
 
-        // 5. MAPEAMENTO EXATO COM OS NOMES DAS SUAS COLUNAS DO BANCO
-        $limiteSangria = (float) ($config->valor_limite ?? 200.00); // R$ 200 (Início do aviso)
-        $limiteBloqueio = (float) ($config->valor_maximo_caixa ?? $limiteSangria); // Teto máximo para travar o PDV
-
-        // 6. Regras lógicas de ativação (Garante que saldo R$ 0,00 nunca ativa o modal)
+        // 6. Regras lógicas de ativação baseadas no saldo real limpo da gaveta
         $deveAvisar = ($saldoAtual >= $limiteSangria) && ($saldoAtual > 0);
         $deveBloquear = ($saldoAtual >= $limiteBloqueio) && ($saldoAtual > 0);
 
-        // 7. Calcula o valor sugerido com base no saldo que excedeu o limite principal
-        $valorSugeridoSangria = max(0, $saldoAtual - $limiteSangria);
+        // 7. 🔥 MELHORIA CRUCIAL: Calcula a sugestão exata para fazer o caixa voltar ao limite seguro
+        // Exemplo: Se o saldo é 1750 e o limite é 200, sugere sangrar 1550 para deixar exatamente 200 no caixa.
+        $valorSugeridoSangria = $saldoAtual > $limiteSangria ? ($saldoAtual - $limiteSangria) : 0.00;
+
+        // 8. 🔥 PREVISÃO DE AUDITORIA: Mapeia como ficará a gaveta (saldo_depois) caso a sangria sugerida seja aceita
+        $saldoDepoisSugerido = max(0, $saldoAtual - $valorSugeridoSangria);
 
         return [
-            'saldoAtual' => $saldoAtual,
-            'limiteSangria' => $limiteSangria,
-            'limiteBloqueio' => $limiteBloqueio,
-            'avisarSangria' => $deveAvisar,
-            'bloquearPDV' => $deveBloquear,
-            'valorSugeridoSangria' => round($valorSugeridoSangria, 2),
+            'saldoAtual'            => round($saldoAtual, 2),            // Corresponde ao seu 'saldo_antes'
+            'saldoDepoisSugerido'   => round($saldoDepoisSugerido, 2),   // Projeção real do seu 'saldo_depois'
+            'limiteSangria'         => $limiteSangria,
+            'limiteBloqueio'        => $limiteBloqueio,
+            'avisarSangria'         => $deveAvisar,
+            'bloquearPDV'           => $deveBloquear,
+            'valorSugeridoSangria'  => round($valorSugeridoSangria, 2),
         ];
     }
+
 
    /**
      * F2 – Buscar Cliente (Modal de cliente) */
