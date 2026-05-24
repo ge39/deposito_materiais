@@ -8,39 +8,39 @@ window.CAIXA_ID = window.CAIXA_ID || null;
 
 document.addEventListener('DOMContentLoaded', function () {
     
-   // ========================================================
-    // ATALHO ALT + P CONSULTANDO O BANCO DE DADOS (CORRIGIDO)
+  // ========================================================
+    // ATALHO ALT + P ANTI-PANE (CONSULTA VIRTUAL DIRETA NO BANCO)
     // ========================================================
     document.addEventListener('keydown', function(event) {
         
-        // Detecta a combinação ALT + P de forma universal
+        // Captura a combinação ALT + P
         if (event.altKey && (event.key === 'p' || event.key === 'P' || event.code === 'KeyP')) {
             
-            // Bloqueia com força total o comportamento nativo do navegador (Evita imprimir a tela)
+            // Bloqueia de forma absoluta a impressão da tela inteira do navegador
             event.preventDefault();
             event.stopPropagation();
 
-            // 🏪 Busca o ID do Caixa ativo na tela
-            const inputCaixaHidden = document.querySelector('input[name="caixa_id"]') || document.getElementById('caixa_id');
-            let idCaixaAtivo = parseInt(inputCaixaHidden?.value, 10) || parseInt(window.caixa_id, 10) || 0;
+            // 🏪 Coleta o caixa_id direto dos inputs nativos da sua página (Igual à sua função finalizarVenda)
+            const inputCaixa = document.querySelector('input[name="caixa_id"]') || document.getElementById('input-caixa-id') || document.getElementById('caixa_id');
+            let idCaixaAtivo = inputCaixa ? parseInt(inputCaixa.value, 10) : 0;
 
-            if (idCaixaAtivo <= 0) {
-                alert('Não foi possível identificar o caixa ativo para buscar a última venda.');
+            if (!idCaixaAtivo || idCaixaAtivo <= 0) {
+                alert('Atenção: O sistema não localizou o ID do Caixa ativo nesta página.');
                 return;
             }
 
-            // Consulta expressa ao banco para pegar a última venda finalizada deste caixa
+            // Consulta o banco para saber qual foi o último ID persistido no HD antes da queda de energia
             fetch(`/pdv/ultima-venda-id?caixa_id=${idCaixaAtivo}`)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('A rota retornou um erro ou página inválida. Verifique a posição da rota no web.php.');
+                        throw new Error('Erro interno no servidor ou rota desalinhada.');
                     }
                     return response.json();
                 })
                 .then(data => {
                     if (data.success && data.venda_id) {
                         
-                        // Se achou o ID, monta o Iframe oculto para imprimir apenas o cupom térmico
+                        // Se o banco retornou o ID, abre o iframe térmico silencioso
                         const iframeGarantido = document.createElement('iframe');
                         iframeGarantido.style.display = 'none';
                         iframeGarantido.src = `/venda/${data.venda_id}/cupom`;
@@ -50,7 +50,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             iframeGarantido.contentWindow.focus();
                             iframeGarantido.contentWindow.print();
                             
-                            // Remove o elemento para limpar a memória da página
                             setTimeout(() => {
                                 if (iframeGarantido.parentNode) {
                                     document.body.removeChild(iframeGarantido);
@@ -64,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .catch(error => {
                     console.error(error);
-                    alert('Erro: O backend não respondeu com um JSON válido. Certifique-se de que subiu a linha da rota no arquivo web.php antes das rotas com {id}.');
+                    alert('Erro ao consultar banco de dados: ' + error.message);
                 });
         }
     });

@@ -6,7 +6,7 @@
         <div class="card-body text-center" style="font-family: monospace; font-size: 14px; line-height: 1.4; color: #000;">
             
             {{-- DADOS DA EMPRESA --}}
-            <h5 class="fw-bold mb-1">{{ $empresa->nome ?? config('app.name') }}</h5>
+            <h5 class="fw-bold mb-1 fs-12px">{{ $empresa->nome ?? config('app.name') }}</h5>
             @if($empresa)
                 <p class="mb-0">CNPJ: {{ $empresa->cnpj }}</p>
                 <p class="mb-0">{{ $empresa->endereco }}, {{ $empresa->numero }}</p>
@@ -22,6 +22,7 @@
             <div class="text-start mb-2">
                 <p class="mb-0"><strong>CÓDIGO:</strong> {{ str_pad($venda->id, 6, '0', STR_PAD_LEFT) }}</p>
                 <p class="mb-0"><strong>DATA:</strong> {{ $venda->created_at ? $venda->created_at->format('d/m/Y H:i:s') : date('d/m/Y H:i:s') }}</p>
+                <p class="mb-0"><strong>TERMINAL:</strong> {{ $terminalId  }}</p> {{-- 🎯 NOVA LINHA IMPRESSA NO CUPOM --}}
                 <p class="mb-0"><strong>VENDEDOR:</strong> {{ auth()->user()->name ?? auth()->user()->nome ?? $venda->funcionario->name ?? 'Balcão' }}</p>
                 <p class="mb-0"><strong>CLIENTE:</strong> {{ $venda->cliente->nome ?? 'VENDA BALCAO' }}</p>
             </div>

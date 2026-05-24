@@ -4,7 +4,7 @@
         <div class="card-body text-center" style="font-family: monospace; font-size: 14px; line-height: 1.4; color: #000;">
             
             
-            <h5 class="fw-bold mb-1"><?php echo e($empresa->nome ?? config('app.name')); ?></h5>
+            <h5 class="fw-bold mb-1 fs-12px"><?php echo e($empresa->nome ?? config('app.name')); ?></h5>
             <?php if($empresa): ?>
                 <p class="mb-0">CNPJ: <?php echo e($empresa->cnpj); ?></p>
                 <p class="mb-0"><?php echo e($empresa->endereco); ?>, <?php echo e($empresa->numero); ?></p>
@@ -20,6 +20,7 @@
             <div class="text-start mb-2">
                 <p class="mb-0"><strong>CÓDIGO:</strong> <?php echo e(str_pad($venda->id, 6, '0', STR_PAD_LEFT)); ?></p>
                 <p class="mb-0"><strong>DATA:</strong> <?php echo e($venda->created_at ? $venda->created_at->format('d/m/Y H:i:s') : date('d/m/Y H:i:s')); ?></p>
+                <p class="mb-0"><strong>TERMINAL:</strong> <?php echo e($terminalId); ?></p> 
                 <p class="mb-0"><strong>VENDEDOR:</strong> <?php echo e(auth()->user()->name ?? auth()->user()->nome ?? $venda->funcionario->name ?? 'Balcão'); ?></p>
                 <p class="mb-0"><strong>CLIENTE:</strong> <?php echo e($venda->cliente->nome ?? 'VENDA BALCAO'); ?></p>
             </div>

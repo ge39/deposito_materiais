@@ -379,7 +379,7 @@ class VendaController extends Controller
         /**
      * Gera os dados do cupom de forma estática e segura para impressão ou reimpressão.
      */
-    public function cupom($id) 
+       public function cupom($id) 
     { 
         // 1. Carrega a venda com os relacionamentos originais
         $venda = Venda::with([
@@ -400,6 +400,12 @@ class VendaController extends Controller
         // 3. Agrega os subtotais e descontos em memória
         $descontoTotal = $venda->itens->sum('desconto'); 
         
+        // 🎯 AJUSTE CIRÚRGICO EXATO: Busca apenas o terminal_id numérico que está dentro da tabela caixas
+        // Isso elimina o JOIN com a tabela terminais e mata o erro 1054 de vez
+        $terminalId = \Illuminate\Support\Facades\DB::table('caixas')
+            ->where('id', $venda->caixa_id)
+            ->value('terminal_id') ?? 0;
+
         // 🎯 RECUPERAÇÃO SEGURA DO TROCO HISTÓRICO
         // Busca o registro de dinheiro se ele existir nessa venda
         $pagamentoDinheiro = $pagamentosDaVenda->where('forma_pagamento', 'dinheiro')->first();
@@ -425,34 +431,69 @@ class VendaController extends Controller
             'empresa', 
             'descontoTotal', 
             'pagoEmDinheiro', 
-            'troco' 
+            'troco',
+            'terminalId' // 🎯 Passa a variável numérica limpa para a sua View
         )); 
     }
 
+
         /**
      * Busca o ID da última venda finalizada no caixa atual para reimpressão.
      */
         /**
      * Busca o ID da última venda finalizada no caixa atual para reimpressão.
      */
-    public function obterUltimaVendaId(Request $request)
+    // public function obterUltimaVendaId(Request $request)
+    // {
+    //     $caixaId = (int) $request->input('caixa_id');
+
+    //     if ($caixaId <= 0) {
+    //         return response()->json(['success' => false, 'erro' => 'Caixa não identificado.']);
+    //     }
+
+    //     $ultimoId = DB::table('vendas')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('status', 'finalizada')
+    //         ->orderBy('id', 'desc')
+    //         ->value('id');
+
+    //     if (!$ultimoId) {
+    //         return response()->json(['success' => false, 'erro' => 'Nenhuma venda encontrada para este caixa.']);
+    //     }
+
+    //     return response()->json(['success' => true, 'venda_id' => $ultimoId]);
+    // }
+
+        /**
+     * Busca o ID da última venda finalizada no banco para prevenção de quedas de energia.
+     */
+    public function obterUltimaVendaId(\Illuminate\Http\Request $request)
     {
+        // Lê o caixa_id que o formulário do JavaScript vai enviar
         $caixaId = (int) $request->input('caixa_id');
 
         if ($caixaId <= 0) {
-            return response()->json(['success' => false, 'erro' => 'Caixa não identificado.']);
+            return response()->json(['success' => false, 'erro' => 'Caixa nao identificado para a busca.']);
         }
 
-        $ultimoId = DB::table('vendas')
+        // 🧠 CONSULTA DIRETA NO BANCO DE DADOS: 
+        // Pega o ID mais alto (o último) que foi gravado como 'finalizada' neste caixa
+        $ultimoId = \Illuminate\Support\Facades\DB::table('vendas')
             ->where('caixa_id', $caixaId)
             ->where('status', 'finalizada')
             ->orderBy('id', 'desc')
             ->value('id');
 
         if (!$ultimoId) {
-            return response()->json(['success' => false, 'erro' => 'Nenhuma venda encontrada para este caixa.']);
+            return response()->json(['success' => false, 'erro' => 'Nenhuma venda encontrada para este caixa no banco.']);
         }
 
-        return response()->json(['success' => true, 'venda_id' => $ultimoId]);
+        return response()->json([
+            'success'  => true, 
+            'venda_id' => $ultimoId
+        ]);
     }
+
+
+
 }
