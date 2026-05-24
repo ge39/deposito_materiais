@@ -376,53 +376,10 @@ class VendaController extends Controller
         }
     }
 
-       // dados da empresa e exibe a tela que imprime cupom das vendas
-    // public function cupom($id) 
-    // { 
-    //     // 1. Carrega a venda com os relacionamentos originais
-    //     $venda = Venda::with([
-    //         'cliente', 
-    //         'itens.produto.unidadeMedida', // Carrega relacionamento de medidas para evitar zeros na impressão
-    //         'itens.lote',                  // Carrega relacionamento de lotes para evitar zeros na impressão
-    //         'funcionario'
-    //     ])->findOrFail($id); 
-
-    //     // 🔥 CORREÇÃO: Busca os pagamentos direto na tabela real 'pagamentos_venda' usando o Query Builder
-    //     // Isso garante o carregamento idêntico ao describe do seu banco, evitando erros de relacionamento vazio.
-    //     $pagamentosDaVenda = \Illuminate\Support\Facades\DB::table('pagamentos_venda')
-    //         ->where('venda_id', $id)
-    //         ->get();
-
-    //     // 2. Busca a empresa ativa (Mantendo seu padrão)
-    //     $empresa = \App\Models\Empresa::where('ativo', 1)->first();
-
-    //     // 3. Cálculos básicos de Totais baseados na coleção de pagamentos real do banco
-    //     $descontoTotal  = $venda->itens->sum('desconto'); 
-    //     $pagoEmDinheiro = $pagamentosDaVenda->where('forma_pagamento', 'dinheiro')->sum('valor'); 
-    //     $totalPagoGeral = $pagamentosDaVenda->sum('valor'); 
-    //     $troco          = $totalPagoGeral > $venda->total ? ($totalPagoGeral - $venda->total) : 0;
-
-    //     // Injeta os pagamentos na propriedade do model para a View rodar em loops normais sem quebrar
-    //     $venda->setRelation('pagamentos', $pagamentosDaVenda);
-
-    //     // 4. PROTEÇÃO DE CAMINHO: Verifica qual pasta realmente existe no seu projeto
-    //     if (view()->exists('vendas.cupom')) {
-    //         $caminhoView = 'vendas.cupom'; 
-    //     } else {
-    //         $caminhoView = 'venda.cupom';  
-    //     }
-
-    //     // 5. Retorna a view correta com os dados
-    //     return view($caminhoView, compact( 
-    //         'venda', 
-    //         'empresa', 
-    //         'descontoTotal', 
-    //         'pagoEmDinheiro', 
-    //         'troco' 
-    //     )); 
-    // }
-
-        public function cupom($id) 
+        /**
+     * Gera os dados do cupom de forma estática e segura para impressão ou reimpressão.
+     */
+    public function cupom($id) 
     { 
         // 1. Carrega a venda com os relacionamentos originais
         $venda = Venda::with([
@@ -432,39 +389,37 @@ class VendaController extends Controller
             'funcionario'
         ])->findOrFail($id); 
 
-        // Busca as movimentações de pagamento salvas no banco
+        // Busca o histórico real de pagamentos gravado no banco de dados
         $pagamentosDaVenda = \Illuminate\Support\Facades\DB::table('pagamentos_venda')
             ->where('venda_id', $id)
             ->get();
 
-        // 2. Busca a empresa ativa
+        // 2. Busca os dados cadastrais da empresa ativa
         $empresa = \App\Models\Empresa::where('ativo', 1)->first();
 
-        // 3. Cálculos básicos de Totais
+        // 3. Agrega os subtotais e descontos em memória
         $descontoTotal = $venda->itens->sum('desconto'); 
         
-        // 🎯 INTERVENÇÃO CIRÚRGICA: Recupera a linha do dinheiro
+        // 🎯 RECUPERAÇÃO SEGURA DO TROCO HISTÓRICO
+        // Busca o registro de dinheiro se ele existir nessa venda
         $pagamentoDinheiro = $pagamentosDaVenda->where('forma_pagamento', 'dinheiro')->first();
         
-        // Lê as duas colunas separadas do banco
-        $valorLiquido = $pagamentoDinheiro ? (float)$pagamentoDinheiro->valor : 0; // Ex: 350.00
-        $troco        = $pagamentoDinheiro ? (float)$pagamentoDinheiro->troco : 0; // Ex: 150.00
+        // Se houver dinheiro, extrai o troco gravado na nova coluna. Caso contrário, assume 0
+        $troco = $pagamentoDinheiro ? (float)$pagamentoDinheiro->troco : 0;
+        
+        // O dinheiro contábil líquido gravado no banco
+        $valorLiquidoDinheiro = $pagamentoDinheiro ? (float)$pagamentoDinheiro->valor : 0;
 
-        // 🔥 AQUI ESTÁ O SEGREDO: Soma o troco de volta ao valor apenas para exibição no cupom!
-        // A variável $pagoEmDinheiro vai para a View valendo R$ 500,00 (350 + 150)
-        $pagoEmDinheiro = $valorLiquido + $troco; 
+        // Soma o troco de volta ao valor apenas na view para imprimir o Bruto entregue (ex: 350 + 150 = 500)
+        $pagoEmDinheiro = $valorLiquidoDinheiro + $troco; 
 
-        // Injeta os pagamentos na propriedade do model para a View
+        // Injeta a coleção na venda para o Blade renderizar o loop sem dar novas queries
         $venda->setRelation('pagamentos', $pagamentosDaVenda);
 
-        // Proteção de caminho nativa do seu código
-        if (view()->exists('vendas.cupom')) {
-            $caminhoView = 'vendas.cupom'; 
-        } else {
-            $caminhoView = 'venda.cupom';  
-        }
+        // 4. Proteção de caminhos para compatibilidade de pastas
+        $caminhoView = view()->exists('vendas.cupom') ? 'vendas.cupom' : 'venda.cupom';  
 
-        // 5. Retorna a view com as variáveis prontas
+        // 5. Devolve o template com todas as variáveis preenchidas
         return view($caminhoView, compact( 
             'venda', 
             'empresa', 
@@ -474,6 +429,30 @@ class VendaController extends Controller
         )); 
     }
 
+        /**
+     * Busca o ID da última venda finalizada no caixa atual para reimpressão.
+     */
+        /**
+     * Busca o ID da última venda finalizada no caixa atual para reimpressão.
+     */
+    public function obterUltimaVendaId(Request $request)
+    {
+        $caixaId = (int) $request->input('caixa_id');
 
+        if ($caixaId <= 0) {
+            return response()->json(['success' => false, 'erro' => 'Caixa não identificado.']);
+        }
 
+        $ultimoId = DB::table('vendas')
+            ->where('caixa_id', $caixaId)
+            ->where('status', 'finalizada')
+            ->orderBy('id', 'desc')
+            ->value('id');
+
+        if (!$ultimoId) {
+            return response()->json(['success' => false, 'erro' => 'Nenhuma venda encontrada para este caixa.']);
+        }
+
+        return response()->json(['success' => true, 'venda_id' => $ultimoId]);
+    }
 }

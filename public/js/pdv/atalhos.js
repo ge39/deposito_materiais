@@ -8,6 +8,68 @@ window.CAIXA_ID = window.CAIXA_ID || null;
 
 document.addEventListener('DOMContentLoaded', function () {
     
+   // ========================================================
+    // ATALHO ALT + P CONSULTANDO O BANCO DE DADOS (CORRIGIDO)
+    // ========================================================
+    document.addEventListener('keydown', function(event) {
+        
+        // Detecta a combinação ALT + P de forma universal
+        if (event.altKey && (event.key === 'p' || event.key === 'P' || event.code === 'KeyP')) {
+            
+            // Bloqueia com força total o comportamento nativo do navegador (Evita imprimir a tela)
+            event.preventDefault();
+            event.stopPropagation();
+
+            // 🏪 Busca o ID do Caixa ativo na tela
+            const inputCaixaHidden = document.querySelector('input[name="caixa_id"]') || document.getElementById('caixa_id');
+            let idCaixaAtivo = parseInt(inputCaixaHidden?.value, 10) || parseInt(window.caixa_id, 10) || 0;
+
+            if (idCaixaAtivo <= 0) {
+                alert('Não foi possível identificar o caixa ativo para buscar a última venda.');
+                return;
+            }
+
+            // Consulta expressa ao banco para pegar a última venda finalizada deste caixa
+            fetch(`/pdv/ultima-venda-id?caixa_id=${idCaixaAtivo}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('A rota retornou um erro ou página inválida. Verifique a posição da rota no web.php.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success && data.venda_id) {
+                        
+                        // Se achou o ID, monta o Iframe oculto para imprimir apenas o cupom térmico
+                        const iframeGarantido = document.createElement('iframe');
+                        iframeGarantido.style.display = 'none';
+                        iframeGarantido.src = `/venda/${data.venda_id}/cupom`;
+                        document.body.appendChild(iframeGarantido);
+                        
+                        iframeGarantido.onload = function() {
+                            iframeGarantido.contentWindow.focus();
+                            iframeGarantido.contentWindow.print();
+                            
+                            // Remove o elemento para limpar a memória da página
+                            setTimeout(() => {
+                                if (iframeGarantido.parentNode) {
+                                    document.body.removeChild(iframeGarantido);
+                                }
+                            }, 1000);
+                        };
+
+                    } else {
+                        alert(data.erro || 'Nenhuma venda registrada neste caixa para ser reimpressa.');
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert('Erro: O backend não respondeu com um JSON válido. Certifique-se de que subiu a linha da rota no arquivo web.php antes das rotas com {id}.');
+                });
+        }
+    });
+
+
     // ==========================================
     // 🔍 CAPTURADOR AUTOMÁTICO DE CAIXA_ID DO DOM
     // ==========================================
@@ -202,4 +264,8 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error("Erro interno no rastreador assíncrono de caixas:", err);
         }
     }, 2500);
+
+
+
 });
+  

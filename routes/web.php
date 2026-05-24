@@ -231,9 +231,22 @@ Route::middleware('auth')->group(function () {
         
     });
 
+            // ========================================================
+        // ROTAS DE VENDAS E CUPOM TÉRMICO (ORGANIZADO E FILTRADO)
+        // ========================================================
+        
+        // 🎯 ATALHO ALT + P: Aponta para o controlador correto (VendaController) e fica no topo
+        Route::get('/pdv/ultima-venda-id', [\App\Http\Controllers\VendaController::class, 'obterUltimaVendaId']);
+
+        // Rotas de processamento e fechamento da venda
+        Route::post('/vendas', [\App\Http\Controllers\VendaController::class, 'store'])->name('vendas.store');
+        Route::post('/vendas/finalizar', [\App\Http\Controllers\VendaController::class, 'finalizar']);
+        
+        // Rota do Cupom com parâmetro {id} (Fica abaixo das rotas fixas)
+        Route::get('/venda/{id}/cupom', [\App\Http\Controllers\VendaController::class, 'cupom'])->name('venda.cupom');
+
          //Vendas
         Route::post('/vendas', [VendaController::class, 'store'])->name('vendas.store');
-        // Route::post('/vendas/finalizar/{venda}', [VendaController::class, 'finalizar']);
         Route::post('/vendas/finalizar', [VendaController::class, 'finalizar']);
         Route::get('/venda/{id}/cupom', [VendaController::class, 'cupom'])->name('venda.cupom');
 
