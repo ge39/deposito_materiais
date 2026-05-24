@@ -846,6 +846,61 @@
     };
 </script>
 
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    
+    function verificarRestanteSimples() {
+        // 1️⃣ Localiza o botão pelo texto exato da imagem
+        let btnFinalizar = null;
+        document.querySelectorAll('button').forEach(btn => {
+            if (btn.innerText && btn.innerText.trim() === 'Finalizar Venda') {
+                btnFinalizar = btn;
+            }
+        });
+
+        if (!btnFinalizar) return;
+
+        // 2️⃣ Varre a tela procurando o elemento que exibe o Restante
+        let textoRestante = "";
+        document.querySelectorAll('div, p, span, h5, h4, td').forEach(el => {
+            if (el.innerText && el.innerText.includes('Restante:')) {
+                textoRestante = el.innerText.trim(); // Captura ex: "Restante: R$ 38,00" ou "Restante: R$ 0,00"
+            }
+        });
+
+        // 3️⃣ TRAVA DIRETA: Se o texto contiver "R$ 0,00", o botão acende. Caso contrário, fica bloqueado.
+        if (textoRestante.includes('R$ 0,00')) {
+            // Habilita o botão verde
+            btnFinalizar.disabled = false;
+            btnFinalizar.style.opacity = '1';
+            btnFinalizar.style.backgroundColor = '#28a745'; 
+            btnFinalizar.style.borderColor = '#28a745';
+            btnFinalizar.style.cursor = 'pointer';
+            btnFinalizar.style.pointerEvents = 'auto';
+        } else {
+            // Desabilita e deixa cinza
+            btnFinalizar.disabled = true;
+            btnFinalizar.style.opacity = '0.4';
+            btnFinalizar.style.backgroundColor = '#6c757d'; 
+            btnFinalizar.style.borderColor = '#6c757d';
+            btnFinalizar.style.cursor = 'not-allowed';
+            btnFinalizar.style.pointerEvents = 'none';
+        }
+    }
+
+    // 4️⃣ Escuta qualquer digitação em qualquer campo para atualizar o botão na hora
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('keyup', verificarRestanteSimples);
+        input.addEventListener('change', verificarRestanteSimples);
+        input.addEventListener('input', verificarRestanteSimples);
+    });
+
+    // Roda um tiquinho depois de abrir a tela para já iniciar bloqueado
+    setTimeout(verificarRestanteSimples, 500);
+});
+
+</script>
+
 @endsection
 
 <!-- Modals atahos -->

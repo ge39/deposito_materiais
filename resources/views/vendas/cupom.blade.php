@@ -61,7 +61,6 @@
                                 <span style="font-weight: bold; line-height: 1.2;">
                                     {{ $item->produto->nome ?? 'Item não identificado' }}
                                 </span>
-                                {{-- 🔥 ADICIONADO: Exibição dinâmica do Lote e Código --}}
                                 <span style="font-size: 11px; color: #555; margin-top: 1px;">
                                     Cod: {{ $item->produto_id }} | Lote: {{ $numeroLote }}
                                 </span>
@@ -97,12 +96,18 @@
             <div class="text-start mb-2">
                 <p class="mb-1 fw-bold">FORMA(S) DE PAGAMENTO:</p>
                 <div id="formas-pagamento-render">
-                    {{-- Será preenchido dinamicamente pelo JavaScript com os dados reais do modal --}}
                     @if(count($venda->pagamentos) > 0)
                         @foreach($venda->pagamentos as $pagamento)
                             <div class="d-flex justify-content-between">
                                 <span class="text-uppercase">{{ $pagamento->forma_pagamento ?? $pagamento->tipo }}</span>
-                                <span>R$ {{ number_format($pagamento->valor, 2, ',', '.') }}</span>
+                                <span>
+                                    {{-- 🎯 SE FOR DINHEIRO E HOUVER TROCO, SOMA PARA EXIBIR O VALOR BRUTO RECEBIDO NO PAPEL (EX: 350 + 150 = 500) --}}
+                                    @if(($pagamento->forma_pagamento ?? $pagamento->tipo) === 'dinheiro' && isset($troco) && $troco > 0)
+                                        R$ {{ number_format($pagamento->valor + $troco, 2, ',', '.') }}
+                                    @else
+                                        R$ {{ number_format($pagamento->valor, 2, ',', '.') }}
+                                    @endif
+                                </span>
                             </div>
                         @endforeach
                     @elseif(!empty($venda->forma_pagamento))
@@ -113,6 +118,7 @@
                     @endif
                 </div>
             </div>
+
 
             <hr class="my-2" style="border-top: 1px dashed #000;">
 
@@ -134,6 +140,14 @@
                     <span>R$ {{ number_format($totalLiquidoCalculado, 2, ',', '.') }}</span>
                 </div>
 
+                {{-- 🔥 EXIBIÇÃO DO TROCO VIA BLADE (Para quando a página recarregar ou abrir por ID) --}}
+                @if(isset($troco) && $troco > 0)
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 4px;">
+                        <span>TROCO:</span>
+                        <span>R$ {{ number_format($troco, 2, ',', '.') }}</span>
+                    </div>
+                @endif
+
                 <hr style="border-top: 1px dashed #000; margin: 5px 0;">
 
                 {{-- Bloco para renderização dinâmica do Dinheiro Recebido e do Troco Real --}}
@@ -147,6 +161,9 @@
         </div>
     </div>
 </div>
+
+{{-- DISPARO COM LEITURA
+    DO HISTÓRICO EM SEGUNDO PLANO --}}
 
 {{-- DISPARO COM LEITURA DO HISTÓRICO EM SEGUNDO PLANO --}}
 <script>
@@ -194,7 +211,7 @@
                     htmlTroco += `
                         <div style="display: flex; justify-content: space-between; font-weight: bold;">
                             <span>TROCO:</span>
-                            <span>R$ ${trocoCalculado.toFixed(2).replace('.', ',')}</span>
+                            <span>R$ ${troco.toFixed(2).replace('.', ',')}</span>
                         </div>
                     `;
                 }
@@ -211,32 +228,32 @@
 
 @push('styles')
 <style>
-@media print {
-    body * {
-        visibility: hidden;
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .card, .card * {
+            visibility: visible;
+        }
+        .card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            max-width: 100% !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .btn {
+            display: none !important;
+        }
+        @page {
+            margin: 0;
+        }
+        body {
+            margin: 0.2cm;
+            background-color: #fff;
+        }
     }
-    .card, .card * {
-        visibility: visible;
-    }
-    .card {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100% !important;
-        max-width: 100% !important;
-        border: none !important;
-        box-shadow: none !important;
-    }
-    .btn {
-        display: none !important;
-    }
-    @page {
-        margin: 0;
-    }
-    body {
-        margin: 0.2cm;
-        background-color: #fff;
-    }
-}
 </style>
 @endpush

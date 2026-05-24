@@ -60,7 +60,6 @@
                                     <?php echo e($item->produto->nome ?? 'Item não identificado'); ?>
 
                                 </span>
-                                
                                 <span style="font-size: 11px; color: #555; margin-top: 1px;">
                                     Cod: <?php echo e($item->produto_id); ?> | Lote: <?php echo e($numeroLote); ?>
 
@@ -98,12 +97,20 @@
             <div class="text-start mb-2">
                 <p class="mb-1 fw-bold">FORMA(S) DE PAGAMENTO:</p>
                 <div id="formas-pagamento-render">
-                    
                     <?php if(count($venda->pagamentos) > 0): ?>
                         <?php $__currentLoopData = $venda->pagamentos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pagamento): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <div class="d-flex justify-content-between">
                                 <span class="text-uppercase"><?php echo e($pagamento->forma_pagamento ?? $pagamento->tipo); ?></span>
-                                <span>R$ <?php echo e(number_format($pagamento->valor, 2, ',', '.')); ?></span>
+                                <span>
+                                    
+                                    <?php if(($pagamento->forma_pagamento ?? $pagamento->tipo) === 'dinheiro' && isset($troco) && $troco > 0): ?>
+                                        R$ <?php echo e(number_format($pagamento->valor + $troco, 2, ',', '.')); ?>
+
+                                    <?php else: ?>
+                                        R$ <?php echo e(number_format($pagamento->valor, 2, ',', '.')); ?>
+
+                                    <?php endif; ?>
+                                </span>
                             </div>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     <?php elseif(!empty($venda->forma_pagamento)): ?>
@@ -114,6 +121,7 @@
                     <?php endif; ?>
                 </div>
             </div>
+
 
             <hr class="my-2" style="border-top: 1px dashed #000;">
 
@@ -135,6 +143,14 @@
                     <span>R$ <?php echo e(number_format($totalLiquidoCalculado, 2, ',', '.')); ?></span>
                 </div>
 
+                
+                <?php if(isset($troco) && $troco > 0): ?>
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 4px;">
+                        <span>TROCO:</span>
+                        <span>R$ <?php echo e(number_format($troco, 2, ',', '.')); ?></span>
+                    </div>
+                <?php endif; ?>
+
                 <hr style="border-top: 1px dashed #000; margin: 5px 0;">
 
                 
@@ -148,6 +164,8 @@
         </div>
     </div>
 </div>
+
+
 
 
 <script>
@@ -195,7 +213,7 @@
                     htmlTroco += `
                         <div style="display: flex; justify-content: space-between; font-weight: bold;">
                             <span>TROCO:</span>
-                            <span>R$ ${trocoCalculado.toFixed(2).replace('.', ',')}</span>
+                            <span>R$ ${troco.toFixed(2).replace('.', ',')}</span>
                         </div>
                     `;
                 }
@@ -212,33 +230,33 @@
 
 <?php $__env->startPush('styles'); ?>
 <style>
-@media print {
-    body * {
-        visibility: hidden;
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .card, .card * {
+            visibility: visible;
+        }
+        .card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            max-width: 100% !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .btn {
+            display: none !important;
+        }
+        @page {
+            margin: 0;
+        }
+        body {
+            margin: 0.2cm;
+            background-color: #fff;
+        }
     }
-    .card, .card * {
-        visibility: visible;
-    }
-    .card {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100% !important;
-        max-width: 100% !important;
-        border: none !important;
-        box-shadow: none !important;
-    }
-    .btn {
-        display: none !important;
-    }
-    @page {
-        margin: 0;
-    }
-    body {
-        margin: 0.2cm;
-        background-color: #fff;
-    }
-}
 </style>
 <?php $__env->stopPush(); ?>
 

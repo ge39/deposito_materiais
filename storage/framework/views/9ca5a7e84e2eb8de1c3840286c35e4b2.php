@@ -466,7 +466,7 @@
                 let idDaVendaGerada = data.venda_id || data.id || (data.venda && data.venda.id);
 
                 if (data.success && idDaVendaGerada) {
-                    alert('Venda finalizada com sucesso!');
+                    // alert('Venda finalizada com sucesso!');
                     
                     // Impressão via Iframe oculto
                     const iframe = document.createElement('iframe');

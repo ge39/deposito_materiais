@@ -247,23 +247,91 @@ class VendaController extends Controller
     /**
      * Registra os pagamentos de forma isolada.
      */
+    // private function pagamentos_venda(int $vendaId, Request $request, int $userId, $limparNumero): array
+    // {
+    //     // Alinhado 100% com as opções válidas do seu enum do banco de dados
+    //     $formasPermitidas = ['dinheiro', 'pix', 'cartao_credito', 'cartao_debito', 'carteira', 'boleto', 'outros'];
+    //     $pagamentosProcessados = [];
+
+    //     foreach ($formasPermitidas as $forma) {
+    //         $valorPago = $limparNumero($request->input($forma, 0));
+
+    //         if ($valorPago > 0) {
+    //             // 🚀 Mantido o nome correto e confirmado da sua tabela: pagamentos_venda
+    //             DB::table('pagamentos_venda')->insert([
+    //                 'user_id'          => $userId,
+    //                 'venda_id'         => $vendaId,
+    //                 'forma_pagamento'  => $forma,
+    //                 'bandeira'         => $request->input("bandeira_{$forma}") ?: null,
+    //                 'valor'            => $valorPago,
+    //                 'troco'            => $forma === 'dinheiro' ? $limparNumero($request->input("troco_{$forma}", 0)) : 0,
+    //                 'parcelas'         => $request->input("parcelas_{$forma}") ? (int)$request->input("parcelas_{$forma}") : null,
+    //                 'status'           => $forma === 'carteira' ? 'pendente' : 'confirmado',
+    //                 'created_at'       => now(),
+    //                 'updated_at'       => now(),
+    //                 'data_vencimento'  => $request->input("vencimento_{$forma}") ?: now()->format('Y-m-d')
+    //             ]);
+
+    //             $pagamentosProcessados[$forma] = $valorPago;
+    //         }
+    //     }
+
+    //     return $pagamentosProcessados;
+    // }
+
+        /**
+     * Registra os pagamentos de forma isolada.
+     */
     private function pagamentos_venda(int $vendaId, Request $request, int $userId, $limparNumero): array
     {
         // Alinhado 100% com as opções válidas do seu enum do banco de dados
         $formasPermitidas = ['dinheiro', 'pix', 'cartao_credito', 'cartao_debito', 'carteira', 'boleto', 'outros'];
         $pagamentosProcessados = [];
 
-        foreach ($formasPermitidas as $forma) {
-            $valorPago = $limparNumero($request->input($forma, 0));
+        // 🎯 AJUSTE SEGURO: Busca o valor total real da venda que foi gravado na tabela vendas
+        $totalVenda = DB::table('vendas')->where('id', $vendaId)->value('total') ?? 0;
 
-            if ($valorPago > 0) {
-                // 🚀 Mantido o nome correto e confirmado da sua tabela: pagamentos_venda
+        // 1. Calcula primeiro a soma de todas as OUTRAS formas de pagamento (exceto dinheiro)
+        $somaOutrasFormas = 0;
+        foreach ($formasPermitidas as $forma) {
+            if ($forma !== 'dinheiro') {
+                $somaOutrasFormas += (float)$limparNumero($request->input($forma, 0));
+            }
+        }
+
+        // 2. Descobre o valor máximo líquido que o dinheiro deve registrar para quitar a venda
+        $restanteParaDinheiro = $totalVenda - $somaOutrasFormas;
+        if ($restanteParaDinheiro < 0) {
+            $restanteParaDinheiro = 0;
+        }
+
+        // 3. Processa os inputs e faz a divisão exata entre VALOR LÍQUIDO e TROCO
+        foreach ($formasPermitidas as $forma) {
+            $valorDigitado = (float)$limparNumero($request->input($forma, 0));
+
+            if ($valorDigitado > 0) {
+                $valorFinalBanco = $valorDigitado;
+                $trocoLinha = 0;
+
+                // --- SEPARAÇÃO MATEMÁTICA DO TROCO ---
+                if ($forma === 'dinheiro' && $valorDigitado > $restanteParaDinheiro) {
+                    $valorFinalBanco = $restanteParaDinheiro; // Salva o líquido necessário (ex: 350.00)
+                    $trocoLinha = $valorDigitado - $restanteParaDinheiro; // Salva o troco real (ex: 50.00)
+                }
+                // ------------------------------------
+
+                // Se o valor líquido e o troco zerarem por algum motivo, ignora o insert
+                if ($valorFinalBanco <= 0 && $trocoLinha <= 0) {
+                    continue;
+                }
+
                 DB::table('pagamentos_venda')->insert([
                     'user_id'          => $userId,
                     'venda_id'         => $vendaId,
                     'forma_pagamento'  => $forma,
                     'bandeira'         => $request->input("bandeira_{$forma}") ?: null,
-                    'valor'            => $valorPago,
+                    'valor'            => $valorFinalBanco, // 🎯 SALVA O LÍQUIDO PERFEITO
+                    'troco'            => $trocoLinha,      // 🎯 SALVA O TROCO REAL
                     'parcelas'         => $request->input("parcelas_{$forma}") ? (int)$request->input("parcelas_{$forma}") : null,
                     'status'           => $forma === 'carteira' ? 'pendente' : 'confirmado',
                     'created_at'       => now(),
@@ -271,12 +339,14 @@ class VendaController extends Controller
                     'data_vencimento'  => $request->input("vencimento_{$forma}") ?: now()->format('Y-m-d')
                 ]);
 
-                $pagamentosProcessados[$forma] = $valorPago;
+                // Passa o valor líquido para a função finalizarFluxoFinanceiro salvar correto no caixa
+                $pagamentosProcessados[$forma] = $valorFinalBanco;
             }
         }
 
         return $pagamentosProcessados;
     }
+
 
     /**
      * Registra o fluxo de caixa e aciona regras de carteira externa.
@@ -307,42 +377,94 @@ class VendaController extends Controller
     }
 
        // dados da empresa e exibe a tela que imprime cupom das vendas
-    public function cupom($id) 
+    // public function cupom($id) 
+    // { 
+    //     // 1. Carrega a venda com os relacionamentos originais
+    //     $venda = Venda::with([
+    //         'cliente', 
+    //         'itens.produto.unidadeMedida', // Carrega relacionamento de medidas para evitar zeros na impressão
+    //         'itens.lote',                  // Carrega relacionamento de lotes para evitar zeros na impressão
+    //         'funcionario'
+    //     ])->findOrFail($id); 
+
+    //     // 🔥 CORREÇÃO: Busca os pagamentos direto na tabela real 'pagamentos_venda' usando o Query Builder
+    //     // Isso garante o carregamento idêntico ao describe do seu banco, evitando erros de relacionamento vazio.
+    //     $pagamentosDaVenda = \Illuminate\Support\Facades\DB::table('pagamentos_venda')
+    //         ->where('venda_id', $id)
+    //         ->get();
+
+    //     // 2. Busca a empresa ativa (Mantendo seu padrão)
+    //     $empresa = \App\Models\Empresa::where('ativo', 1)->first();
+
+    //     // 3. Cálculos básicos de Totais baseados na coleção de pagamentos real do banco
+    //     $descontoTotal  = $venda->itens->sum('desconto'); 
+    //     $pagoEmDinheiro = $pagamentosDaVenda->where('forma_pagamento', 'dinheiro')->sum('valor'); 
+    //     $totalPagoGeral = $pagamentosDaVenda->sum('valor'); 
+    //     $troco          = $totalPagoGeral > $venda->total ? ($totalPagoGeral - $venda->total) : 0;
+
+    //     // Injeta os pagamentos na propriedade do model para a View rodar em loops normais sem quebrar
+    //     $venda->setRelation('pagamentos', $pagamentosDaVenda);
+
+    //     // 4. PROTEÇÃO DE CAMINHO: Verifica qual pasta realmente existe no seu projeto
+    //     if (view()->exists('vendas.cupom')) {
+    //         $caminhoView = 'vendas.cupom'; 
+    //     } else {
+    //         $caminhoView = 'venda.cupom';  
+    //     }
+
+    //     // 5. Retorna a view correta com os dados
+    //     return view($caminhoView, compact( 
+    //         'venda', 
+    //         'empresa', 
+    //         'descontoTotal', 
+    //         'pagoEmDinheiro', 
+    //         'troco' 
+    //     )); 
+    // }
+
+        public function cupom($id) 
     { 
         // 1. Carrega a venda com os relacionamentos originais
         $venda = Venda::with([
             'cliente', 
-            'itens.produto.unidadeMedida', // Carrega relacionamento de medidas para evitar zeros na impressão
-            'itens.lote',                  // Carrega relacionamento de lotes para evitar zeros na impressão
+            'itens.produto.unidadeMedida', 
+            'itens.lote',                  
             'funcionario'
         ])->findOrFail($id); 
 
-        // 🔥 CORREÇÃO: Busca os pagamentos direto na tabela real 'pagamentos_venda' usando o Query Builder
-        // Isso garante o carregamento idêntico ao describe do seu banco, evitando erros de relacionamento vazio.
+        // Busca as movimentações de pagamento salvas no banco
         $pagamentosDaVenda = \Illuminate\Support\Facades\DB::table('pagamentos_venda')
             ->where('venda_id', $id)
             ->get();
 
-        // 2. Busca a empresa ativa (Mantendo seu padrão)
+        // 2. Busca a empresa ativa
         $empresa = \App\Models\Empresa::where('ativo', 1)->first();
 
-        // 3. Cálculos básicos de Totais baseados na coleção de pagamentos real do banco
-        $descontoTotal  = $venda->itens->sum('desconto'); 
-        $pagoEmDinheiro = $pagamentosDaVenda->where('forma_pagamento', 'dinheiro')->sum('valor'); 
-        $totalPagoGeral = $pagamentosDaVenda->sum('valor'); 
-        $troco          = $totalPagoGeral > $venda->total ? ($totalPagoGeral - $venda->total) : 0;
+        // 3. Cálculos básicos de Totais
+        $descontoTotal = $venda->itens->sum('desconto'); 
+        
+        // 🎯 INTERVENÇÃO CIRÚRGICA: Recupera a linha do dinheiro
+        $pagamentoDinheiro = $pagamentosDaVenda->where('forma_pagamento', 'dinheiro')->first();
+        
+        // Lê as duas colunas separadas do banco
+        $valorLiquido = $pagamentoDinheiro ? (float)$pagamentoDinheiro->valor : 0; // Ex: 350.00
+        $troco        = $pagamentoDinheiro ? (float)$pagamentoDinheiro->troco : 0; // Ex: 150.00
 
-        // Injeta os pagamentos na propriedade do model para a View rodar em loops normais sem quebrar
+        // 🔥 AQUI ESTÁ O SEGREDO: Soma o troco de volta ao valor apenas para exibição no cupom!
+        // A variável $pagoEmDinheiro vai para a View valendo R$ 500,00 (350 + 150)
+        $pagoEmDinheiro = $valorLiquido + $troco; 
+
+        // Injeta os pagamentos na propriedade do model para a View
         $venda->setRelation('pagamentos', $pagamentosDaVenda);
 
-        // 4. PROTEÇÃO DE CAMINHO: Verifica qual pasta realmente existe no seu projeto
+        // Proteção de caminho nativa do seu código
         if (view()->exists('vendas.cupom')) {
             $caminhoView = 'vendas.cupom'; 
         } else {
             $caminhoView = 'venda.cupom';  
         }
 
-        // 5. Retorna a view correta com os dados
+        // 5. Retorna a view com as variáveis prontas
         return view($caminhoView, compact( 
             'venda', 
             'empresa', 
@@ -351,6 +473,7 @@ class VendaController extends Controller
             'troco' 
         )); 
     }
+
 
 
 }

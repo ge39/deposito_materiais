@@ -331,7 +331,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }, 300);
   }
-// ========================================== //
+
+  // ========================================== //
   // INPUTS EVENTS COM CAPTURA DE FOCO ATIVO    //
   // ========================================== //
   inputsPagamento.forEach(input => {
@@ -479,7 +480,7 @@ document.addEventListener('DOMContentLoaded', function () {
   btnFinalizar.addEventListener('click', finalizarVenda);
   btnFinalizar.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') finalizarVenda(e);
-    });
+  });
 
     // FINALIZAR VENDA (UMA REQUISIÇÃO INTEGRADA) //
     // ========================================== //
@@ -522,8 +523,6 @@ document.addEventListener('DOMContentLoaded', function () {
               alert('Informe uma forma de pagamento');
               return;
           }
-
-          
 
           // Bloqueia o botão para evitar duplicidade
           const textoOriginalBtn = btnFinalizar.innerHTML;
