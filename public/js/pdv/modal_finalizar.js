@@ -554,8 +554,69 @@ document.addEventListener('DOMContentLoaded', function () {
 
   btnFinalizar.addEventListener('click', finalizarVenda);
   btnFinalizar.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') finalizarVenda(e);
+    
+  if (e.key === 'Enter') finalizarVenda(e);
+  });
+
+  //Funçã Limpar localStorage e tabela visual
+  function limparPDV() {
+
+  // limpa array do carrinho
+  window.carrinho = [];
+
+  // limpa tabela visual do carrinho
+  const tbodyCarrinho = document.querySelector('#tbody-carrinho');
+
+  if (tbodyCarrinho) {
+      tbodyCarrinho.innerHTML = '';
+  }
+
+  // REDESENHA O CARRINHO
+  if (typeof renderCarrinho === 'function') {
+      renderCarrinho();
+  }
+
+  // limpa campos
+  const campos = [
+      '#descricao',
+      '#codigo_barras',
+      '#preco_venda',
+      '#quantidade',
+      '#qtd_disponivel',
+      '#total_geral',
+      '#unidade'
+    ];
+
+    campos.forEach(selector => {
+
+        const el = document.querySelector(selector);
+
+        if (el) {
+            el.value = '';
+        }
     });
+
+    // limpa pagamentos
+    inputsPagamento.forEach(input => {
+        input.value = '';
+        input.disabled = false;
+    });
+
+    // atualiza resumo
+    if (typeof atualizarResumo === 'function') {
+        atualizarResumo();
+    }
+
+    // foco no código de barras
+    const inputCodigo = document.querySelector('#codigo_barras');
+
+    if (inputCodigo) {
+
+        setTimeout(() => {
+            inputCodigo.focus();
+        }, 100);
+    }
+  }
 
     // FINALIZAR VENDA (UMA REQUISIÇÃO INTEGRADA) //
     // ========================================== //
@@ -630,7 +691,10 @@ document.addEventListener('DOMContentLoaded', function () {
               }
 
               // LIMPA O CARRINHO E FECHA MODAIS DO PDV ATUAL
-               window.carrinho = [];
+              //  window.carrinho = [];
+               // LIMPA TODO O PDV
+              limparPDV();
+
               // if (typeof modal !== 'undefined' && modal?.hide) {
               //     modal.hide();
               // }

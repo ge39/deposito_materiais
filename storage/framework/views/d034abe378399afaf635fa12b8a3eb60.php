@@ -239,122 +239,122 @@
     <!-- //modal verificar sangria -->
   
    <!-- O Modal permanece na Blade para poder ser chamado -->
-<div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg border-0">
+    <div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
 
-            <!-- Header -->
-            <div class="modal-header <?php if($bloquearPDV): ?> bg-danger text-white <?php else: ?> bg-warning text-dark <?php endif; ?>">
-                <h5 class="modal-title fw-bold">
+                <!-- Header -->
+                <div class="modal-header <?php if($bloquearPDV): ?> bg-danger text-white <?php else: ?> bg-warning text-dark <?php endif; ?>">
+                    <h5 class="modal-title fw-bold">
+                        <?php if($bloquearPDV): ?>
+                            🚫 BLOQUEIO DE CAIXA
+                        <?php else: ?>
+                            ⚠️ LIMITE DE SANGRIA ATINGIDO
+                        <?php endif; ?>
+                    </h5>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body text-center py-4">
+                    <h4 class="fw-bold mb-3">
+                        Saldo Atual:
+                        <span class="text-dark">
+                            R$ <?php echo e(number_format($saldoAtual, 2, ',', '.')); ?>
+
+                        </span>
+                    </h4>
+
+                    <p class="fs-5 mb-2">
+                        Limite configurado:
+                        <strong>
+                            R$ <?php echo e(number_format($limiteSangria, 2, ',', '.')); ?>
+
+                        </strong>
+                    </p>
+
                     <?php if($bloquearPDV): ?>
-                        🚫 BLOQUEIO DE CAIXA
+                        <div class="alert alert-danger fw-bold fs-5 shadow-sm">
+                            PDV BLOQUEADO<br>
+                            Realize sangria para continuar as vendas.
+                        </div>
                     <?php else: ?>
-                        ⚠️ LIMITE DE SANGRIA ATINGIDO
+                        <div class="alert alert-warning fw-bold fs-5 shadow-sm">
+                            Recomendado realizar sangria.
+                        </div>
                     <?php endif; ?>
-                </h5>
-            </div>
 
-            <!-- Body -->
-            <div class="modal-body text-center py-4">
-                <h4 class="fw-bold mb-3">
-                    Saldo Atual:
-                    <span class="text-dark">
-                        R$ <?php echo e(number_format($saldoAtual, 2, ',', '.')); ?>
+                    <hr>
 
-                    </span>
-                </h4>
+                    <h3 class="fw-bold text-primary">
+                        💰 Valor sugerido para sangria:
+                    </h3>
 
-                <p class="fs-5 mb-2">
-                    Limite configurado:
-                    <strong>
-                        R$ <?php echo e(number_format($limiteSangria, 2, ',', '.')); ?>
+                    <h2 class="display-6 fw-bold text-success">
+                        R$ <?php echo e(number_format($saldoAtual ?? 0, 2, ',', '.')); ?>
 
-                    </strong>
-                </p>
+                    </h2>
 
-                <?php if($bloquearPDV): ?>
-                    <div class="alert alert-danger fw-bold fs-5 shadow-sm">
-                        PDV BLOQUEADO<br>
-                        Realize sangria para continuar as vendas.
-                    </div>
-                <?php else: ?>
-                    <div class="alert alert-warning fw-bold fs-5 shadow-sm">
-                        Recomendado realizar sangria.
-                    </div>
-                <?php endif; ?>
+                    <p class="text-muted">
+                        Oriente a operadora a retirar este valor do caixa.
+                    </p>
+                </div>
 
-                <hr>
-
-                <h3 class="fw-bold text-primary">
-                    💰 Valor sugerido para sangria:
-                </h3>
-
-                <h2 class="display-6 fw-bold text-success">
-                    R$ <?php echo e(number_format($saldoAtual ?? 0, 2, ',', '.')); ?>
-
-                </h2>
-
-                <p class="text-muted">
-                    Oriente a operadora a retirar este valor do caixa.
-                </p>
-            </div>
-
-            <!-- Footer -->
-            <div class="modal-footer justify-content-between">
-                <div class="d-flex gap-2 ">
-                    <a href="<?php echo e(route('caixa.sangria.form', $caixa->id)); ?>" class="btn btn-success px-4 fw-bold">
-                        ✅ Efetuar Sangria
-                    </a>
-                    
-                    <!-- Só permite fechar o modal se o PDV NÃO estiver bloqueado -->
-                    <!-- <?php if(!$bloquearPDV): ?>
-                        <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">
+                <!-- Footer -->
+                <div class="modal-footer justify-content-between">
+                    <div class="d-flex gap-2 ">
+                        <a href="<?php echo e(route('caixa.sangria.form', $caixa->id)); ?>" class="btn btn-success px-4 fw-bold">
+                            ✅ Efetuar Sangria
+                        </a>
+                        
+                        <!-- Só permite fechar o modal se o PDV NÃO estiver bloqueado -->
+                        <!-- <?php if(!$bloquearPDV): ?>
+                            <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">
+                                ❌ Cancelar
+                            </button>
+                        <?php endif; ?> -->
+                        
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
                             ❌ Cancelar
                         </button>
-                    <?php endif; ?> -->
-                    
-                     <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
-                        ❌ Cancelar
-                    </button>
+                    </div>
                 </div>
-            </div>
 
+            </div>
         </div>
     </div>
-</div>
 
-<!-- 📜 Script Corrigido para abrir baseado nos alertas do Controller -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Transforma os booleanos do PHP em booleanos nativos do JavaScript
-        var deveAvisar = <?php echo e($avisarSangria ? 'true' : 'false'); ?>;
-        var deveBloquear = <?php echo e($bloquearPDV ? 'true' : 'false'); ?>;
-        
-        if (deveAvisar || deveBloquear) {
+    <!-- 📜 Script Corrigido para abrir baseado nos alertas do Controller -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Transforma os booleanos do PHP em booleanos nativos do JavaScript
+            var deveAvisar = <?php echo e($avisarSangria ? 'true' : 'false'); ?>;
+            var deveBloquear = <?php echo e($bloquearPDV ? 'true' : 'false'); ?>;
+            
+            if (deveAvisar || deveBloquear) {
+                var modalElement = document.getElementById('modalSangria');
+                if (modalElement) {
+                    var modal = new bootstrap.Modal(modalElement);
+                    modal.show();
+                }
+            }
+        });
+            function fecharModalSangria() {
             var modalElement = document.getElementById('modalSangria');
             if (modalElement) {
-                var modal = new bootstrap.Modal(modalElement);
-                modal.show();
+                // Oculta o modal
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                
+                // Remove o fundo escuro artificial do DOM
+                var backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
             }
         }
-    });
-        function fecharModalSangria() {
-        var modalElement = document.getElementById('modalSangria');
-        if (modalElement) {
-            // Oculta o modal
-            modalElement.classList.remove('show');
-            modalElement.style.display = 'none';
-            document.body.classList.remove('modal-open');
-            
-            // Remove o fundo escuro artificial do DOM
-            var backdrop = document.querySelector('.modal-backdrop');
-            if (backdrop) {
-                backdrop.remove();
-            }
-        }
-    }
 
-</script>
+    </script>
 
     <!-- bloquear caixa -->
     <div id="modalBloquearCaixa" style="display: none;">
@@ -392,28 +392,6 @@
         
     </div>
     <!-- FIM OVERLAY -->
-
-    <!-- validar sangria -->
-    <!-- <?php if($avisarSangria && !$bloquearPDV): ?>
-        <div class="alert alert-warning d-flex align-items-center justify-content-between border-0 shadow-sm mb-4" style="border-radius: 10px; background-color: #fff3cd;">
-            <div class="d-flex align-items-center">
-                <span style="font-size: 1.5rem; margin-right: 12px;">⚠️</span>
-                <div>
-                    <strong style="color: #664d03;">Aviso de Sangria Recomendada</strong>
-                    <div class="small text-secondary">
-                        O saldo em dinheiro (R$ <?php echo e(number_format($saldoAtual, 2, ',', '.')); ?>) atingiu o limite sugerido de R$ <?php echo e(number_format($limiteSangria, 2, ',', '.')); ?>. 
-                        Fique atento para realizar a sangria assim que a fila esvaziar.
-                    </div>
-                </div>
-            </div>
-            <div>
-                <a href="<?php echo e(route('caixa.sangria.form', $caixa_id)); ?>" class="btn btn-sm btn-warning fw-bold text-dark px-3" style="border-radius: 6px;">
-                    Fazer Sangria Agora
-                </a>
-            </div>
-        </div>
-    <?php endif; ?> -->
-
      <!-- Informações do status do Caixa -->
     <div class="container-fluid p-0" 
          style="background:#e6e6e6; margin-top:-40px; overflow-x:hidden">
@@ -859,59 +837,59 @@
         dataVenda: "<?php echo e(now()); ?>"
     };
 </script>
-
+ 4️⃣ Escuta qualquer digitação em qualquer campo para atualizar o botão na hora
 <script>
     document.addEventListener("DOMContentLoaded", function () {
     
-    function verificarRestanteSimples() {
-        // 1️⃣ Localiza o botão pelo texto exato da imagem
-        let btnFinalizar = null;
-        document.querySelectorAll('button').forEach(btn => {
-            if (btn.innerText && btn.innerText.trim() === 'Finalizar Venda') {
-                btnFinalizar = btn;
+        function verificarRestanteSimples() {
+            // 1️⃣ Localiza o botão pelo texto exato da imagem
+            let btnFinalizar = null;
+            document.querySelectorAll('button').forEach(btn => {
+                if (btn.innerText && btn.innerText.trim() === 'Finalizar Venda') {
+                    btnFinalizar = btn;
+                }
+            });
+
+            if (!btnFinalizar) return;
+
+            // 2️⃣ Varre a tela procurando o elemento que exibe o Restante
+            let textoRestante = "";
+            document.querySelectorAll('div, p, span, h5, h4, td').forEach(el => {
+                if (el.innerText && el.innerText.includes('Restante:')) {
+                    textoRestante = el.innerText.trim(); // Captura ex: "Restante: R$ 38,00" ou "Restante: R$ 0,00"
+                }
+            });
+
+            // 3️⃣ TRAVA DIRETA: Se o texto contiver "R$ 0,00", o botão acende. Caso contrário, fica bloqueado.
+            if (textoRestante.includes('R$ 0,00')) {
+                // Habilita o botão verde
+                btnFinalizar.disabled = false;
+                btnFinalizar.style.opacity = '1';
+                btnFinalizar.style.backgroundColor = '#28a745'; 
+                btnFinalizar.style.borderColor = '#28a745';
+                btnFinalizar.style.cursor = 'pointer';
+                btnFinalizar.style.pointerEvents = 'auto';
+            } else {
+                // Desabilita e deixa cinza
+                btnFinalizar.disabled = true;
+                btnFinalizar.style.opacity = '0.4';
+                btnFinalizar.style.backgroundColor = '#6c757d'; 
+                btnFinalizar.style.borderColor = '#6c757d';
+                btnFinalizar.style.cursor = 'not-allowed';
+                btnFinalizar.style.pointerEvents = 'none';
             }
-        });
-
-        if (!btnFinalizar) return;
-
-        // 2️⃣ Varre a tela procurando o elemento que exibe o Restante
-        let textoRestante = "";
-        document.querySelectorAll('div, p, span, h5, h4, td').forEach(el => {
-            if (el.innerText && el.innerText.includes('Restante:')) {
-                textoRestante = el.innerText.trim(); // Captura ex: "Restante: R$ 38,00" ou "Restante: R$ 0,00"
-            }
-        });
-
-        // 3️⃣ TRAVA DIRETA: Se o texto contiver "R$ 0,00", o botão acende. Caso contrário, fica bloqueado.
-        if (textoRestante.includes('R$ 0,00')) {
-            // Habilita o botão verde
-            btnFinalizar.disabled = false;
-            btnFinalizar.style.opacity = '1';
-            btnFinalizar.style.backgroundColor = '#28a745'; 
-            btnFinalizar.style.borderColor = '#28a745';
-            btnFinalizar.style.cursor = 'pointer';
-            btnFinalizar.style.pointerEvents = 'auto';
-        } else {
-            // Desabilita e deixa cinza
-            btnFinalizar.disabled = true;
-            btnFinalizar.style.opacity = '0.4';
-            btnFinalizar.style.backgroundColor = '#6c757d'; 
-            btnFinalizar.style.borderColor = '#6c757d';
-            btnFinalizar.style.cursor = 'not-allowed';
-            btnFinalizar.style.pointerEvents = 'none';
         }
-    }
 
-    // 4️⃣ Escuta qualquer digitação em qualquer campo para atualizar o botão na hora
-    document.querySelectorAll('input').forEach(input => {
-        input.addEventListener('keyup', verificarRestanteSimples);
-        input.addEventListener('change', verificarRestanteSimples);
-        input.addEventListener('input', verificarRestanteSimples);
+        // 4️⃣ Escuta qualquer digitação em qualquer campo para atualizar o botão na hora
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('keyup', verificarRestanteSimples);
+            input.addEventListener('change', verificarRestanteSimples);
+            input.addEventListener('input', verificarRestanteSimples);
+        });
+
+        // Roda um tiquinho depois de abrir a tela para já iniciar bloqueado
+        setTimeout(verificarRestanteSimples, 500);
     });
-
-    // Roda um tiquinho depois de abrir a tela para já iniciar bloqueado
-    setTimeout(verificarRestanteSimples, 500);
-});
 
 </script>
 

@@ -235,14 +235,12 @@
             window.__pdvBufferForma = '';
         });
 
-
         // OUVINTE DE INPUT EM TEMPO REAL
         inputsPagamento.forEach(input => {
             input.addEventListener('input', function() {
                 calcularPagamentos(this);
             });
         });
-
 
         // ===============================
         // ENTER INTELIGENTE NO BOTÃO
@@ -274,14 +272,12 @@
             });
         });
 
-
         btnFinalizar?.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 btnFinalizar.click();
             }
         });
-
 
         // ========================================================
         // REGRA DO TROCO INTELIGENTE REFORMULADA POR COMPLETO
@@ -346,8 +342,6 @@
             restanteEl.innerText = formatMoney(restanteFinal);
             trocoEl.innerText = formatMoney(trocoFinal);
         }
-
-
         // ===============================
         // REGRA CARTEIRA ORIGINAL
         // ===============================
@@ -372,9 +366,6 @@
 
             calcularPagamentos();
         }
-
-
-        // ========================================================
         // ENVIO AJAX COMPATÍVEL VIA FETCH (FLUXO CONTINUO)
         // ========================================================
                // ========================================================
@@ -510,45 +501,94 @@
                 btnFinalizar.innerHTML = textoOriginalBtn;
             });
         });
-
-
         function verificarNovoCaixa() {
             // Gatilho interno original mantido em escopo
         }
-
-
         function executarLimpezaEResetPDV() {
+
+            // limpa array
             window.carrinho = [];
-            
-            if (typeof atualizarTabelaCarrinho === 'function') {
-                atualizarTabelaCarrinho();
-            }
-            if (typeof renderizarCarrinho === 'function') {
-                renderizarCarrinho();
+
+            // limpa tabela visual do carrinho
+            const tbodyCarrinho =
+                document.querySelector('#tabelaProdutos tbody') ||
+                document.querySelector('#tbody-carrinho') ||
+                document.querySelector('table tbody');
+
+            if (tbodyCarrinho) {
+                tbodyCarrinho.innerHTML = '';
             }
 
+            // fecha modal
             if (typeof bootstrap !== 'undefined' && modalFinalizar) {
+
                 let modalInstance = bootstrap.Modal.getInstance(modalFinalizar);
+
                 modalInstance?.hide();
             }
 
-            inputsPagamento.forEach(input => input.value = '');
+            // limpa pagamentos
+            inputsPagamento.forEach(input => {
+                input.value = '';
+                input.disabled = false;
+            });
 
+            // limpa campos do PDV
+            const campos = [
+                '#descricao',
+                '#codigo_barras',
+                '#preco_venda',
+                '#quantidade',
+                '#qtd_disponivel',
+                '#total_geral',
+                '#unidade'
+            ];
+
+            campos.forEach(selector => {
+
+                const el = document.querySelector(selector);
+
+                if (el) {
+                    el.value = '';
+                }
+            });
+
+            // zera total visual
             const totalGeralPDV = document.getElementById('totalGeral');
+
             if (totalGeralPDV) {
                 totalGeralPDV.textContent = 'R$ 0,00';
             }
 
+            // zera resumo do modal
+            if (restanteEl) {
+                restanteEl.textContent = 'R$ 0,00';
+            }
+
+            if (trocoEl) {
+                trocoEl.textContent = 'R$ 0,00';
+            }
+
+            // recalcula
+            if (typeof calcularPagamentos === 'function') {
+                calcularPagamentos();
+            }
+
+            // foco no código barras
             setTimeout(() => {
-                const inputBarras = document.getElementById('codigo_barras');
+
+                const inputBarras =
+                    document.getElementById('codigo_barras');
+
                 if (inputBarras) {
+
                     inputBarras.value = '';
+
                     inputBarras.focus();
                 }
+
             }, 150);
         }
-
-
         function atualizarResumoClienteFinalizar() {
             // Mantida íntegra para interceptações de escopo externo
         }
