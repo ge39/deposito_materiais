@@ -111,7 +111,7 @@
         const totalModalEl    = document.getElementById('total-venda-modal');
         const btnFinalizar    = document.getElementById('btnFinalizar');
         const modalFinalizar  = document.getElementById('modalFinalizarVenda');
-
+        
         let carrinho = window.carrinho || [];
         
         window.__pdvUltimaFormaFocada = 'dinheiro';
@@ -236,11 +236,60 @@
         });
 
         // OUVINTE DE INPUT EM TEMPO REAL
+        // inputsPagamento.forEach(input => {
+        //     input.addEventListener('input', function() {
+        //         calcularPagamentos(this);
+        //     });
+        // });
+        
         inputsPagamento.forEach(input => {
             input.addEventListener('input', function() {
+
                 calcularPagamentos(this);
+
+                // executa SOMENTE quando alterar dinheiro
+                if (this.dataset.forma === 'dinheiro') {
+                    controlarBloqueioPagamento();
+                }
             });
+
         });
+
+        function controlarBloqueioPagamento() {
+
+            const inputDinheiro = document.querySelector(
+                '.pagamento-modal[data-forma="dinheiro"]'
+            );
+
+            if (!inputDinheiro) return false;
+
+            const valorDinheiro =
+                parseFloat(inputDinheiro.value.replace(',', '.')) || 0;
+
+            const total = obtenerTotalVenda();
+
+            const bloquear = valorDinheiro >= total;
+
+            inputsPagamento.forEach(input => {
+
+                const forma = input.dataset.forma;
+
+                // dinheiro nunca bloqueia
+                if (forma === 'dinheiro') {
+                    input.disabled = false;
+                    return;
+                }
+
+                input.disabled = bloquear;
+
+                // limpa ao bloquear
+                if (bloquear) {
+                    input.value = '';
+                }
+            });
+
+            return bloquear;
+        }
 
         // ===============================
         // ENTER INTELIGENTE NO BOTÃO
@@ -589,6 +638,7 @@
 
             }, 150);
         }
+
         function atualizarResumoClienteFinalizar() {
             // Mantida íntegra para interceptações de escopo externo
         }
