@@ -301,14 +301,14 @@ placeholder="Digite nome, SKU ou código">
     const elMarca=document.getElementById('marca');
     if(elMarca) elMarca.value=marca;
 
-    // const elImg=document.getElementById('produto-imagem');
-    // if(elImg){
-    //     if(imagem && imagem!==''){
-    //         elImg.src=imagem;
-    //     }else{
-    //         elImg.src="/images/produto-sem-imagem.png";
-    //     }
-    // }
+    const elImg=document.getElementById('produto-imagem');
+    if(elImg){
+        if(imagem && imagem!==''){
+            elImg.src=imagem;
+        }else{
+            elImg.src="/images/produto-sem-imagem.png";
+        }
+    }
 
     const modalEl=document.getElementById('modalProduto');
     const modalInstance=bootstrap.Modal.getInstance(modalEl);

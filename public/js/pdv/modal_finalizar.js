@@ -132,6 +132,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const input = modalEl.querySelector(`.pagamento-modal[data-forma="${forma}"]`);
         if (!input) return;
 
+        const bloqueado = controlarBloqueioPagamento();
+
+        if (bloqueado && forma !== 'dinheiro') {
+            window.__pdvBufferForma = '';
+            return;
+        }
+
         e.preventDefault();
 
         // 🔥 Captura os R$ 28,00 da foto direto do elemento 'valor-restante'
@@ -321,7 +328,10 @@ document.addEventListener('DOMContentLoaded', function () {
     carregarClienteFinanceiro(clienteId);
     const total = obtenerTotalVenda();
     totalModalEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    inputsPagamento.forEach(i => i.value = '');
+    inputsPagamento.forEach(i => {
+        i.value = '';
+        i.disabled = false;
+    });
     window.__pdvUltimaFormaFocada = 'dinheiro';
     atualizarResumo();
     modal?.show();
@@ -331,6 +341,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }, 300);
   }
+
+
 // ========================================== //
   // INPUTS EVENTS COM CAPTURA DE FOCO ATIVO    //
   // ========================================== //
@@ -339,29 +351,62 @@ document.addEventListener('DOMContentLoaded', function () {
       window.__pdvUltimaFormaFocada = this.dataset.forma;
     });
 
+    // input.addEventListener('input', function () {
+    //   const forma = this.dataset.forma;
+    //   let valor = parseFloat(this.value) || 0;
+    //   const restanteSemEsteInput = calcularRestante(this);
+
+    //   if (forma === 'carteira') {
+    //     const saldoDisponivel = obtenerSaldoCarteira();
+    //     const statusCredito = window.cliente?.status;
+    //     if (statusCredito === 'bloqueado' || saldoDisponivel <= 0) {
+    //       this.value = '';
+    //       atualizarResumo();
+    //       return;
+    //     }
+    //     if (valor > saldoDisponivel) {
+    //       this.value = saldoDisponivel.toFixed(2);
+    //       valor = saldoDisponivel;
+    //     }
+    //   }
+
+    //   if (forma !== 'dinheiro' && valor > restanteSemEsteInput) {
+    //     this.value = restanteSemEsteInput.toFixed(2);
+    //   }
+    //   atualizarResumo();
+    // });
+
     input.addEventListener('input', function () {
+
       const forma = this.dataset.forma;
       let valor = parseFloat(this.value) || 0;
+
       const restanteSemEsteInput = calcularRestante(this);
 
       if (forma === 'carteira') {
-        const saldoDisponivel = obtenerSaldoCarteira();
-        const statusCredito = window.cliente?.status;
-        if (statusCredito === 'bloqueado' || saldoDisponivel <= 0) {
-          this.value = '';
-          atualizarResumo();
-          return;
-        }
-        if (valor > saldoDisponivel) {
-          this.value = saldoDisponivel.toFixed(2);
-          valor = saldoDisponivel;
-        }
-      }
 
-      if (forma !== 'dinheiro' && valor > restanteSemEsteInput) {
+          const saldoDisponivel = obtenerSaldoCarteira();
+          const statusCredito = window.cliente?.status;
+
+          if (statusCredito === 'bloqueado' || saldoDisponivel <= 0) {
+              this.value = '';
+              atualizarResumo();
+              controlarBloqueioPagamento();
+              return;
+          }
+
+          if (valor > saldoDisponivel) {
+              this.value = saldoDisponivel.toFixed(2);
+              valor = saldoDisponivel;
+          }
+    }
+
+    if (forma !== 'dinheiro' && valor > restanteSemEsteInput) {
         this.value = restanteSemEsteInput.toFixed(2);
-      }
-      atualizarResumo();
+    }
+
+    atualizarResumo();
+    controlarBloqueioPagamento();
     });
 
     input.addEventListener('blur', function () {
@@ -418,12 +463,43 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'F6') {
-      e.preventDefault();
-      abrirModalFinalizar();
-    }
-  });
+  // Controlar BloqueiPagamento em Dinheiro quando total fechado
+  function controlarBloqueioPagamento() {
+
+    const inputDinheiro = modalEl.querySelector(
+        '.pagamento-modal[data-forma="dinheiro"]'
+    );
+
+    if (!inputDinheiro) return false;
+
+    const valorDinheiro = parseFloat(
+        inputDinheiro.value.replace(',', '.')
+    ) || 0;
+
+    const total = obtenerTotalVenda();
+
+    const bloquear = valorDinheiro >= total;
+
+    inputsPagamento.forEach(input => {
+
+        const forma = input.dataset.forma;
+
+        // dinheiro nunca bloqueia
+        if (forma === 'dinheiro') {
+            input.disabled = false;
+            return;
+        }
+
+        input.disabled = bloquear;
+
+        // limpa os outros campos
+        if (bloquear) {
+            input.value = '';
+        }
+    });
+
+    return bloquear;
+  }
 
   // ========================================== //
   // INTEGRADO: FINALIZAR VENDA COM ADIÇÕES     //
@@ -522,8 +598,6 @@ document.addEventListener('DOMContentLoaded', function () {
               alert('Informe uma forma de pagamento');
               return;
           }
-
-          
 
           // Bloqueia o botão para evitar duplicidade
           const textoOriginalBtn = btnFinalizar.innerHTML;
