@@ -141,20 +141,20 @@ document.addEventListener('DOMContentLoaded', function () {
             const modal = document.getElementById('modalOrcamento');
             if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
         }
+
         // F6 - FINALIZAR VENDA
         if (e.code === 'F6') {
             if (document.querySelector('.modal.show')) return;
             e.preventDefault();
 
-            // PEGA O TOTAL (Substitua '.classe-do-total' pela classe real do seu HTML)
-            const totalTexto = document.querySelector('.classe-do-total')?.innerText || '0';
-            const totalValor = parseFloat(totalTexto.replace(/[^\d,.]/g, '').replace(',', '.'));
+            // 1. VERIFICAÇÃO SE O CARRINHO ESTÁ VAZIO
+            const carrinhoVazio = !window.carrinho || window.carrinho.length === 0;
 
-            if (!totalValor || totalValor <= 0) {
+            if (carrinhoVazio) {
                 const elementoModal = document.getElementById('modalCarrinhoVazio');
                 const modalAviso = new bootstrap.Modal(elementoModal);
                 
-                // Elemento do seu input de código de barras (Ajuste o ID se necessário)
+                // Elemento do seu input de código de barras
                 const inputCodigoBarras = document.getElementById('codigo_barras');
 
                 // EVENTO: Quando o modal terminar de sumir da tela
@@ -169,70 +169,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            // Se o carrinho tiver itens, abre a tela de finalização
             window.abrirModalFinalizar();
         }
 
+
     }, true);
 
-    // F6 - FINALIZAR VENDA
-    // Certifique-se de que a função recebe o parâmetro (e)
-    // document.addEventListener('keydown', function (e) {
 
-    //     // F6 - FINALIZAR VENDA
-    //     if (e.code === 'F6') {
-    //         if (document.querySelector('.modal.show')) return;
-    //         e.preventDefault();
-
-    //         // VALIDAÇÃO: Altere para o seletor real da sua tabela de produtos
-    //         const totalItens = document.querySelectorAll('#tabela-itens tbody tr').length;
-
-    //         if (totalItens === 0) {
-    //             const elementoModal = document.getElementById('modalCarrinhoVazio');
-                
-    //             if (elementoModal) {
-    //                 const modalAviso = new bootstrap.Modal(elementoModal);
-    //                 const inputCodigoBarras = document.getElementById('codigo_barras'); // ID do seu leitor
-
-    //                 // EVENTO 1: Dispara ANTES do modal sumir (Evita o erro de aria-hidden)
-    //                 elementoModal.addEventListener('hide.bs.modal', function () {
-    //                     // Remove o foco do botão "Entendi" ativamente
-    //                     if (document.activeElement) {
-    //                         document.activeElement.blur();
-    //                     }
-    //                 }, { once: true });
-
-    //                 // EVENTO 2: Dispara DEPOIS que o modal sumiu por completo
-    //                 elementoModal.addEventListener('hidden.bs.modal', function () {
-    //                     if (inputCodigoBarras) {
-    //                         inputCodigoBarras.focus();
-    //                         inputCodigoBarras.select();
-    //                     }
-    //                 }, { once: true });
-
-    //                 modalAviso.show();
-    //             } else {
-    //                 alert('O carrinho está vazio! Adicione produtos antes de finalizar.');
-    //             }
+    //  if (e.code === 'F6') {
+    //         // Se já existe um modal aberto, NÃO faz nada
+    //         if (document.querySelector('.modal.show')) {
     //             return;
     //         }
-
-    //         if (typeof window.abrirModalFinalizar === 'function') {
-    //             window.abrirModalFinalizar();
-    //         }
+    //         e.preventDefault();
+    //         abrirModalFinalizar();
     //     }
-
-    // });
-
-     if (e.code === 'F6') {
-
-            // Se já existe um modal aberto, NÃO faz nada
-            if (document.querySelector('.modal.show')) {
-                return;
-            }
-
-            e.preventDefault();
-            abrirModalFinalizar();
-        }
 
 
     // =========================
