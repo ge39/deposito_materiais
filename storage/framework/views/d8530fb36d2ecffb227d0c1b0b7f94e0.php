@@ -1,41 +1,41 @@
 
 <!-- MODAL PRODUTO PDV -->
 <div class="modal fade" id="modalProduto" tabindex="-1">
-<div class="modal-dialog modal-xl" style="max-width:98%;">
-<div class="modal-content modal-produto-pdv">
+    <div class="modal-dialog modal-xl" style="max-width:98%;">
+        <div class="modal-content modal-produto-pdv">
 
-<div class="modal-header">
-<h5 class="modal-title">Selecionar Produto (F3)</h5>
-<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-</div>
+            <div class="modal-header">
+                <h5 class="modal-title">Selecionar Produto (F3)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
 
-<div class="modal-body">
+            <div class="modal-body">
 
-<input type="text"
-id="buscaProdutoPDV"
-class="form-control mb-2"
-placeholder="Digite nome, SKU ou código">
+                <input type="text"
+                id="buscaProdutoPDV"
+                class="form-control mb-2"
+                placeholder="Digite nome, SKU ou código">
 
-<!-- CABEÇALHO -->
-<div class="produto-header">
+                <!-- CABEÇALHO -->
+                <div class="produto-header">
 
-    <div>Nome</div>
-    <div>Marca</div>
-    <div>Unid.</div>
-    <div>Qtd.</div>
-    <div>Barras</div>
-    <div>SKU</div>
-    <div>Preço</div>
+                <div>Nome</div>
+                <div>Marca</div>
+                <div>Unid.</div>
+                <div>Qtd.</div>
+                <div>Barras</div>
+                <div>SKU</div>
+                <div>Preço</div>
 
 
-</div>
+            </div>
 
-<!-- RESULTADO -->
-<div id="resultadoProdutoPDV"></div>
+            <!-- RESULTADO -->
+            <div id="resultadoProdutoPDV"></div>
 
-</div>
-</div>
-</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>

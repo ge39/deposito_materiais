@@ -87,13 +87,13 @@
 
       </div>
 
-      <div class="modal-footer d-grid gap-1">
+      <div class="modal-footer d-grid gap-1 mt-0">
         <button type="button" class="btn btn-success btn-SM" id="btnFinalizar">
             Finalizar Venda
         </button>
-        <button type="button" class="btn btn-SM btn-outline-secondary" data-bs-dismiss="modal">
+        <!-- <button type="button" class="btn btn-SM btn-outline-secondary" data-bs-dismiss="modal">
             Cancelar
-        </button>
+        </button> -->
       </div>
 
     </div>

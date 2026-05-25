@@ -87,33 +87,109 @@ document.addEventListener('DOMContentLoaded', function () {
     // =====================================================
     // ABRIR MODAL FINALIZAR
     // =====================================================
-    function abrirModalFinalizar() {
+    // function abrirModalFinalizar() {
+
+    //     const inputCliente =
+    //         document.querySelector('input[name="cliente_id"]')
+    //         || document.getElementById('input-cliente-id');
+
+    //     const clienteId = inputCliente?.value;
+
+    //     carregarClienteFinanceiro(clienteId);
+
+    //     const total = obtenerTotalVenda();
+
+    //     totalModalEl.textContent = formatMoney(total);
+
+    //     inputsPagamento.forEach(input => {
+    //         input.value = '';
+    //         input.disabled = false;
+    //     });
+
+    //     atualizarResumo();
+
+    //     window.__pdvUltimaFormaFocada = 'dinheiro';
+
+    //     modal?.show();
+
+    //     setTimeout(() => {
+    //         inputsPagamento[0]?.focus();
+    //     }, 300);
+    // }
+
+    async function abrirModalFinalizar() {
 
         const inputCliente =
-            document.querySelector('input[name="cliente_id"]')
-            || document.getElementById('input-cliente-id');
+            document.querySelector('input[name="cliente_id"]') ||
+            document.getElementById('input-cliente-id');
 
         const clienteId = inputCliente?.value;
 
-        carregarClienteFinanceiro(clienteId);
+        // =====================================
+        // ATUALIZA SALDO REAL DO CLIENTE
+        // =====================================
+        if (clienteId) {
 
+            try {
+
+                const response = await fetch(`/clientes/${clienteId}/financeiro`);
+
+                const data = await response.json();
+
+                if (data.success && window.cliente) {
+
+                    window.cliente.saldo = Number(data.saldo || 0);
+                    window.cliente.limite = Number(data.limite || 0);
+                    window.cliente.status = data.status || 'bloqueado';
+
+                    const saldoEl = document.getElementById('saldo-cliente-modal');
+
+                    if (saldoEl) {
+
+                        const statusBadge =
+                            data.status === 'ativo'
+                                ? '<span class="badge bg-success">Ativo</span>'
+                                : '<span class="badge bg-danger">Bloqueado</span>';
+
+                        saldoEl.innerHTML = `
+                            Status: ${statusBadge}<br>
+                            Saldo: R$ ${Number(data.saldo).toFixed(2).replace('.', ',')}<br>
+                            Limite: R$ ${Number(data.limite).toFixed(2).replace('.', ',')}
+                        `;
+                    }
+                }
+
+            } catch (error) {
+
+                console.error('Erro ao atualizar financeiro:', error);
+            }
+        }
+
+        // =====================================
+        // RESTO DA SUA LÓGICA ORIGINAL
+        // =====================================
         const total = obtenerTotalVenda();
 
-        totalModalEl.textContent = formatMoney(total);
-
-        inputsPagamento.forEach(input => {
-            input.value = '';
-            input.disabled = false;
+        totalModalEl.textContent = total.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
         });
 
-        atualizarResumo();
+        inputsPagamento.forEach(i => {
+            i.value = '';
+            i.disabled = false;
+        });
 
         window.__pdvUltimaFormaFocada = 'dinheiro';
+
+        atualizarResumo();
 
         modal?.show();
 
         setTimeout(() => {
-            inputsPagamento[0]?.focus();
+            if (inputsPagamento && inputsPagamento.length > 0) {
+                inputsPagamento[0].focus();
+            }
         }, 300);
     }
 
@@ -162,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(err => {
                 console.error('Erro cliente financeiro:', err);
             });
+            
     }
 
     // =====================================================

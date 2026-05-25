@@ -239,7 +239,7 @@
     <!-- //modal verificar sangria -->
   
    <!-- O Modal permanece na Blade para poder ser chamado -->
-    <div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow-lg border-0">
 
@@ -823,7 +823,7 @@
         dataVenda: "{{ now() }}"
     };
 </script>
- 4️⃣ Escuta qualquer digitação em qualquer campo para atualizar o botão na hora
+ <!-- 4️⃣ Escuta qualquer digitação em qualquer campo para atualizar o botão na hora -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
     
