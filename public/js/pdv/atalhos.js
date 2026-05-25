@@ -141,38 +141,99 @@ document.addEventListener('DOMContentLoaded', function () {
             const modal = document.getElementById('modalOrcamento');
             if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
         }
-
         // F6 - FINALIZAR VENDA
         if (e.code === 'F6') {
             if (document.querySelector('.modal.show')) return;
             e.preventDefault();
+
+            // PEGA O TOTAL (Substitua '.classe-do-total' pela classe real do seu HTML)
+            const totalTexto = document.querySelector('.classe-do-total')?.innerText || '0';
+            const totalValor = parseFloat(totalTexto.replace(/[^\d,.]/g, '').replace(',', '.'));
+
+            if (!totalValor || totalValor <= 0) {
+                const elementoModal = document.getElementById('modalCarrinhoVazio');
+                const modalAviso = new bootstrap.Modal(elementoModal);
+                
+                // Elemento do seu input de código de barras (Ajuste o ID se necessário)
+                const inputCodigoBarras = document.getElementById('codigo_barras');
+
+                // EVENTO: Quando o modal terminar de sumir da tela
+                elementoModal.addEventListener('hidden.bs.modal', function () {
+                    if (inputCodigoBarras) {
+                        inputCodigoBarras.focus();
+                        inputCodigoBarras.select(); // Deixa o campo limpo/selecionado para o próximo bip
+                    }
+                }, { once: true }); // '{ once: true }' evita duplicar o evento na memória
+
+                modalAviso.show();
+                return;
+            }
+
             window.abrirModalFinalizar();
         }
+
     }, true);
 
-    // ==========================================
-    // 🛒 LEITOR DE CÓDIGO DE BARRAS / EVENTO ENTER BLINDADO
-    // ==========================================
-    const inputCodigoBarras = document.getElementById('codigo_barras') || document.querySelector('input[name="codigo_barras"]');
-    if (inputCodigoBarras) {
-        inputCodigoBarras.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' || e.keyCode === 13) {
-                e.preventDefault(); // Impede o Recarregamento/Submit indesejado da View no F5
-                
-                const valorBipado = this.value.trim();
-                if (valorBipado === "") return;
+    // F6 - FINALIZAR VENDA
+    // Certifique-se de que a função recebe o parâmetro (e)
+    // document.addEventListener('keydown', function (e) {
 
-                console.log("Código interceptado no escopo global tradicional:", valorBipado);
+    //     // F6 - FINALIZAR VENDA
+    //     if (e.code === 'F6') {
+    //         if (document.querySelector('.modal.show')) return;
+    //         e.preventDefault();
+
+    //         // VALIDAÇÃO: Altere para o seletor real da sua tabela de produtos
+    //         const totalItens = document.querySelectorAll('#tabela-itens tbody tr').length;
+
+    //         if (totalItens === 0) {
+    //             const elementoModal = document.getElementById('modalCarrinhoVazio');
                 
-                // Dispara dinamicamente a função existente no seu arquivo produto.js ou carrinho.js
-                if (typeof window.adicionarProdutoAoCarrinho === 'function') {
-                    window.adicionarProdutoAoCarrinho(valorBipado);
-                } else if (typeof adicionarProduto === 'function') {
-                    adicionarProduto(valorBipado);
-                }
+    //             if (elementoModal) {
+    //                 const modalAviso = new bootstrap.Modal(elementoModal);
+    //                 const inputCodigoBarras = document.getElementById('codigo_barras'); // ID do seu leitor
+
+    //                 // EVENTO 1: Dispara ANTES do modal sumir (Evita o erro de aria-hidden)
+    //                 elementoModal.addEventListener('hide.bs.modal', function () {
+    //                     // Remove o foco do botão "Entendi" ativamente
+    //                     if (document.activeElement) {
+    //                         document.activeElement.blur();
+    //                     }
+    //                 }, { once: true });
+
+    //                 // EVENTO 2: Dispara DEPOIS que o modal sumiu por completo
+    //                 elementoModal.addEventListener('hidden.bs.modal', function () {
+    //                     if (inputCodigoBarras) {
+    //                         inputCodigoBarras.focus();
+    //                         inputCodigoBarras.select();
+    //                     }
+    //                 }, { once: true });
+
+    //                 modalAviso.show();
+    //             } else {
+    //                 alert('O carrinho está vazio! Adicione produtos antes de finalizar.');
+    //             }
+    //             return;
+    //         }
+
+    //         if (typeof window.abrirModalFinalizar === 'function') {
+    //             window.abrirModalFinalizar();
+    //         }
+    //     }
+
+    // });
+
+     if (e.code === 'F6') {
+
+            // Se já existe um modal aberto, NÃO faz nada
+            if (document.querySelector('.modal.show')) {
+                return;
             }
-        });
-    }
+
+            e.preventDefault();
+            abrirModalFinalizar();
+        }
+
 
     // =========================
     // BOTÃO ABRIR CAIXA
@@ -263,6 +324,26 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error("Erro interno no rastreador assíncrono de caixas:", err);
         }
     }, 2500);
+
+   // CORREÇÃO GLOBAL AVANÇADA DE FOCO PARA MODAIS (Evita erro aria-hidden)
+    document.addEventListener('hide.bs.modal', function (evento) {
+        const modalQueVaiFechar = evento.target;
+        
+        // Se o elemento com foco atual estiver dentro do modal que está fechando
+        if (document.activeElement && modalQueVaiFechar.contains(document.activeElement)) {
+            // Remove o foco do input/botão imediatamente
+            document.activeElement.blur();
+        }
+    });
+
+    // Força o retorno do foco para o leitor de código de barras padrão do PDV
+    document.addEventListener('hidden.bs.modal', function () {
+        const inputCodigoBarras = document.getElementById('codigo_barras'); // Ajuste se seu ID for diferente
+        if (inputCodigoBarras && !document.querySelector('.modal.show')) {
+            inputCodigoBarras.focus();
+            inputCodigoBarras.select();
+        }
+    });
 
 
 

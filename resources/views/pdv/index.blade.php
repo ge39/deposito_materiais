@@ -236,6 +236,30 @@
 <div class="container-fluid p-0">   
       
     <!-- OVERLAY -->
+
+    <!-- Modal Alerta Carrinho Vazio -->
+    <div class="modal fade" id="modalCarrinhoVazio" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-danger text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                        ⚠️ Atenção operacional
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <p class="fs-5 text-secondary mb-0">
+                        Não é possível ir para o fechamento. <br>
+                        <strong>O carrinho atual está vazio!</strong>
+                    </p>
+                </div>
+                <div class="modal-footer border-0 pt-0 justify-content-center">
+                    <button type="button" class="btn btn-secondary px-4 fw-bold" data-bs-dismiss="modal">Entendi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- //modal verificar sangria -->
   
    <!-- O Modal permanece na Blade para poder ser chamado -->
@@ -774,7 +798,7 @@
 </script>
 
 <!-- Armazena total da venda globalmente e passa para view de finalizar -->
-<script>
+<!-- <script>
         document.addEventListener('DOMContentLoaded', function() {
 
         const btnFinalizar = document.getElementById("btnF6");
@@ -806,7 +830,94 @@
 
     });
 
+</script> -->
+<!-- Armazena total da venda globalmente e passa para view de finalizar -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnFinalizar = document.getElementById("btnF6");
+        const totalInput = document.getElementById("inputTotalGeral");
+        const modalTotal = document.getElementById("total-venda-modal");
+        const modalEl = document.getElementById('modalFinalizar');
+
+        if (btnFinalizar) {
+            btnFinalizar.addEventListener("click", async function() {
+                // 1. VALIDAÇÃO DE SEGURANÇA LOCAL (Evita o erro de carrinho vazio)
+                // Lê o valor atual do input de total geral (removendo R$, espaços e ajustando a vírgula)
+                const valorTexto = totalInput ? totalInput.value.replace('R$', '').replace(/\s/g, '').replace('.', '').replace(',', '.') : '0';
+                const totalVenda = Number(valorTexto || 0);
+
+                if (totalVenda <= 0) {
+                    // Se o total for zero ou nulo, barra a operação antes de abrir o modal de fechamento
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Atenção operacional', 'Não é possível ir para o fechamento. O carrinho atual está vazio!', 'warning');
+                    } else {
+                        alert('Atenção operacional: O carrinho atual está vazio!');
+                    }
+                    return; // Aborta e não deixa a tela de pagamento abrir
+                }
+
+                // 2. ATUALIZAÇÃO DO FINANCEIRO DO CLIENTE (Migrado da função abrirModalFinalizar)
+                const inputCliente = document.querySelector('input[name="cliente_id"]') || document.getElementById('input-cliente-id');
+                const clienteId = inputCliente?.value;
+
+                if (clienteId) {
+                    try {
+                        const response = await fetch(`/clientes/${clienteId}/financeiro`);
+                        const data = await response.json();
+
+                        if (data.success && window.cliente) {
+                            window.cliente.saldo = Number(data.saldo || 0);
+                            window.cliente.limite = Number(data.limite || 0);
+                            window.cliente.status = data.status || 'bloqueado';
+
+                            const saldoEl = document.getElementById('saldo-cliente-modal');
+                            if (saldoEl) {
+                                const statusBadge = data.status === 'ativo'
+                                    ? '<span class="badge bg-success">Ativo</span>'
+                                    : '<span class="badge bg-danger">Bloqueado</span>';
+
+                                saldoEl.innerHTML = `
+                                    Status: ${statusBadge}<br>
+                                    Saldo: R$ ${Number(data.saldo).toFixed(2).replace('.', ',')}<br>
+                                    Limite: R$ ${Number(data.limite).toFixed(2).replace('.', ',')}
+                                `;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Erro ao atualizar financeiro do cliente:', error);
+                    }
+                }
+
+                // 3. ENVIAR TOTAL PARA O MODAL E EXIBIR
+                if (totalInput && modalTotal) {
+                    modalTotal.value = totalInput.value;
+                    // Se o elemento do modal for um span/div de texto em vez de um input, use textContent:
+                    if(modalTotal.tagName !== 'INPUT') {
+                        modalTotal.textContent = totalInput.value;
+                    }
+                } else {
+                    console.warn("Elemento de total não encontrado!");
+                }
+
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+
+                    // Foca automaticamente no primeiro campo de pagamento (ex: Dinheiro) após abrir
+                    setTimeout(() => {
+                        const inputsPagamento = document.querySelectorAll('.input-pagamento'); // Ajuste a classe se necessário
+                        if (inputsPagamento && inputsPagamento.length > 0) {
+                            inputsPagamento[0].focus();
+                        }
+                    }, 300);
+                }
+            });
+        } else {
+            console.warn("btnF6 não encontrado no DOM");
+        }
+    });
 </script>
+
 
 <!-- armazendo id do caixa para o fechamento -->
 <script>

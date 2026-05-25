@@ -87,111 +87,167 @@ document.addEventListener('DOMContentLoaded', function () {
     // =====================================================
     // ABRIR MODAL FINALIZAR
     // =====================================================
-    // function abrirModalFinalizar() {
+    // async function abrirModalFinalizar() {
 
     //     const inputCliente =
-    //         document.querySelector('input[name="cliente_id"]')
-    //         || document.getElementById('input-cliente-id');
+    //         document.querySelector('input[name="cliente_id"]') ||
+    //         document.getElementById('input-cliente-id');
 
     //     const clienteId = inputCliente?.value;
 
-    //     carregarClienteFinanceiro(clienteId);
+    //     // =====================================
+    //     // ATUALIZA SALDO REAL DO CLIENTE
+    //     // =====================================
+    //     if (clienteId) {
 
+    //         try {
+
+    //             const response = await fetch(`/clientes/${clienteId}/financeiro`);
+
+    //             const data = await response.json();
+
+    //             if (data.success && window.cliente) {
+
+    //                 window.cliente.saldo = Number(data.saldo || 0);
+    //                 window.cliente.limite = Number(data.limite || 0);
+    //                 window.cliente.status = data.status || 'bloqueado';
+
+    //                 const saldoEl = document.getElementById('saldo-cliente-modal');
+
+    //                 if (saldoEl) {
+
+    //                     const statusBadge =
+    //                         data.status === 'ativo'
+    //                             ? '<span class="badge bg-success">Ativo</span>'
+    //                             : '<span class="badge bg-danger">Bloqueado</span>';
+
+    //                     saldoEl.innerHTML = `
+    //                         Status: ${statusBadge}<br>
+    //                         Saldo: R$ ${Number(data.saldo).toFixed(2).replace('.', ',')}<br>
+    //                         Limite: R$ ${Number(data.limite).toFixed(2).replace('.', ',')}
+    //                     `;
+    //                 }
+    //             }
+
+    //         } catch (error) {
+
+    //             console.error('Erro ao atualizar financeiro:', error);
+    //         }
+    //     }
+
+    //     // =====================================
+    //     // RESTO DA SUA LÓGICA ORIGINAL
+    //     // =====================================
     //     const total = obtenerTotalVenda();
 
-    //     totalModalEl.textContent = formatMoney(total);
-
-    //     inputsPagamento.forEach(input => {
-    //         input.value = '';
-    //         input.disabled = false;
+    //     totalModalEl.textContent = total.toLocaleString('pt-BR', {
+    //         style: 'currency',
+    //         currency: 'BRL'
     //     });
 
-    //     atualizarResumo();
+    //     inputsPagamento.forEach(i => {
+    //         i.value = '';
+    //         i.disabled = false;
+    //     });
 
     //     window.__pdvUltimaFormaFocada = 'dinheiro';
+
+    //     atualizarResumo();
 
     //     modal?.show();
 
     //     setTimeout(() => {
-    //         inputsPagamento[0]?.focus();
+    //         if (inputsPagamento && inputsPagamento.length > 0) {
+    //             inputsPagamento[0].focus();
+    //         }
     //     }, 300);
     // }
 
     async function abrirModalFinalizar() {
-
-        const inputCliente =
-            document.querySelector('input[name="cliente_id"]') ||
-            document.getElementById('input-cliente-id');
-
-        const clienteId = inputCliente?.value;
-
-        // =====================================
-        // ATUALIZA SALDO REAL DO CLIENTE
-        // =====================================
-        if (clienteId) {
-
-            try {
-
-                const response = await fetch(`/clientes/${clienteId}/financeiro`);
-
-                const data = await response.json();
-
-                if (data.success && window.cliente) {
-
-                    window.cliente.saldo = Number(data.saldo || 0);
-                    window.cliente.limite = Number(data.limite || 0);
-                    window.cliente.status = data.status || 'bloqueado';
-
-                    const saldoEl = document.getElementById('saldo-cliente-modal');
-
-                    if (saldoEl) {
-
-                        const statusBadge =
-                            data.status === 'ativo'
-                                ? '<span class="badge bg-success">Ativo</span>'
-                                : '<span class="badge bg-danger">Bloqueado</span>';
-
-                        saldoEl.innerHTML = `
-                            Status: ${statusBadge}<br>
-                            Saldo: R$ ${Number(data.saldo).toFixed(2).replace('.', ',')}<br>
-                            Limite: R$ ${Number(data.limite).toFixed(2).replace('.', ',')}
-                        `;
-                    }
-                }
-
-            } catch (error) {
-
-                console.error('Erro ao atualizar financeiro:', error);
-            }
-        }
-
-        // =====================================
-        // RESTO DA SUA LÓGICA ORIGINAL
-        // =====================================
-        const total = obtenerTotalVenda();
-
-        totalModalEl.textContent = total.toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        });
-
-        inputsPagamento.forEach(i => {
-            i.value = '';
-            i.disabled = false;
-        });
-
-        window.__pdvUltimaFormaFocada = 'dinheiro';
-
-        atualizarResumo();
-
-        modal?.show();
-
-        setTimeout(() => {
-            if (inputsPagamento && inputsPagamento.length > 0) {
-                inputsPagamento[0].focus();
-            }
-        }, 300);
+    // =====================================
+    // TRAVA DE SEGURANÇA: VALIDAÇÃO DO CARRINHO VISUAL
+    // =====================================
+    // IMPORTANTE: Altere o seletor abaixo para o ID ou classe real da sua tabela de itens
+    // Exemplo: '#tabela-itens tbody tr' ou '.table-produtos tbody tr'
+    const itensNoCarrinho = document.querySelectorAll('#tabelaProdutos tbody tr');
+    
+    // Se a tabela não tiver linhas (ou apenas a linha de 'nenhum produto encontrado')
+    if (itensNoCarrinho.length === 0) {
+        // Exibe o modal de atenção operacional nativo do seu sistema
+        const modalAtencao = window.bootstrap?.Modal?.getInstance(document.getElementById('modalAtencaoCarrinhoVazio')) 
+            || new bootstrap.Modal(document.getElementById('modalAtencaoCarrinhoVazio'));
+        
+        modalAtencao.show();
+        return; // Aborta a execução imediatamente para não tentar abrir o fechamento
     }
+
+    const inputCliente =
+        document.querySelector('input[name="cliente_id"]') ||
+        document.getElementById('input-cliente-id');
+
+    const clienteId = inputCliente?.value;
+
+    // =====================================
+    // ATUALIZA SALDO REAL DO CLIENTE
+    // =====================================
+    if (clienteId) {
+        try {
+            const response = await fetch(`/clientes/${clienteId}/financeiro`);
+            const data = await response.json();
+
+            if (data.success && window.cliente) {
+                window.cliente.saldo = Number(data.saldo || 0);
+                window.cliente.limite = Number(data.limite || 0);
+                window.cliente.status = data.status || 'bloqueado';
+
+                const saldoEl = document.getElementById('saldo-cliente-modal');
+
+                if (saldoEl) {
+                    const statusBadge =
+                        data.status === 'ativo'
+                            ? '<span class="badge bg-success">Ativo</span>'
+                            : '<span class="badge bg-danger">Bloqueado</span>';
+
+                    saldoEl.innerHTML = `
+                        Status: ${statusBadge}<br>
+                        Saldo: R$ ${Number(data.saldo).toFixed(2).replace('.', ',')}<br>
+                        Limite: R$ ${Number(data.limite).toFixed(2).replace('.', ',')}
+                    `;
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar financeiro:', error);
+        }
+    }
+
+    // =====================================
+    // PROCESSAMENTO DO FECHAMENTO
+    // =====================================
+    const total = obtenerTotalVenda();
+
+    totalModalEl.textContent = total.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+
+    inputsPagamento.forEach(i => {
+        i.value = '';
+        i.disabled = false;
+    });
+
+    window.__pdvUltimaFormaFocada = 'dinheiro';
+
+    atualizarResumo();
+
+    modal?.show();
+
+    setTimeout(() => {
+        if (inputsPagamento && inputsPagamento.length > 0) {
+            inputsPagamento[0].focus();
+        }
+    }, 300);
+    }
+
 
     window.abrirModalFinalizar = abrirModalFinalizar;
 
@@ -612,10 +668,22 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const itens = window.carrinho || [];
+        // Captura o carrinho da memória
+        let itens = window.carrinho || [];
 
-        if (!itens.length) {
-            alert('Adicione itens antes de finalizar');
+        // Dupla Validação: Remove da memória qualquer item inválido ou sem ID de produto
+        itens = itens.filter(item => item && (item.produto_id || item.id || item.codigo));
+
+        // Validação Visual: Conta as linhas reais de produtos na tabela do seu PDV
+        // AJUSTE SEU SELETOR: Substitua '#tabelaItensPDV tbody tr' pelo ID real da sua tabela de vendas
+        const linhasTabelaProdutos = document.querySelectorAll('#tabelaItensPDV tbody tr').length;
+
+        // Se a memória estiver vazia OU se não houver linhas visíveis na tabela do PDV, BLOQUEIA!
+        if (itens.length === 0 || linhasTabelaProdutos === 0) {
+            alert('🚨 ERRO GRAVÍSSIMO: Não é possível finalizar uma venda sem produtos no carrinho!');
+            
+            // Força a limpeza da memória para evitar lixo acumulado de vendas anteriores
+            window.carrinho = []; 
             return;
         }
 
