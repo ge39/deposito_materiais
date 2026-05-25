@@ -346,8 +346,6 @@ class VendaController extends Controller
 
         return $pagamentosProcessados;
     }
-
-
     /**
      * Registra o fluxo de caixa e aciona regras de carteira externa.
      */
@@ -376,7 +374,7 @@ class VendaController extends Controller
         }
     }
 
-        /**
+    /**
      * Gera os dados do cupom de forma estática e segura para impressão ou reimpressão.
      */
        public function cupom($id) 
@@ -436,35 +434,7 @@ class VendaController extends Controller
         )); 
     }
 
-
-        /**
-     * Busca o ID da última venda finalizada no caixa atual para reimpressão.
-     */
-        /**
-     * Busca o ID da última venda finalizada no caixa atual para reimpressão.
-     */
-    // public function obterUltimaVendaId(Request $request)
-    // {
-    //     $caixaId = (int) $request->input('caixa_id');
-
-    //     if ($caixaId <= 0) {
-    //         return response()->json(['success' => false, 'erro' => 'Caixa não identificado.']);
-    //     }
-
-    //     $ultimoId = DB::table('vendas')
-    //         ->where('caixa_id', $caixaId)
-    //         ->where('status', 'finalizada')
-    //         ->orderBy('id', 'desc')
-    //         ->value('id');
-
-    //     if (!$ultimoId) {
-    //         return response()->json(['success' => false, 'erro' => 'Nenhuma venda encontrada para este caixa.']);
-    //     }
-
-    //     return response()->json(['success' => true, 'venda_id' => $ultimoId]);
-    // }
-
-        /**
+    /**
      * Busca o ID da última venda finalizada no banco para prevenção de quedas de energia.
      */
     public function obterUltimaVendaId(\Illuminate\Http\Request $request)

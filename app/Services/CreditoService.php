@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Cliente;
+use App\Models\ClienteContaCorrente;
 use App\Models\PagamentoVenda;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class CreditoService
 {
@@ -155,5 +157,57 @@ class CreditoService
             }
         }
         return $formas;
+    }
+   
+   /**
+     * Processa débito da carteira do cliente
+     */
+    public function adicionarDebito(
+        int $clienteId,
+        float $valor,
+        ?int $vendaId = null
+    ): bool {
+
+        if ($valor <= 0) {
+            return false;
+        }
+
+        $cliente = Cliente::find($clienteId);
+
+        if (!$cliente) {
+            throw new \Exception('Cliente não encontrado.');
+        }
+
+        DB::transaction(function () use (
+            $cliente,
+            $valor,
+            $vendaId
+        ) {
+
+            $saldoAtual = app(ContaCorrenteService::class)
+                ->saldoAtual($cliente->id);
+
+            if ($saldoAtual < $valor) {
+                throw new \Exception('Saldo insuficiente na carteira.');
+            }
+
+            $novoSaldo = $saldoAtual - $valor;
+
+            ClienteContaCorrente::create([
+                'cliente_id' => $cliente->id,
+                'venda_id' => $vendaId,
+                'tipo' => 'debito',
+                'origem' => 'venda',
+                'valor' => $valor,
+                'saldo_apos' => $novoSaldo,
+                'descricao' => 'Pagamento via carteira'
+            ]);
+
+            Cache::forget("cliente_saldo_{$cliente->id}");
+
+            $this->atualizarStatusCliente($cliente);
+        });
+
+        return true;
     }
 }

@@ -64,6 +64,28 @@ class ContaCorrenteService
         });
     }
 
+        /**
+     * Processa débito da carteira do cliente
+     */
+    public function adicionarDebito(PagamentoVenda $pagamento): bool
+    {
+        if ($pagamento->forma_pagamento !== 'carteira') {
+            return false;
+        }
+
+        app(ContaCorrenteService::class)
+            ->registrarMovimentacao($pagamento);
+
+        // atualiza status financeiro do cliente
+        $cliente = optional($pagamento->venda)->cliente;
+
+        if ($cliente) {
+            $this->atualizarStatusCliente($cliente);
+        }
+
+        return true;
+    }
+
     /**
      * Retorna o saldo atual real do cliente (Sincronizado com as regras do PDV)
      */
