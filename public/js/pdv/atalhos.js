@@ -157,13 +157,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Elemento do seu input de código de barras
                 const inputCodigoBarras = document.getElementById('codigo_barras');
 
-                // EVENTO: Quando o modal terminar de sumir da tela
-                elementoModal.addEventListener('hidden.bs.modal', function () {
-                    if (inputCodigoBarras) {
-                        inputCodigoBarras.focus();
-                        inputCodigoBarras.select(); // Deixa o campo limpo/selecionado para o próximo bip
-                    }
-                }, { once: true }); // '{ once: true }' evita duplicar o evento na memória
+                // // EVENTO: Quando o modal terminar de sumir da tela
+                // elementoModal.addEventListener('hidden.bs.modal', function () {
+                //     if (inputCodigoBarras) {
+                //         inputCodigoBarras.focus();
+                //         inputCodigoBarras.select(); // Deixa o campo limpo/selecionado para o próximo bip
+                        
+                //     }
+                // }, { once: true }); // '{ once: true }' evita duplicar o evento na memória
 
                 modalAviso.show();
                 return;
@@ -288,16 +289,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Força o retorno do foco para o leitor de código de barras padrão do PDV
+   // =================================================================
+    // GERENCIADOR GLOBAL DE FOCO DO LEITOR DE CÓDIGO DE BARRAS (PDV)
+    // =================================================================
     document.addEventListener('hidden.bs.modal', function () {
-        const inputCodigoBarras = document.getElementById('codigo_barras'); // Ajuste se seu ID for diferente
+        const inputCodigoBarras = document.getElementById('codigo_barras');
+        
+        // Verifica se o input existe e garante que não há outro modal aberto na tela
         if (inputCodigoBarras && !document.querySelector('.modal.show')) {
-            inputCodigoBarras.focus();
-            inputCodigoBarras.select();
+            setTimeout(() => {
+                inputCodigoBarras.focus();
+                inputCodigoBarras.setSelectionRange(0, 0);
+            }, 100); // 100ms garante compatibilidade com qualquer animação de fechamento
         }
     });
-
-
 
 });
   

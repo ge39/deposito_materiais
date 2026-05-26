@@ -342,44 +342,6 @@ class ProdutoController extends Controller
 
         return view('produtos.index', compact('produtos'));
     }
-
-    /** PESQUISAR COM VIEWS E grids */
-    // public function search_grid(Request $request)
-    // {
-    //     $query = $request->input('query');
-
-    //     $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida'])
-    //         ->where('ativo', 1)
-    //         ->when($query, function ($q) use ($query) {
-    //             $q->where(function ($sub) use ($query) {
-    //                 $sub->where('nome', 'LIKE', "%$query%")
-    //                     ->orWhere('codigo_barras', 'LIKE', "%$query%")
-    //                     ->orWhere('descricao', 'LIKE', "%$query%")
-    //                      ->orWhere('id', $query); // busca pelo ID exato
-    //             })
-
-    //             // Categoria
-    //             ->orWhereHas('categoria', function($cat) use ($query) {
-    //                 $cat->where('ativo', 1)
-    //                     ->where('nome', 'LIKE', "%$query%");
-    //             })
-
-    //             // Fornecedor
-    //             ->orWhereHas('fornecedor', function($for) use ($query) {
-    //                 $for->where('ativo', 1)
-    //                     ->where('nome', 'LIKE', "%$query%");
-    //             })
-
-    //             // Marca
-    //             ->orWhereHas('marca', function($mar) use ($query) {
-    //                 $mar->where('ativo', 1)
-    //                     ->where('nome', 'LIKE', "%$query%");
-    //             });
-    //         })
-    //         ->paginate(20);
-
-    //     return view('produtos.index', compact('produtos'));
-    // }
    
     public function search_grid(Request $request)
     {

@@ -239,7 +239,6 @@ class FechamentoCaixaController extends Controller
             'total_sangrias'
         ));
     }
-
    
     public function listaCaixas()
     {
@@ -250,7 +249,6 @@ class FechamentoCaixaController extends Controller
 
         return view('fechamento_caixa.listaCaixas', compact('caixas'));
     }
-
       /**
      * Mostra a view para lançamento manual de valores
      */

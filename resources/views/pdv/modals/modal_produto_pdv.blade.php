@@ -314,12 +314,14 @@
     const modalInstance=bootstrap.Modal.getInstance(modalEl);
     if(modalInstance) modalInstance.hide();
 
-    const foco=document.getElementById('codigo_barras');
-    if(foco){
+   const foco = document.getElementById('codigo_barras');
+    if (foco) {
         foco.focus();
-        foco.select();
+        // O setTimeout garante que o cursor mude de posição APÓS o foco padrão do navegador
+        setTimeout(() => {
+            foco.setSelectionRange(0, 0);
+        }, 0);
     }
-
 }
 
 </script>

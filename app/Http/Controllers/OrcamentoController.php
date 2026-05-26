@@ -15,6 +15,63 @@ class OrcamentoController extends Controller
         $this->service = $service;
     }
 
+    public function buscarParaPdv($codigo)
+    {
+        $orcamento = Orcamento::with([
+            'cliente',
+            'itens.produto.unidadeMedida'
+        ])
+        ->where('codigo_orcamento', $codigo)
+        ->first();
+
+        if (!$orcamento) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Orçamento não encontrado.'
+            ], 404);
+        }
+
+        // 🔴 BLOQUEIO EM REDE: Identifica se o orçamento já passou pelo PDV
+        if ($orcamento->status === 'Faturado' || $orcamento->status === Orcamento::STATUS_FATURADO) {
+            return response()->json([
+                'success' => false, 
+                'message' => '⚠️ Atenção: Este orçamento já foi pago e finalizado no caixa!'
+            ], 400);
+        }
+
+        if ($orcamento->status === Orcamento::CANCELADO || $orcamento->status === Orcamento::EXPIRADO) {
+            return response()->json([
+                'success' => false, 
+                'message' => "Este orçamento não pode ser processado pois está: {$orcamento->status}."
+            ], 400);
+        }
+
+        // Varre os itens injetando o lote (Mantém a lógica que funcionou no seu orcamento.js)
+        $itensTratados = $orcamento->itens->map(function ($item) {
+            $dadosLote = DB::table('item_orcamento_lotes')
+                ->join('lotes', 'item_orcamento_lotes.lote_id', '=', 'lotes.id')
+                ->where('item_orcamento_id', $item->id)
+                ->select('lotes.id as lote_id', 'lotes.numero_lote')
+                ->first();
+
+            $item->lote = [
+                'id'          => $dadosLote ? $dadosLote->lote_id : null,
+                'numero_lote' => $dadosLote ? $dadosLote->numero_lote : 'Sem lote'
+            ];
+
+            return $item;
+        });
+
+        return response()->json([
+            'success' => true,
+            'orcamento' => [
+                'id'      => $orcamento->id, // Enviando o ID para o front usar no faturamento
+                'cliente' => $orcamento->cliente,
+                'itens'   => $itensTratados
+            ]
+        ]);
+    }
+
     /**
      * LISTAGEM
      */

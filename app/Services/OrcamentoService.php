@@ -123,94 +123,7 @@ class OrcamentoService
         ];
     }
 
-    /* =========================================
-     | CRIAR COMPLETO
-     ========================================= */
-    // public function criarCompleto(array $request)
-    // {
-    //     return DB::transaction(function () use ($request) {
-
-    //         $empresa = Empresa::where('ativo', 1)->firstOrFail();
-
-    //         $orcamento = Orcamento::create([
-    //             'cliente_id' => $request['cliente_id'],
-    //             'empresa_id' => $empresa->id,
-    //             'data_orcamento' => now(),
-    //             'validade' => $request['validade'],
-    //             'codigo_orcamento' => now()->format('YmdHis'),
-    //             'status' => 'Aguardando Aprovacao',
-    //             'observacoes' => $request['observacoes'] ?? null,
-    //             'total' => 0,
-    //             'ativo' => 1,
-    //             'editando_por' => Auth::id(),
-    //             'editando_em' => now(),
-    //         ]);
-
-    //         $orcamento->update([
-    //             'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
-    //         ]);
-
-    //         $total = 0;
-
-    //         if (empty($request['produtos']) || !is_array($request['produtos'])) {
-    //             throw new \Exception('Produtos inválidos no orçamento');
-    //         }
-
-    //         foreach ($request['produtos'] as $itemReq) {
-
-    //             $produtoId = $itemReq['id'] ?? null;
-    //             if (!$produtoId) continue;
-
-    //             $qtd = $itemReq['quantidade_solicitada']
-    //                 ?? $itemReq['quantidade']
-    //                 ?? 0;
-
-    //             $preco = $itemReq['preco_unitario']
-    //                 ?? $itemReq['preco']
-    //                 ?? 0;
-
-    //             if ($qtd <= 0) continue;
-
-    //             $item = ItemOrcamento::create([
-    //                 'orcamento_id' => $orcamento->id,
-    //                 'produto_id' => $produtoId,
-    //                 'quantidade_solicitada' => $qtd,
-    //                 'quantidade_atendida' => 0,
-    //                 'quantidade_pendente' => $qtd,
-    //                 'preco_unitario' => $preco,
-    //                 'subtotal' => $qtd * $preco,
-    //                 'status' => 'indisponivel',
-    //                 'previsao_entrega' => now()->addDays(7),
-    //             ]);
-
-    //             // 🔥 ESTOQUE
-    //             $this->estoqueService->recalcularReservar(
-    //                 $item->id,
-    //                 $produtoId,
-    //                 $qtd
-    //             );
-
-    //             // 🔥 ESSA LINHA RESOLVE SEU BUG
-    //             $this->recalcularItemCompleto($item);
-
-    //             $item->refresh();
-    //         }
-
-    //         $temPendente = $orcamento->itens()
-    //             ->whereIn('status', ['indisponivel', 'parcial'])
-    //             ->exists();
-
-    //         $orcamento->update([
-    //             'total' => $total,
-    //             'status' => $temPendente
-    //                 ? 'Aguardando Estoque'
-    //                 : 'Aguardando Aprovacao'
-    //         ]);
-
-    //         return $orcamento;
-    //     });
-    // }
-
+   
     public function criarCompleto(array $request)
     {
         return DB::transaction(function () use ($request) {
@@ -822,4 +735,74 @@ class OrcamentoService
         $fileName = "orcamento_{$orcamento->codigo_orcamento}.pdf";
         return asset("storage/orcamento/{$fileName}");
     }
+        /* =========================================
+     | FATURAR ORÇAMENTO NO PDV (CAIXA)
+     ========================================= */
+    /**
+     * Converte os saldos lógicos de reserva do balcão em baixa física real.
+     * Desenvolvido para alta performance em redes de múltiplos PDVs.
+     */
+    public function faturarEfetivo(Orcamento $orcamento, array $dados)
+    {
+        // Executa todo o bloco sob uma transação isolada para segurança concorrente
+        DB::transaction(function () use ($orcamento, $dados) {
+            
+            // Re-carrega os itens travando para atualização no banco (Locking)
+            foreach ($orcamento->itens as $item) {
+                
+                // Busca os registros associados na tabela pivot intermediária
+                $vinculosLotes = DB::table('item_orcamento_lotes')
+                    ->where('item_orcamento_id', $item->id)
+                    ->get();
+
+                foreach ($vinculosLotes as $v) {
+                    
+                    // 🔴 GARGALO EVITADO: Baixa atômica nativa diretamente no banco de dados.
+                    // Subtrai a reserva lógica e o estoque físico real do lote simultaneamente.
+                    DB::table('lotes')
+                        ->where('id', $v->lote_id)
+                        ->update([
+                            'quantidade_reservada' => DB::raw("quantidade_reservada - {$v->quantidade_reservada}"),
+                            'quantidade'           => DB::raw("quantidade - {$v->quantidade_reservada}"),
+                            'quantidade_disponivel' => DB::raw("quantidade - quantidade_reservada")
+                        ]);
+
+                    // Converte o status do vínculo de reservado para atendido de fato
+                    DB::table('item_orcamento_lotes')
+                        ->where('id', $v->id)
+                        ->update([
+                            'quantidade_atendida'  => $v->quantidade_reservada,
+                            'quantidade_reservada' => 0
+                        ]);
+                }
+
+                // Sincroniza o estado interno do item do orçamento
+                $item->update([
+                    'quantidade_atendida' => $item->quantidade_solicitada,
+                    'quantidade_pendente' => 0,
+                    'status'              => 'disponivel',
+                ]);
+
+                // Registra o log histórico da linha do tempo da mercadoria
+                \App\Models\MovimentacaoOrcamento::create([
+                    'orcamento_id' => $orcamento->id,
+                    'item_orcamento_id' => $item->id,
+                    'tipo' => 'Faturamento',
+                    'descricao' => "Venda finalizada no caixa do PDV. " . floatval($item->quantidade_solicitada) . " un. liberadas.",
+                    'quantidade' => $item->quantidade_solicitada,
+                    'user_id' => Auth::id() ?? $orcamento->editando_por,
+                ]);
+            }
+
+            // Atualiza o cabeçalho definitivo do documento para bloquear acessos concorrentes na rede
+            $orcamento->update([
+                'status'       => 'Faturado',
+                'editando_por' => Auth::id(),
+                'editando_em'  => now(),
+            ]);
+        });
+
+        return $orcamento;
+    }
+
 }

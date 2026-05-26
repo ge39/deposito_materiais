@@ -26,14 +26,18 @@ class ItemOrcamento extends Model
         'subtotal',
         'previsao_entrega'
     ];
-
+    
     protected $casts = [
-        'quantidade_solicitada' => 'decimal:2',
-        'quantidade_atendida'   => 'decimal:2',
-        'preco_unitario'        => 'decimal:2',
-        'subtotal'              => 'decimal:2',
-        'previsao_entrega'      => 'date',
+    'quantidade_solicitada' => 'decimal:2',
+    'quantidade_atendida'   => 'decimal:2',
+    'preco_unitario'        => 'decimal:2',
+    'subtotal'              => 'decimal:2',
+    'previsao_entrega'      => 'date',
     ];
+
+    // 🔴 ADICIONE ESTA LINHA AQUI NO SEU MODEL:
+    protected $with = ['produto', 'lotesPivot.lote'];
+
 
     /*
     |--------------------------------------------------------------------------
