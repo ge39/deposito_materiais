@@ -142,6 +142,15 @@ document.addEventListener('DOMContentLoaded', function () {
             if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
         }
 
+        //  if (e.code === 'F6') {
+        //     // Se já existe um modal aberto, NÃO faz nada
+        //     if (document.querySelector('.modal.show')) {
+        //         return;
+        //     }
+        //     e.preventDefault();
+        //     abrirModalFinalizar();
+        // }
+
         // F6 - FINALIZAR VENDA
         if (e.code === 'F6') {
             if (document.querySelector('.modal.show')) return;
@@ -178,14 +187,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }, true);
 
 
-    //  if (e.code === 'F6') {
-    //         // Se já existe um modal aberto, NÃO faz nada
-    //         if (document.querySelector('.modal.show')) {
-    //             return;
-    //         }
-    //         e.preventDefault();
-    //         abrirModalFinalizar();
-    //     }
+    
 
 
     // =========================

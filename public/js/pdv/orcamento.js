@@ -1,3 +1,26 @@
+// ========================================================== //
+// 🪙 SOM DE BIP NATIVO (FLUXO ULTRA RÁPIDO VIA FREQUÊNCIA)   //
+// ========================================================== //
+window.emitirBipPDV = function() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine'; 
+        oscillator.frequency.value = 1150; // Tom clássico agudo de leitor de caixa
+        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime); 
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.07); 
+    } catch (e) {
+        console.warn("Áudio bloqueado ou não suportado:", e);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function () {
     // 💾 VARIÁVEL GLOBAL DO CAIXA: Armazena o ID do orçamento ativo para a finalização
     window.orcamentoAtualId = null;
@@ -45,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const data = await response.json();
 
-            // 🔴 INTERCEPÇÃO DE SEGURANÇA: Se o Laravel retornar erro (ex: Já Faturado), exibe o alerta correto
+            // 🔴 INTERCEPÇÃO DE SEGURANÇA
             if (!response.ok || !data.success) {
                 throw new Error(data.message || 'Orçamento não encontrado ou não aprovado');
             }
@@ -53,9 +76,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // Guardamos o ID do orçamento em memória para o fechamento
             window.orcamentoAtualId = data.orcamento.id;
 
-            // Preenche cliente e carrinho
+            // Preenche cliente e o carrinho sincronizado
             preencherCliente(data.orcamento.cliente);
-            preencherCarrinho(data.orcamento.itens);
+            preencherCarrinhoSincronizado(data.orcamento.itens);
 
             // Fecha modal
             if (modalEl) {
@@ -65,13 +88,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         } catch (error) {
             console.error(error);
-            // Zera o ID em memória caso dê erro na busca
             window.orcamentoAtualId = null;
             alert(error.message);
         }
     };
 
-    // 🔹 NOVA FUNÇÃO GLOBAL: EXECUTA O FATURAMENTO E A MUTAÇÃO DE STATUS NO BANCO
+    // 🔹 FUNÇÃO GLOBAL CORRIGIDA: Envia os dados unificados resolvendo totais, caixa e cupom.blade
     window.faturarOrcamentoNoCaixa = async function () {
         if (!window.orcamentoAtualId) {
             return alert('Não há nenhum orçamento carregado no carrinho para finalizar.');
@@ -80,8 +102,27 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!confirm('Deseja confirmar o recebimento e faturar esta venda?')) return;
 
         try {
-            // Captura o token CSRF padrão do Laravel injetado na Meta tag do Blade
             const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            // 🧮 CALCULA O VALOR REAL BASEADO NO QUE FOI ALIMENTADO NO CARRINHO
+            let totalVendaCalculado = 0;
+            if (Array.isArray(window.carrinho)) {
+                window.carrinho.forEach(item => {
+                    totalVendaCalculado += (item.quantidade * item.preco_unitario);
+                });
+            }
+
+            // Captura o id do cliente se houver nos inputs preenchidos
+            const clienteIdEl = document.querySelector('[name="cliente_id"]');
+            const clienteId = clienteIdEl ? clienteIdEl.value : null;
+
+            // 📦 PAYLOAD COMPLETO: Agora envia o carrinho e totais idênticos ao fluxo de produto.js
+            const payload = {
+                orcamento_id: window.orcamentoAtualId,
+                cliente_id: clienteId,
+                total: totalVendaCalculado,              // Alimenta vendas.total e movimentcoes_caixa.valor
+                itens: window.carrinho || []            // Alimenta item_vendas e impede cupom vazio
+            };
 
             const response = await fetch('/pdv/faturar', {
                 method: 'POST',
@@ -90,9 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': token
                 },
-                body: JSON.stringify({
-                    orcamento_id: window.orcamentoAtualId
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
@@ -103,13 +142,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
             alert('Venda finalizada com sucesso! Orçamento marcado como Faturado.');
             
-            // 🔄 Limpa o PDV para a próxima venda
+            // 🔄 Limpa o PDV por completo
             window.orcamentoAtualId = null;
+            window.carrinho = []; // Zera a memória interna do caixa
+            
             if (typeof limparCamposPDV === 'function') {
                 limparCamposPDV();
             }
-            document.getElementById('lista-itens').innerHTML = '';
-            document.getElementById('totalGeral').textContent = '0,00';
+            const tbody = document.getElementById('lista-itens');
+            if (tbody) tbody.innerHTML = '';
+            
+            const totalGeral = document.getElementById('totalGeral');
+            if (totalGeral) totalGeral.textContent = 'R\$ 0,00';
 
         } catch (error) {
             console.error(error);
@@ -135,7 +179,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Função auxiliar para montar o endereço
     function montarEndereco(cliente) {
         const partes = [];
         if (cliente.endereco) partes.push(cliente.endereco);
@@ -147,130 +190,138 @@ document.addEventListener('DOMContentLoaded', function () {
         return partes.join(' - ');
     }
 
-    function setValue(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.value = value ?? '';
-    }
+    // 🛒 POPULA O COMPORTAMENTO EXATO EXIGIDO PELO PRODUTO.JS (data attributes e window.carrinho)
+            /* ==========================================================
+           🛒 ALIMENTAÇÃO DO ARRAY GLOBAL CORRIGIDA (QUANTIDADE DISPARADA)
+           ========================================================== */
+        function preencherCarrinhoSincronizado(itens) {
+            if (!Array.isArray(itens)) return;
 
-    // LISTAGEM DO CARRINHO AJUSTADA PARA O RETORNO REAL DA SUA API
-    async function preencherCarrinho(itens) {
-        if (!Array.isArray(itens)) return;
-
-        const tbody = document.getElementById('lista-itens');
-        if (!tbody) return console.warn('⚠️ Tbody lista-itens não encontrado.');
-
-        tbody.innerHTML = '';
-
-        // Uso de for...of para processar os nós assíncronos em background
-        for (const [index, item] of itens.entries()) {
-            const tr = document.createElement('tr');
-            
-            tr.dataset.produtoId = item.produto_id ?? item.id;
-            tr.dataset.loteId = item.lote_id ?? '';
-            
-            const nomeProduto = item.produto?.nome ?? item.nome ?? 'Produto não identificado';
-            const siglaUnidade = item.produto?.unidade_medida?.sigla ?? item.unidade_medida?.sigla ?? '';
-
-            const precoUnitario = parseFloat(item.preco_unitario ?? item.produto?.preco_venda ?? item.preco_venda ?? 0);
-            const subtotal = parseFloat(item.subtotal ?? 0);
-
-            let qtdRaw = item.quantidade_atendida ?? item.quantidade_solicitada ?? item.quantidade ?? 0;
-            let quantity = parseFloat(qtdRaw); 
-
-            if (quantity === 0 && subtotal > 0 && precoUnitario > 0) {
-                quantity = subtotal / precoUnitario; 
+            const tbody = document.getElementById('lista-itens');
+            if (!tbody) {
+                console.warn('Tbody lista-itens nao encontrado.');
+                return;
             }
 
-            // Monta a linha com o indicador visual temporário na coluna do Lote
-            tr.innerHTML = `
-                <td class="text-center item-numero"><strong>${index + 1}</strong></td>
-                <td class="text-center item-lote"><span class="badge bg-secondary opacity-75">Buscando...</span></td>
-                <td class="text-left"><strong>${nomeProduto}</strong></td>
-                <td class="text-end"><strong>${formatar(precoUnitario)}</strong></td>
-                <td class="text-center"><strong>${formatarQuantidade(quantity)}</strong></td>
-                <td class="text-center"><strong>${siglaUnidade}</strong></td>
-                <td class="text-end subtotal" data-valor="${subtotal}"><strong>${formatar(subtotal)}</strong></td>
-            `;
-            tbody.appendChild(tr);
+            tbody.innerHTML = '';
+            window.carrinho = []; 
 
-            // 🔍 CONSULTA VIA INDICE NA SUA API DE LOTES ATIVOS
-            let numeroLote = 'Sem lote';
-            try {
-                const idProduto = item.produto_id;
-                const responseLote = await fetch(`/api/lotes/${idProduto}`, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            let totalGeralAcumulado = 0;
+
+            itens.forEach(function(item, index) {
+                const pId = item.produto_id || item.id;
+                const lId = item.lote_id || '';
+                
+                let nomeProd = 'Produto nao identificado';
+                if (item.produto && item.produto.nome) {
+                    nomeProd = item.produto.nome;
+                } else if (item.nome) {
+                    nomeProd = item.nome;
+                }
+
+                let siglaUnidade = 'UN';
+                if (item.produto && item.produto.unidade_medida && item.produto.unidade_medida.sigla) {
+                    siglaUnidade = item.produto.unidade_medida.sigla;
+                } else if (item.unidade_medida && item.unidade_medida.sigla) {
+                    siglaUnidade = item.unidade_medida.sigla;
+                }
+
+                let precoUnitario = 0;
+                if (item.preco_unitario !== undefined) {
+                    precoUnitario = parseFloat(item.preco_unitario);
+                } else if (item.produto && item.produto.preco_venda !== undefined) {
+                    precoUnitario = parseFloat(item.produto.preco_venda);
+                } else if (item.preco_venda !== undefined) {
+                    precoUnitario = parseFloat(item.preco_venda);
+                }
+                
+                // 🛠️ MAPEAMENTO DA QUANTIDADE COM PROVA REAL MATEMÁTICA
+                let qtdRaw = 0;
+                if (item.quantidade_atendida !== undefined && parseFloat(item.quantidade_atendida) > 0) {
+                    qtdRaw = item.quantidade_atendida;
+                } else if (item.quantidade_solicitada !== undefined && parseFloat(item.quantidade_solicitada) > 0) {
+                    qtdRaw = item.quantidade_solicitada;
+                } else if (item.quantidade !== undefined && parseFloat(item.quantidade) > 0) {
+                    qtdRaw = item.quantidade;
+                }
+                
+                let quantity = parseFloat(qtdRaw); 
+                
+                let subtotal = parseFloat(item.subtotal || 0);
+                if (subtotal === 0 || isNaN(subtotal)) {
+                    subtotal = quantity * precoUnitario;
+                }
+
+                // Se a quantidade veio zerada, calcula via engenharia reversa (Subtotal / Preço)
+                if ((quantity === 0 || isNaN(quantity)) && subtotal > 0 && precoUnitario > 0) {
+                    quantity = subtotal / precoUnitario;
+                }
+
+                totalGeralAcumulado += subtotal;
+
+                window.carrinho.push({
+                    produto_id: pId,
+                    lote_id: lId,
+                    quantidade: quantity,
+                    preco_unitario: precoUnitario,
+                    desconto: 0
                 });
 
-                if (responseLote.ok) {
-                    const lotesAtivos = await responseLote.json();
-                    
-                    // 🔴 CORREÇÃO DO ARRAY: Acessa a primeira posição da tabela retornada
-                    if (Array.isArray(lotesAtivos) && lotesAtivos.length > 0) {
-                        numeroLote = lotesAtivos[0].numero_lote ?? 'Sem lote';
-                        tr.dataset.loteId = lotesAtivos[0].id; // Salva o ID do lote na linha para uso do caixa
-                    }
-                }
-            } catch (error) {
-                console.error('Falha ao buscar lote para o produto ' + item.produto_id, error);
-                numeroLote = 'Sem lote';
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-produto', pId);
+                tr.setAttribute('data-lote', lId);
+                tr.style.cursor = 'pointer';
+
+                const tdIndex = document.createElement('td');
+                tdIndex.appendChild(document.createTextNode(index + 1));
+                tr.appendChild(tdIndex);
+
+                const tdId = document.createElement('td');
+                tdId.appendChild(document.createTextNode(pId));
+                tr.appendChild(tdId);
+
+                const tdNome = document.createElement('td');
+                tdNome.className = 'text-start';
+                tdNome.appendChild(document.createTextNode(nomeProd));
+                tr.appendChild(tdNome);
+
+                const tdPreco = document.createElement('td');
+                const textoPreco = 'R' + 'S' + ' ' + precoUnitario.toFixed(2).replace('.', ',');
+                tdPreco.appendChild(document.createTextNode(textoPreco));
+                tr.appendChild(tdPreco);
+
+                const tdQtd = document.createElement('td');
+                tdQtd.className = 'item-quantidade';
+                tdQtd.appendChild(document.createTextNode(quantity));
+                tr.appendChild(tdQtd);
+
+                const tdUnidade = document.createElement('td');
+                tdUnidade.appendChild(document.createTextNode(siglaUnidade));
+                tr.appendChild(tdUnidade);
+
+                const tdSubtotal = document.createElement('td');
+                tdSubtotal.className = 'subtotal fw-bold';
+                const textoSubtotal = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                tdSubtotal.appendChild(document.createTextNode(textoSubtotal));
+                tr.appendChild(tdSubtotal);
+
+                const tdLote = document.createElement('td');
+                tdLote.className = 'text-muted d-none';
+                tdLote.appendChild(document.createTextNode('Lote: ' + lId));
+                tr.appendChild(tdLote);
+                
+                tbody.appendChild(tr);
+            });
+
+            const totalVendaEl = document.getElementById('totalGeral');
+            if (totalVendaEl) {
+                totalVendaEl.textContent = totalGeralAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             }
 
-            // Altera apenas o texto interno da coluna injetando o número do lote real
-            const celulaLote = tr.querySelector('.item-lote');
-            if (celulaLote) {
-                celulaLote.innerHTML = `<strong>${numeroLote}</strong>`;
+            if (typeof window.emitirBipPDV === 'function') {
+                window.emitirBipPDV();
             }
         }
+    });
+// Fim do Escopo Seguro (IIFE)
 
-        if (typeof bloquearAlteracoesCarrinho === 'function') {
-            bloquearAlteracoesCarrinho();
-        }
-        atualizarTotalVenda();
-    }
-
-
-    function atualizarTotalVenda() {
-        let total = 0;
-        document.querySelectorAll('#lista-itens .subtotal').forEach(td => {
-            const valor = parseFloat(td.dataset.valor);
-            total += isNaN(valor) ? 0 : valor;
-        });
-        const totalEl = document.getElementById('totalGeral');
-        if (totalEl) totalEl.textContent = formatar(total);
-    }
-
-    // =========================================
-    // FUNÇÕES DE FORMATAÇÃO (CURRENCY BRL)
-    // =========================================
-
-    /**
-     * Formata um valor numérico bruto para o padrão R$ 0.000,00
-     * @param {number|string} valor 
-     * @returns {string} Valor formatado em moeda nacional
-     */
-    function formatar(valor) {
-        const numero = parseFloat(valor);
-        if (isNaN(numero)) return 'R$ 0,00';
-        
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        }).format(numero);
-    }
-
-    /**
-     * Formata a quantidade para exibição limpa no caixa
-     * @param {number|string} valor 
-     */
-    function formatarQuantidade(valor) {
-        const numero = parseFloat(valor);
-        if (isNaN(numero)) return '0';
-        
-        // Se for número redondo (ex: 110.00), vira '110'. Se for fracionado (ex: 1.5), vira '1,50'
-        return numero % 1 === 0 ? numero.toFixed(0) : numero.toFixed(2).replace('.', ',');
-    }
-
-
-    
-
-});
