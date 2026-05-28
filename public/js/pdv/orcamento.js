@@ -67,10 +67,20 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             const data = await response.json();
-
-            // 🔴 INTERCEPÇÃO DE SEGURANÇA
+            // 🔒 INTERCEPTAÇÃO DE SEGURANÇA
             if (!response.ok || !data.success) {
-                throw new Error(data.message || 'Orçamento não encontrado ou não aprovado');
+
+                const mensagemErro =
+                    data.message ||
+                    'Não foi possível localizar este orçamento.';
+
+                exibirAlertaBootstrap(`
+                    <strong>Não foi possível continuar</strong><br>
+                    ${mensagemErro}<br>
+                    Verifique o código informado e tente novamente.
+                `, 'warning');
+
+                return;
             }
 
             // Guardamos o ID do orçamento em memória para o fechamento
@@ -322,6 +332,157 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.emitirBipPDV();
             }
         }
-    });
+
+        // ======================================================
+        // 🔔 ALERTA VISUAL DO ORÇAMENTO
+        // ======================================================
+
+    //     function exibirAlertaBootstrap(mensagem, classe = 'warning') {
+    //     const container = document.getElementById('container-alerta-orcamento');
+
+    //     // Fallback caso o container de alertas não exista no DOM
+    //     if (!container) {
+    //         alert(mensagem.replace(/<\/?[^>]+(>|$)/g, ''));
+    //         return;
+    //     }
+
+    //     // Define o ícone ideal dinamicamente com base na classe do Bootstrap
+    //     let icone = '⚠️';
+    //     if (classe === 'danger' || classe === 'error') { icone = '🚫'; classe = 'danger'; }
+    //     if (classe === 'success') icone = '✅';
+    //     if (classe === 'info') icone = 'ℹ️';
+
+    //     // Cria um ID único para este alerta conseguir sumir sozinho depois
+    //     const alertaId = 'alert_' + Date.now() + Math.floor(Math.random() * 100);
+
+    //     // Injeta o novo alerta empilhando-o no container (com sombra, sem bordas gerais e com borda grossa à esquerda)
+    //     container.insertAdjacentHTML('beforeend', `
+    //         <div id="${alertaId}" class="alert alert-${classe} alert-dismissible fade show shadow-sm border-0 border-start border-4 border-${classe} bg-white text-dark mb-2 py-3" role="alert" style="min-width: 280px; transition: all 0.3s ease;">
+    //             <div class="d-flex align-items-center">
+    //                 <div class="fs-4 me-3 lh-1">
+    //                     ${icone}
+    //                 </div>
+    //                 <div class="text-start fw-medium small" style="padding-right: 20px;">
+    //                     ${mensagem}
+    //                 </div>
+    //             </div>
+    //             <button 
+    //                 type="button" 
+    //                 class="btn-close" 
+    //                 data-bs-dismiss="alert" 
+    //                 aria-label="Close"
+    //                 style="padding: 1.25rem 1rem;">
+    //             </button>
+    //         </div>
+    //     `);
+
+    //     // Fecha o alerta automaticamente após 5 segundos de forma suave
+    //     setTimeout(() => {
+    //         const alertaEl = document.getElementById(alertaId);
+    //         if (alertaEl && typeof bootstrap !== 'undefined') {
+    //             const bsAlert = bootstrap.Alert.getOrCreateInstance(alertaEl);
+    //             bsAlert.close();
+    //         } else if (alertaEl) {
+    //             alertaEl.remove(); // Fallback caso o JS do Bootstrap não esteja pronto
+    //         }
+    //     }, 5000);
+    // }
+
+  // Atrelando ao escopo global window para garantir o acesso de qualquer lugar
+    window.exibirAlertaBootstrap = function(mensagem, classe = 'warning') {
+        
+        // =======================================================================
+        // 1️⃣ FECHA APENAS OS MODAIS DO BOOTSTRAP ANTES DE ABRIR O NOVO ALERTA
+        // =======================================================================
+        if (typeof bootstrap !== 'undefined') {
+            const modaisAbertos = document.querySelectorAll('.modal.show');
+            modaisAbertos.forEach(modEl => {
+                // Fecha a instância oficial do Bootstrap com segurança
+                const instancia = bootstrap.Modal.getInstance(modEl) || bootstrap.Modal.getOrCreateInstance(modEl);
+                if (instancia) {
+                    instancia.hide();
+                }
+            });
+        }
+
+        // Remove as películas escuras (backdrops) dos modais antigos que foram fechados
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+
+        // Remove apenas a classe de travamento que o Bootstrap põe no body, mantendo seus estilos intactos
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+
+        // =======================================================================
+        // 2️⃣ MONTAGEM E CONFIGURAÇÃO DO NOVO MODAL DE ALERTA OPERACIONAL
+        // =======================================================================
+        let icone = '⚠️';
+        let titulo = 'Atenção operacional';
+        let bgHeader = '#e03e4d'; // Tom exato de vermelho da sua imagem
+
+        if (classe === 'success') { icone = '✅'; titulo = 'Sucesso'; bgHeader = '#198754'; }
+        if (classe === 'info') { icone = 'ℹ️'; titulo = 'Informação'; bgHeader = '#0dcaf0'; }
+
+        const modalId = 'modal_alerta_' + Date.now();
+
+        const modalHTML = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="true" aria-hidden="true" style="z-index: 1095;">
+                <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                        
+                        <!-- Cabeçalho -->
+                        <div class="modal-header border-0 py-3 px-4 d-flex align-items-center justify-content-between" style="background-color: ${bgHeader}; color: #ffffff;">
+                            <h5 class="modal-title fw-bold d-flex align-items-center gap-2 m-0" style="font-size: 1.2rem; letter-spacing: 0.3px;">
+                                <span style="font-size: 1.1rem;">${icone}</span> ${titulo}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white shadow-none m-0 p-0" data-bs-dismiss="modal" aria-label="Close" style="font-size: 0.9rem; opacity: 0.8;"></button>
+                        </div>
+                        
+                        <!-- Corpo -->
+                        <div class="modal-body p-5 text-center" style="background-color: #ffffff; color: #6c757d;">
+                            <div style="font-size: 1.25rem; line-height: 1.5; font-weight: 500;">
+                                ${mensagem}
+                            </div>
+                        </div>
+                        
+                        <!-- Rodapé -->
+                        <div class="modal-footer border-0 pb-4 pt-0 justify-content-center" style="background-color: #ffffff;">
+                            <button type="button" class="btn fw-bold px-4 py-2 border-0 text-white" data-bs-dismiss="modal" style="background-color: #6c757d; border-radius: 8px; font-size: 1rem; min-width: 110px; transition: background 0.2s;">
+                                Entendi
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Injeta o novo alerta no final da página
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Exibe o novo alerta operacional
+        const modalElement = document.getElementById(modalId);
+        if (modalElement && typeof bootstrap !== 'undefined') {
+            const bsModal = new bootstrap.Modal(modalElement);
+            bsModal.show();
+
+            // Limpa o HTML do alerta e joga o foco no input de código de barras após o fechamento
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                modalElement.remove(); 
+                
+                const inputCodigo = document.getElementById('codigo_barras');
+                if (inputCodigo) {
+                    inputCodigo.focus();
+                    inputCodigo.select();
+                }
+            });
+        } else if (modalElement) {
+            alert(mensagem.replace(/<\/?[^>]+(>|$)/g, ''));
+            modalElement.remove();
+        }
+    };
+
+
+ });
 // Fim do Escopo Seguro (IIFE)
 

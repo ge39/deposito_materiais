@@ -1,10 +1,6 @@
-<!-- View completa do PDV gerada conforme layout solicitado -->
-<!-- Você pode ajustar rota, ids e classes conforme sua lógica -->
+<?php $__env->startSection('content'); ?>
 
-
-<?php $__env->startSection('content'); ?> 
-
-<?php  session(['terminal_id' => $terminal->id])?>;
+<?php session(['terminal_id' => $terminal->id]); ?>
 
 <style>
     /* estilo pra bloqueio de caixa */
@@ -236,7 +232,7 @@
 <div class="container-fluid p-0">   
       
     <!-- OVERLAY -->
-
+        
     <!-- Modal Alerta Carrinho Vazio -->
     <div class="modal fade" id="modalCarrinhoVazio" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -1004,8 +1000,6 @@
 
 </script>
 
-<?php $__env->stopSection(); ?>
-
 <!-- Modals atahos -->
 <?php echo $__env->make('pdv.modals.modal_cliente_pdv', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 <?php echo $__env->make('pdv.modals.modal_produto_pdv', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
@@ -1077,5 +1071,5 @@
     });
 </script>
 <!-- Fim view completa do PDV -->
-
+<?php $__env->stopSection(); ?>
 <?php echo $__env->make('layouts.app2', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>

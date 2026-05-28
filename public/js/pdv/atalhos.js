@@ -186,10 +186,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }, true);
 
-
-    
-
-
     // =========================
     // BOTÃO ABRIR CAIXA
     // =========================
