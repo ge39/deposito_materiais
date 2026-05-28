@@ -29,6 +29,8 @@ class Orcamento extends Model
         'observacoes',
         'total',
         'ativo',
+        'editando_por',  // 🌟 ADICIONE ESTA LINHA
+        'editando_em',   // 🌟 ADICIONE ESTA LINHA
     ];
 
     protected $casts = [
@@ -36,6 +38,7 @@ class Orcamento extends Model
         'validade'       => 'date',
         'total'          => 'decimal:2',
         'ativo'          => 'boolean',
+        
     ];
 
    

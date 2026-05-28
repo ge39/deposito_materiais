@@ -23,6 +23,14 @@ class VendaController extends Controller
 
     public function finalizar(Request $request, CreditoService $creditoService) 
     { 
+            // 🕵️‍♂️ CAPTURA DOS DADOS ANTES DE PERSISTIR
+        \Log::info('===== DADOS RECEBIDOS NO BACKEND (PDV) =====');
+        \Log::info('URL Acessada: ' . request()->fullUrl());
+        \Log::info('Payload Completo:', $request->all());
+        \Log::info('Valor de orcamento_id isolado: ' . $request->input('orcamento_id'));
+        \Log::info('============================================');
+    
+        
         // Helper de Sanitização Decimal
         $limparNumero = function($valor) { 
             if (is_numeric($valor)) return (float) $valor; 
@@ -65,6 +73,35 @@ class VendaController extends Controller
             // 6️⃣ Fecha a venda
             $venda->update(['status' => 'finalizada']);
 
+            // 🎯 RASTREAMENTO SIMPLIFICADO POR PRODUTO (Sem erro de coluna)
+            $clienteIdLog = $request->input('cliente_id');
+            
+            // Coleta apenas o produto_id do primeiro item enviado
+            $primeiroItem = $request->input('itens.0');
+            $produtoIdLog = $primeiroItem ? $primeiroItem['produto_id'] : null;
+
+            if ($produtoIdLog) {
+                // Busca o orçamento ativo do cliente que contenha esse produto
+                $orcamento = \App\Models\Orcamento::where('cliente_id', $clienteIdLog)
+                    ->where('status', 'Aprovado')
+                    ->whereHas('itens', function($query) use ($produtoIdLog) {
+                        $query->where('produto_id', $produtoIdLog);
+                    })
+                    ->latest()
+                    ->first();
+
+                if ($orcamento) {
+                    // Executa o update bruto direto no banco
+                    \App\Models\Orcamento::where('id', $orcamento->id)->update([
+                        'status'       => 'Faturado',
+                        'editando_por' => auth()->id() ?? $request->input('funcionario_id') ?? 1
+                    ]);
+                }
+            }
+
+
+
+
             DB::commit(); 
             return response()->json(['success' => true, 'venda_id' => $venda->id], 200);
 
@@ -73,8 +110,8 @@ class VendaController extends Controller
             return response()->json(['success' => false, 'erro' => $e->getMessage()], 422); 
         } 
     }
-
-        /**
+    
+     /**
      * Define ou localiza o cliente correto para a venda.
      */
     private function buscarOuDefinirCliente($clienteIdRaw): int
@@ -88,80 +125,8 @@ class VendaController extends Controller
         }
         return (int) $clienteIdRaw;
     }
-
-        /**
-     * Processa a baixa de estoque dos itens utilizando o algoritmo FIFO.
-     */
-    // private function processarItensVenda(Venda $venda, array $itens, $limparNumero): float
-    // {
-    //     $valorTotalVenda = 0;
-
-    //     foreach ($itens as $item) {
-    //         $quantidadeNecessaria = $limparNumero($item['quantidade'] ?? $item['qtd'] ?? 1);
-    //         $precoUnitario        = $limparNumero($item['valor_unitario'] ?? $item['preco_unitario'] ?? $item['preco'] ?? $item['valor'] ?? 0);
-    //         $desconto             = $limparNumero($item['desconto'] ?? 0.00);
-    //         $produtoId            = $item['produto_id'] ?? $item['id'] ?? null;
-
-    //         if (!$produtoId) {
-    //             throw new \InvalidArgumentException('Identificador do produto inválido no carrinho.');
-    //         }
-
-    //         if ($precoUnitario <= 0) {
-    //             $produtoBanco = DB::table('produtos')->where('id', $produtoId)->first();
-    //             $precoUnitario = $produtoBanco ? (float) $produtoBanco->preco_venda : 0.00;
-    //         }
-
-    //         $valorTotalVenda += ($quantidadeNecessaria * $precoUnitario) - $desconto;
-
-    //         // 🚀 OTIMIZAÇÃO CRÍTICA: Removido lockForUpdate() para impedir o travamento em cascata entre os caixas
-    //         $lotes = DB::table('lotes')
-    //             ->where('produto_id', $produtoId)
-    //             ->where('quantidade_disponivel', '>', 0)
-    //             ->orderBy('created_at', 'asc')
-    //             ->get();
-
-    //         if ($lotes->isEmpty()) {
-    //             $venda->itens()->create([
-    //                 'produto_id'     => $produtoId,
-    //                 'lote_id'        => null,
-    //                 'quantidade'     => $quantidadeNecessaria,
-    //                 'preco_unitario' => $precoUnitario,
-    //                 'desconto'       => $desconto
-    //             ]);
-    //         } else {
-    //             foreach ($lotes as $lote) {
-    //                 if ($quantidadeNecessaria <= 0) break;
-    //                 $qtdConsumir = min($quantidadeNecessaria, $lote->quantidade_disponivel);
-
-    //                 $venda->itens()->create([
-    //                     'produto_id'     => $produtoId,
-    //                     'lote_id'        => $lote->id,
-    //                     'quantidade'     => $qtdConsumir,
-    //                     'preco_unitario' => $precoUnitario,
-    //                     'desconto'       => $desconto
-    //                 ]);
-
-    //                 // O decrement opera de forma isolada e segura a nível de banco
-    //                 DB::table('lotes')->where('id', $lote->id)->decrement('quantidade_disponivel', $qtdConsumir);
-    //                 $quantidadeNecessaria -= $qtdConsumir;
-    //             }
-
-    //             if ($quantidadeNecessaria > 0) {
-    //                 $venda->itens()->create([
-    //                     'produto_id'     => $produtoId,
-    //                     'lote_id'        => null,
-    //                     'quantidade'     => $quantidadeNecessaria,
-    //                     'preco_unitario' => $precoUnitario,
-    //                     'desconto'       => $desconto
-    //                 ]);
-    //             }
-    //         }
-    //     }
-
-    //     return $valorTotalVenda;
-    // }
-
-        /**
+    
+    /**
      * Processa a baixa de estoque dos itens utilizando o algoritmo FIFO.
      * Protegido contra concorrência multi-lote via Lock Cirúrgico de milissegundos.
      */
@@ -242,44 +207,7 @@ class VendaController extends Controller
 
         return $valorTotalVenda;
     }
-
-
-    /**
-     * Registra os pagamentos de forma isolada.
-     */
-    // private function pagamentos_venda(int $vendaId, Request $request, int $userId, $limparNumero): array
-    // {
-    //     // Alinhado 100% com as opções válidas do seu enum do banco de dados
-    //     $formasPermitidas = ['dinheiro', 'pix', 'cartao_credito', 'cartao_debito', 'carteira', 'boleto', 'outros'];
-    //     $pagamentosProcessados = [];
-
-    //     foreach ($formasPermitidas as $forma) {
-    //         $valorPago = $limparNumero($request->input($forma, 0));
-
-    //         if ($valorPago > 0) {
-    //             // 🚀 Mantido o nome correto e confirmado da sua tabela: pagamentos_venda
-    //             DB::table('pagamentos_venda')->insert([
-    //                 'user_id'          => $userId,
-    //                 'venda_id'         => $vendaId,
-    //                 'forma_pagamento'  => $forma,
-    //                 'bandeira'         => $request->input("bandeira_{$forma}") ?: null,
-    //                 'valor'            => $valorPago,
-    //                 'troco'            => $forma === 'dinheiro' ? $limparNumero($request->input("troco_{$forma}", 0)) : 0,
-    //                 'parcelas'         => $request->input("parcelas_{$forma}") ? (int)$request->input("parcelas_{$forma}") : null,
-    //                 'status'           => $forma === 'carteira' ? 'pendente' : 'confirmado',
-    //                 'created_at'       => now(),
-    //                 'updated_at'       => now(),
-    //                 'data_vencimento'  => $request->input("vencimento_{$forma}") ?: now()->format('Y-m-d')
-    //             ]);
-
-    //             $pagamentosProcessados[$forma] = $valorPago;
-    //         }
-    //     }
-
-    //     return $pagamentosProcessados;
-    // }
-
-        /**
+     /**
      * Registra os pagamentos de forma isolada.
      */
     private function pagamentos_venda(int $vendaId, Request $request, int $userId, $limparNumero): array

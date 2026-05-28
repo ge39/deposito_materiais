@@ -730,7 +730,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     caixa_id,
                     dataVenda,
                     pagamentos,
-                    itens
+                    itens,
+                    // 🎯 AQUI ESTÁ A IDENTIFICAÇÃO EXATA:
+                    // Envia o ID ou Código do orçamento que está aberto na tela (se houver)
+                    orcamento_id: window.orcamentoAtualId 
                 })
             });
 

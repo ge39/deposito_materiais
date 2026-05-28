@@ -67,10 +67,10 @@ Route::middleware('auth')->group(function () {
     });
     Route::resource('pedidos', PedidoCompraController::class);
 
-    // ===============================
-    // ORÇAMENTOS
-    // ===============================
-     Route::prefix('orcamentos')->name('orcamentos.')->group(function () {
+    // ==========================================================
+    // ORÇAMENTOS (Painel Administrativo - Criação, Edição, PDF)
+    // ==========================================================
+    Route::prefix('orcamentos')->name('orcamentos.')->group(function () {
         Route::post('{orcamento}/aprovar', [OrcamentoController::class, 'aprovar'])->name('aprovar');
         Route::post('{orcamento}/reativar', [OrcamentoController::class, 'reativar'])->name('reativar');
         Route::post('{orcamento}/cancelar', [OrcamentoController::class, 'cancelar'])->name('cancelar');
@@ -80,7 +80,12 @@ Route::middleware('auth')->group(function () {
         Route::post('{id}/limpar-edicao', [OrcamentoController::class, 'limparEdicao'])->name('limparEdicao');
     });
     Route::resource('orcamentos', OrcamentoController::class);
-    
+
+    // ==========================================================
+    // 🛒 ECOSSISTEMA DO PDV / CAIXA (Rotas Isoladas)
+    // ==========================================================
+    Route::get('/pdv/orcamento/{codigo}', [App\Http\Controllers\PDV\OrcamentoPDVController::class, 'buscar']);
+
     // ===============================
     // PRODUTOS
     // ===============================
@@ -231,24 +236,39 @@ Route::middleware('auth')->group(function () {
         
     });
 
-            // ========================================================
-        // ROTAS DE VENDAS E CUPOM TÉRMICO (ORGANIZADO E FILTRADO)
         // ========================================================
-        
-        // 🎯 ATALHO ALT + P: Aponta para o controlador correto (VendaController) e fica no topo
-        Route::get('/pdv/ultima-venda-id', [\App\Http\Controllers\VendaController::class, 'obterUltimaVendaId']);
+    // ROTAS DE VENDAS E CUPOM TÉRMICO (ORGANIZADO E FILTRADO)
+    // ========================================================
+    
+    // 🎯 ATALHO ALT + P: Aponta para o controlador correto (VendaController) e fica no topo
+    // Route::get('/pdv/ultima-venda-id', [\App\Http\Controllers\VendaController::class, 'obterUltimaVendaId']);
 
-        // Rotas de processamento e fechamento da venda
-        Route::post('/vendas', [\App\Http\Controllers\VendaController::class, 'store'])->name('vendas.store');
-        Route::post('/vendas/finalizar', [\App\Http\Controllers\VendaController::class, 'finalizar']);
-        
-        // Rota do Cupom com parâmetro {id} (Fica abaixo das rotas fixas)
-        Route::get('/venda/{id}/cupom', [\App\Http\Controllers\VendaController::class, 'cupom'])->name('venda.cupom');
+    // // Rotas de processamento e fechamento da venda
+    // Route::post('/vendas', [\App\Http\Controllers\VendaController::class, 'store'])->name('vendas.store');
+    // Route::post('/vendas/finalizar', [\App\Http\Controllers\VendaController::class, 'finalizar']);
+    
+    // // Rota do Cupom com parâmetro {id} (Fica abaixo das rotas fixas)
+    // Route::get('/venda/{id}/cupom', [\App\Http\Controllers\VendaController::class, 'cupom'])->name('venda.cupom');
 
-         //Vendas
-        Route::post('/vendas', [VendaController::class, 'store'])->name('vendas.store');
-        Route::post('/vendas/finalizar', [VendaController::class, 'finalizar']);
-        Route::get('/venda/{id}/cupom', [VendaController::class, 'cupom'])->name('venda.cupom');
+    //  //Vendas
+    // Route::post('/vendas', [VendaController::class, 'store'])->name('vendas.store');
+    // Route::post('/vendas/finalizar', [VendaController::class, 'finalizar']);
+    // Route::get('/venda/{id}/cupom', [VendaController::class, 'cupom'])->name('venda.cupom');
+
+    // ========================================================
+    // ROTAS DE VENDAS E CAIXA (ALINHADO COM O VENDA CONTROLLER)
+    // ========================================================
+
+    // 1️⃣ Rota específica de finalização (DEVE FICAR ACIMA DO RESOURCE)
+    Route::post('/vendas/finalizar', [\App\Http\Controllers\VendaController::class, 'finalizar']);
+
+    // 2️⃣ Atalhos auxiliares do PDV
+    Route::get('/pdv/ultima-venda-id', [\App\Http\Controllers\VendaController::class, 'obterUltimaVendaId']);
+    Route::get('/venda/{id}/cupom', [\App\Http\Controllers\VendaController::class, 'cupom'])->name('venda.cupom');
+
+    // 3️⃣ Resource padrão (Gera index, create, show, update, destroy)
+    Route::resource('vendas', PdvController::class);
+
 
     // ===============================
     // Abertura de Caixa
