@@ -1013,7 +1013,9 @@
 <script src="<?php echo e(asset('js/pdv/app.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/regras.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/produto.js')); ?>" defer></script>
-<script src="<?php echo e(asset('js/pdv/orcamento.js')); ?>" defer></script>
+<!-- <script src="<?php echo e(asset('js/pdv/orcamento.js')); ?>" defer></script> -->
+<script src="<?php echo e(asset('js/pdv/orcamento.js')); ?>?v=<?php echo e(time()); ?>" defer></script>
+
 <script src="<?php echo e(asset('js/pdv/carrinho.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/ui.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/pdv.js')); ?>" defer></script>

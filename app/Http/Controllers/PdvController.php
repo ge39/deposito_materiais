@@ -185,52 +185,6 @@ class PdvController extends Controller
         ]);
     }
 
-    // public function verificarSangria(): array
-    // {
-    //     // 1. Obtém o saldo real em dinheiro deste caixa específico
-    //     $saldoAtual = $this->saldoDinheiroAtual();
-        
-    //     // 2. Busca a configuração amarrada à empresa deste caixa
-    //     $config = \App\Models\SangriaConfig::where('empresa_id', $this->empresa_id)->first();
-
-    //     // 3. Fallback de Segurança: se não achar para esta filial, pega a primeira configuração do banco
-    //     if (!$config) {
-    //         $config = \App\Models\SangriaConfig::first();
-    //     }
-
-    //     // 4. Se mesmo assim a tabela estiver vazia, assume valores padrão seguros
-    //     if (!$config) {
-    //         return [
-    //             'saldoAtual' => $saldoAtual,
-    //             'limiteSangria' => 200.00,
-    //             'limiteBloqueio' => 300.00,
-    //             'avisarSangria' => true,
-    //             'bloquearPDV' => false,
-    //             'valorSugeridoSangria' => 0.00,
-    //         ];
-    //     }
-
-    //     // 5. MAPEAMENTO EXATO COM OS NOMES DAS SUAS COLUNAS DO BANCO
-    //     $limiteSangria = (float) ($config->valor_limite ?? 200.00); // R$ 200 (Início do aviso)
-    //     $limiteBloqueio = (float) ($config->valor_maximo_caixa ?? $limiteSangria); // Teto máximo para travar o PDV
-
-    //     // 6. Regras lógicas de ativação (Garante que saldo R$ 0,00 nunca ativa o modal)
-    //     $deveAvisar = ($saldoAtual >= $limiteSangria) && ($saldoAtual > 0);
-    //     $deveBloquear = ($saldoAtual >= $limiteBloqueio) && ($saldoAtual > 0);
-
-    //     // 7. Calcula o valor sugerido com base no saldo que excedeu o limite principal
-    //     $valorSugeridoSangria = max(0, $saldoAtual - $limiteSangria);
-
-    //     return [
-    //         'saldoAtual' => $saldoAtual,
-    //         'limiteSangria' => $limiteSangria,
-    //         'limiteBloqueio' => $limiteBloqueio,
-    //         'avisarSangria' => $deveAvisar,
-    //         'bloquearPDV' => $deveBloquear,
-    //         'valorSugeridoSangria' => round($valorSugeridoSangria, 2),
-    //     ];
-    // }
-
     public function verificarSangria(): array
     {
         // 1. Obtém o saldo real em dinheiro deduzido de sangrias anteriores

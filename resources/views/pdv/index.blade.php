@@ -1001,7 +1001,9 @@
 <script src="{{ asset('js/pdv/app.js') }}" defer></script>
 <script src="{{ asset('js/pdv/regras.js') }}" defer></script>
 <script src="{{ asset('js/pdv/produto.js') }}" defer></script>
-<script src="{{ asset('js/pdv/orcamento.js') }}" defer></script>
+<!-- <script src="{{ asset('js/pdv/orcamento.js') }}" defer></script> -->
+<script src="{{ asset('js/pdv/orcamento.js') }}?v={{ time() }}" defer></script>
+
 <script src="{{ asset('js/pdv/carrinho.js') }}" defer></script>
 <script src="{{ asset('js/pdv/ui.js') }}" defer></script>
 <script src="{{ asset('js/pdv/pdv.js') }}" defer></script>
