@@ -29,9 +29,9 @@
 
             
             <div style="font-family: monospace; font-size: 12px; margin-top: 14px;">
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #000; font-weight: bold; padding-bottom: 3px;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #000; font-weight:normal; padding-bottom: 3px;">
                     <span style="flex: 2; text-align: left;">PRODUTO</span>
-                    <span style="flex: 1.5; text-align: center;">QTD x UN</span>
+                    <span style="flex: 1.5; text-align: center;">QTD x VL x UN</span>
                     <span style="flex: 1; text-align: right;">TOTAL</span>
                 </div>
 
@@ -52,33 +52,36 @@
                         // Busca dinamicamente o número do lote relacionado ao item
                         $numeroLote = $item->lote->numero_lote ?? 'N/A';
                     ?>
-                    <div style="margin-top: 4px; padding-bottom: 4px;font-size:14px; border-bottom: 1px dotted #eee; display: flex; flex-direction: column;">
+                    <div style="margin-top: 4px; padding-bottom: 4px;font-size:12px; border-bottom: 1px dotted #eee; display: flex; flex-direction: column;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             
                             
-                            <div style="flex: 2; display: flex; flex-direction: column; text-align: left;">
-                                <span style="font-weight: bold; line-height: 1.2;">
+                            <div style="flex: 2; display: flex; flex-direction: column; text-align: left;margin-bottom: -10px;">
+                                <span style="font-weight:normal;font-size: 11px; line-height: 1.2;">
                                     <?php echo e($item->produto->nome ?? 'Item não identificado'); ?>
 
                                 </span>
-                                <span style="font-size: 11px; color: #555; margin-top: 1px;">
-                                    Cod: <?php echo e($item->produto_id); ?> | Lote: <?php echo e($numeroLote); ?>
+                                <span style="font-size: 11px; color: #555; margin-top: -1px;">
+                                    <!-- Cod: <?php echo e($item->produto_id); ?> | Lote: <?php echo e($numeroLote); ?> -->
+                                    Lote: <?php echo e($numeroLote); ?>
 
                                 </span>
                             </div>
-
+                            
                             
                             <div style="flex: 1.5; text-align: center; white-space: nowrap;">
                                 <span><?php echo e((int)$quantidade); ?> x </span>
-                                <span style="font-weight: bold;">
+                                <span style="font-weight:normal;">
+                                    <?php echo e($precoUnitario > 0 ? number_format($precoUnitario, 2, ',', '.') : 'Grátis'); ?>
+
                                     <?php echo e(strtoupper($siglaMedida)); ?>
 
                                 </span>
                             </div>
 
                             
-                            <div style="flex: 1;text-align: right; font-weight: bold;">
-                                <span>R$ <?php echo e(number_format($totalItem, 2, ',', '.')); ?></span>
+                            <div style="flex: 1;text-align: right; font-weight:normal;">
+                                <span> <?php echo e(number_format($totalItem, 2, ',', '.')); ?></span>
                             </div>
                         </div>
 
@@ -139,14 +142,14 @@
                     </div>
                 <?php endif; ?>
 
-                <div style="display: flex; justify-content: space-between; font-weight: bold; ">
+                <div style="display: flex; justify-content: space-between; font-weight:normal; ">
                     <span>TOTAL LÍQUIDO:</span>
                     <span>R$ <?php echo e(number_format($totalLiquidoCalculado, 2, ',', '.')); ?></span>
                 </div>
 
                 
                 <?php if(isset($troco) && $troco > 0): ?>
-                    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 4px;">
+                    <div style="display: flex; justify-content: space-between; font-weight:normal; margin-top: 4px;">
                         <span>TROCO:</span>
                         <span>R$ <?php echo e(number_format($troco, 2, ',', '.')); ?></span>
                     </div>
@@ -212,7 +215,7 @@
 
                 if (trocoCalculado > 0) {
                     htmlTroco += `
-                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                        <div style="display: flex; justify-content: space-between; font-weight:normal;">
                             <span>TROCO:</span>
                             <span>R$ ${troco.toFixed(2).replace('.', ',')}</span>
                         </div>

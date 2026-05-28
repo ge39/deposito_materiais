@@ -58,13 +58,12 @@
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             
                             {{-- NOME E ID DO PRODUTO --}}
-                            <div style="flex: 2; display: flex; flex-direction: column; text-align: left;margin-bottom: -10px;">
-                                <span style="font-weight:normal;font-size: 11px; line-height: 1.2;">
+                            <div style="flex: 2; display: flex; flex-direction: column; text-align: left;">
+                                <span style="font-weight:normal; line-height: 1.2;">
                                     {{ $item->produto->nome ?? 'Item não identificado' }}
                                 </span>
-                                <span style="font-size: 11px; color: #555; margin-top: -1px;">
-                                    <!-- Cod: {{ $item->produto_id }} | Lote: {{ $numeroLote }} -->
-                                    Lote: {{ $numeroLote }}
+                                <span style="font-size: 10px; color: #555; margin-top: 1px;">
+                                    Cod: {{ $item->produto_id }} | Lote: {{ $numeroLote }}
                                 </span>
                             </div>
                             
