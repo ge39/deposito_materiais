@@ -14,20 +14,29 @@ class OrcamentoPDVController extends Controller
      */
     public function buscar($codigo)
     {
-        $codigo = trim((string) $codigo);
+      $codigo = trim((string) $codigo);
 
+        // Busca o orçamento trazendo qualquer status, sem bloquear direto no SQL
         $orcamento = Orcamento::with(['cliente', 'itens.produto.unidadeMedida'])
             ->where('codigo_orcamento', $codigo)
-            ->where('status', 'Aprovado')
             ->first();
 
+        // Se o orçamento REALMENTE não existir no banco de dados
         if (!$orcamento) {
             return response()->json([
                 'success' => false,
-                'message' => 'Orçamento não encontrado ou não aprovado',
+                'message' => 'Orçamento não encontrado no sistema.',
                 'codigo_recebido' => $codigo
             ], 404);
         }
+
+        // Se o orçamento existe, o retorno deve ser de SUCESSO. 
+        // O JavaScript vai ler o campo 'status' e decidir qual modal exibir para o operador!
+        return response()->json([
+            'success' => true,
+            'orcamento' => $orcamento
+        ], 200);
+
 
         // Transforma os itens para incluir preco_unitario e subtotal
         $orcamento->itens->transform(function ($item) {

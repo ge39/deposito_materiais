@@ -55,53 +55,132 @@ document.addEventListener('DOMContentLoaded', function () {
        ========================= */
 
     window.confirmarOrcamentoFront = async function () {
-        const inputCodigo = document.getElementById('inputCodigoOrcamento');
-        if (!inputCodigo) return alert('Input do código do orçamento não encontrado.');
+    const inputCodigo = document.getElementById('inputCodigoOrcamento');
+    if (!inputCodigo) return alert('Input do código do orçamento não encontrado.');
 
-        const codigo = inputCodigo.value.trim();
-        if (!codigo) return alert('Informe o código do orçamento.');
+    const codigo = inputCodigo.value.trim();
+    if (!codigo) return alert('Informe o código do orçamento.');
 
-        try {
-            const response = await fetch(`/pdv/orcamento/${encodeURIComponent(codigo)}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-            });
+    const modalEl = document.getElementById('modalOrcamento'); 
 
-            const data = await response.json();
-            // 🔒 INTERCEPTAÇÃO DE SEGURANÇA
-            if (!response.ok || !data.success) {
+    try {
+        const response = await fetch(`/pdv/orcamento/${encodeURIComponent(codigo)}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        });
 
-                const mensagemErro =
-                    data.message ||
-                    'Não foi possível localizar este orçamento.';
+        // 1️⃣ LEITURA ÚNICA DO JSON
+        const data = await response.json();
 
-                exibirAlertaBootstrap(`
-                    <strong>Não foi possível continuar</strong><br>
-                    ${mensagemErro}<br>
-                    Verifique o código informado e tente novamente.
-                `, 'warning');
+        // 2️⃣ DEFINIÇÃO DO OBJETO PRINCIPAL
+        const orcamentoObj = data.orcamento || data.data || data; 
 
-                return;
+        // 🎯 CORREÇÃO DE ESCOPO: Inicializa as variáveis no topo para estarem disponíveis em qualquer lugar da função
+        const codigoPedido = orcamentoObj?.codigo_orcamento || orcamentoObj?.id || orcamentoObj?.codigo || 'N/A';
+        const nomeCliente = orcamentoObj?.cliente?.nome || orcamentoObj?.nome_cliente || 'Cliente não identificado';
+
+        // 3️⃣ VALIDAÇÃO DINÂMICA DE STATUS VINDOS DO BANCO DE DADOS
+        if (orcamentoObj && orcamentoObj.status) {
+            // Limpa acentos, espaços e padroniza tudo em minúsculo
+            const status = String(orcamentoObj.status)
+                .trim()
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
+            
+            let mensagemStatus = '';
+
+            switch (status) {
+                case 'faturado':
+                    mensagemStatus = `
+                        O orçamento <strong>#${codigoPedido}</strong> já foi <strong>Faturado</strong>!<br>
+                        <span style="font-size: 0.95rem; display:block; margin-top: 5px;">
+                            Cliente: ${nomeCliente}<br>
+                            Venda já concluída no sistema. Não é possível alterar itens no caixa.
+                        </span>
+                    `;
+                    break;
+
+                case 'cancelado':
+                    mensagemStatus = `
+                        O orçamento <strong>#${codigoPedido}</strong> está <strong>Cancelado</strong>!<br>
+                        <span style="font-size: 0.95rem; display:block; margin-top: 5px;">
+                            Cliente: ${nomeCliente}<br>
+                            Este pedido foi anulado e não pode ser faturado no PDV.
+                        </span>
+                    `;
+                    break;
+
+                case 'expirado':
+                    mensagemStatus = `
+                        A validade do orçamento <strong>#${codigoPedido}</strong> está <strong>Expirada</strong>!<br>
+                        <span style="font-size: 0.95rem; display:block; margin-top: 5px;">
+                            Cliente: ${nomeCliente}<br>
+                            O prazo de reserva de preços terminou. É necessário atualizar a validade.
+                        </span>
+                    `;
+                    break;
+
+                case 'aguardando estoque':
+                    mensagemStatus = `
+                        Orçamento <strong>#${codigoPedido}</strong> retido: <strong>Aguardando Estoque</strong>!<br>
+                        <span style="font-size: 0.95rem; display:block; margin-top: 5px;">
+                            Cliente: ${nomeCliente}<br>
+                            Existem itens neste pedido sem saldo físico disponível no depósito.
+                        </span>
+                    `;
+                    break;
+
+                case 'aguardando aprovacao':
+                    mensagemStatus = `
+                        O orçamento <strong>#${codigoPedido}</strong> pendente: <strong>Aguardando Aprovação</strong>!<br>
+                        <span style="font-size: 0.95rem; display:block; margin-top: 5px;">
+                            Cliente: ${nomeCliente}<br>
+                            Este pedido precisa ser liberado pela gerência ou setor financeiro.
+                        </span>
+                    `;
+                    break;
             }
 
-            // Guardamos o ID do orçamento em memória para o fechamento
+            if (mensagemStatus !== '') {
+                window.exibirAlertaBootstrap(mensagemStatus, 'danger');
+                return; // Trava o fluxo e impede o preenchimento do carrinho
+            }
+        }
+
+        // 4️⃣ INTERCEPTAÇÃO DE SEGURANÇA SEGUNDO NÍVEL (Caso o orçamento não exista no banco)
+        if (!response.ok || !data.success) {
+            const mensagemErro = data.message || 'Não foi possível localizar este orçamento.';
+            window.exibirAlertaBootstrap(`
+                <strong>Não foi possível continuar</strong><br>
+                ${mensagemErro}<br>
+                Verifique o código informado e tente novamente.
+            `, 'danger');
+            return;
+        }
+
+        // 5️⃣ CONTINUAÇÃO DO SEU CÓDIGO ORIGINAL (Apenas se o status for válido)
+        if (data.orcamento && data.orcamento.id) {
             window.orcamentoAtualId = data.orcamento.id;
 
-            // Preenche cliente e o carrinho sincronizado
             preencherCliente(data.orcamento.cliente);
             preencherCarrinhoSincronizado(data.orcamento.itens);
 
-            // Fecha modal
             if (modalEl) {
-                const modal = bootstrap.Modal.getInstance(modalEl);
+                const modal = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
                 if (modal) modal.hide();
             }
-
-        } catch (error) {
-            console.error(error);
-            window.orcamentoAtualId = null;
-            alert(error.message);
+        } else {
+            throw new Error('Dados do orçamento estruturados incorretamente pela API.');
         }
-    };
+
+    } catch (error) {
+        console.error(error);
+        window.orcamentoAtualId = null;
+        window.exibirAlertaBootstrap(`
+            <strong>Erro na requisição</strong><br>
+            ${error.message}
+        `, 'danger');
+    }
 
     // 🔹 FUNÇÃO GLOBAL CORRIGIDA: Envia os dados unificados resolvendo totais, caixa e cupom.blade
     window.faturarOrcamentoNoCaixa = async function () {
