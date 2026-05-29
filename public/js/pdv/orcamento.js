@@ -77,6 +77,7 @@ window.exibirAlertaBootstrap = function(mensagem, classe = 'warning') {
         bsModal.show();
 
         // Limpa o HTML do alerta e joga o foco no input de código de barras após o fechamento
+                // Limpa o HTML do alerta e joga o foco no input de código de barras após o fechamento
         modalElement.addEventListener('hidden.bs.modal', function () {
             modalElement.remove(); 
             
@@ -85,11 +86,28 @@ window.exibirAlertaBootstrap = function(mensagem, classe = 'warning') {
                 inputCodigo.focus();
                 inputCodigo.select();
             }
+
+            // 🎯 GATILHOS DE RETORNO PARA VENDA BALCÃO:
+            // 1️⃣ Quando falha na validação (danger/error)
+            // 2️⃣ Quando a venda é concluída com sucesso como orçamento (success)
+            if (classe === 'danger' || classe === 'error' || classe === 'success') {
+                if (typeof window.vendaBalcao === 'function') {
+                    window.vendaBalcao();
+                }
+            }
         });
     } else if (modalElement) {
         alert(mensagem.replace(/<\/?[^>]+(>|$)/g, ''));
         modalElement.remove();
+
+        // Fallback básico caso o Bootstrap não esteja carregado
+        if (classe === 'danger' || classe === 'error' || classe === 'success') {
+            if (typeof window.vendaBalcao === 'function') {
+                window.vendaBalcao();
+            }
+        }
     }
+
 };
 
 // ========================================================== //

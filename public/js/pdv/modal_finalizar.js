@@ -785,6 +785,5 @@ document.addEventListener('DOMContentLoaded', function () {
             finalizarVenda(e);
         }
     });
-
 });
-```
+

@@ -6,11 +6,32 @@
 
 <style>
     /* estilo pra bloqueio de caixa */
+    
+        /* estilo pra bloqueio de caixa */
     :root {
         --bordo: #6b0f1a;
         --bordo-escuro: #4a0a12;
         --bordo-claro: #8b1c2b;
     }
+    /* 🌟 MODIFICADO: Estados de Focus e Classe de Trava Visual */
+       .btn-abrir-caixa:focus,
+    .btn-abrir-caixa.foco-ativo-pdv {
+        background: #198754 !important; /* Verde definitivo */
+        color: #ffffff !important;
+        border: 3px solid #ffffff !important;
+        transform: translate(-50%, calc(-50% + 120px)) scale(1.05) !important;
+        box-shadow: 0 0 15px rgba(25, 135, 84, 0.8) !important;
+    }
+
+    .btn-sair-caixa:focus,
+    .btn-sair-caixa.foco-ativo-pdv {
+        background: #dc3545 !important; /* Vermelho definitivo */
+        color: #ffffff !important;
+        border: 3px solid #ffffff !important;
+        transform: translate(-50%, calc(-50% + 120px)) scale(1.05) !important;
+        box-shadow: 0 0 15px rgba(220, 53, 69, 0.8) !important;
+    }
+
 
     /* ===== OVERLAY CAIXA BLOQUEADO ===== */
     #modalBloquearCaixa {
@@ -18,7 +39,6 @@
         inset: 0;
         background: rgba(107, 15, 26, 0.42);
         z-index: 999999;
-        /* ⚠️ IMPORTANTE: desativado por padrão */
         display: none;
         align-items: center;
         justify-content: center;
@@ -28,12 +48,13 @@
     /* overlay só aparece quando o caixa está bloqueado */
     body.caixa-bloqueado #modalBloquearCaixa {
         display: flex;
+       
     }
    
     /* CARIMBO */
     .carimbo-caixa {
         position: absolute;
-        top: 40%;
+        top: 35%;
         left: 50%;
         transform: translate(-50%, -50%) rotate(-25deg);
         font-size: 48px;
@@ -47,47 +68,76 @@
         letter-spacing: 4px;
         user-select: none;
         pointer-events: none;
-
     }
 
     /* BOTÃO — único elemento ativo */
     .btn-abrir-caixa {
         position: absolute;
-        top: 50%;
+        top: 53%;
         left: 40%;
         transform: translate(-50%, calc(-50% + 120px));
-        /* background: #ffffff; */
-        color: var(--bordo);
+        outline: none !important;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.25) !important;
+        color: red;
         border-radius: 10px;
-        border: 3px solid var(--bordo);
         padding: 14px 20px;
-        width:160px;
-        gap:30px;
+        width: 160px;
+        gap: 30px;
         font-size: 14px;
         font-weight: bold;
         cursor: pointer;
         z-index: 1;
+        border: 3px solid transparent !important; /* Remove a borda preta nativa */
+        transition: all 0.15s ease-in-out;
     }
+
     .btn-sair-caixa {
         position: absolute;
-        top: 50%;
+        top: 53%;
         left: 60%;
         border-radius: 10px;
         transform: translate(-50%, calc(-50% + 120px));
-        /* background: #ffffff; */
-        color: var(--bordo);
-        border: 3px solid var(--bordo);
+        outline: none !important;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.25) !important;
+        color: red;
         padding: 14px 20px;
-        width:150px;
-        gap:30px;
+        width: 150px;
+        gap: 30px;
         font-size: 14px;
         font-weight: bold;
         cursor: pointer;
         z-index: 1;
+        border: 3px solid transparent !important; /* Remove a borda preta nativa */
+        transition: all 0.15s ease-in-out;
     }
+
+    /* 🌟 ADICIONADO: ESTADOS DE FOCUS EM CIMA DO SEU PADRÃO (Para operação sem mouse) */
+    .btn-abrir-caixa:focus {
+        background: #198754 !important; /* Acende Verde ao focar pelo teclado */
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+        transform: translate(-50%, calc(-50% + 120px)) scale(1.1) !important; /* Mantém sua posição e cresce de leve */
+        box-shadow: 0 0 15px rgba(25, 135, 84, 0.8) !important;
+    }
+
+    .btn-sair-caixa:focus {
+        background: #dc3545 !important; /* Acende Vermelho ao focar pelo teclado */
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+        transform: translate(-50%, calc(-50% + 120px)) scale(1.1) !important; /* Mantém sua posição e cresce de leve */
+        box-shadow: 0 0 15px rgba(220, 53, 69, 0.8) !important;
+    }
+
+    /* Mantém seus hovers originais ativos se alguém usar o mouse */
     .btn-abrir-caixa:hover {
-        background: #f5f5f5;
+        background: #60a7f2;
+        color:snow;
     }
+    .btn-sair-caixa:hover {
+        background: #60a7f2;
+        color:snow;
+    }
+
     /* BLOQUEIA SCROLL */
     body.caixa-bloqueado {
         overflow: hidden;
@@ -97,6 +147,9 @@
         pointer-events: none;
         filter: blur(1px) grayscale(60%);
     }
+    /* fim estilo pra bloqueio de caixa */
+
+    
     /* fim estilo pra bloqueio de caixa */
 
     /* reset / box model */
@@ -259,8 +312,6 @@
     </div>
 
     <!-- //modal verificar sangria -->
-  
-   <!-- O Modal permanece na Blade para poder ser chamado -->
     <div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow-lg border-0">
@@ -376,35 +427,90 @@
     </script>
 
     <!-- bloquear caixa -->
-    <div id="modalBloquearCaixa" style="display: none;">
-        <div class="carimbo-caixa">
-            <span class="
-                {{ $status === 'Aberto' ? 'status-aberto' : '' }}
-                {{ $status === 'Fechado' ? 'status-fechado' : '' }}
-                {{ $status === 'Pendente' ? 'status-pendente' : '' }}
-                {{ $status === 'Inconsistente' ? 'status-inconsistente' : '' }}
-            " style="padding: 5px 10px; border-radius: 5px; font-weight: bold">
-              CAIXA {{ $status }}
-            </span>
-        </div>
-        <!-- Lista de caixas esquecidos -->
-        <div class="listaCaixasEsquecidos list-group text-center" id="listaCaixasEsquecidos">
-            <ul></ul>
-        </div>
+    <!-- 📦 INJEÇÃO DE VARIÁVEIS GLOBAIS PARA OS SCRIPTS (Como o atalhos.js) -->
+<script>
+    window.PDV_BLOQUEADO = @json($caixaBloqueado ?? false);
+    window.CAIXA_ID      = @json($caixa->id ?? null);
+</script>
 
-        <div class="d-flex mb-5 justify-content-between p-3 w-100 bg-lavender">
-            <button class="btn-abrir-caixa btn-primary btn-sm px-4"
-                onclick="window.location.href='{{ route('caixa.abrir') }}'">
-                ABRIR CAIXA
-            </button>
-            
-            <button class="btn-sair-caixa btn-warning btn-sm px-4"
-                onclick="window.location.href='{{ route('dashboard') }}'">
-                SAIR
-            </button>
-        </div>
+<!-- 📦 INJEÇÃO DE VARIÁVEIS GLOBAIS E CONTROLE IMEDIATO DE FOCO + TECLADO -->
+<script>
+    window.PDV_BLOQUEADO = @json($caixaBloqueado ?? false);
+    window.CAIXA_ID      = @json($caixa->id ?? null);
+
+    // ⚡ Executa imediatamente no milissegundo em que o HTML é lido
+    if (window.PDV_BLOQUEADO === true) {
         
+        // 1️⃣ TRAVA ULTRA-RÁPIDA DE TECLADO
+        window.addEventListener('keydown', function (event) {
+            const atalhosBloqueados = [
+                'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+                'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Tab'
+            ];
+
+            if (atalhosBloqueados.includes(event.key)) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                
+                // Se pressionar Enter ou Espaço, força o clique no botão de fechar caixa
+                if (event.key === 'Enter') {
+                    document.getElementById('btnFecharCaixaImediato')?.click();
+                }
+                return false;
+            }
+        }, true);
+
+        // 2️⃣ GARANTE O FOCO NO BOTÃO ASSIM QUE O BOTÃO APARECER NO DOM
+        const forcarFocoBotao = setInterval(() => {
+            const btn = document.getElementById('btnFecharCaixaImediato');
+            if (btn) {
+                btn.focus();
+                clearInterval(forcarFocoBotao); // Para o loop assim que conseguir dar o foco
+            }
+        }, 30); // Checa a cada 30ms para ser instantâneo
+    }
+</script>
+
+<div id="modalBloquearCaixa" style="display: {{ ($caixaBloqueado ?? false) ? 'block' : 'none' }};">
+    <div class="carimbo-caixa" >
+        <span class="
+            {{ $status === 'Aberto' ? 'status-aberto' : '' }}
+            {{ $status === 'Fechado' ? 'status-fechado' : '' }}
+            {{ $status === 'Pendente' ? 'status-pendente' : '' }}
+            {{ $status === 'Inconsistente' ? 'status-inconsistente' : '' }}
+        " style="padding: 5px 10px; border-radius: 5px; font-size: 30px; font-weight: bold;  text-align: center; display: inline-block">
+            @if(isset($bloquearPorTempo) && $bloquearPorTempo)
+                TURNO EXPIRADO
+                <p style="color: red;"> Caixa {{$caixa_id}}, Aberto(+12H)</p>
+                 <p style="color: gray;font-size: 14px;"> Operador: {{ $operador}}</p>
+            @else
+                CAIXA {{ $status }}
+            @endif
+        </span>
     </div>
+    
+    <div class="listaCaixasEsquecidos list-group text-center" id="listaCaixasEsquecidos">
+        <ul></ul>
+    </div>
+
+    <div class="d-flex mb-5 justify-content-between p-3 w-100 bg-lavender">
+        <!-- 🎯 ID ADICIONADO E PROP AUTOFOCUS PARA FORÇAR O TECLADO AQUI -->
+        <button id="btnFecharCaixaImediato" 
+            class="btn-abrir-caixa btn-primary btn-sm px-4 fw-bold"
+            autofocus
+            onclick="window.location.href='/fechamento_caixa/fechamento/{{ $caixa->id }}'">
+            FECHAR CAIXA
+        </button>
+        
+        <button class="btn-sair-caixa btn-warning btn-sm px-4 fw-bold"
+            onclick="window.location.href='{{ route('dashboard') }}'">
+            SAIR
+        </button>
+    </div>
+</div>
+
+
     <!-- FIM OVERLAY -->
      <!-- Informações do status do Caixa -->
     <div class="container-fluid p-0" 
@@ -671,7 +777,7 @@
 </div>
 
 <!-- caixas esquecidos abertos acima de 12 horas -->
-<script>
+<!-- <script>
     document.addEventListener('DOMContentLoaded', async function () {
 
         const listaDiv = document.getElementById('listaCaixasEsquecidos');
@@ -742,10 +848,10 @@
             listaDiv.style.display = 'none';
         }
     });
-</script>
+</script> -->
 
 <!-- script dos modais do pdv -->
-<script>
+<!-- <script>
     
     document.addEventListener('DOMContentLoaded', function () {
 
@@ -770,7 +876,7 @@
             listaDiv.style.display = 'none';
         });
     });
-</script>
+</script> -->
 
 <!-- controle dos lotes vencidos -->
 <script>
@@ -994,71 +1100,97 @@
 @include('pdv.modals.modal_orcamento')
 @include('pdv.modals.modal_finalizar')
 
-<!-- 🎯 BOTÃO INVISÍVEL COORDENADOR DO BOOTSTRAP -->
-<button id="btnGatilhoModalCaixa" type="button" class="d-none" data-bs-toggle="modal" data-bs-target="#modalBloquearCaixa"></button>
 
-<!-- 🎯 CARREGAMENTO SEQUENCIAL DA PASTA PUBLIC -->
+<!-- 📦 INJEÇÃO DE VARIÁVEIS GLOBAIS E BLOQUEIO IMEDIATA DO TECLADO (Sem defer para rodar na hora) -->
+<!-- <script>
+    window.PDV_BLOQUEADO = @json($caixaBloqueado ?? false);
+    window.CAIXA_ID      = @json($caixa->id ?? null);
+
+    if (window.PDV_BLOQUEADO === true) {
+        
+        // Função para manter o estado visual sempre sincronizado com o foco real do DOM
+        function atualizarEstiloPorFoco() {
+            const btnFechar = document.getElementById('btnFecharCaixaImediato');
+            const btnSair = document.getElementById('btnSairPdvImediato');
+            
+            if (!btnFechar || !btnSair) return;
+
+            if (document.activeElement === btnSair) {
+                btnFechar.classList.remove('foco-ativo-pdv');
+                btnSair.classList.add('foco-ativo-pdv');
+            } else {
+                // Padrão ou quando o botão fechar está focado
+                btnSair.classList.remove('foco-ativo-pdv');
+                btnFechar.classList.add('foco-ativo-pdv');
+                // Se o foco vazou para o body ou outro elemento, força de volta para o Fechar
+                if (document.activeElement !== btnFechar) {
+                    btnFechar.focus();
+                }
+            }
+        }
+
+        // Interceptador global com prioridade máxima
+        window.addEventListener('keydown', function (event) {
+            const atalhosBloqueados = [
+                'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+                'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Tab'
+            ];
+
+            if (atalhosBloqueados.includes(event.key)) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                
+                const btnFechar = document.getElementById('btnFecharCaixaImediato');
+                const btnSair = document.getElementById('btnSairPdvImediato');
+
+                // 🔄 TAB: Alternância Cíclica Exclusiva entre os dois botões
+                if (event.key === 'Tab') {
+                    if (document.activeElement === btnFechar) {
+                        btnSair?.focus();
+                    } else {
+                        btnFechar?.focus();
+                    }
+                    atualizarEstiloPorFoco();
+                }
+
+                // ↩️ ENTER: Executa o botão ativo no milissegundo atual
+                if (event.key === 'Enter') {
+                    document.activeElement?.click();
+                }
+                
+                return false;
+            }
+        }, true);
+
+        // 🛡️ Garante o foco inicial e combate a perda de estilo pós-carregamento dos outros scripts
+        const persistirFocoInicial = setInterval(() => {
+            const btnFechar = document.getElementById('btnFecharCaixaImediato');
+            if (btnFechar) {
+                // Se o operador ainda não mudou manualmente para o botão Sair, força e mantém o foco no Fechar Caixa
+                if (document.activeElement !== document.getElementById('btnSairPdvImediato')) {
+                    btnFechar.focus();
+                }
+                atualizarEstiloPorFoco();
+            }
+        }, 50);
+
+        // Finaliza o loop de persistência após 2 segundos para liberar o ciclo natural do Tab
+        setTimeout(() => clearInterval(persistirFocoInicial), 2000);
+    }
+</script> -->
+
+
+<!-- 🎯 CARREGAMENTO SEQUENCIAL DOS ARQUIVOS (Continuam com defer normal) -->
 <script src="{{ asset('js/pdv/app.js') }}" defer></script>
+<script src="{{ asset('js/pdv/teclado_bloqueado.js') }}" defer></script>
 <script src="{{ asset('js/pdv/regras.js') }}" defer></script>
 <script src="{{ asset('js/pdv/produto.js') }}" defer></script>
-<!-- <script src="{{ asset('js/pdv/orcamento.js') }}" defer></script> -->
-<script src="{{ asset('js/pdv/orcamento.js') }}?v={{ time() }}" defer></script>
-
+<script src="{{ asset('js/pdv/orcamento.js') }}" defer></script>
 <script src="{{ asset('js/pdv/carrinho.js') }}" defer></script>
 <script src="{{ asset('js/pdv/ui.js') }}" defer></script>
 <script src="{{ asset('js/pdv/pdv.js') }}" defer></script>
 <script src="{{ asset('js/pdv/form-masks.js') }}" defer></script>
 <script src="{{ asset('js/pdv/atalhos.js') }}" defer></script>
 
-<!-- 🎯 MONITORAMENTO DE CAIXAS ESQUECIDOS PROCESSADO DIRETOR NO BLADE -->
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        
-        // Aguarda 2.5 segundos após carregar a página para rodar de forma totalmente assíncrona
-        setTimeout(async function () {
-            
-            const listaDiv = document.getElementById('listaCaixasEsquecidos');
-            const btnGatilho = document.getElementById('btnGatilhoModalCaixa');
-
-            if (!listaDiv || !btnGatilho) return;
-
-            try {
-                // 🔥 Agora sim! Injetado com sucesso no ecossistema Blade do Laravel
-                const terminalAtualId = parseInt("{{ session('terminal_id') ?? cookie('terminal_id') ?? '' }}") || 10;
-
-                const response = await fetch(`/pdv/caixas-esquecidos?terminal_id=${terminalAtualId}`);
-                if (!response.ok) throw new Error('Erro na comunicação com a API');
-
-                const caixas = await response.json();
-
-                if (!caixas || caixas.length === 0) {
-                    listaDiv.style.display = 'none';
-                    return;
-                }
-
-                listaDiv.innerHTML = '';
-                listaDiv.style.display = 'block';
-
-                caixas.forEach(caixa => {
-                    const item = document.createElement('li');
-                    item.textContent =
-                        `Terminal: ${caixa.terminal_id} | ` +
-                        `Caixa ID: ${caixa.id} | ` +
-                        `Aberto em: ${caixa.data_abertura_br} | ` +
-                        `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
-                        `Operador: ${caixa.nome_operador}`;
-                    listaDiv.appendChild(item);
-                });
-
-                // Abre o modal simulando o clique sem erros de invocação do Bootstrap
-                btnGatilho.click();
-
-            } catch (err) {
-                console.error("Erro interno no monitor de caixas:", err);
-            }
-
-        }, 2500);
-    });
-</script>
-<!-- Fim view completa do PDV -->
 @endsection

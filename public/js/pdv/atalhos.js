@@ -1,3 +1,31 @@
+// public/js/pdv/atalhos.js
+// window.addEventListener('keydown', function (event) {
+    
+//     // Se a flag global injetada pelo Blade for true, bloqueia a execução
+//     if (window.PDV_BLOQUEADO === true) {
+        
+//         // 🎯 Lista exaustiva de TODAS as teclas operacionais do seu PDV
+//         const atalhosBloqueados = [
+//             'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+//             'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'
+//         ];
+
+//         // Se o operador tentar usar qualquer uma dessas teclas com o PDV travado...
+//         if (atalhosBloqueados.includes(event.key)) {
+//             event.preventDefault();         // 🛑 Cancela o comportamento nativo (ex: abrir busca do navegador)
+//             event.stopPropagation();        // 🛑 Impede que o evento suba na árvore do DOM
+//             event.stopImmediatePropagation(); // 🛑 Mata o evento na hora, impedindo que OUTROS arquivos JS leiam a tecla
+//             return false;                   // 🛑 Aborta a execução imediatamente
+//         }
+        
+//         // Permite que teclas normais de digitação funcionem apenas dentro do modal se necessário
+//         return; 
+//     }
+
+//     // ... Seu código atual de tratamento de atalhos (F3, setas, etc.) continua aqui ...
+// }, true); // O 'true' garante prioridade máxima no evento de captura
+
+
 // ==========================================
 // 🛡️ ESCOPO DE MEMÓRIA GLOBAL DO PDV (COMPARTILHADO EM REDE)
 // ==========================================
@@ -165,15 +193,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 
                 // Elemento do seu input de código de barras
                 const inputCodigoBarras = document.getElementById('codigo_barras');
-
-                // // EVENTO: Quando o modal terminar de sumir da tela
-                // elementoModal.addEventListener('hidden.bs.modal', function () {
-                //     if (inputCodigoBarras) {
-                //         inputCodigoBarras.focus();
-                //         inputCodigoBarras.select(); // Deixa o campo limpo/selecionado para o próximo bip
-                        
-                //     }
-                // }, { once: true }); // '{ once: true }' evita duplicar o evento na memória
 
                 modalAviso.show();
                 return;
