@@ -151,9 +151,6 @@
     }
     /* fim estilo pra bloqueio de caixa */
 
-    
-    /* fim estilo pra bloqueio de caixa */
-
     /* reset / box model */
     *, *::before, *::after { box-sizing: border-box !important; }
 
@@ -276,13 +273,14 @@
         font-weight: bold;
     }
     .listaCaixasEsquecidos{
-        margin: 500px 20px 0;
+        margin: 570px 20px 0;
         list-style: none;
-        padding: 10; 
+        padding: 10px; 
         font-size:18px; 
         font-weight:bold;
         color:snow;
         background-color: red;
+       
     }
 </style>
 
@@ -303,8 +301,10 @@
                     {{ $status === 'Pendente' ? 'status-pendente' : '' }}
                     {{ $status === 'Inconsistente' ? 'status-inconsistente' : '' }}
                 " style="padding: 5px 10px; border-radius: 5px; font-size: 30px; font-weight: bold; text-align: center; display: inline-block">
-                    TURNO EXPIRADO
+                    CAIXA BLOQUEADO
                 </span>
+                <p style="color:red; font-size: 24px;text-align: center; display: inline-column"> Caixa: {{ $caixa->id }}</p>
+                 <p style="color:gray; font-size: 14px;text-align: center; display: inline-column"> Operador: {{ $operador }}</p>
             </div>
 
             <div class="listaCaixasEsquecidos list-group text-center" id="listaCaixasEsquecidos">
@@ -732,7 +732,7 @@
 </div>
 
 <!-- caixas esquecidos abertos acima de 12 horas -->
-<!-- <script>
+<script>
     document.addEventListener('DOMContentLoaded', async function () {
 
         const listaDiv = document.getElementById('listaCaixasEsquecidos');
@@ -803,10 +803,10 @@
             listaDiv.style.display = 'none';
         }
     });
-</script> -->
+</script>
 
-<!-- script dos modais do pdv -->
-<!-- <script>
+<!-- script dos modais do pdv  -->
+ <script>
     
     document.addEventListener('DOMContentLoaded', function () {
 
@@ -831,7 +831,7 @@
             listaDiv.style.display = 'none';
         });
     });
-</script> -->
+</script>
 
 <!-- Armazena total da venda globalmente e passa para view de finalizar -->
 <!-- <script>
