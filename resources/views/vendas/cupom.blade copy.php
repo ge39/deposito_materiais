@@ -33,7 +33,7 @@
             <div style="font-family: monospace; font-size: 12px; margin-top: 14px;">
                 <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #000; font-weight:normal; padding-bottom: 3px;">
                     <span style="flex: 2; text-align: left;">PRODUTO</span>
-                    <span style="flex: 1.5; text-align: center;">QTD x VL x UN</span>
+                    <span style="flex: 1.5; text-align: center;">QTD x VL </span>
                     <span style="flex: 1; text-align: right;">TOTAL</span>
                 </div>
 

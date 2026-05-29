@@ -286,230 +286,181 @@
 
 <div class="container-fluid p-0">   
       
-    <!-- OVERLAY -->
-        
-    <!-- Modal Alerta Carrinho Vazio -->
-    <div class="modal fade" id="modalCarrinhoVazio" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-danger text-white border-0 py-3">
-                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
-                        ⚠️ Atenção operacional
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 text-center">
-                    <p class="fs-5 text-secondary mb-0">
-                        Não é possível ir para o fechamento. <br>
-                        <strong>O carrinho atual está vazio!</strong>
-                    </p>
-                </div>
-                <div class="modal-footer border-0 pt-0 justify-content-center">
-                    <button type="button" class="btn btn-secondary px-4 fw-bold" data-bs-dismiss="modal">Entendi</button>
-                </div>
+    <!-- =======================================================================
+     🎯 CONTROLADOR HIERÁRQUICO DE OVERLAYS DO PDV
+     ======================================================================= -->
+
+    @if(isset($bloquearPorTempo) && $bloquearPorTempo)
+
+        <!-- 🚨 1️⃣ MÓDULO EXCLUSIVO: BLOQUEIO POR TURNO EXPIRADO (+12H) -->
+        <div id="modalBloquearCaixa" style="display: block;">
+            <div class="carimbo-caixa">
+                <span class="
+                    {{ $status === 'Aberto' ? 'status-aberto' : '' }}
+                    {{ $status === 'Fechado' ? 'status-fechado' : '' }}
+                    {{ $status === 'Pendente' ? 'status-pendente' : '' }}
+                    {{ $status === 'Inconsistente' ? 'status-inconsistente' : '' }}
+                " style="padding: 5px 10px; border-radius: 5px; font-size: 30px; font-weight: bold; text-align: center; display: inline-block">
+                    TURNO EXPIRADO
+                </span>
             </div>
+
+            <div class="listaCaixasEsquecidos list-group text-center" id="listaCaixasEsquecidos">
+                <ul></ul>
+            </div>
+
+            <button id="btnFecharCaixaImediato" 
+                    class="btn-abrir-caixa"
+                    autofocus
+                    onclick="window.location.href='/fechamento_caixa/fechamento/{{ $caixa->id }}'">
+                FECHAR CAIXA
+            </button>
+            
+            <button id="btnSairPdvImediato" 
+                    class="btn-sair-caixa"
+                    onclick="window.location.href='{{ route('dashboard') }}'">
+                SAIR
+            </button>
         </div>
-    </div>
 
-    <!-- //modal verificar sangria -->
-    <div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg border-0">
+        <!-- Script de Teclado exclusivo para travar o Turno Expirado -->
+        <script>
+            window.PDV_BLOQUEADO = true;
+            window.CAIXA_ID      = @json($caixa->id ?? null);
 
-                <!-- Header -->
-                <div class="modal-header @if($bloquearPDV) bg-danger text-white @else bg-warning text-dark @endif">
-                    <h5 class="modal-title fw-bold">
-                        @if($bloquearPDV)
-                            🚫 BLOQUEIO DE CAIXA
-                        @else
-                            ⚠️ LIMITE DE SANGRIA ATINGIDO
-                        @endif
-                    </h5>
-                </div>
+            window.addEventListener('keydown', function (event) {
+                const atalhosBloqueados = [
+                    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+                    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Tab'
+                ];
 
-                <!-- Body -->
-                <div class="modal-body text-center py-4">
-                    <h4 class="fw-bold mb-3">
-                        Saldo Atual:
-                        <span class="text-dark">
-                            R$ {{ number_format($saldoAtual, 2, ',', '.') }}
-                        </span>
-                    </h4>
+                if (atalhosBloqueados.includes(event.key)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                    
+                    const btnFechar = document.getElementById('btnFecharCaixaImediato');
+                    const btnSair = document.getElementById('btnSairPdvImediato');
 
-                    <p class="fs-5 mb-2">
-                        Limite configurado:
-                        <strong>
-                            R$ {{ number_format($limiteSangria, 2, ',', '.') }}
-                        </strong>
-                    </p>
+                    if (event.key === 'Tab') {
+                        if (document.activeElement === btnSair) {
+                            btnFechar?.focus();
+                        } else {
+                            btnSair?.focus();
+                        }
+                    }
 
-                    @if($bloquearPDV)
-                        <div class="alert alert-danger fw-bold fs-5 shadow-sm">
-                            PDV BLOQUEADO<br>
-                            Realize sangria para continuar as vendas.
-                        </div>
-                    @else
-                        <div class="alert alert-warning fw-bold fs-5 shadow-sm">
-                            Recomendado realizar sangria.
-                        </div>
-                    @endif
+                    if (event.key === 'Enter') {
+                        document.activeElement?.click();
+                    }
+                    return false;
+                }
+            }, true);
 
-                    <hr>
+            // Fixador de Foco Inicial do Turno Expirado
+            setTimeout(() => {
+                document.getElementById('btnFecharCaixaImediato')?.focus();
+            }, 100);
+        </script>
 
-                    <h3 class="fw-bold text-primary">
-                        💰 Valor sugerido para sangria:
-                    </h3>
+    @else
 
-                    <h2 class="display-6 fw-bold text-success">
-                        R$ {{ number_format($saldoAtual ?? 0, 2, ',', '.') }}
-                    </h2>
-
-                    <p class="text-muted">
-                        Oriente a operadora a retirar este valor do caixa.
-                    </p>
-                </div>
-
-                <!-- Footer -->
-                <div class="modal-footer justify-content-between">
-                    <div class="d-flex gap-2 ">
-                        <a href="{{ route('caixa.sangria.form', $caixa->id) }}" class="btn btn-success px-4 fw-bold">
-                            ✅ Efetuar Sangria
-                        </a>
-                        
-                        <!-- Só permite fechar o modal se o PDV NÃO estiver bloqueado -->
-                        <!-- @if(!$bloquearPDV)
-                            <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">
-                                ❌ Cancelar
-                            </button>
-                        @endif -->
-                        
-                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
-                            ❌ Cancelar
-                        </button>
+        <!-- 💰 2️⃣ MÓDULO EXCLUSIVO: OPERAÇÃO NORMAL OU ALERTA DE SANGRIA -->
+        
+        <!-- Modal Alerta Carrinho Vazio (Bootstrap) -->
+        <div class="modal fade" id="modalCarrinhoVazio" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-danger text-white border-0 py-3">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                            ⚠️ Atenção operacional
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <p class="fs-5 text-secondary mb-0">
+                            Não é possível ir para o fechamento. <br>
+                            <strong>O carrinho atual está vazio!</strong>
+                        </p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 justify-content-center">
+                        <button type="button" class="btn btn-secondary px-4 fw-bold" data-bs-dismiss="modal">Entendi</button>
                     </div>
                 </div>
-
             </div>
         </div>
-    </div>
 
-    <!-- 📜 Script Corrigido para abrir baseado nos alertas do Controller -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Transforma os booleanos do PHP em booleanos nativos do JavaScript
-            var deveAvisar = {{ $avisarSangria ? 'true' : 'false' }};
-            var deveBloquear = {{ $bloquearPDV ? 'true' : 'false' }};
-            
-            if (deveAvisar || deveBloquear) {
-                var modalElement = document.getElementById('modalSangria');
-                if (modalElement) {
-                    var modal = new bootstrap.Modal(modalElement);
-                    modal.show();
-                }
-            }
-        });
-            function fecharModalSangria() {
-            var modalElement = document.getElementById('modalSangria');
-            if (modalElement) {
-                // Oculta o modal
-                modalElement.classList.remove('show');
-                modalElement.style.display = 'none';
-                document.body.classList.remove('modal-open');
+        <!-- Modal verificar sangria (Bootstrap) -->
+        <div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content shadow-lg border-0">
+                    <div class="modal-header @if($bloquearPDV) bg-danger text-white @else bg-warning text-dark @endif">
+                        <h5 class="modal-title fw-bold">
+                            @if($bloquearPDV)
+                                🚫 BLOQUEIO DE CAIXA
+                            @else
+                                ⚠️ LIMITE DE SANGRIA ATINGIDO
+                            @endif
+                        </h5>
+                    </div>
+
+                    <div class="modal-body text-center py-4">
+                        <h4 class="fw-bold mb-3">
+                            Saldo Atual:
+                            <span class="text-dark">R$ {{ number_format($saldoAtual, 2, ',', '.') }}</span>
+                        </h4>
+
+                        <p class="fs-5 mb-2">
+                            Limite configurado: <strong>R$ {{ number_format($limiteSangria, 2, ',', '.') }}</strong>
+                        </p>
+
+                        @if($bloquearPDV)
+                            <div class="alert alert-danger fw-bold fs-5 shadow-sm">
+                                PDV BLOQUEADO<br>Realize sangria para continuar as vendas.
+                            </div>
+                        @else
+                            <div class="alert alert-warning fw-bold fs-5 shadow-sm">
+                                Recomendado realizar sangria.
+                            </div>
+                        @endif
+
+                        <hr>
+                        <h3 class="fw-bold text-primary">💰 Valor sugerido para sangria:</h3>
+                        <h2 class="display-6 fw-bold text-success">R$ {{ number_format($saldoAtual ?? 0, 2, ',', '.') }}</h2>
+                        <p class="text-muted">Oriente a operadora a retirar este valor do caixa.</p>
+                    </div>
+
+                    <div class="modal-footer justify-content-between">
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('caixa.sangria.form', $caixa->id) }}" class="btn btn-success px-4 fw-bold">
+                                ✅ Efetuar Sangria
+                            </a>
+                            <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                                ❌ Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Script de Inicialização da Sangria do Bootstrap -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var deveAvisar = {{ $avisarSangria ? 'true' : 'false' }};
+                var deveBloquear = {{ $bloquearPDV ? 'true' : 'false' }};
                 
-                // Remove o fundo escuro artificial do DOM
-                var backdrop = document.querySelector('.modal-backdrop');
-                if (backdrop) {
-                    backdrop.remove();
+                if (deveAvisar || deveBloquear) {
+                    var modalElement = document.getElementById('modalSangria');
+                    if (modalElement) {
+                        var modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                    }
                 }
-            }
-        }
+            });
+        </script>
 
-    </script>
-
-    <!-- bloquear caixa -->
-    <!-- 📦 INJEÇÃO DE VARIÁVEIS GLOBAIS PARA OS SCRIPTS (Como o atalhos.js) -->
-<script>
-    window.PDV_BLOQUEADO = @json($caixaBloqueado ?? false);
-    window.CAIXA_ID      = @json($caixa->id ?? null);
-</script>
-
-<!-- 📦 INJEÇÃO DE VARIÁVEIS GLOBAIS E CONTROLE IMEDIATO DE FOCO + TECLADO -->
-<script>
-    window.PDV_BLOQUEADO = @json($caixaBloqueado ?? false);
-    window.CAIXA_ID      = @json($caixa->id ?? null);
-
-    // ⚡ Executa imediatamente no milissegundo em que o HTML é lido
-    if (window.PDV_BLOQUEADO === true) {
-        
-        // 1️⃣ TRAVA ULTRA-RÁPIDA DE TECLADO
-        window.addEventListener('keydown', function (event) {
-            const atalhosBloqueados = [
-                'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
-                'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Tab'
-            ];
-
-            if (atalhosBloqueados.includes(event.key)) {
-                event.preventDefault();
-                event.stopPropagation();
-                event.stopImmediatePropagation();
-                
-                // Se pressionar Enter ou Espaço, força o clique no botão de fechar caixa
-                if (event.key === 'Enter') {
-                    document.getElementById('btnFecharCaixaImediato')?.click();
-                }
-                return false;
-            }
-        }, true);
-
-        // 2️⃣ GARANTE O FOCO NO BOTÃO ASSIM QUE O BOTÃO APARECER NO DOM
-        const forcarFocoBotao = setInterval(() => {
-            const btn = document.getElementById('btnFecharCaixaImediato');
-            if (btn) {
-                btn.focus();
-                clearInterval(forcarFocoBotao); // Para o loop assim que conseguir dar o foco
-            }
-        }, 30); // Checa a cada 30ms para ser instantâneo
-    }
-</script>
-
-<div id="modalBloquearCaixa" style="display: {{ ($caixaBloqueado ?? false) ? 'block' : 'none' }};">
-    <div class="carimbo-caixa" >
-        <span class="
-            {{ $status === 'Aberto' ? 'status-aberto' : '' }}
-            {{ $status === 'Fechado' ? 'status-fechado' : '' }}
-            {{ $status === 'Pendente' ? 'status-pendente' : '' }}
-            {{ $status === 'Inconsistente' ? 'status-inconsistente' : '' }}
-        " style="padding: 5px 10px; border-radius: 5px; font-size: 30px; font-weight: bold;  text-align: center; display: inline-block">
-            @if(isset($bloquearPorTempo) && $bloquearPorTempo)
-                TURNO EXPIRADO
-                <p style="color: red;"> Caixa {{$caixa_id}}, Aberto(+12H)</p>
-                 <p style="color: gray;font-size: 14px;"> Operador: {{ $operador}}</p>
-            @else
-                CAIXA {{ $status }}
-            @endif
-        </span>
-    </div>
-    
-    <div class="listaCaixasEsquecidos list-group text-center" id="listaCaixasEsquecidos">
-        <ul></ul>
-    </div>
-
-    <div class="d-flex mb-5 justify-content-between p-3 w-100 bg-lavender">
-        <!-- 🎯 ID ADICIONADO E PROP AUTOFOCUS PARA FORÇAR O TECLADO AQUI -->
-        <button id="btnFecharCaixaImediato" 
-            class="btn-abrir-caixa btn-primary btn-sm px-4 fw-bold"
-            autofocus
-            onclick="window.location.href='/fechamento_caixa/fechamento/{{ $caixa->id }}'">
-            FECHAR CAIXA
-        </button>
-        
-        <button class="btn-sair-caixa btn-warning btn-sm px-4 fw-bold"
-            onclick="window.location.href='{{ route('dashboard') }}'">
-            SAIR
-        </button>
-    </div>
-</div>
-
+    @endif
 
     <!-- FIM OVERLAY -->
      <!-- Informações do status do Caixa -->
@@ -878,29 +829,6 @@
     });
 </script> -->
 
-<!-- controle dos lotes vencidos -->
-<script>
-    const data = @json($data ?? []);
-    const alerta = document.getElementById('alerta-lote');
-
-    alerta.classList.add('d-none');
-    alerta.textContent = '';
-    alerta.className = 'fw-bold';
-
-    if (data.lote_alerta?.tipo === 'vencido') {
-        alerta.textContent = data.lote_alerta.mensagem;
-        alerta.classList.add('text-danger');
-        alerta.classList.remove('d-none');
-    }
-
-    if (data.lote_alerta?.tipo === 'a_vencer') {
-        alerta.textContent = data.lote_alerta.mensagem;
-        alerta.classList.add('text-warning');
-        alerta.classList.remove('d-none');
-    }
-
-</script>
-
 <!-- Armazena total da venda globalmente e passa para view de finalizar -->
 <!-- <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -935,8 +863,33 @@
     });
 
 </script> -->
+
+<!-- controle dos lotes vencidos -->
+<!-- <script>
+    const data = @json($data ?? []);
+    const alerta = document.getElementById('alerta-lote');
+
+    alerta.classList.add('d-none');
+    alerta.textContent = '';
+    alerta.className = 'fw-bold';
+
+    if (data.lote_alerta?.tipo === 'vencido') {
+        alerta.textContent = data.lote_alerta.mensagem;
+        alerta.classList.add('text-danger');
+        alerta.classList.remove('d-none');
+    }
+
+    if (data.lote_alerta?.tipo === 'a_vencer') {
+        alerta.textContent = data.lote_alerta.mensagem;
+        alerta.classList.add('text-warning');
+        alerta.classList.remove('d-none');
+    }
+
+</script> -->
+
+
 <!-- Armazena total da venda globalmente e passa para view de finalizar -->
-<script>
+<!-- <script>
     document.addEventListener('DOMContentLoaded', function() {
         const btnFinalizar = document.getElementById("btnF6");
         const totalInput = document.getElementById("inputTotalGeral");
@@ -1020,16 +973,16 @@
             console.warn("btnF6 não encontrado no DOM");
         }
     });
-</script>
+</script> -->
 
 
 <!-- armazendo id do caixa para o fechamento -->
-<script>
+<!-- <script>
     const CAIXA_ID = @json($caixa->id ?? null);
     const CAIXA_POSSUI_VENDAS = @json($caixa->possui_vendas ?? false);
-</script>
+</script> -->
 
-<script>
+<!-- <script>
     window.carrinho = [];
 
     window.PDV = {
@@ -1037,9 +990,9 @@
         funcionario_id: {{ auth()->id() }},
         dataVenda: "{{ now() }}"
     };
-</script>
+</script> -->
  <!-- 4️⃣ Escuta qualquer digitação em qualquer campo para atualizar o botão na hora -->
-<script>
+<!-- <script>
     document.addEventListener("DOMContentLoaded", function () {
     
         function verificarRestanteSimples() {
@@ -1092,7 +1045,182 @@
         setTimeout(verificarRestanteSimples, 500);
     });
 
+</script> -->
+
+<!-- =======================================================================
+     1️⃣ CENTRALIZAÇÃO ÚNICA DE VARIÁVEIS GLOBAIS DO LARAVEL (RODA IMEDIATAMENTE)
+     ======================================================================= -->
+<script>
+    // Injeta os dados mestres do banco para o ecossistema Javascript ler
+    window.CLIENTE_BALCAO      = @json($clienteBalcao ?? null); 
+    window.PDV_BLOQUEADO       = @json($caixaBloqueado ?? false);
+    window.CAIXA_ID            = @json($caixa->id ?? null);
+    window.CAIXA_POSSUI_VENDAS = @json($caixa->possui_vendas ?? false);
+    
+    // Inicializadores obrigatórios de memória de escopo global
+    window.carrinho            = [];
+    window.orcamentoAtualId    = null; 
+
+    window.PDV = {
+        caixa_id: {{ $caixa->id ?? 'null' }},
+        funcionario_id: {{ auth()->id() }},
+        dataVenda: "{{ now() }}"
+    };
 </script>
+
+<!-- Controle dos lotes vencidos -->
+<script>
+    const dataLote = @json($data ?? []);
+    const alertaLote = document.getElementById('alerta-lote');
+
+    if (alertaLote) {
+        alertaLote.classList.add('d-none');
+        alertaLote.textContent = '';
+        alertaLote.className = 'fw-bold';
+
+        if (dataLote.lote_alerta?.tipo === 'vencido') {
+            alertaLote.textContent = dataLote.lote_alerta.mensagem;
+            alertaLote.classList.add('text-danger');
+            alertaLote.classList.remove('d-none');
+        }
+
+        if (dataLote.lote_alerta?.tipo === 'a_vencer') {
+            alertaLote.textContent = dataLote.lote_alerta.mensagem;
+            alertaLote.classList.add('text-warning');
+            alertaLote.classList.remove('d-none');
+        }
+    }
+</script>
+
+<!-- Armazena total da venda globalmente e passa para view de finalizar -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnFinalizar = document.getElementById("btnF6");
+        const totalInput = document.getElementById("inputTotalGeral");
+        const modalTotal = document.getElementById("total-venda-modal");
+        const modalEl = document.getElementById('modalFinalizar');
+
+        if (btnFinalizar) {
+            btnFinalizar.addEventListener("click", async function() {
+                const valorTexto = totalInput ? totalInput.value.replace('R$', '').replace(/\s/g, '').replace('.', '').replace(',', '.') : '0';
+                const totalVenda = Number(valorTexto || 0);
+
+                if (totalVenda <= 0) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Atenção operational', 'Não é possível ir para o fechamento. O carrinho atual está vazio!', 'warning');
+                    } else {
+                        alert('Atenção operacional: O carrinho atual está vazio!');
+                    }
+                    return;
+                }
+
+                const inputCliente = document.querySelector('input[name="cliente_id"]') || document.getElementById('input-cliente-id');
+                const clienteId = inputCliente?.value;
+
+                if (clienteId) {
+                    try {
+                        const response = await fetch(`/clientes/${clienteId}/financeiro`);
+                        const data = await response.json();
+
+                        if (data.success && window.cliente) {
+                            window.cliente.saldo = Number(data.saldo || 0);
+                            window.cliente.limite = Number(data.limite || 0);
+                            window.cliente.status = data.status || 'bloqueado';
+
+                            const saldoEl = document.getElementById('saldo-cliente-modal');
+                            if (saldoEl) {
+                                const statusBadge = data.status === 'ativo'
+                                    ? '<span class="badge bg-success">Ativo</span>'
+                                    : '<span class="badge bg-danger">Bloqueado</span>';
+
+                                saldoEl.innerHTML = `
+                                    Status: ${statusBadge}<br>
+                                    Saldo: R$ ${Number(data.saldo).toFixed(2).replace('.', ',')}<br>
+                                    Limite: R$ ${Number(data.limite).toFixed(2).replace('.', ',')}
+                                `;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Erro ao atualizar financeiro do cliente:', error);
+                    }
+                }
+
+                if (totalInput && modalTotal) {
+                    modalTotal.value = totalInput.value;
+                    if(modalTotal.tagName !== 'INPUT') {
+                        modalTotal.textContent = totalInput.value;
+                    }
+                }
+
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+
+                    setTimeout(() => {
+                        const inputsPagamento = document.querySelectorAll('.input-pagamento');
+                        if (inputsPagamento && inputsPagamento.length > 0) {
+                            inputsPagamento[0].focus();
+                        }
+                    }, 300);
+                }
+            });
+        }
+    });
+</script>
+
+<!-- Escuta a digitação para atualizar o botão de faturamento (Protegido contra Loops) -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Flag de controle para evitar execução infinita durante o limparPDV()
+        window.PDV_EM_LIMPEZA = false; 
+    
+        function verificarRestanteSimples() {
+            // Se a limpeza do PDV estiver rodando, ignora a re-validação dos inputs
+            if (window.PDV_EM_LIMPEZA === true) return;
+
+            let btnFinalizar = null;
+            document.querySelectorAll('button').forEach(btn => {
+                if (btn.innerText && btn.innerText.trim() === 'Finalizar Venda') {
+                    btnFinalizar = btn;
+                }
+            });
+
+            if (!btnFinalizar) return;
+
+            let textoRestante = "";
+            document.querySelectorAll('div, p, span, h5, h4, td').forEach(el => {
+                if (el.innerText && el.innerText.includes('Restante:')) {
+                    textoRestante = el.innerText.trim();
+                }
+            });
+
+            if (textoRestante.includes('R$ 0,00')) {
+                btnFinalizar.disabled = false;
+                btnFinalizar.style.opacity = '1';
+                btnFinalizar.style.backgroundColor = '#28a745'; 
+                btnFinalizar.style.borderColor = '#28a745';
+                btnFinalizar.style.cursor = 'pointer';
+                btnFinalizar.style.pointerEvents = 'auto';
+            } else {
+                btnFinalizar.disabled = true;
+                btnFinalizar.style.opacity = '0.4';
+                btnFinalizar.style.backgroundColor = '#6c757d'; 
+                btnFinalizar.style.borderColor = '#6c757d';
+                btnFinalizar.style.cursor = 'not-allowed';
+                btnFinalizar.style.pointerEvents = 'none';
+            }
+        }
+
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('keyup', verificarRestanteSimples);
+            input.addEventListener('change', verificarRestanteSimples);
+            input.addEventListener('input', verificarRestanteSimples);
+        });
+
+        setTimeout(verificarRestanteSimples, 500);
+    });
+</script>
+
 
 <!-- Modals atahos -->
 @include('pdv.modals.modal_cliente_pdv')
@@ -1101,85 +1229,14 @@
 @include('pdv.modals.modal_finalizar')
 
 
-<!-- 📦 INJEÇÃO DE VARIÁVEIS GLOBAIS E BLOQUEIO IMEDIATA DO TECLADO (Sem defer para rodar na hora) -->
-<!-- <script>
-    window.PDV_BLOQUEADO = @json($caixaBloqueado ?? false);
-    window.CAIXA_ID      = @json($caixa->id ?? null);
 
-    if (window.PDV_BLOQUEADO === true) {
-        
-        // Função para manter o estado visual sempre sincronizado com o foco real do DOM
-        function atualizarEstiloPorFoco() {
-            const btnFechar = document.getElementById('btnFecharCaixaImediato');
-            const btnSair = document.getElementById('btnSairPdvImediato');
-            
-            if (!btnFechar || !btnSair) return;
+<!-- 1. Primeiro injeta o estado do banco e do Cliente Balcão -->
+<script>
+    window.CLIENTE_BALCAO = @json($clienteBalcao);
+</script>
 
-            if (document.activeElement === btnSair) {
-                btnFechar.classList.remove('foco-ativo-pdv');
-                btnSair.classList.add('foco-ativo-pdv');
-            } else {
-                // Padrão ou quando o botão fechar está focado
-                btnSair.classList.remove('foco-ativo-pdv');
-                btnFechar.classList.add('foco-ativo-pdv');
-                // Se o foco vazou para o body ou outro elemento, força de volta para o Fechar
-                if (document.activeElement !== btnFechar) {
-                    btnFechar.focus();
-                }
-            }
-        }
-
-        // Interceptador global com prioridade máxima
-        window.addEventListener('keydown', function (event) {
-            const atalhosBloqueados = [
-                'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
-                'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Tab'
-            ];
-
-            if (atalhosBloqueados.includes(event.key)) {
-                event.preventDefault();
-                event.stopPropagation();
-                event.stopImmediatePropagation();
-                
-                const btnFechar = document.getElementById('btnFecharCaixaImediato');
-                const btnSair = document.getElementById('btnSairPdvImediato');
-
-                // 🔄 TAB: Alternância Cíclica Exclusiva entre os dois botões
-                if (event.key === 'Tab') {
-                    if (document.activeElement === btnFechar) {
-                        btnSair?.focus();
-                    } else {
-                        btnFechar?.focus();
-                    }
-                    atualizarEstiloPorFoco();
-                }
-
-                // ↩️ ENTER: Executa o botão ativo no milissegundo atual
-                if (event.key === 'Enter') {
-                    document.activeElement?.click();
-                }
-                
-                return false;
-            }
-        }, true);
-
-        // 🛡️ Garante o foco inicial e combate a perda de estilo pós-carregamento dos outros scripts
-        const persistirFocoInicial = setInterval(() => {
-            const btnFechar = document.getElementById('btnFecharCaixaImediato');
-            if (btnFechar) {
-                // Se o operador ainda não mudou manualmente para o botão Sair, força e mantém o foco no Fechar Caixa
-                if (document.activeElement !== document.getElementById('btnSairPdvImediato')) {
-                    btnFechar.focus();
-                }
-                atualizarEstiloPorFoco();
-            }
-        }, 50);
-
-        // Finaliza o loop de persistência após 2 segundos para liberar o ciclo natural do Tab
-        setTimeout(() => clearInterval(persistirFocoInicial), 2000);
-    }
-</script> -->
-
+<!-- 2. Carrega o arquivo mestre de limpeza primeiro -->
+<script src="{{ asset('js/pdv/limparPDV.js') }}" defer></script>
 
 <!-- 🎯 CARREGAMENTO SEQUENCIAL DOS ARQUIVOS (Continuam com defer normal) -->
 <script src="{{ asset('js/pdv/app.js') }}" defer></script>

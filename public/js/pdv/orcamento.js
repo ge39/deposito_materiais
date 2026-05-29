@@ -301,7 +301,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (!confirm('Deseja confirmar o recebimento e faturar esta venda?')) return;
-
         try {
             const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
@@ -335,32 +334,58 @@ document.addEventListener('DOMContentLoaded', function () {
                 body: JSON.stringify(payload)
             });
 
-            const data = await response.json();
+                       const data = await response.json();
 
             if (!response.ok || !data.success) {
                 throw new Error(data.message || 'Falha ao finalizar o faturamento no servidor.');
             }
 
+            // 📢 1. LOG DE ENTRADA (Se esse printar, sabemos que o fetch deu certo)
+            console.log("🟢 FETCH DE FATURAMENTO OK! Iniciando limpezas...");
+
             alert('Venda finalizada com sucesso! Orçamento marcado como Faturado.');
+
+            // 📢 2. TESTE DIRETO DE ENGENHARIA REVERSA (Sem depender de arquivos externos)
+            console.log("⚡ Executando reset direto dentro do orcamento.js...");
             
-            // 🔄 Limpa o PDV por completo
             window.orcamentoAtualId = null;
-            window.carrinho = []; // Zera a memória interna do caixa
-            
-            if (typeof limparCamposPDV === 'function') {
-                limparCamposPDV();
-            }
-            const tbody = document.getElementById('lista-itens');
+            window.carrinho = []; 
+
+            // Alvos diretos baseados nas frentes de caixa padrão
+            const inputNome = document.getElementById('cliente-nome') || document.querySelector('[name="cliente_nome"]');
+            const inputTipo = document.getElementById('cliente-tipo') || document.querySelector('[name="pessoa"]');
+            const inputFone = document.getElementById('cliente-telefone') || document.querySelector('[name="contato_local"]');
+            const inputEnd  = document.getElementById('cliente-endereco') || document.querySelector('[name="endereco_entrega"]');
+
+            if (inputNome) inputNome.value = 'VENDA BALCAO';
+            if (inputTipo) inputTipo.value = 'Física';
+            if (inputFone) inputFone.value = '';
+            if (inputEnd)  inputEnd.value  = '';
+
+            // Esvazia as tabelas visíveis
+            const tbody = document.getElementById('lista-itens') || document.getElementById('lista-produtos') || document.querySelector('table tbody');
             if (tbody) tbody.innerHTML = '';
-            
-            const totalGeral = document.getElementById('totalGeral');
-            if (totalGeral) totalGeral.textContent = 'R\$ 0,00';
+
+            const totalGeral = document.getElementById('totalGeral') || document.getElementById('total_geral');
+            if (totalGeral) totalGeral.textContent = 'R$ 0,00';
+
+            // 📢 3. TENTATIVA DE CHAMAR O ARQUIVO EXTERNO
+            console.log("🔍 Tentando acionar o arquivo limparPDV.js...");
+            if (typeof window.limparPDV === 'function') {
+                console.log("🎯 Sucesso: Função global limparPDV encontrada e acionada!");
+                window.limparPDV();
+            } else {
+                console.error("❌ Erro de Escopo: A função window.limparPDV não foi encontrada no escopo global.");
+            }
 
         } catch (error) {
-            console.error(error);
+            console.error("🔴 Bloqueio no Bloco Catch:", error);
             alert('Erro ao faturar: ' + error.message);
         }
+
     };
+
+    // };
 
     // Função para preencher os inputs do cliente
     function preencherCliente(cliente) {
