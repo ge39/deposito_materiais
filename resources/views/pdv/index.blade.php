@@ -1,8 +1,10 @@
 @extends('layouts.app2')
-
+ <!-- window.CLIENTE_BALCAO = @json($clienteBalcao); -->
 @section('content')
 
+
 <?php session(['terminal_id' => $terminal->id]); ?>
+
 
 <style>
     /* estilo pra bloqueio de caixa */
@@ -285,7 +287,7 @@
 </style>
 
 <div class="container-fluid p-0">   
-      
+     
     <!-- =======================================================================
      🎯 CONTROLADOR HIERÁRQUICO DE OVERLAYS DO PDV
      ======================================================================= -->
@@ -322,7 +324,6 @@
                 SAIR
             </button>
         </div>
-
         <!-- Script de Teclado exclusivo para travar o Turno Expirado -->
         <script>
             window.PDV_BLOQUEADO = true;
@@ -362,11 +363,8 @@
                 document.getElementById('btnFecharCaixaImediato')?.focus();
             }, 100);
         </script>
-
     @else
-
         <!-- 💰 2️⃣ MÓDULO EXCLUSIVO: OPERAÇÃO NORMAL OU ALERTA DE SANGRIA -->
-        
         <!-- Modal Alerta Carrinho Vazio (Bootstrap) -->
         <div class="modal fade" id="modalCarrinhoVazio" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -435,7 +433,8 @@
                             <a href="{{ route('caixa.sangria.form', $caixa->id) }}" class="btn btn-success px-4 fw-bold">
                                 ✅ Efetuar Sangria
                             </a>
-                            <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                            <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" onclick="window.PDV_BLOQUEADO = false; 
+                                    window.caixaBloqueado = false;">
                                 ❌ Cancelar
                             </button>
                         </div>
@@ -447,17 +446,22 @@
         <!-- Script de Inicialização da Sangria do Bootstrap -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                var deveAvisar = {{ $avisarSangria ? 'true' : 'false' }};
-                var deveBloquear = {{ $bloquearPDV ? 'true' : 'false' }};
-                
-                if (deveAvisar || deveBloquear) {
-                    var modalElement = document.getElementById('modalSangria');
-                    if (modalElement) {
-                        var modal = new bootstrap.Modal(modalElement);
-                        modal.show();
-                    }
+            var deveAvisar = {{ $avisarSangria ? 'true' : 'false' }};
+            var deveBloquear = {{ $bloquearPDV ? 'true' : 'false' }};
+            
+            if (deveAvisar || deveBloquear) {
+                var modalElement = document.getElementById('modalSangria');
+
+                if (modalElement) {
+                    var modal = new bootstrap.Modal(modalElement, {
+                        backdrop: 'static',
+                        keyboard: true
+                    });
+
+                    modal.show();
                 }
-            });
+            }
+        });
         </script>
 
     @endif
@@ -1228,15 +1232,77 @@
 @include('pdv.modals.modal_orcamento')
 @include('pdv.modals.modal_finalizar')
 
-
-
-<!-- 1. Primeiro injeta o estado do banco e do Cliente Balcão -->
+<!-- ⚡ INJECTOR AUTOMÁTICO REVISADO: CARREGA O CLIENTE BALCÃO AO FINALIZAR QUALQUER VENDA -->
 <script>
+    // 1️⃣ O Laravel extrai o registro do banco de dados e entrega pronto para a memória do JS
     window.CLIENTE_BALCAO = @json($clienteBalcao);
+
+    // 2️⃣ FUNÇÃO MESTRE: Aplica os dados do banco diretamente nas propriedades .value dos inputs
+    window.forcarInjecaoClienteBalcao = function() {
+        if (!window.CLIENTE_BALCAO) {
+            console.warn("Aviso: window.CLIENTE_BALCAO não foi renderizado pelo Laravel.");
+            return;
+        }
+
+        console.log("⚡ Executando injeção obrigatória pós-venda: Restaurando Cliente Balcão do Banco...");
+
+        // Captura os inputs ocultos e visíveis utilizando os IDs e Names exatos do seu HTML
+        const inputId       = document.getElementById('cliente_id');
+        const inputNome     = document.querySelector('input[name="nome"]') || document.querySelector('input[name*="nome"]');
+        const inputPessoa   = document.querySelector('input[name="pessoa"]');
+        const inputTelefone = document.querySelector('input[name="telefone"]');
+        const inputEndereco = document.getElementById('endereco');
+
+        // Popular os inputs fisicamente com as strings extraídas do banco
+        if (inputId)       inputId.value       = window.CLIENTE_BALCAO.id;       // ID extraído do banco (ex: 6)
+        if (inputNome)     inputNome.value     = window.CLIENTE_BALCAO.nome;     // "VENDA BALCAO"
+        if (inputPessoa)   inputPessoa.value   = window.CLIENTE_BALCAO.tipo;     // Tipo extraído do banco (ex: "fisica")
+        if (inputTelefone) inputTelefone.value = window.CLIENTE_BALCAO.telefone; // Telefone extraído do banco
+        if (inputEndereco) inputEndereco.value = window.CLIENTE_BALCAO.endereco; // Endereço extraído do banco
+
+        // 3️⃣ Limpezas complementares da tela (Carrinho e Totais)
+        const tbody = document.getElementById('lista-itens') 
+                   || document.getElementById('lista-produtos') 
+                   || document.querySelector('#tabelaItensPDV tbody');
+        if (tbody) tbody.innerHTML = '';
+
+        const totalGeral = document.getElementById('total_geral') || document.getElementById('totalGeral') || document.getElementById('inputTotalGeral');
+        if (totalGeral) {
+            if (totalGeral.tagName === 'INPUT') totalGeral.value = 'R$ 0,00';
+            else totalGeral.textContent = 'R$ 0,00';
+        }
+
+        // Devolve o foco imediatamente para o leitor de código de barras
+        setTimeout(() => {
+            document.getElementById('codigo_barras')?.focus();
+        }, 100);
+    };
+
+    // 4️⃣ GATILHO VIA ASSINATURA GLOBAL: Sobrescreve a função chamadora para garantir a execução
+    window.limparPDV = function() {
+        window.forcarInjecaoClienteBalcao();
+    };
+
+    // 5️⃣ GATILHO VIA MONITOR DE REQUISIÇÕES: Captura o sucesso do faturamento e vendas por segurança redundante
+    (function() {
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+            const response = await originalFetch.apply(this, args);
+            const url = args[0];
+
+            // Se a rota chamada foi a de faturar orçamento ou finalizar venda
+            if (typeof url === 'string' && (url.includes('/pdv/faturar') || url.includes('/vendas/finalizar') || url.includes('/vendas'))) {
+                // Aguarda as promessas resolverem e injeta os dados do banco na marra
+                setTimeout(() => {
+                    window.forcarInjecaoClienteBalcao();
+                }, 150);
+            }
+            return response;
+        };
+    })();
 </script>
 
-<!-- 2. Carrega o arquivo mestre de limpeza primeiro -->
-<script src="{{ asset('js/pdv/limparPDV.js') }}" defer></script>
+
 
 <!-- 🎯 CARREGAMENTO SEQUENCIAL DOS ARQUIVOS (Continuam com defer normal) -->
 <script src="{{ asset('js/pdv/app.js') }}" defer></script>

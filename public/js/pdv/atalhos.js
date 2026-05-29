@@ -1,29 +1,31 @@
 // public/js/pdv/atalhos.js
-// window.addEventListener('keydown', function (event) {
+window.addEventListener('keydown', function (event) {
     
-//     // Se a flag global injetada pelo Blade for true, bloqueia a execução
-//     if (window.PDV_BLOQUEADO === true) {
-        
-//         // 🎯 Lista exaustiva de TODAS as teclas operacionais do seu PDV
-//         const atalhosBloqueados = [
-//             'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
-//             'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'
-//         ];
+    // 🎯 SINCRO: Garante que se caixaBloqueado ou PDV_BLOQUEADO forem true, o sistema trate igual
+    const caixaEstaTravado = (window.PDV_BLOQUEADO === true) || (window.caixaBloqueado === true);
 
-//         // Se o operador tentar usar qualquer uma dessas teclas com o PDV travado...
-//         if (atalhosBloqueados.includes(event.key)) {
-//             event.preventDefault();         // 🛑 Cancela o comportamento nativo (ex: abrir busca do navegador)
-//             event.stopPropagation();        // 🛑 Impede que o evento suba na árvore do DOM
-//             event.stopImmediatePropagation(); // 🛑 Mata o evento na hora, impedindo que OUTROS arquivos JS leiam a tecla
-//             return false;                   // 🛑 Aborta a execução imediatamente
-//         }
+    // Se a flag global indicar que o caixa está de fato travado por Sangria ou Tempo...
+    if (caixaEstaTravado) {
         
-//         // Permite que teclas normais de digitação funcionem apenas dentro do modal se necessário
-//         return; 
-//     }
+        // 🎯 Lista exaustiva de TODAS as teclas operacionais do seu PDV
+        const atalhosBloqueados = [
+            'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+            'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'
+        ];
 
-//     // ... Seu código atual de tratamento de atalhos (F3, setas, etc.) continua aqui ...
-// }, true); // O 'true' garante prioridade máxima no evento de captura
+        // Se o operador tentar usar qualquer uma dessas teclas com o PDV travado...
+        if (atalhosBloqueados.includes(event.key)) {
+            event.preventDefault();         // 🛑 Cancela o comportamento nativo
+            event.stopPropagation();        // 🛑 Impede que o evento suba na árvore do DOM
+            event.stopImmediatePropagation(); // 🛑 Mata o evento na hora para outros JS não lerem
+            return false;                   // 🛑 Aborta a execução imediatamente
+        }
+        
+        return; 
+    }
+
+    // ... Seu código atual de tratamento de atalhos (F3, setas, etc.) continua aqui ...
+}, true); // O 'true' garante prioridade máxima no evento de captura
 
 
 // ==========================================
@@ -31,8 +33,12 @@
 // ==========================================
 window.carrinho = window.carrinho || [];
 window.cliente = window.cliente || null;
-window.caixaBloqueado = false;
+
+// 🎯 UNIFICADO: Inicia respeitando o estado que a Blade injetou, evitando sobrescrever com false nativo
+window.PDV_BLOQUEADO = window.PDV_BLOQUEADO || false;
+window.caixaBloqueado = window.PDV_BLOQUEADO; 
 window.CAIXA_ID = window.CAIXA_ID || null;
+
 
 document.addEventListener('DOMContentLoaded', function () {
     

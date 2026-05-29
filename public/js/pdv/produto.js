@@ -73,7 +73,10 @@ if (window.__pdvProdutoJsCarregado) {
                 inputQuantidade.removeAttribute("max"); 
             }
             if (qtdDisponivelInput) qtdDisponivelInput.value = ""; 
-            if (imgProduto) imgProduto.src = "/images/produto-sem-imagem.png";
+            // if (imgProduto) imgProduto.src = "/images/produto-sem-imagem.png";
+            if (imgProduto) {
+                imgProduto.removeAttribute("src"); // Remove a URL com erro e limpa a imagem da tela com segurança
+            }
             if (inputCodigo) inputCodigo.focus();
         }
 

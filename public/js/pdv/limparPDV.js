@@ -1,89 +1,120 @@
 // public/js/pdv/limparPDV.js
 
+// 🎯 DECLARAÇÃO GLOBAL: Garante visibilidade total para modal.js e orcamento.js
 window.limparPDV = function() {
-    // 🔍 1️⃣ INÍCIO DO GRUPO DE RASTREAMENTO NO CONSOLE
-    console.group("🚀 DIAGNÓSTICO DE LIMPEZA: window.limparPDV()");
-    
-    // Captura o estado das variáveis globais antes de alterá-las
-    console.log("📍 Memória Global - CLIENTE_BALCAO:", window.CLIENTE_BALCAO);
-    console.log("📍 Memória Global - orcamentoAtualId ATUAL:", window.orcamentoAtualId);
+    console.group("🎯 MÓDULO GLOBAL: window.limparPDV()");
 
-    const inputsPagamento = document.querySelectorAll('.input-pagamento');
-    const totalGeralEl = document.getElementById('total_geral');
-    
-    const modalEl = document.getElementById('modalPagamento');
-    const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
-    
-    // Zera a memória de escopo global do caixa
+    // 1️⃣ Zera a memória de escopo global do caixa
     window.carrinho = [];
     window.orcamentoAtualId = null;
 
-    // Limpa as formas de pagamento
-    inputsPagamento.forEach(input => {
+    // 2️⃣ Esvazia visualmente a tabela de itens vendidos na direita
+    const tbody = document.getElementById('lista-itens') 
+            || document.getElementById('lista-produtos') 
+            || document.getElementById('lista-itens-venda') 
+            || document.querySelector('#tabelaItensPDV tbody');
+    if (tbody) {
+        tbody.innerHTML = '';
+    }
+    
+    // Zera o display de preço principal/totalizador
+    const totalGeralEl = document.getElementById('total_geral') 
+                    || document.getElementById('totalGeral') 
+                    || document.getElementById('inputTotalGeral');
+    if (totalGeralEl) {
+        if (totalGeralEl.tagName === 'INPUT') {
+            totalGeralEl.value = 'R$ 0,00';
+        } else {
+            totalGeralEl.textContent = 'R$ 0,00';
+        }
+    }
+
+    // Limpa e libera as caixas de texto do modal de pagamentos
+    document.querySelectorAll('.input-pagamento').forEach(input => {
         input.value = '';
         input.disabled = false;
     });
 
+    // Atualiza os resumos de valores na tela (se a função existir globalmente)
     if (typeof atualizarResumo === 'function') {
         atualizarResumo();
     }
 
-    // Campos nativos do produto selecionado
-    const campos = [
-        'descricao',
-        'codigo_barras',
-        'preco_venda',
-        'quantidade',
-        'qtd_disponivel',
-        'total_geral',
-        'unidade'
-    ];
-
-    campos.forEach(id => {
+    // Limpa a memória visual dos inputs do último produto pesquisado/bipado
+    const camposProduto = ['descricao', 'codigo_barras', 'preco_venda', 'quantidade', 'qtd_disponivel', 'total_geral', 'unidade'];
+    camposProduto.forEach(id => {
         const campo = document.getElementById(id);
         if (campo) {
             campo.value = '';
         }
     });
 
-    // Mapeia os elementos do cabeçalho superior
-    const inputId    = document.getElementById('cliente-id') || document.getElementById('input-cliente-id') || document.querySelector('[name="cliente_id"]');
-    const inputNome  = document.getElementById('cliente-nome');
-    const inputTipo  = document.getElementById('cliente-tipo');
-    const inputFone  = document.getElementById('cliente-telefone');
-    const inputEnd   = document.getElementById('cliente-endereco');
-
-    // 📋 2️⃣ TABELA DE DIAGNÓSTICO DOS ELEMENTOS DO CLIENTE ANTES DO RESET
-    console.log("🔎 Estado dos elementos capturados no DOM antes do reset:");
-    console.table([
-        { "Elemento": "ID Oculto (input-id)", "Capturado": inputId ? "Sim" : "Não", "Valor Lido": inputId ? inputId.value : "N/A" },
-        { "Elemento": "Nome (cliente-nome)", "Capturado": inputNome ? "Sim" : "Não", "Valor Lido": inputNome ? inputNome.value : "N/A" },
-        { "Elemento": "Tipo (cliente-tipo)", "Capturado": inputTipo ? "Sim" : "Não", "Valor Lido": inputTipo ? inputTipo.value : "N/A" },
-        { "Elemento": "Fone (cliente-telefone)", "Capturado": inputFone ? "Sim" : "Não", "Valor Lido": inputFone ? inputFone.value : "N/A" },
-        { "Elemento": "Endereço (cliente-endereco)", "Capturado": inputEnd ? "Sim" : "Não", "Valor Lido": inputEnd ? inputEnd.value : "N/A" }
-    ]);
-
-    // Executa a restauração para o padrão "VENDA BALCÃO"
-    console.log("⚡ Executando alteração física dos valores...");
-    if (inputId && window.CLIENTE_BALCAO) {
-        inputId.value = window.CLIENTE_BALCAO.id;
-    }
-    if (inputNome) {
-        inputNome.value = window.CLIENTE_BALCAO ? window.CLIENTE_BALCAO.nome : 'VENDA BALCAO';
-    }
-    if (inputTipo) inputTipo.value = 'Física';
-    if (inputFone) inputFone.value = '';
-    if (inputEnd)  inputEnd.value  = '';
-
-    if (totalGeralEl) {
-        totalGeralEl.textContent = 'R$ 0,00';
+    // =======================================================================
+    // 🎯 RESET SEGURO DA IMAGEM DO PRODUTO (ID REAL COLETADO DO SEU HTML)
+    // =======================================================================
+    try {
+        const imgProduto = document.getElementById('produto-imagem');
+        if (imgProduto) {
+            imgProduto.src = ''; // Retorna ao estado original limpo do HTML da Blade sem quebrar o JS
+        }
+    } catch (errorImg) {
+        console.warn("Aviso: Falha ao limpar o elemento de imagem, avançando...", errorImg);
     }
 
-    modal?.hide();
+    // =======================================================================
+    // ⚡ INJEÇÃO CIRÚRGICA DO CLIENTE VENDA BALCÃO (SELETORES DO SEU HTML)
+    // =======================================================================
+    if (window.CLIENTE_BALCAO) {
+        
+        // Captura os inputs exatamente pelas IDs e Names do seu HTML
+        const inputId       = document.getElementById('cliente_id');
+        const inputNome     = document.querySelector('input[name="nome"]');
+        const inputPessoa   = document.querySelector('input[name="persona"]') || document.querySelector('input[name="pessoa"]');
+        const inputTelefone = document.querySelector('input[name="telefone"]');
+        const inputEndereco = document.getElementById('endereco');
 
+        // Alimenta fisicamente os values na interface sobrepondo o cliente antigo
+        if (inputId) {
+            inputId.value = window.CLIENTE_BALCAO.id; // ID: 6
+        }
+        if (inputNome) {
+            inputNome.value = window.CLIENTE_BALCAO.nome; // "VENDA BALCAO"
+        }
+        if (inputPessoa) {
+            inputPessoa.value = window.CLIENTE_BALCAO.tipo; // "fisica"
+        }
+        if (inputTelefone) {
+            inputTelefone.value = window.CLIENTE_BALCAO.telefone; // "11111111111"
+        }
+        if (inputEndereco) {
+            inputEndereco.value = window.CLIENTE_BALCAO.endereco; // "Retira Loja"
+        }
+
+        console.log(`✅ Sucesso: Frente de caixa restaurada para ${window.CLIENTE_BALCAO.nome}`);
+    } else {
+        console.warn("⚠️ Alerta: window.CLIENTE_BALCAO não localizado na memória do navegador.");
+    }
+    // =======================================================================
+
+    // Oculta o modal de fechamento/pagamento do Bootstrap de forma segura
+    const modalEl = document.getElementById('modalFinalizar') 
+                || document.getElementById('modalPagamento');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        try {
+            const modal = bootstrap.Modal.getInstance(modalEl) 
+                    || bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal?.hide();
+        } catch (e) {
+            console.warn("Aviso ao fechar modal:", e);
+        }
+    }
+
+    // Devolve imediatamente o foco do teclado para o input amarelo de Código de Barras
     setTimeout(() => {
-        document.getElementById('codigo_barras')?.focus();
-        console.log("🎯 Foco devolvido para o input de código de barras.");
-        console.groupEnd(); // FIM DO BLOCO DE LOGS
+        const campoBarras = document.getElementById('codigo_barras');
+        if (campoBarras) {
+            campoBarras.focus();
+        }
+        console.groupEnd();
     }, 150);
 };
