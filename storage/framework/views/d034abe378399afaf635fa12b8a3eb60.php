@@ -740,107 +740,7 @@
     
 </div>
 
-<!-- caixas esquecidos abertos acima de 12 horas -->
-<script>
-    document.addEventListener('DOMContentLoaded', async function () {
 
-        const listaDiv = document.getElementById('listaCaixasEsquecidos');
-        const modalEl  = document.getElementById('modalBloquearCaixa');
-
-        if (!listaDiv || !modalEl) return;
-
-        try {
-            // 🎯 CAPTURA DINÂMICA: O Laravel injeta o terminal_id do operador logado em tempo real
-            // Se o operador mudar de máquina (ex: Terminal 5), o Blade se atualiza sozinho
-           // Procure por esta linha perto do início do script:
-            const terminalAtualId = parseInt("<?php echo e(session('terminal_id') ?? cookie('terminal_id') ?? ''); ?>") || 10;
-
-            // E APAGUE ou comente o bloco de "if" que vinha logo abaixo bloqueando o código:
-             
-            // if (!terminalAtualId || terminalAtualId === 0) {
-            //     console.warn("Nenhum terminal_id associado ao usuário logado.");
-            //     return;
-            // } 
-           
-                // console.log(terminalAtualId );
-
-            const response = await fetch('/pdv/caixas-esquecidos');
-
-            if (!response.ok) throw new Error('Erro HTTP');
-
-            const data = await response.json();
-            const todosCaixas = Array.isArray(data) ? data : (data.data ?? []);
-
-            // 🎯 FILTRO DINÂMICO: Compara o banco com o terminal logado na sessão
-            const caixasDoTerminal = todosCaixas.filter(caixa => {
-                return parseInt(caixa.terminal_id) === terminalAtualId;
-            });
-
-            // Se o terminal logado não tiver caixas antigos pendentes, encerra silenciosamente
-            if (caixasDoTerminal.length === 0) {
-                listaDiv.style.display = 'none';
-                return;
-            }
-
-            listaDiv.innerHTML = '';
-            listaDiv.style.display = 'block';
-
-            caixasDoTerminal.forEach(caixa => {
-                const item = document.createElement('li');
-
-                // Mantém a exibição do terminal_id numérico que você definiu
-                item.textContent =
-                    `Terminal: ${caixa.terminal_id} | ` +
-                    `Caixa ID: ${caixa.id} | ` +
-                    `Aberto em: ${caixa.data_abertura_br} | ` +
-                    `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
-                    `Operador: ${caixa.nome_operador}`;
-
-                listaDiv.appendChild(item);
-            });
-
-            // 🔥 Exibe o modal do Bootstrap na tela do operador logado
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
-                backdrop: 'static',
-                keyboard: false
-            });
-
-            modal.show();
-
-        } catch (err) {
-            console.error("Erro ao buscar caixas:", err);
-            listaDiv.style.display = 'none';
-        }
-    });
-</script>
-
-<!-- script dos modais do pdv  -->
- <script>
-    
-    document.addEventListener('DOMContentLoaded', function () {
-
-    const listaDiv = document.getElementById('listaCaixasEsquecidos');
-
-    fetch('/pdv/caixas-esquecidos')
-        .then(response => response.json())
-        .then(data => {
-
-            // Se não existe caixa acima de 12h → OCULTA
-            if (!data || data.length === 0) {
-                listaDiv.style.display = 'none';
-                return;
-            }
-
-            // Existe caixa acima de 12h → MOSTRA
-            listaDiv.style.display = 'block';
-
-        })
-        .catch(() => {
-            // Em erro, por segurança, oculta
-            listaDiv.style.display = 'none';
-        });
-    });
-</script>
 
 <!-- Armazena total da venda globalmente e passa para view de finalizar -->
 <!-- <script>
@@ -1060,9 +960,111 @@
 
 </script> -->
 
+<!-- caixas esquecidos abertos acima de 12 horas -->
+<script>
+    document.addEventListener('DOMContentLoaded', async function () {
+
+        const listaDiv = document.getElementById('listaCaixasEsquecidos');
+        const modalEl  = document.getElementById('modalBloquearCaixa');
+
+        if (!listaDiv || !modalEl) return;
+
+        try {
+            // 🎯 CAPTURA DINÂMICA: O Laravel injeta o terminal_id do operador logado em tempo real
+            // Se o operador mudar de máquina (ex: Terminal 5), o Blade se atualiza sozinho
+           // Procure por esta linha perto do início do script:
+            const terminalAtualId = parseInt("<?php echo e(session('terminal_id') ?? cookie('terminal_id') ?? ''); ?>") || 10;
+
+            // E APAGUE ou comente o bloco de "if" que vinha logo abaixo bloqueando o código:
+             
+            // if (!terminalAtualId || terminalAtualId === 0) {
+            //     console.warn("Nenhum terminal_id associado ao usuário logado.");
+            //     return;
+            // } 
+           
+                // console.log(terminalAtualId );
+
+            const response = await fetch('/pdv/caixas-esquecidos');
+
+            if (!response.ok) throw new Error('Erro HTTP');
+
+            const data = await response.json();
+            const todosCaixas = Array.isArray(data) ? data : (data.data ?? []);
+
+            // 🎯 FILTRO DINÂMICO: Compara o banco com o terminal logado na sessão
+            const caixasDoTerminal = todosCaixas.filter(caixa => {
+                return parseInt(caixa.terminal_id) === terminalAtualId;
+            });
+
+            // Se o terminal logado não tiver caixas antigos pendentes, encerra silenciosamente
+            if (caixasDoTerminal.length === 0) {
+                listaDiv.style.display = 'none';
+                return;
+            }
+
+            listaDiv.innerHTML = '';
+            listaDiv.style.display = 'block';
+
+            caixasDoTerminal.forEach(caixa => {
+                const item = document.createElement('li');
+
+                // Mantém a exibição do terminal_id numérico que você definiu
+                item.textContent =
+                    `Terminal: ${caixa.terminal_id} | ` +
+                    `Caixa ID: ${caixa.id} | ` +
+                    `Aberto em: ${caixa.data_abertura_br} | ` +
+                    `Média horas pdv aberto: ${caixa.pdv_horas_aberto}h | ` +
+                    `Operador: ${caixa.nome_operador}`;
+
+                listaDiv.appendChild(item);
+            });
+
+            // 🔥 Exibe o modal do Bootstrap na tela do operador logado
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+                backdrop: 'static',
+                keyboard: false
+            });
+
+            modal.show();
+
+        } catch (err) {
+            console.error("Erro ao buscar caixas:", err);
+            listaDiv.style.display = 'none';
+        }
+    });
+</script>
+
+<!-- script dos modais do pdv  -->
+ <script>
+    
+    document.addEventListener('DOMContentLoaded', function () {
+
+    const listaDiv = document.getElementById('listaCaixasEsquecidos');
+
+    fetch('/pdv/caixas-esquecidos')
+        .then(response => response.json())
+        .then(data => {
+
+            // Se não existe caixa acima de 12h → OCULTA
+            if (!data || data.length === 0) {
+                listaDiv.style.display = 'none';
+                return;
+            }
+
+            // Existe caixa acima de 12h → MOSTRA
+            listaDiv.style.display = 'block';
+
+        })
+        .catch(() => {
+            // Em erro, por segurança, oculta
+            listaDiv.style.display = 'none';
+        });
+    });
+</script>
+
 <!-- =======================================================================
-     1️⃣ CENTRALIZAÇÃO ÚNICA DE VARIÁVEIS GLOBAIS DO LARAVEL (RODA IMEDIATAMENTE)
-     ======================================================================= -->
+1️⃣ CENTRALIZAÇÃO ÚNICA DE VARIÁVEIS GLOBAIS DO LARAVEL (RODA IMEDIATAMENTE)
+======================================================================= -->
 <script>
     // Injeta os dados mestres do banco para o ecossistema Javascript ler
     window.CLIENTE_BALCAO      = <?php echo json_encode($clienteBalcao ?? null, 15, 512) ?>; 
@@ -1311,11 +1313,9 @@
     })();
 </script>
 
-
-
 <!-- 🎯 CARREGAMENTO SEQUENCIAL DOS ARQUIVOS (Continuam com defer normal) -->
 <script src="<?php echo e(asset('js/pdv/app.js')); ?>" defer></script>
-<script src="<?php echo e(asset('js/pdv/teclado_bloqueado.js')); ?>" defer></script>
+<!-- <script src="<?php echo e(asset('js/pdv/teclado_bloqueado.js')); ?>" defer></script> -->
 <script src="<?php echo e(asset('js/pdv/regras.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/produto.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/orcamento.js')); ?>" defer></script>

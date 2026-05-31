@@ -148,16 +148,24 @@ Route::middleware('auth')->group(function () {
     // DEVOLUÇÕES
     // ===============================
     Route::prefix('devolucoes')->name('devolucoes.')->group(function () {
+        // 1. Rotas estáticas/fixas (Precisam vir PRIMEIRO para evitar conflito com os IDs do Resource)
         Route::get('buscar', [DevolucaoController::class, 'buscar'])->name('buscar');
         Route::get('pendentes', [DevolucaoController::class, 'pendentes'])->name('pendentes');
         Route::get('todas', [DevolucaoController::class, 'todas'])->name('todas');
+        
+        // 2. Rotas parametrizadas específicas do fluxo
         Route::get('registrar/{item_id}', [DevolucaoController::class, 'registrar'])->name('registrar');
         Route::get('{devolucao}/cupom', [DevolucaoController::class, 'gerarCupom'])->name('cupom');
         Route::post('salvar', [DevolucaoController::class, 'salvar'])->name('salvar');
         Route::put('{devolucao}/aprovar', [DevolucaoController::class, 'aprovar'])->name('aprovar');
         Route::put('{devolucao}/rejeitar', [DevolucaoController::class, 'rejeitar'])->name('rejeitar');
     });
-    Route::resource('devolucoes', DevolucaoController::class);
+
+    // 3. Resource limpo (Apenas os métodos padrão do CRUD que você não customizou acima)
+    Route::resource('devolucoes', DevolucaoController::class)->except([
+        'show', 'store' // Remove os métodos que entram em conflito com 'buscar', 'todas' e 'salvar'
+    ]);
+
 
     // ===============================
     // FORNECEDORES

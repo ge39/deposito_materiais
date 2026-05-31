@@ -37,57 +37,133 @@ class DevolucaoController extends Controller
         return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
     }
 
+    // public function buscar(Request $request)
+    // {
+    //     $search = $request->input('search');
+
+    //     $clientes = Cliente::orderBy('nome')->get();
+    //     $produtos = Produto::whereIn(
+    //         'id',
+    //         Devolucao::distinct()->pluck('produto_id')
+    //     )->orderBy('nome')->get();
+    //     $lotes = Lote::whereIn(
+    //         'produto_id',
+    //         Devolucao::distinct()->pluck('produto_id')
+    //     )
+    //     ->orderBy('id')
+    //     ->pluck('id');
+
+    //     if (!$search) {
+    //         $itens = collect();
+    //         $vendas = collect();
+    //         return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
+    //     }
+
+    //     $vendas = DB::table('vendas')
+    //         ->join('clientes', 'clientes.id', '=', 'vendas.cliente_id')
+    //         ->select(
+    //             'vendas.id as venda_id',
+    //             'clientes.nome as cliente_nome',
+    //             'clientes.cpf_cnpj as cliente_cpf_cnpj',
+    //             'clientes.tipo as cliente_tipo',
+    //             'vendas.data_venda',
+    //             'vendas.total as valor_total',
+    //             DB::raw('(SELECT SUM(quantidade) FROM Item_Vendas WHERE Item_Vendas.venda_id = vendas.id) as quantidade_comprada'),
+    //             DB::raw('(SELECT COALESCE(SUM(quantidade),0) FROM devolucoes WHERE devolucoes.venda_id = vendas.id) as quantidade_devolvida'),
+    //             DB::raw('((SELECT SUM(quantidade) FROM Item_Vendas WHERE Item_Vendas.venda_id = vendas.id) - 
+    //                     (SELECT COALESCE(SUM(quantidade),0) FROM devolucoes WHERE devolucoes.venda_id = vendas.id)) as quantidade_disponivel'),
+    //             DB::raw('(SELECT COALESCE(SUM(d.quantidade * p.preco_venda),0)
+    //                     FROM devolucoes d
+    //                     JOIN Item_Vendas vi ON vi.id = d.venda_item_id
+    //                     JOIN produtos p ON p.id = vi.produto_id
+    //                     WHERE d.venda_id = vendas.id) as valor_extornado')
+    //         )
+    //         ->where('vendas.id', $search)
+    //         ->orWhere('clientes.nome', 'like', "%{$search}%")
+    //         ->orderByDesc('vendas.id')
+    //         ->paginate(10);
+
+    //     $vendas->appends(['search' => $search]);
+    //     $itens = collect();
+
+    //     return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
+    // }
     public function buscar(Request $request)
     {
-        $search = $request->input('search');
+        $search = trim($request->input('search'));
 
+        // Variáveis de suporte da index para evitar erros de renderização
         $clientes = Cliente::orderBy('nome')->get();
-        $produtos = Produto::whereIn(
-            'id',
-            Devolucao::distinct()->pluck('produto_id')
-        )->orderBy('nome')->get();
-        $lotes = Lote::whereIn(
-            'produto_id',
-            Devolucao::distinct()->pluck('produto_id')
-        )
-        ->orderBy('id')
-        ->pluck('id');
+        $produtos = Produto::whereIn('id', Devolucao::distinct()->pluck('produto_id'))->orderBy('nome')->get();
+        $lotes = Lote::whereIn('produto_id', Devolucao::distinct()->pluck('produto_id'))->orderBy('id')->pluck('id');
 
-        if (!$search) {
+        if (empty($search)) {
             $itens = collect();
             $vendas = collect();
             return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
         }
 
-        $vendas = DB::table('vendas')
-            ->join('clientes', 'clientes.id', '=', 'vendas.cliente_id')
+        // Query principal focada na Item_Vendas
+        $vendas_paginadas = DB::table('Item_Vendas as iv')
+            ->join('vendas as v', 'v.id', '=', 'iv.venda_id')
+            ->leftJoin('clientes as c', 'c.id', '=', 'v.cliente_id')
+            ->join('produtos as p', 'p.id', '=', 'iv.produto_id')
             ->select(
-                'vendas.id as venda_id',
-                'clientes.nome as cliente_nome',
-                'clientes.cpf_cnpj as cliente_cpf_cnpj',
-                'clientes.tipo as cliente_tipo',
-                'vendas.data_venda',
-                'vendas.total as valor_total',
-                DB::raw('(SELECT SUM(quantidade) FROM Item_Vendas WHERE Item_Vendas.venda_id = vendas.id) as quantidade_comprada'),
-                DB::raw('(SELECT COALESCE(SUM(quantidade),0) FROM devolucoes WHERE devolucoes.venda_id = vendas.id) as quantidade_devolvida'),
-                DB::raw('((SELECT SUM(quantidade) FROM Item_Vendas WHERE Item_Vendas.venda_id = vendas.id) - 
-                        (SELECT COALESCE(SUM(quantidade),0) FROM devolucoes WHERE devolucoes.venda_id = vendas.id)) as quantidade_disponivel'),
-                DB::raw('(SELECT COALESCE(SUM(d.quantidade * p.preco_venda),0)
-                        FROM devolucoes d
-                        JOIN Item_Vendas vi ON vi.id = d.venda_item_id
-                        JOIN produtos p ON p.id = vi.produto_id
-                        WHERE d.venda_id = vendas.id) as valor_extornado')
+                'v.id as venda_id',
+                'v.data_venda',
+                'v.total as valor_total_venda',
+                DB::raw('COALESCE(c.nome, "Cliente Não Vinculado") as cliente_nome'),
+                DB::raw('COALESCE(c.cpf_cnpj, "---") as cliente_cpf_cnpj'),
+                DB::raw('COALESCE(c.tipo, "---") as cliente_tipo'),
+                
+                // Dados do Item da Venda
+                'iv.id as venda_item_id',
+                'p.nome as produto_nome',
+                'iv.quantidade as quantidade_comprada', 
+                'iv.preco_unitario as preco_unitario', 
+                'iv.subtotal as subtotal',
+                
+                // 🔥 CORREÇÃO CRÍTICA: Subquery direta para buscar o número do lote original usando o lote_id da Item_Vendas
+                DB::raw('(SELECT COALESCE(numero_lote, "Nenhum") FROM lotes WHERE lotes.id = iv.lote_id LIMIT 1) as numero_lote'),
+
+                // Histórico de devoluções aprovadas/pendentes deste item específico
+                DB::raw('(SELECT COALESCE(SUM(d.quantidade), 0) 
+                          FROM devolucoes d 
+                          WHERE d.venda_item_id = iv.id AND d.status != "rejeitada") as quantidade_devolvida'),
+                          
+                DB::raw('(SELECT COALESCE(SUM(d.quantidade * prod.preco_venda), 0) 
+                          FROM devolucoes d 
+                          JOIN produtos prod ON prod.id = d.produto_id
+                          WHERE d.venda_item_id = iv.id AND d.status != "rejeitada") as valor_extornado')
             )
-            ->where('vendas.id', $search)
-            ->orWhere('clientes.nome', 'like', "%{$search}%")
-            ->orderByDesc('vendas.id')
+            ->where(function ($query) use ($search) {
+                if (is_numeric($search)) {
+                    $query->where('v.id', '=', (int)$search);
+                } else {
+                    $query->where('c.nome', 'like', "%{$search}%");
+                }
+            })
+            ->orderByDesc('v.id')
             ->paginate(10);
 
-        $vendas->appends(['search' => $search]);
+        // Processa os saldos matemáticos reais em memória
+        foreach ($vendas_paginadas as $item) {
+            $item->quantidade_disponivel = (float)$item->quantidade_comprada - (float)$item->quantidade_devolvida;
+            $item->valor_disponivel = (float)$item->quantidade_disponivel * (float)$item->preco_unitario;
+            
+            $item->valor_total = $item->valor_total_venda;
+            $item->qtde_disponivel = $item->quantidade_disponivel;
+        }
+
+        $vendas_paginadas->appends(['search' => $search]);
+
+        $vendas = $vendas_paginadas;
         $itens = collect();
 
         return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
     }
+
+  
 
     public function registrar($venda_id)
     {

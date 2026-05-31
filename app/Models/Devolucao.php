@@ -9,8 +9,10 @@ class Devolucao extends Model
 {
     use HasFactory;
 
+    // Nome exato da tabela no banco de dados
     protected $table = 'devolucoes';
     
+    // Removidos 'created_at' e 'updated_at' para deixar o Eloquent gerenciar os timestamps sozinho
     protected $fillable = [
         'cliente_id',
         'venda_id',
@@ -28,11 +30,10 @@ class Devolucao extends Model
         'imagem4',
         'motivo_rejeicao',
         'empresa_id',
-        'created_at',
-        'updated_at',
     ];
-
+    
     // 🔗 Relacionamentos
+
     public function cliente()
     {
         return $this->belongsTo(Cliente::class);
@@ -43,12 +44,11 @@ class Devolucao extends Model
         return $this->belongsTo(Venda::class);
     }
 
-     public function itemVenda()
-    {
-        return $this->belongsTo(ItemVenda::class, 'venda_item_id'); // FK correta
-    }
-    
-    public function item()
+    /**
+     * Vincula o item da devolução ao item original da venda.
+     * ATENÇÃO: Certifique-se de que no Model 'ItemVenda' exista a linha: protected $table = 'Item_Vendas';
+     */
+    public function itemVenda()
     {
         return $this->belongsTo(ItemVenda::class, 'venda_item_id');
     }
@@ -58,12 +58,21 @@ class Devolucao extends Model
         return $this->belongsTo(Produto::class);
     }
 
+    /**
+     * Vincula ao funcionário/usuário que registrou a devolução
+     */
     public function usuario()
     {
         return $this->belongsTo(Funcionario::class, 'criado_por');
     }
 
-    // Status helpers
+    // 🛠️ Status Helpers
+
+    public function isPendente()
+    {
+        return $this->status === 'pendente';
+    }
+
     public function isAprovada()
     {
         return $this->status === 'aprovada';
@@ -72,5 +81,10 @@ class Devolucao extends Model
     public function isRejeitada()
     {
         return $this->status === 'rejeitada';
+    }
+
+    public function isConcluida()
+    {
+        return $this->status === 'concluida';
     }
 }
