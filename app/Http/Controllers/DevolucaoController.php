@@ -1,13 +1,13 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\Venda;
+use App\Models\Empresa;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use App\Models\Cliente;
 use App\Models\Produto;
 use App\Models\Lote;
-use App\Models\Venda;
 use App\Models\ItemVenda;
 use App\Models\Devolucao;
 use App\Models\DevolucaoLog;
@@ -153,6 +153,7 @@ class DevolucaoController extends Controller
             
             $item->valor_total = $item->valor_total_venda;
             $item->qtde_disponivel = $item->quantidade_disponivel;
+
         }
 
         $vendas_paginadas->appends(['search' => $search]);
@@ -160,10 +161,55 @@ class DevolucaoController extends Controller
         $vendas = $vendas_paginadas;
         $itens = collect();
 
+        // ... final do seu método buscar atual ...
+
+        // Processa os saldos matemáticos reais em memória
+        foreach ($vendas_paginadas as $item) {
+            $item->quantidade_disponivel = (float)$item->quantidade_comprada - (float)$item->quantidade_devolvida;
+            $item->valor_disponivel = (float)$item->quantidade_disponivel * (float)$item->preco_unitario;
+            
+            $item->valor_total = $item->valor_total_venda;
+            $item->qtde_disponivel = $item->quantidade_disponivel;
+
+            // 🔥 NOVO: Carrega todos os itens e produtos desta venda específica para alimentar o modal do cupom
+           $item->venda_completa = Venda::with([
+                'cliente',
+                'itens.produto.unidadeMedida',
+                'itens.lote',
+                'funcionario'
+            ])->find($item->venda_id);
+
+            $pagamentosDaVenda = DB::table('pagamentos_venda')
+                ->where('venda_id', $item->venda_id)
+                ->get();
+
+            $item->venda_completa->setRelation('pagamentos', $pagamentosDaVenda);
+
+            $item->empresa = Empresa::where('ativo', 1)->first();
+
+            $item->terminalId = DB::table('caixas')
+                ->where('id', $item->venda_completa->caixa_id)
+                ->value('terminal_id') ?? 0;
+
+            $pagamentoDinheiro = $pagamentosDaVenda
+                ->where('forma_pagamento', 'dinheiro')
+                ->first();
+
+            $item->troco = $pagamentoDinheiro
+                ? (float) $pagamentoDinheiro->troco
+                : 0;
+
+            $item->pagoEmDinheiro = $pagamentoDinheiro
+                ? ((float)$pagamentoDinheiro->valor + (float)$item->troco)
+                : 0;
+        }
+
+        $vendas_paginadas->appends(['search' => $search]);
+        // ... restante do método igual ...
+
+
         return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
     }
-
-  
 
     public function registrar($venda_id)
     {
@@ -407,6 +453,52 @@ class DevolucaoController extends Controller
         return view('devolucoes.pendentes', compact('devolucoes'));
     }
 
+    private function carregarDadosCupom($vendaId)
+    {
+        $venda = Venda::with([
+            'cliente',
+            'itens.produto.unidadeMedida',
+            'itens.lote',
+            'funcionario'
+        ])->findOrFail($vendaId);
+
+        $pagamentosDaVenda = DB::table('pagamentos_venda')
+            ->where('venda_id', $vendaId)
+            ->get();
+
+        $empresa = Empresa::where('ativo', 1)->first();
+
+        $descontoTotal = $venda->itens->sum('desconto');
+
+        $terminalId = DB::table('caixas')
+            ->where('id', $venda->caixa_id)
+            ->value('terminal_id') ?? 0;
+
+        $pagamentoDinheiro = $pagamentosDaVenda
+            ->where('forma_pagamento', 'dinheiro')
+            ->first();
+
+        $troco = $pagamentoDinheiro
+            ? (float) $pagamentoDinheiro->troco
+            : 0;
+
+        $valorLiquidoDinheiro = $pagamentoDinheiro
+            ? (float) $pagamentoDinheiro->valor
+            : 0;
+
+        $pagoEmDinheiro = $valorLiquidoDinheiro + $troco;
+
+        $venda->setRelation('pagamentos', $pagamentosDaVenda);
+
+        return compact(
+            'venda',
+            'empresa',
+            'descontoTotal',
+            'pagoEmDinheiro',
+            'troco',
+            'terminalId'
+        );
+    }
     public function gerarCupom($id)
     {
         $devolucao = Devolucao::findOrFail($id);
@@ -417,4 +509,5 @@ class DevolucaoController extends Controller
         $pdf = Pdf::loadView('devolucoes.cupom', compact('devolucao', 'venda', 'cliente', 'itens'));
         return $pdf->stream('cupom_devolucao_'.$devolucao->id.'.pdf');
     }
+    
 }

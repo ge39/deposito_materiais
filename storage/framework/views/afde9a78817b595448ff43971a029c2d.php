@@ -24,8 +24,8 @@
     <?php if(isset($vendas) && $vendas->isNotEmpty()): ?>
         
         <div class="row row-cols-1 g-4">
-           
-            <?php $__currentLoopData = $vendas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+
+        <?php $__currentLoopData = $vendas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <?php
                     // Alinhado com a propriedade definida no laço foreach do Controller
                     $qtdDisponivel = $item->quantidade_disponivel;
@@ -33,13 +33,29 @@
                 <div class="col">
                     <div class="card h-100 shadow-sm <?php if($qtdDisponivel == 0): ?> border-success <?php endif; ?>">
                         <!-- Cabeçalho do Card com informações da Venda -->
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center py-3">
-                            <h5 class="card-title mb-0 fw-bold text-dark">Venda #<?php echo e($item->venda_id); ?></h5>
-                            <span class="badge bg-secondary p-2">
-                                <i class="bi bi-calendar3"></i> <?php echo e($item->data_venda ? \Carbon\Carbon::parse($item->data_venda)->format('d/m/Y') : '---'); ?>
+                       <div class="card-header bg-light d-flex justify-content-between align-items-center py-3">
+                            <div class="d-flex align-items-center gap-2">
+                                    <h5 class="card-title mb-0 fw-bold text-dark">
+                                        Venda #<?php echo e($item->venda_id); ?>
 
-                            </span>
-                        </div>
+                                    </h5>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-info"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#cupomModal"
+                                        data-cupom-url="<?php echo e(url('/vendas/venda/'.$item->venda_id.'/cupom')); ?>">
+                                        <i class="bi bi-receipt"></i> Ver Cupom
+                                    </button>
+                                </div>
+
+                                <span class="badge bg-secondary p-2">
+                                    <i class="bi bi-calendar3"></i>
+                                    <?php echo e($item->data_venda ? \Carbon\Carbon::parse($item->data_venda)->format('d/m/Y') : '---'); ?>
+
+                                </span>
+                            </div>
 
                         <div class="card-body">
                             <!-- Informações do Cliente -->
@@ -137,6 +153,7 @@
                                 <a href="<?php echo e(route('devolucoes.index')); ?>" class="btn btn-sm btn-secondary px-4">Voltar</a>
                             </div>
 
+                            
                         </div>
                     </div>
                 </div>
@@ -155,6 +172,69 @@
         </div>
     <?php endif; ?>
 </div>
+
+<!-- Modal Cupom -->
+<div class="modal fade" id="cupomModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-receipt"></i> Cupom da Venda
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Fechar">
+                </button>
+            </div>
+
+            <div class="modal-body p-0">
+                <iframe
+                    id="cupomFrame"
+                    src=""
+                    width="100%"
+                    height="700"
+                    frameborder="0">
+                </iframe>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const cupomModal = document.getElementById('cupomModal');
+        const cupomFrame = document.getElementById('cupomFrame');
+
+        if (cupomModal) {
+
+            cupomModal.addEventListener('show.bs.modal', function (event) {
+
+                const button = event.relatedTarget;
+
+                if (!button) {
+                    return;
+                }
+
+                const url = button.getAttribute('data-cupom-url');
+
+                console.log('Abrindo cupom:', url);
+
+                cupomFrame.src = url;
+            });
+
+            cupomModal.addEventListener('hidden.bs.modal', function () {
+
+                cupomFrame.src = '';
+            });
+        }
+
+    });
+</script>
 <?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/devolucoes/index.blade.php ENDPATH**/ ?>

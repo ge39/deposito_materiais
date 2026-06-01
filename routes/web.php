@@ -272,7 +272,12 @@ Route::middleware('auth')->group(function () {
 
     // 2️⃣ Atalhos auxiliares do PDV
     Route::get('/pdv/ultima-venda-id', [\App\Http\Controllers\VendaController::class, 'obterUltimaVendaId']);
-    Route::get('/venda/{id}/cupom', [\App\Http\Controllers\VendaController::class, 'cupom'])->name('venda.cupom');
+    // Route::get('/venda/{id}/cupom', [\App\Http\Controllers\VendaController::class, 'cupom'])->name('venda.cupom');
+    
+    Route::prefix('vendas')->group(function () {
+        Route::get('/venda/{id}/cupom', [VendaController::class, 'cupom'])
+            ->name('venda.cupom');
+    });
 
     // 3️⃣ Resource padrão (Gera index, create, show, update, destroy)
     Route::resource('vendas', PdvController::class);

@@ -305,7 +305,7 @@ class VendaController extends Controller
     /**
      * Gera os dados do cupom de forma estática e segura para impressão ou reimpressão.
      */
-       public function cupom($id) 
+     public function cupom($id) 
     { 
         // 1. Carrega a venda com os relacionamentos originais
         $venda = Venda::with([
