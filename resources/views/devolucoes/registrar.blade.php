@@ -3,11 +3,25 @@
 @section('content')
 
 <div class="container py-4">
-    @if(session('error'))
-        <div class="alert alert-danger shadow-sm mb-4">
-            {!! session('error') !!}
+   @if(session('error'))
+        <div class="alert alert-danger border-0 shadow-sm p-3 d-flex align-items-center mb-4" role="alert" style="border-left: 4px solid #dc3545 !important; border-radius: 8px;">
+            <!-- Ícone de Atenção do Bootstrap Icons -->
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-danger"></i>
+            
+            <div class="w-100 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                <div>
+                    <strong class="d-block text-dark" style="font-size: 0.95rem;">Operação Bloqueada</strong>
+                    <span class="text-muted small">Já existe uma devolução pendente para este item. Por favor, aguarde a análise antes de registrar uma nova solicitação.</span>
+                </div>
+                
+                <!-- Botão de Ação Rápida para o usuário resolver o problema -->
+                <a href="{{ route('devolucoes.pendentes') }}" class="btn btn-sm btn-danger fw-bold px-3 py-2 shadow-sm text-nowrap">
+                    <i class="bi bi-clock-history me-1"></i> Ver Pendentes
+                </a>
+            </div>
         </div>
     @endif
+
 
     <div class="mb-4">
         <h2 class="mb-1 text-dark font-weight-bold">Registrar Devolução / Troca - Venda #{{ $venda->id }}</h2>
