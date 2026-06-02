@@ -40,7 +40,6 @@
                 <div class="card-body">
                     <div class="row mb-2">
                         <div class="col-md-10 d-flex gap-2 flex-row flex-wrap align-items-start">
-
                             @php
                                 $imagens = [];
                                 for ($i = 1; $i <= 4; $i++) {
@@ -54,15 +53,17 @@
                             @endphp
 
                             @forelse($imagens as $idx => $imagem)
-                                <img src="{{ asset('storage/' . $imagem) }}" 
+                                <!-- 🔥 CORREÇÃO: Mudado de 'storage/' para 'imgDevolucoes/' -->
+                                <img src="{{ asset('imgDevolucoes/' . $imagem) }}" 
                                     class="img-zoom"
                                     alt="Imagem {{ $idx + 1 }}" 
                                     style="width: {{ $tamanho }}px; height: {{ $tamanho }}px; object-fit: cover; border-radius: 5px;">
 
                             @empty
-                                Sem imagem
+                                <span class="text-muted fs-7">Sem imagem</span>
                             @endforelse
-                        </div>                    
+                        </div>
+              
 
                         <div class="col-md-8">
                             <strong>Motivo da Devolução:</strong>

@@ -214,17 +214,17 @@
 
       <!-- Usuário logado -->
       @auth
-      <div class="d-flex align-items-center text-white">
-        <span class="me-3">
-          <i class="bi bi-person-circle me-1"></i>{{ Auth::user()->name }}
-        </span>
-        <form method="POST" action="{{ route('logout') }}" class="d-inline">
-            @csrf
-            <button type="submit" class="btn btn-outline-light btn-sm">
-                Sair
-            </button>
-        </form>
-      </div>
+        <div class="d-flex align-items-center text-white">
+          <span class="me-3">
+            <i class="bi bi-person-circle me-1"></i>{{ Auth::user()->name }}
+          </span>
+          <form method="POST" action="{{ route('logout') }}" class="d-inline">
+              @csrf
+              <button type="submit" class="btn btn-outline-light btn-sm">
+                  Sair
+              </button>
+          </form>
+        </div>
       @endauth
     </div>
 </nav>
@@ -239,8 +239,8 @@
     </small>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
   document.addEventListener('DOMContentLoaded', function() {
       // Submenus flyout
       document.querySelectorAll('.dropdown-submenu .dropdown-toggle').forEach(function(toggle) {
@@ -260,7 +260,7 @@
           });
       });
   });
-</script>
+  </script>
 
     <!-- JS do Bootstrap e app.js -->
         <!-- <script src="{{ asset('js/app.js') }}"></script> -->

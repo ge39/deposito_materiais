@@ -214,18 +214,18 @@
 
       <!-- Usuário logado -->
       <?php if(auth()->guard()->check()): ?>
-      <div class="d-flex align-items-center text-white">
-        <span class="me-3">
-          <i class="bi bi-person-circle me-1"></i><?php echo e(Auth::user()->name); ?>
+        <div class="d-flex align-items-center text-white">
+          <span class="me-3">
+            <i class="bi bi-person-circle me-1"></i><?php echo e(Auth::user()->name); ?>
 
-        </span>
-        <form method="POST" action="<?php echo e(route('logout')); ?>" class="d-inline">
-            <?php echo csrf_field(); ?>
-            <button type="submit" class="btn btn-outline-light btn-sm">
-                Sair
-            </button>
-        </form>
-      </div>
+          </span>
+          <form method="POST" action="<?php echo e(route('logout')); ?>" class="d-inline">
+              <?php echo csrf_field(); ?>
+              <button type="submit" class="btn btn-outline-light btn-sm">
+                  Sair
+              </button>
+          </form>
+        </div>
       <?php endif; ?>
     </div>
 </nav>
@@ -240,8 +240,8 @@
     </small>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
   document.addEventListener('DOMContentLoaded', function() {
       // Submenus flyout
       document.querySelectorAll('.dropdown-submenu .dropdown-toggle').forEach(function(toggle) {
@@ -261,7 +261,7 @@
           });
       });
   });
-</script>
+  </script>
 
     <!-- JS do Bootstrap e app.js -->
         <!-- <script src="<?php echo e(asset('js/app.js')); ?>"></script> -->

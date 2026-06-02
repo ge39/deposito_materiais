@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('content'); ?>
 <div class="container">
     <h2 class="mb-4">Devoluções Pendentes</h2>
@@ -40,7 +38,6 @@
                 <div class="card-body">
                     <div class="row mb-2">
                         <div class="col-md-10 d-flex gap-2 flex-row flex-wrap align-items-start">
-
                             <?php
                                 $imagens = [];
                                 for ($i = 1; $i <= 4; $i++) {
@@ -54,15 +51,17 @@
                             ?>
 
                             <?php $__empty_2 = true; $__currentLoopData = $imagens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $idx => $imagem): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
-                                <img src="<?php echo e(asset('storage/' . $imagem)); ?>" 
+                                <!-- 🔥 CORREÇÃO: Mudado de 'storage/' para 'imgDevolucoes/' -->
+                                <img src="<?php echo e(asset('imgDevolucoes/' . $imagem)); ?>" 
                                     class="img-zoom"
                                     alt="Imagem <?php echo e($idx + 1); ?>" 
                                     style="width: <?php echo e($tamanho); ?>px; height: <?php echo e($tamanho); ?>px; object-fit: cover; border-radius: 5px;">
 
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
-                                Sem imagem
+                                <span class="text-muted fs-7">Sem imagem</span>
                             <?php endif; ?>
-                        </div>                    
+                        </div>
+              
 
                         <div class="col-md-8">
                             <strong>Motivo da Devolução:</strong>

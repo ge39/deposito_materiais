@@ -120,6 +120,7 @@
                                 <div class="col">
                                     <div class="p-3 bg-white border rounded shadow-sm h-100">
                                         <span class="text-muted small d-block mb-1">Preço Unitário</span>
+                                        <input type="hidden" class="preco-unitario-item" data-preco="{{ $itemVenda->preco_unitario ?? 0 }}">
                                         <strong class="text-primary font-weight-bold h5 mb-0 d-block">R$ {{ number_format($itemVenda->preco_unitario, 2, ',', '.') }}</strong>
                                     </div>
                                 </div>
@@ -165,29 +166,49 @@
                         </div>
 
                         {{-- SEÇÃO 3: SEÇÃO ESTORNOS & DEVOLUÇÕES (FUNDO BRANCO) --}}
-                        <div style="background-color: #ffffff !important; padding: 25px !important; width: 100% !important; box-sizing: border-box !important;">
-                            @if(!$jaDevolvido)
-                                <form action="{{ route('devolucoes.salvar') }}" method="POST" enctype="multipart/form-data" class="m-0">
-                                    @csrf
-                                    <input type="hidden" name="item_id" value="{{ $itemVenda->id }}">
+                            <div style="background-color: #ffffff !important; padding: 25px !important; width: 100% !important; box-sizing: border-box !important;">
+                                @if(!$jaDevolvido)
+                                    <form action="{{ route('devolucoes.salvar') }}" method="POST" enctype="multipart/form-data" class="m-0">
+                                        @csrf
+                                        <input type="hidden" name="item_id" value="{{ $itemVenda->id }}">
 
-                                    <span style="color:snow;background-color: rgb(80, 58, 2) !important; font-size: 0.8rem !important; font-weight: 700 !important; text-transform: uppercase !important; tracking-wide: 0.5px !important; display: block !important; margin-bottom: 15px !important; padding: 10px !important;">Seção Estornos & Devoluções</span>
+                                        <span style="color:snow;background-color: rgb(80, 58, 2) !important; font-size: 0.8rem !important; font-weight: 700 !important; text-transform: uppercase !important; tracking-wide: 0.5px !important; display: block !important; margin-bottom: 15px !important; padding: 10px !important;">Seção Estornos & Devoluções</span>
 
-                                    <div class="row g-3 mb-4">
-                                        <div class="col-md-4">
-                                            <label class="form-label small font-weight-bold text-dark mb-2">À Devolver</label>
-                                            <input type="number" name="quantidade" min="1" max="{{ $qtdDisponivel }}" class="form-control" style="border: 2px solid #cbd5e0 !important; height: 42px !important; font-weight: 600 !important;" required placeholder="0">
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-4">
+                                                <label class="form-label small font-weight-bold text-dark mb-2">À Devolver</label>
+                                                <!-- <input type="number" name="quantidade" min="1" max="{{ $qtdDisponivel }}" class="form-control" style="border: 2px solid #cbd5e0 !important; height: 42px !important; font-weight: 600 !important;" required placeholder="0"> -->
+                                                 <!-- <input type="number" name="quantidade" min="1" max="{{ $qtdDisponivel }}" class="form-control input-qtd-devolver" ... required placeholder="0"> -->
+                                                <!-- Input de Quantidade Atualizado com ID único -->
+                                                <input type="number" 
+                                                    name="quantidade" 
+                                                    id="qtd-devolver-{{ $itemVenda->id }}" 
+                                                    min="1" 
+                                                    max="{{ $qtdDisponivel }}" 
+                                                    class="form-control input-calculo-estorno" 
+                                                    data-item-id="{{ $itemVenda->id }}"
+                                                    data-preco="{{ $itemVenda->preco_unitario ?? 0 }}"
+                                                    required 
+                                                    placeholder="0">
+
+                                            </div>
+                                            <div class="col-md-8">
+                                                <label class="form-label small font-weight-bold text-dark mb-2">Motivo Logístico</label>
+                                                <select name="motivo" class="form-control motivo-select" style="border: 2px solid #cbd5e0 !important; height: 42px !important; font-weight: 600 !important;" required>
+                                                    <!-- 🔥 Opções adicionadas para passar na validação -->
+                                                    <option value="">Selecione um motivo...</option>
+                                                    <option value="Produto Defeituoso">Produto Defeituoso</option>
+                                                    <option value="Arrependimento">Arrependimento / Desistência</option>
+                                                    <option value="Produto Incorreto">Produto Errado / Incorreto</option>
+                                                    <option value="Outro motivo">Outro motivo</option>
+                                                </select>
+                                                <input type="text" name="motivo_outro" class="form-control mt-2 d-none outro-motivo-input" style="border: 2px solid #cbd5e0 !important; height: 42px !important;" placeholder="Descreva detalhadamente o motivo">
+                                            </div>
                                         </div>
-                                        <div class="col-md-8">
-                                            <label class="form-label small font-weight-bold text-dark mb-2">Motivo Logístico</label>
-                                            <select name="motivo" class="form-control motivo-select" style="border: 2px solid #cbd5e0 !important; height: 42px !important; font-weight: 600 !important;"></select>
-                                            <input type="text" name="motivo_outro" class="form-control mt-2 d-none outro-motivo-input" style="border: 2px solid #cbd5e0 !important; height: 42px !important;" placeholder="Descreva detalhadamente o motivo">
-                                        </div>
-                                    </div>
 
-                                    {{-- Bloco das Fotos das Evidências --}}
-                                    <div class="mb-4">
-                                        <label class="small font-weight-bold text-dark d-block mb-2">Evidências Visuais (Até 4 imagens)</label>
+                                        {{-- Bloco das Fotos das Evidências --}}
+                                        <div class="mb-4">
+                                        <label class="small font-weight-bold text-dark d-block mb-2">Evidências Visuais (imagens)</label>
                                         <div class="d-flex flex-wrap gap-3">
                                             
                                             <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
@@ -198,35 +219,31 @@
                                                 </label>
                                             </div>
 
-                                            <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
+                                            <!-- <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
                                                 <input type="file" name="imagem2" id="imagem-{{ $itemVenda->id }}-2" class="image-input" accept="image/*" hidden>
                                                 <label for="imagem-{{ $itemVenda->id }}-2" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer m-0 text-muted font-weight-bold" style="font-size: 0.65rem; cursor: pointer !important;">
                                                     ➕ FOTO 2
                                                     <img id="preview-{{ $itemVenda->id }}-2" class="img-preview position-absolute top-0 start-0 w-100 h-100 rounded" style="object-fit: cover; display: none; cursor: pointer !important;" alt="">
                                                 </label>
-                                            </div>
-
-
+                                            </div> -->
 
                                                 <!-- Foto 3 -->
-                                                <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
+                                                <!-- <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
                                                     <input type="file" name="imagem3" id="imagem-{{ $itemVenda->id }}-3" class="image-input" accept="image/*" hidden>
                                                     <label for="imagem-{{ $itemVenda->id }}-3" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center m-0 text-muted font-weight-bold" style="font-size: 0.65rem; cursor: pointer !important;">
                                                         ➕ FOTO 3
                                                         <img id="preview-{{ $itemVenda->id }}-3" class="img-preview position-absolute top-0 start-0 w-100 h-100 rounded" style="object-fit: cover; display: none; cursor: pointer !important;" alt="">
                                                     </label>
-                                                </div>
+                                                </div> -->
 
                                                 <!-- Foto 4 -->
-                                                <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
+                                                <!-- <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
                                                     <input type="file" name="imagem4" id="imagem-{{ $itemVenda->id }}-4" class="image-input" accept="image/*" hidden>
                                                     <label for="imagem-{{ $itemVenda->id }}-4" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center m-0 text-muted font-weight-bold" style="font-size: 0.65rem; cursor: pointer !important;">
                                                         ➕ FOTO 4
                                                         <img id="preview-{{ $itemVenda->id }}-4" class="img-preview position-absolute top-0 start-0 w-100 h-100 rounded" style="object-fit: cover; display: none; cursor: pointer !important;" alt="">
                                                     </label>
-                                                </div>
-
-
+                                                </div> -->
                                             </div>
                                         </div>
 
@@ -234,7 +251,10 @@
                                         <div class="border-top pt-3 mt-3 d-flex align-items-center justify-content-between">
                                             <div>
                                                 <span class="text-muted small d-block">Previsão de Estorno Comercial</span>
-                                                <strong class="text-danger h4 mb-0 font-weight-bold">R$ {{ number_format($valorExtornado, 2, ',', '.') }}</strong>
+                                                <!-- <strong class="text-danger h4 mb-0 font-weight-bold">R$ {{ number_format($valorExtornado, 2, ',', '.') }}</strong> -->
+                                                 <strong class="text-danger h4 mb-0 font-weight-bold" id="preview-estorno-{{ $itemVenda->id }}">
+                                                    R$ 0,00
+                                                </strong>
                                             </div>
                                             <div class="d-flex gap-2">
                                                 <a href="{{ url()->previous() }}" class="btn btn-secondary px-4 font-weight-bold">Voltar</a>
@@ -250,16 +270,13 @@
                                     </div>
                                 @endif
                             </div>
-
                         </div>
                     </div>
             </div>
         @endforeach
     </div>
 </div>
-
-                                            
-                                        
+                                       
 
 {{-- Preview Script --}}
 <script>
@@ -282,6 +299,67 @@
             }
         });
     });
+</script>
+
+ <!-- Monitora a digitação da quantidade para calcular o estorno em tempo real -->
+<script>
+    // Monitora a digitação da quantidade para calcular o estorno em tempo real
+    document.querySelectorAll('.input-qtd-devolver').forEach(input => {
+        input.addEventListener('input', function() {
+            // Encontra o formulário ou container atual do item
+            const container = this.closest('form') || this.closest('.row');
+            
+            // Busca o preço unitário guardado no atributo data-preco
+            const precoElement = container.querySelector('.preco-unitario-item');
+            const precoUnitario = precoElement ? parseFloat(precoElement.getAttribute('data-preco')) : 0;
+            
+            // Pega a quantidade digitada pelo usuário
+            const quantidade = parseFloat(this.value) || 0;
+            
+            // Faz a multiplicação matemática real
+            const totalEstorno = quantidade * precoUnitario;
+            
+            // Formata o resultado no padrão de moeda Real (R$ 0.000,00)
+            const valorFormatado = totalEstorno.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+            
+            // Atualiza o texto da tarja de previsão na tela
+            const previewElement = container.querySelector('.preview-valor-estorno');
+            if (previewElement) {
+                previewElement.textContent = valorFormatado;
+            }
+        });
+    });
+
+    // Monitora a digitação da quantidade para calcular o estorno
+    document.querySelectorAll('.input-calculo-estorno').forEach(input => {
+        input.addEventListener('input', function() {
+            // Pega o ID do item e o preço unitário puro direto do input
+            const itemId = this.getAttribute('data-item-id');
+            const precoUnitario = parseFloat(this.getAttribute('data-preco')) || 0;
+            
+            // Pega a quantidade digitada pelo usuário
+            const quantidade = parseFloat(this.value) || 0;
+            
+            // Realiza o cálculo
+            const totalEstorno = quantidade * precoUnitario;
+            
+            // Formata para a moeda Real (R$)
+            const valorFormatado = totalEstorno.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+            
+            // Atualiza a tag forte específica desse item
+            const labelPrevisao = document.getElementById(`preview-estorno-${itemId}`);
+            if (labelPrevisao) {
+                labelPrevisao.textContent = valorFormatado;
+            }
+        });
+    });
+
 </script>
 
 <script>
@@ -317,7 +395,6 @@
         });
     });
 </script>
-
 
 {{-- Select2 + Motivos --}}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -464,5 +541,4 @@
         z-index: 20;
     }
 </style>
-
 @endsection

@@ -26,146 +26,181 @@
         <div class="row row-cols-1 g-4">
 
         @foreach($vendas as $item)
-                @php
-                    // Alinhado com a propriedade definida no laço foreach do Controller
-                    $qtdDisponivel = $item->quantidade_disponivel;
-                @endphp
-                <div class="col">
-                    <div class="card h-100 shadow-sm @if($qtdDisponivel == 0) border-success @endif">
-                        <!-- Cabeçalho do Card com informações da Venda -->
-                       <div class="card-header bg-light d-flex justify-content-between align-items-center py-3">
-                            <div class="d-flex align-items-center gap-2">
-                                    <h5 class="card-title mb-0 fw-bold text-dark">
-                                        Venda #{{ $item->venda_id }}
-                                    </h5>
+                    @php
+                        // Alinhado com a propriedade definida no laço foreach do Controller
+                        $qtdDisponivel = $item->quantidade_disponivel;
+                        @endphp
+                        <div class="col">
+                            <div class="card h-100 shadow-sm @if($qtdDisponivel == 0) border-success @endif">
+                                <!-- Cabeçalho do Card com informações da Venda -->
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center py-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                            <h5 class="card-title mb-0 fw-bold text-dark">
+                                                Venda #{{ $item->venda_id }}
+                                            </h5>
 
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-info"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#cupomModal"
-                                        data-cupom-url="{{ url('/vendas/venda/'.$item->venda_id.'/cupom') }}">
-                                        <i class="bi bi-receipt"></i> Ver Cupom
-                                    </button>
-                                </div>
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-info"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#cupomModal"
+                                                data-cupom-url="{{ url('/vendas/venda/'.$item->venda_id.'/cupom') }}">
+                                                <i class="bi bi-receipt"></i> Ver Cupom
+                                            </button>
+                                        </div>
 
-                                <span class="badge bg-secondary p-2">
-                                    <i class="bi bi-calendar3"></i>
-                                    {{ $item->data_venda ? \Carbon\Carbon::parse($item->data_venda)->format('d/m/Y') : '---' }}
-                                </span>
-                            </div>
+                                        <span class="badge bg-secondary p-2">
+                                            <i class="bi bi-calendar3"></i>
+                                            {{ $item->data_venda ? \Carbon\Carbon::parse($item->data_venda)->format('d/m/Y') : '---' }}
+                                        </span>
+                                    </div>
 
-                        <div class="card-body">
-                            <!-- Informações do Cliente -->
-                            <div class="row mb-3">
-                                <div class="col-md-4">
-                                    <p class="card-text mb-1"><strong>Cliente:</strong> {{ $item->cliente_nome }}</p>
-                                    <p class="card-text mb-1"><strong>Tipo de Pessoa:</strong> {{ $item->cliente_tipo }}</p>
-                                </div>
-                                <div class="col-md-4">
-                                    <p class="card-text mb-1"><strong>Documento (CPF/CNPJ):</strong> {{ $item->cliente_cpf_cnpj }}</p>
-                                    <p class="card-text mb-1"><strong>Valor Total da Venda:</strong> R$ {{ number_format($item->valor_total, 2, ',', '.') }}</p>
-                                </div>
-                                <div class="col-md-4 text-md-end">
-                                    <p class="card-text mb-1"><strong>Total Estornado:</strong> <span class="text-danger fw-bold">R$ {{ number_format($item->valor_extornado, 2, ',', '.') }}</span></p>
-                                    <p class="card-text mb-1"><strong>Status Geral:</strong> 
-                                        @if($qtdDisponivel == 0)
-                                            <span class="text-success fw-bold">Totalmente devolvido</span>
-                                        @else
-                                            <span class="text-warning fw-bold">Disponível para devolução</span>
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-
-                            <h6 class="fw-bold text-primary border-bottom pb-2 mt-4 mb-3">Itens desta Venda</h6>
-                            
-                            <!-- Seção de listagem completa dos itens do cupom -->
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-hover table-striped align-middle text-center mb-0">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th class="text-start" style="width: 20%;">Produto</th>
-                                            <th>Qtd Comprada</th>
-                                            <th>Preço Unit.</th>
-                                            <th>Subtotal</th>
-                                            <th class="table-danger text-danger">Lote Retorno</th>
-                                            <th class="table-danger text-danger">Qtd Devolvida</th>
-                                            <th class="table-success text-success">Qtd Disponível</th>
-                                            <th class="table-success text-success">Valor Disponível</th>
-                                            <th>Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <!-- Descrição do Produto -->
-                                            <td class="text-start fw-bold text-primary">
-                                                {{ $item->produto_nome ?? 'Verifique os produtos no formulário' }}
-                                            </td>
-                                            
-                                            <!-- Qtd Comprada -->
-                                            <td>{{ number_format($item->quantidade_comprada, 0, ',', '.') }}</td>
-                                            
-                                            <!-- Preço Unitário -->
-                                            <td>R$ {{ number_format($item->preco_unitario ?? 0, 2, ',', '.') }}</td>
-                                            
-                                            <!-- Subtotal original -->
-                                            <td class="fw-bold">R$ {{ number_format($item->subtotal ?? 0, 2, ',', '.') }}</td>
-                                            
-                                            <!-- Histórico de Lote de Reentrada -->
-                                            <td class="table-danger fw-bold">
-                                                <span class="badge @if(($item->numero_lote ?? 'Nenhum') == 'Nenhum') bg-light text-muted border @else bg-danger @endif">
-                                                    {{ $item->numero_lote ?? 'Nenhum' }}
-                                                </span>
-                                            </td>
-                                            
-                                            <!-- Qtd Já Devolvida -->
-                                            <td class="table-danger text-danger fw-bold">{{ number_format($item->quantidade_devolvida, 0, ',', '.') }}</td>
-                                            
-                                            <!-- Qtd Disponível Restante -->
-                                            <td class="table-success text-success fw-bold fs-5">{{ number_format($qtdDisponivel, 0, ',', '.') }}</td>
-                                            
-                                            <!-- Valor Financeiro ainda disponível para estornar -->
-                                            <td class="table-success text-success fw-bold">R$ {{ number_format($item->valor_disponivel ?? 0, 2, ',', '.') }}</td>
-                                            
-                                            <!-- Botão de Ação -->
-                                            <td>
-                                                @if($qtdDisponivel > 0)
-                                                    <a href="{{ route('devolucoes.registrar', ['item_id' => $item->venda_item_id ?? $item->venda_id]) }}" 
-                                                       class="btn btn-sm btn-danger px-3 shadow-sm">
-                                                        <i class="bi bi-x-circle"></i> Devolver
-                                                    </a>
+                                <div class="card-body">
+                                    <!-- Informações do Cliente -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <p class="card-text mb-1"><strong>Cliente:</strong> {{ $item->cliente_nome }}</p>
+                                            <p class="card-text mb-1"><strong>Tipo de Pessoa:</strong> {{ $item->cliente_tipo }}</p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <p class="card-text mb-1"><strong>Documento (CPF/CNPJ):</strong> {{ $item->cliente_cpf_cnpj }}</p>
+                                            <p class="card-text mb-1"><strong>Valor Total da Venda:</strong> R$ {{ number_format($item->valor_total, 2, ',', '.') }}</p>
+                                        </div>
+                                        <div class="col-md-4 text-md-end">
+                                            <p class="card-text mb-1"><strong>Total Estornado:</strong> <span class="text-danger fw-bold">R$ {{ number_format($item->valor_extornado, 2, ',', '.') }}</span></p>
+                                            <p class="card-text mb-1"><strong>Status Geral:</strong> 
+                                                @if($qtdDisponivel == 0)
+                                                    <span class="text-success fw-bold">Totalmente devolvido</span>
                                                 @else
-                                                    <button class="btn btn-sm btn-light border text-muted" disabled>Sem Saldo</button>
+                                                    <span class="text-primary fw-bold">Disponível para devolução</span>
                                                 @endif
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                                            </p>
+                                        </div>
+                                    </div>
 
-                            <!-- Botões de navegação inferiores do card -->
-                            <div class="mt-4 d-flex gap-2 justify-content-end">
-                                <a href="{{ route('devolucoes.index') }}" class="btn btn-sm btn-secondary px-4">Voltar</a>
-                            </div>
+                                    <h6 class="fw-bold text-primary border-bottom pb-2 mt-4 mb-3">Itens desta Venda</h6>
+                                    
+                                    <!-- Seção de listagem completa dos itens do cupom -->
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover table-striped align-middle text-center mb-0">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th class="text-start" style="width: 20%;">Produto</th>
+                                                    <th>Qtd Comprada</th>
+                                                    <th>Preço Unit.</th>
+                                                    <th>Subtotal</th>
+                                                    <th class="table-danger text-danger">Lote Retorno</th>
+                                                    <th class="table-danger text-danger">Qtd Devolvida</th>
+                                                    <th class="table-success text-success">Qtd Disponível</th>
+                                                    <th class="table-success text-success">Valor Disponível</th>
+                                                    <th>Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <!-- Descrição do Produto -->
+                                                    <td class="text-start fw-bold text-primary">
+                                                        {{ $item->produto_nome ?? 'Verifique os produtos no formulário' }}
+                                                    </td>
+                                                    
+                                                    <!-- Qtd Comprada -->
+                                                    <td>{{ number_format($item->quantidade_comprada, 0, ',', '.') }}</td>
+                                                    
+                                                    <!-- Preço Unitário -->
+                                                    <td>R$ {{ number_format($item->preco_unitario ?? 0, 2, ',', '.') }}</td>
+                                                    
+                                                    <!-- Subtotal original -->
+                                                    <td class="fw-bold">R$ {{ number_format($item->subtotal ?? 0, 2, ',', '.') }}</td>
+                                                    
+                                                    <!-- Histórico de Lote de Reentrada -->
+                                                    <td class="table-danger fw-bold">
+                                                        <span class="badge @if(($item->numero_lote ?? 'Nenhum') == 'Nenhum') bg-light text-muted border @else bg-danger @endif">
+                                                            {{ $item->numero_lote ?? 'Nenhum' }}
+                                                        </span>
+                                                    </td>
+                                                    
+                                                    <!-- Qtd Já Devolvida -->
+                                                    <td class="table-danger text-danger fw-bold">{{ number_format($item->quantidade_devolvida, 0, ',', '.') }}</td>
+                                                    
+                                                    <!-- Qtd Disponível Restante -->
+                                                    <td class="table-success text-success fw-bold fs-5">{{ number_format($qtdDisponivel, 0, ',', '.') }}</td>
+                                                    
+                                                    <!-- Valor Financeiro ainda disponível para estornar -->
+                                                    <td class="table-success text-success fw-bold">R$ {{ number_format($item->valor_disponivel ?? 0, 2, ',', '.') }}</td>
+                                                    
+                                                    <!-- Botão de Ação -->
+                                                    <td>
+                                                        @if($qtdDisponivel > 0)
+                                                            <a href="{{ route('devolucoes.registrar', ['venda_id' => $item->venda_id]) }}"
+                                                            class="btn btn-sm btn-danger px-3 shadow-sm">
+                                                                <i class="bi bi-x-circle"></i> Devolver
+                                                            </a>
+                                                        @else
+                                                            <button class="btn btn-sm btn-light border text-muted" disabled>Sem Saldo</button>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
 
-                            
+                                    <!-- Botões de navegação inferiores do card -->
+                                    <div class="mt-4 d-flex gap-2 justify-content-end">
+                                        <a href="{{ route('devolucoes.index') }}" class="btn btn-sm btn-secondary px-4">Voltar</a>
+                                    </div>
+
+                                    
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    @endforeach
                 </div>
-            @endforeach
-        </div>
 
-        <!-- Links de paginação estável -->
-        <div class="mt-4 d-flex justify-content-center">
-            {{ $vendas->links('pagination::bootstrap-5') }}
-        </div>
-    @else
-        <div class="alert alert-warning text-center py-4 shadow-sm" style="background-color: #f0d791; color: #664d03; border-color: #f5e1a4;">
-            <i class="bi bi-exclamation-triangle-fill fs-4 d-block mb-2"></i>
-            Nenhuma venda ou cliente encontrado com os termos digitados.
+                <!-- Links de paginação estável -->
+                <div class="mt-4 d-flex justify-content-center">
+                    {{ $vendas->links('pagination::bootstrap-5') }}
+                </div>
+            @else
+                <div class="alert alert-warning text-center py-4 shadow-sm" style="background-color: #f0d791; color: #664d03; border-color: #f5e1a4;">
+                    <i class="bi bi-exclamation-triangle-fill fs-4 d-block mb-2"></i>
+                    Nenhuma venda ou cliente encontrado com os termos digitados.
+                </div>
+        @endif
+   <div class="card h-100 shadow-sm @if(($qtdDisponivel ?? 0) == 0) border-success @endif">
+
+    <!-- Carimbo de Devolução Total (Só aparece se a quantidade disponível for realmente zero) -->
+    @if(isset($qtdDisponivel) && $qtdDisponivel <= 0)
+        <div class="text-center my-3">
+            <div style="
+                display: inline-block;
+                padding: 12px 30px;
+                border: 3px solid #198754;
+                color: #198754;
+                font-weight: bold;
+                font-size: 1.2rem;
+                transform: rotate(-5deg);
+                border-radius: 8px;
+                text-transform: uppercase;
+            ">
+                <strong>Todos os itens da venda #{{ $item->venda_id ?? '---' }} foram devolvidos</strong>
+            </div>
         </div>
     @endif
+
+    <!-- Bloco de Status Geral posicionado de forma limpa e estruturada
+    <div class="p-3 border-top bg-light">
+        <p class="card-text mb-0"><strong>Status Geral:</strong> 
+            @if(($qtdDisponivel ?? 0) == 0)
+                <span class="text-success fw-bold">Totalmente Devolvido</span>
+            @else
+                <span class="text-primary fw-bold">Disponível para devolução</span>
+            @endif
+        </p>
+    </div> -->
+
+</div>
+
+    
 </div>
 
 <!-- Modal Cupom -->
@@ -198,6 +233,7 @@
         </div>
     </div>
 </div>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

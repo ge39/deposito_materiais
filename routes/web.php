@@ -154,7 +154,10 @@ Route::middleware('auth')->group(function () {
         Route::get('todas', [DevolucaoController::class, 'todas'])->name('todas');
         
         // 2. Rotas parametrizadas específicas do fluxo
-        Route::get('registrar/{item_id}', [DevolucaoController::class, 'registrar'])->name('registrar');
+        // Route::get('registrar/{item_id}', [DevolucaoController::class, 'registrar'])->name('registrar');
+        // Mude de 'registrar/{item_id}' para:
+        Route::get('registrar/{venda_id}', [DevolucaoController::class, 'registrar'])->name('registrar');
+
         Route::get('{devolucao}/cupom', [DevolucaoController::class, 'gerarCupom'])->name('cupom');
         Route::post('salvar', [DevolucaoController::class, 'salvar'])->name('salvar');
         Route::put('{devolucao}/aprovar', [DevolucaoController::class, 'aprovar'])->name('aprovar');
