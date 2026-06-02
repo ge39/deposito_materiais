@@ -211,36 +211,107 @@ class DevolucaoController extends Controller
         return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
     }
 
+    // public function registrar($venda_id)
+    // {
+    //     $venda = Venda::with(['itens.produto', 'itens.lote', 'itens.devolucoes'])
+    //         ->where('id', $venda_id)
+    //         ->firstOrFail();
+
+    //     $temPendente = $venda->itens->some(function ($item) {
+    //         return $item->devolucoes->contains('status', 'Pendente');
+    //     });
+
+    //     if ($temPendente) {
+    //         $msg = '
+    //             <div class="alert alert-danger d-flex justify-content-between align-items-center" style="font-size: 15px;">
+    //                 <div>
+    //                     <strong>Atenção!</strong><br>
+    //                     Já existe uma devolução pendente para esta venda.<br>
+    //                     Finalize a devolução pendente antes de abrir uma nova.
+    //                     Clique no botão ao lado para ver as devoluções pendentes.
+    //                 </div>
+    //                 <a href="/devolucoes/pendentes" class="btn btn-sm btn-primary fw-bold shadow-sm" style="white-space: nowrap;">
+    //                     Ver pendentes
+    //                 </a>
+    //             </div>
+    //         ';
+
+    //         return redirect()->back()->with('error', $msg);
+    //     }
+
+    //     return view('devolucoes.registrar', compact('venda'));
+    // }
+
     public function registrar($venda_id)
-    {
-        $venda = Venda::with(['itens.produto', 'itens.lote', 'itens.devolucoes'])
-            ->where('id', $venda_id)
-            ->firstOrFail();
+{
+    $venda = Venda::with(['itens.produto', 'itens.lote', 'itens.devolucoes'])
+        ->where('id', $venda_id)
+        ->firstOrFail();
 
-        $temPendente = $venda->itens->some(function ($item) {
-            return $item->devolucoes->contains('status', 'Pendente');
-        });
+    $temPendente = $venda->itens->some(function ($item) {
+        return $item->devolucoes->contains('status', 'Pendente');
+    });
 
-        if ($temPendente) {
-            $msg = '
-                <div class="alert alert-danger d-flex justify-content-between align-items-center" style="font-size: 15px;">
-                    <div>
-                        <strong>Atenção!</strong><br>
-                        Já existe uma devolução pendente para esta venda.<br>
-                        Finalize a devolução pendente antes de abrir uma nova.
-                        Clique no botão ao lado para ver as devoluções pendentes.
-                    </div>
-                    <a href="/devolucoes/pendentes" class="btn btn-sm btn-primary fw-bold shadow-sm" style="white-space: nowrap;">
-                        Ver pendentes
-                    </a>
+    if ($temPendente) {
+        $msg = '
+            <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0 p-3" style="font-size: 15px; border-radius: 8px;">
+                <div>
+                    <strong>Atenção!</strong><br>
+                    Já existe uma devolução pendente para esta venda.<br>
+                    Finalize a devolução pendente antes de abrir uma nova.
                 </div>
-            ';
+                <a href="/devolucoes/pendentes" class="btn btn-sm btn-primary fw-bold shadow-sm ms-3" style="white-space: nowrap;">
+                    <i class="bi bi-clock-history"></i> Ver pendentes
+                </a>
+            </div>
+        ';
 
-            return redirect()->back()->with('error', $msg);
-        }
-
-        return view('devolucoes.registrar', compact('venda'));
+        return redirect()->back()->with('error', $msg);
     }
+
+    // 🔥 Query estruturada adaptando as colunas validadas do MariaDB à sua lógica original
+           $itensVenda = DB::table('Item_Vendas as iv')
+            ->join('produtos as p', 'p.id', '=', 'iv.produto_id')
+            ->leftJoin('lotes as l', 'l.id', '=', 'iv.lote_id')
+            ->select([
+                'iv.id as item_venda_id',
+                'iv.id',
+                'iv.venda_id',
+                'iv.produto_id',
+                'p.nome as produto_nome',
+                'iv.preco_unitario as preco_unitario_item',
+                'iv.subtotal as valor_compra',
+                
+                // 🔥 SOLUÇÃO: Seleciona como quantidade_comprada E cria o apelido qtd_comprada para aceitar os dois padrões
+                'iv.quantidade as quantidade_comprada',
+                'iv.quantidade as qtd_comprada', 
+                
+                DB::raw('COALESCE(l.numero_lote, "Nenhum") as numero_lote'),
+                
+                DB::raw('(SELECT COALESCE(SUM(d.quantidade), 0) 
+                        FROM devolucoes d 
+                        WHERE d.venda_item_id = iv.id 
+                        AND d.status != "rejeitada") as quantidade_devolvida'),
+                        
+                DB::raw('(SELECT MAX(d.created_at) 
+                        FROM devolucoes d 
+                        WHERE d.venda_item_id = iv.id 
+                        AND d.status != "rejeitada") as data_ultima_devolucao')
+            ])
+            ->where('iv.venda_id', $venda_id)
+            ->get();
+
+
+    // 3. Processa o SALDO DISPONÍVEL na memória para cada linha (Sua matemática intacta)
+    foreach ($itensVenda as $item) {
+        $item->quantidade_disponivel = (float)$item->quantidade_comprada - (float)$item->quantidade_devolvida;
+    }
+
+    // Seu return original repassando a coleção completa de dados calculados para a View
+    return view('devolucoes.registrar', compact('venda', 'itensVenda'));
+}
+
+
 
     // public function salvar(Request $request)
     // {
@@ -479,10 +550,101 @@ class DevolucaoController extends Controller
         }
     }
 
-  public function aprovar(Devolucao $devolucao)
-    {
-        try {
+//   public function aprovar(Devolucao $devolucao)
+//     {
+//         try {
 
+//             DB::beginTransaction();
+
+//             $devolucao->refresh();
+
+//             // =========================================================
+//             // 1) Buscar item da venda
+//             // =========================================================
+//             $itemVenda = ItemVenda::find($devolucao->venda_item_id);
+
+//             if (!$itemVenda) {
+//                 return back()->with('error', 'Item da venda não encontrado.');
+//             }
+
+//             // =========================================================
+//             // 2) Validar quantidade disponível para devolução
+//             // =========================================================
+//             $quantidadeSolicitada = $devolucao->quantidade;
+//             $quantidadeVendida = $itemVenda->quantidade;
+
+//             $jaDevolvido = Devolucao::where('venda_item_id', $itemVenda->id)
+//                 ->where('status', 'aprovada')
+//                 ->sum('quantidade');
+
+//             $saldoParaDevolver = $quantidadeVendida - $jaDevolvido;
+
+//             if ($quantidadeSolicitada > $saldoParaDevolver) {
+//                 return back()->with('error', 'Quantidade solicitada excede o permitido.');
+//             }
+
+//             // =========================================================
+//             // 3) Buscar LOTE REAL usado na venda
+//             // =========================================================
+//             $lote = Lote::find($itemVenda->lote_id);
+
+//             if (!$lote) {
+//                 return back()->with('error', 'Lote da venda não encontrado.');
+//             }
+
+//             // =========================================================
+//             // 4) Registrar devolução no pivot devolucao_lotes
+//             // =========================================================
+//             DB::table('devolucao_lotes')->insert([
+//                 'devolucao_id'  => $devolucao->id,
+//                 'produto_id'    => $itemVenda->produto_id,
+//                 'lote_id'       => $lote->id,
+//                 'quantidade'    => $quantidadeSolicitada,
+//                 'venda_id'      => $itemVenda->venda_id,
+//                 'item_venda_id' => $itemVenda->id,
+//                 'devolvido_por' => auth()->id(),
+//                 'created_at'    => now(),
+//                 'updated_at'    => now(),
+//             ]);
+
+//             // =========================================================
+//             // 5) Repor estoque EXATAMENTE no lote da venda
+//             // =========================================================
+//             $lote->quantidade_disponivel += $quantidadeSolicitada;
+//             $lote->save();
+
+//             // =========================================================
+//             // 6) Atualizar devolução principal
+//             // =========================================================
+//             $devolucao->status = 'aprovada';
+//             $devolucao->criado_por = auth()->id();
+//             $devolucao->save();
+
+//             // =========================================================
+//             // 7) Log opcional
+//             // =========================================================
+//             DevolucaoLog::create([
+//                 'devolucao_id' => $devolucao->id,
+//                 'acao'         => 'aprovada',
+//                 'descricao'    => "Devolução aprovada. Quantidade: {$quantidadeSolicitada}.",
+//                 'usuario'      => auth()->user()->name,
+//             ]);
+
+//             DB::commit();
+
+//             return back()->with('success', 'Devolução aprovada com sucesso!');
+
+//         } catch (\Exception $e) {
+
+//             DB::rollBack();
+//             return back()->with('error', 'Erro ao aprovar devolução: '.$e->getMessage());
+//         }
+//     }
+
+    public function aprovar(Devolucao $devolucao)
+    {
+
+        try {
             DB::beginTransaction();
 
             $devolucao->refresh();
@@ -493,6 +655,7 @@ class DevolucaoController extends Controller
             $itemVenda = ItemVenda::find($devolucao->venda_item_id);
 
             if (!$itemVenda) {
+                DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
                 return back()->with('error', 'Item da venda não encontrado.');
             }
 
@@ -509,6 +672,7 @@ class DevolucaoController extends Controller
             $saldoParaDevolver = $quantidadeVendida - $jaDevolvido;
 
             if ($quantidadeSolicitada > $saldoParaDevolver) {
+                DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
                 return back()->with('error', 'Quantidade solicitada excede o permitido.');
             }
 
@@ -518,6 +682,7 @@ class DevolucaoController extends Controller
             $lote = Lote::find($itemVenda->lote_id);
 
             if (!$lote) {
+                DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
                 return back()->with('error', 'Lote da venda não encontrado.');
             }
 
@@ -542,12 +707,16 @@ class DevolucaoController extends Controller
             $lote->quantidade_disponivel += $quantidadeSolicitada;
             $lote->save();
 
+           // =========================================================
+            // 6) Atualizar devolução principal (Query Direta Forçada no Banco)
             // =========================================================
-            // 6) Atualizar devolução principal
-            // =========================================================
-            $devolucao->status = 'aprovada';
-            $devolucao->criado_por = auth()->id();
-            $devolucao->save();
+            DB::table('devolucoes')
+                ->where('id', $devolucao->id)
+                ->update([
+                    'status' => 'aprovada',
+                    'criado_por' => auth()->id(),
+                    'updated_at' => now()
+                ]);
 
             // =========================================================
             // 7) Log opcional
@@ -556,19 +725,19 @@ class DevolucaoController extends Controller
                 'devolucao_id' => $devolucao->id,
                 'acao'         => 'aprovada',
                 'descricao'    => "Devolução aprovada. Quantidade: {$quantidadeSolicitada}.",
-                'usuario'      => auth()->user()->name,
+                'usuario'      => auth()->user()->name ?? 'Sistema',
             ]);
 
-            DB::commit();
+            DB::commit(); // ✅ Salva todas as alterações fisicamente no banco de dados
 
             return back()->with('success', 'Devolução aprovada com sucesso!');
 
         } catch (\Exception $e) {
-
-            DB::rollBack();
+            DB::rollBack(); // ⚠️ Em caso de falha mecânica, cancela tudo
             return back()->with('error', 'Erro ao aprovar devolução: '.$e->getMessage());
         }
     }
+
 
 
     public function rejeitar(Devolucao $devolucao)
