@@ -37,7 +37,6 @@ class DevolucaoController extends Controller
         return view('devolucoes.index', compact('clientes', 'produtos', 'lotes', 'vendas', 'itens'));
     }
 
-
     public function buscar(Request $request)
     {
         $search = trim($request->input('search'));
@@ -229,123 +228,6 @@ class DevolucaoController extends Controller
         // Seu return original repassando a coleção completa de dados calculados para a View
         return view('devolucoes.registrar', compact('venda', 'itensVenda'));
     }
-
-
-
-    // public function salvar(Request $request)
-    // {
-    //     $request->validate([
-    //         'item_id' => 'required|exists:Item_Vendas,id',
-    //         'quantidade' => 'nullable|numeric|min:1',
-    //         'completo' => 'nullable|boolean',
-    //         'motivo' => 'required|string|max:255',
-    //         'motivo_outro' => 'nullable|string|max:255',
-    //         'imagem1' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-    //         'imagem2' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-    //         'imagem3' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-    //         'imagem4' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-    //     ]);
-
-    //     $motivoSelecionado = $request->motivo;
-    //     $motivoFinal = ($motivoSelecionado === 'Outro motivo' || $motivoSelecionado === 'Outro')
-    //         ? ($request->motivo_outro ?? $motivoSelecionado)
-    //         : $motivoSelecionado;
-
-    //     $existingPending = Devolucao::where('venda_item_id', $request->item_id)
-    //         ->where('status', 'pendente')
-    //         ->exists();
-
-    //     if ($existingPending) {
-    //         return back()->with('error', 'Já existe uma devolução pendente para este item. Aguarde a análise antes de registrar outra.');
-    //     }
-
-    //     DB::beginTransaction();
-    //     try {
-    //         $existingPending = Devolucao::where('venda_item_id', $request->item_id)
-    //             ->where('status', 'pendente')
-    //             ->lockForUpdate()
-    //             ->exists();
-
-    //         if ($existingPending) {
-    //             DB::rollBack();
-    //             return back()->with('error', 'Já existe uma devolução pendente para este item (verificação final).');
-    //         }
-
-    //         $itemVenda = ItemVenda::findOrFail($request->item_id);
-    //         $qtdeDisponivel = $itemVenda->quantidade - $itemVenda->quantidade_devolvida;
-
-    //         $quantidadeDevolver = ($request->has('completo') && $request->completo) 
-    //             ? $qtdeDisponivel 
-    //             : ($request->quantidade ?? 0);
-
-    //         if ($quantidadeDevolver > $qtdeDisponivel) {
-    //             DB::rollBack();
-    //             return back()->with('error', 'Quantidade informada excede o limite permitido.');
-    //         }
-
-    //         // $imagens = [];
-    //         // for ($i = 1; $i <= 4; $i++) {
-    //         //     $campo = 'imagem' . $i;
-    //         //     $imagens[$campo] = $request->hasFile($campo)
-    //         //         ? $request->file($campo)->store('devolucoes', 'public')
-    //         //         : null;
-    //         // }
-            
-    //         // Agora as imagens serão processadas manualmente para garantir que apenas o nome do arquivo seja salvo no banco, e o arquivo seja movido para a pasta correta
-    //         // pasta public/devolucoes/ com um nome único gerado pelo hash do Laravel, e o nome do arquivo (sem caminho) será salvo no banco de dados.
-    //         $imagens = [];
-    //         for ($i = 1; $i <= 4; $i++) {
-    //             $campo = 'imagem' . $i;
-                
-    //             if ($request->hasFile($campo)) {
-    //                 $file = $request->file($campo);
-                    
-    //                 // Gera um nome único e seguro baseado no hash do próprio Laravel
-    //                 $nomeArquivo = $file->hashName(); 
-                    
-    //                 // Move fisicamente o arquivo para a pasta public/devolucoes/
-    //                 $file->move(public_path('imgDevolucoes'), $nomeArquivo);
-                    
-    //                 // Salva apenas o nome do arquivo no banco (Ex: "5fxxKwPoQ...Yl.png")
-    //                 $imagens[$campo] = $nomeArquivo;
-    //             } else {
-    //                 $imagens[$campo] = null;
-    //             }
-    //         }
-
-           
-    //         $devolucao = Devolucao::create([
-    //             'cliente_id' => $itemVenda->venda->cliente_id,
-    //             'venda_id' => $itemVenda->venda_id,
-    //             'venda_item_id' => $itemVenda->id,
-    //             'produto_id' => $itemVenda->produto_id,
-    //             'quantidade' => $quantidadeDevolver,
-    //             'motivo' => $motivoFinal,
-    //             'status' => 'pendente',
-    //             'imagem1' => $imagens['imagem1'],
-    //             'imagem2' => $imagens['imagem2'],
-    //             'imagem3' => $imagens['imagem3'],
-    //             'imagem4' => $imagens['imagem4'],
-    //         ]);
-           
-    //         DevolucaoLog::create([
-    //             'devolucao_id' => $devolucao->id,
-    //             'acao' => 'registrada',
-    //             'descricao' => 'Devolução registrada pelo cliente. Aguardando aprovação.',
-    //             'usuario' => auth()->user()->name ?? 'Sistema',
-    //         ]);
-
-    //         DB::commit();
-
-    //         return redirect()->route('devolucoes.pendentes')
-    //             ->with('success', 'Devolução registrada com sucesso e aguardando aprovação.');
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
-    //     }
-    // }
-  
    
     public function salvar(Request $request)
     {
@@ -477,27 +359,129 @@ class DevolucaoController extends Controller
         }
     }
 
+    // funcionando bem, mas sem bloqueios, o que pode causar problemas em casos de cliques simultâneos
+    // public function aprovar(Devolucao $devolucao)
+    // {
+
+    //     try {
+    //         DB::beginTransaction();
+
+    //         $devolucao->refresh();
+
+    //         // =========================================================
+    //         // 1) Buscar item da venda
+    //         // =========================================================
+    //         $itemVenda = ItemVenda::find($devolucao->venda_item_id);
+
+    //         if (!$itemVenda) {
+    //             DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
+    //             return back()->with('error', 'Item da venda não encontrado.');
+    //         }
+
+    //         // =========================================================
+    //         // 2) Validar quantidade disponível para devolução
+    //         // =========================================================
+    //         $quantidadeSolicitada = $devolucao->quantidade;
+    //         $quantidadeVendida = $itemVenda->quantidade;
+
+    //         $jaDevolvido = Devolucao::where('venda_item_id', $itemVenda->id)
+    //             ->where('status', 'aprovada')
+    //             ->sum('quantidade');
+
+    //         $saldoParaDevolver = $quantidadeVendida - $jaDevolvido;
+
+    //         if ($quantidadeSolicitada > $saldoParaDevolver) {
+    //             DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
+    //             return back()->with('error', 'Quantidade solicitada excede o permitido.');
+    //         }
+
+    //         // =========================================================
+    //         // 3) Buscar LOTE REAL usado na venda
+    //         // =========================================================
+    //         $lote = Lote::find($itemVenda->lote_id);
+
+    //         if (!$lote) {
+    //             DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
+    //             return back()->with('error', 'Lote da venda não encontrado.');
+    //         }
+
+    //         // =========================================================
+    //         // 4) Registrar devolução no pivot devolucao_lotes
+    //         // =========================================================
+    //         DB::table('devolucao_lotes')->insert([
+    //             'devolucao_id'  => $devolucao->id,
+    //             'produto_id'    => $itemVenda->produto_id,
+    //             'lote_id'       => $lote->id,
+    //             'quantidade'    => $quantidadeSolicitada,
+    //             'venda_id'      => $itemVenda->venda_id,
+    //             'item_venda_id' => $itemVenda->id,
+    //             'devolvido_por' => auth()->id(),
+    //             'created_at'    => now(),
+    //             'updated_at'    => now(),
+    //         ]);
+
+    //         // =========================================================
+    //         // 5) Repor estoque EXATAMENTE no lote da venda
+    //         // =========================================================
+    //         $lote->quantidade_disponivel += $quantidadeSolicitada;
+    //         $lote->save();
+
+    //        // =========================================================
+    //         // 6) Atualizar devolução principal (Query Direta Forçada no Banco)
+    //         // =========================================================
+    //         DB::table('devolucoes')
+    //             ->where('id', $devolucao->id)
+    //             ->update([
+    //                 'status' => 'aprovada',
+    //                 'criado_por' => auth()->id(),
+    //                 'updated_at' => now()
+    //             ]);
+
+    //         // =========================================================
+    //         // 7) Log opcional
+    //         // =========================================================
+    //         DevolucaoLog::create([
+    //             'devolucao_id' => $devolucao->id,
+    //             'acao'         => 'aprovada',
+    //             'descricao'    => "Devolução aprovada. Quantidade: {$quantidadeSolicitada}.",
+    //             'usuario'      => auth()->user()->name ?? 'Sistema',
+    //         ]);
+
+    //         DB::commit(); // ✅ Salva todas as alterações fisicamente no banco de dados
+
+    //         return back()->with('success', 'Devolução aprovada com sucesso!');
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack(); // ⚠️ Em caso de falha mecânica, cancela tudo
+    //         return back()->with('error', 'Erro ao aprovar devolução: '.$e->getMessage());
+    //     }
+    // }
+
+    // função refinada com padrao das normas ACID, bloqueios para garantir a integridade dos dados mesmo em casos de cliques simultâneos
     public function aprovar(Devolucao $devolucao)
     {
-
         try {
             DB::beginTransaction();
 
-            $devolucao->refresh();
+            // 🔥 CORREÇÃO ACID (Isolamento): Dá um lock de escrita na devolução atual
+            // Ninguém consegue reprocessar esta linha até acabar este commit
+            $devolucaoLock = Devolucao::where('id', $devolucao->id)->lockForUpdate()->first();
 
-            // =========================================================
-            // 1) Buscar item da venda
-            // =========================================================
-            $itemVenda = ItemVenda::find($devolucao->venda_item_id);
+            // Validação crucial de estado: Se já foi aprovada ou rejeitada por outro clique, cancela
+            if ($devolucaoLock->status !== 'pendente') {
+                DB::rollBack();
+                return back()->with('error', 'Esta devolução já foi processada por outro usuário.');
+            }
+
+            // 1) Buscar item da venda aplicando LOCK de leitura/escrita
+            $itemVenda = ItemVenda::where('id', $devolucao->venda_item_id)->lockForUpdate()->first();
 
             if (!$itemVenda) {
-                DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
+                DB::rollBack();
                 return back()->with('error', 'Item da venda não encontrado.');
             }
 
-            // =========================================================
-            // 2) Validar quantidade disponível para devolução
-            // =========================================================
+            // 2) Validar quantidade disponível para devolução de forma isolada
             $quantidadeSolicitada = $devolucao->quantidade;
             $quantidadeVendida = $itemVenda->quantidade;
 
@@ -508,23 +492,19 @@ class DevolucaoController extends Controller
             $saldoParaDevolver = $quantidadeVendida - $jaDevolvido;
 
             if ($quantidadeSolicitada > $saldoParaDevolver) {
-                DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
+                DB::rollBack();
                 return back()->with('error', 'Quantidade solicitada excede o permitido.');
             }
 
-            // =========================================================
-            // 3) Buscar LOTE REAL usado na venda
-            // =========================================================
-            $lote = Lote::find($itemVenda->lote_id);
+            // 3) Buscar LOTE REAL usado na venda aplicando LOCK (Impede cliques simultâneos de corromperem a soma)
+            $lote = Lote::where('id', $itemVenda->lote_id)->lockForUpdate()->first();
 
             if (!$lote) {
-                DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
+                DB::rollBack();
                 return back()->with('error', 'Lote da venda não encontrado.');
             }
 
-            // =========================================================
             // 4) Registrar devolução no pivot devolucao_lotes
-            // =========================================================
             DB::table('devolucao_lotes')->insert([
                 'devolucao_id'  => $devolucao->id,
                 'produto_id'    => $itemVenda->produto_id,
@@ -537,15 +517,11 @@ class DevolucaoController extends Controller
                 'updated_at'    => now(),
             ]);
 
-            // =========================================================
-            // 5) Repor estoque EXATAMENTE no lote da venda
-            // =========================================================
+            // 5) Repor estoque EXATAMENTE no lote da venda (Agora seguro contra concorrência)
             $lote->quantidade_disponivel += $quantidadeSolicitada;
             $lote->save();
 
-           // =========================================================
             // 6) Atualizar devolução principal (Query Direta Forçada no Banco)
-            // =========================================================
             DB::table('devolucoes')
                 ->where('id', $devolucao->id)
                 ->update([
@@ -554,9 +530,7 @@ class DevolucaoController extends Controller
                     'updated_at' => now()
                 ]);
 
-            // =========================================================
             // 7) Log opcional
-            // =========================================================
             DevolucaoLog::create([
                 'devolucao_id' => $devolucao->id,
                 'acao'         => 'aprovada',
@@ -564,12 +538,11 @@ class DevolucaoController extends Controller
                 'usuario'      => auth()->user()->name ?? 'Sistema',
             ]);
 
-            DB::commit(); // ✅ Salva todas as alterações fisicamente no banco de dados
-
+            DB::commit();
             return back()->with('success', 'Devolução aprovada com sucesso!');
 
         } catch (\Exception $e) {
-            DB::rollBack(); // ⚠️ Em caso de falha mecânica, cancela tudo
+            DB::rollBack();
             return back()->with('error', 'Erro ao aprovar devolução: '.$e->getMessage());
         }
     }
