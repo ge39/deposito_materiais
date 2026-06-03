@@ -148,8 +148,34 @@
                                     <div class="mt-4 d-flex gap-2 justify-content-end">
                                         <a href="{{ route('devolucoes.index') }}" class="btn btn-sm btn-secondary px-4">Voltar</a>
                                     </div>
-
-                                    
+                                     <!-- Carimbo de Devolução Total (Só aparece se a quantidade disponível for realmente zero) -->
+                                    @if(isset($qtdDisponivel) && $qtdDisponivel <= 0)
+                                        <div style="
+                                                position: absolute;
+                                                top: 50%;
+                                                left: 50%;
+                                                transform: translate(-50%, -50%) rotate(-5deg);
+                                                z-index: 9999;
+                                                pointer-events: none; /* Permite clicar no que estiver por baixo */
+                                                opacity: 0.9; /* Dá um efeito sutil de carimbo real */
+                                            ">
+                                            <div style="
+                                                display: inline-block;
+                                                padding: 15px 35px;
+                                                border: 4px solid green;
+                                                color: green;
+                                                background-color: rgba(191, 186, 186, 0.9); /* Fundo branco com leve transparência */
+                                                font-weight: bold;
+                                                font-size: 1.4rem;
+                                                text-align: center;
+                                                border-radius: 8px;
+                                                text-transform: uppercase;
+                                                box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+                                            ">
+                                                <strong>Todos os itens foram devolvidos</strong>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -166,38 +192,7 @@
                     Nenhuma venda ou cliente encontrado com os termos digitados.
                 </div>
         @endif
-   <div class="card h-100 shadow-sm @if(($qtdDisponivel ?? 0) == 0) border-success @endif">
-
-    <!-- Carimbo de Devolução Total (Só aparece se a quantidade disponível for realmente zero) -->
-    @if(isset($qtdDisponivel) && $qtdDisponivel <= 0)
-        <div class="text-center my-3">
-            <div style="
-                display: inline-block;
-                padding: 12px 30px;
-                border: 3px solid #198754;
-                color: #198754;
-                font-weight: bold;
-                font-size: 1.2rem;
-                transform: rotate(-5deg);
-                border-radius: 8px;
-                text-transform: uppercase;
-            ">
-                <strong>Todos os itens da venda #{{ $item->venda_id ?? '---' }} foram devolvidos</strong>
-            </div>
-        </div>
-    @endif
-
-    <!-- Bloco de Status Geral posicionado de forma limpa e estruturada
-    <div class="p-3 border-top bg-light">
-        <p class="card-text mb-0"><strong>Status Geral:</strong> 
-            @if(($qtdDisponivel ?? 0) == 0)
-                <span class="text-success fw-bold">Totalmente Devolvido</span>
-            @else
-                <span class="text-primary fw-bold">Disponível para devolução</span>
-            @endif
-        </p>
-    </div> -->
-
+   <!-- <div class="card h-100 shadow-sm @if(($qtdDisponivel ?? 0) == 0) border-success @endif"> -->
 </div>
 
     

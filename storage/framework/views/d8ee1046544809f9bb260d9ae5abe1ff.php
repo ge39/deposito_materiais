@@ -24,7 +24,7 @@
 
                     <strong>Venda ID:</strong> 000<?php echo e($devolucao->venda_id?? '-'); ?> <br>
                     <strong>Cliente:</strong> <?php echo e($devolucao->itemVenda->venda->cliente->nome ?? ''); ?> <br>
-                    <strong>Lote:</strong> <?php echo e($devolucao->itemVenda->lote->numero ?? 'Sem lote'); ?> <br>
+                    <strong>Lote:</strong> <?php echo e($devolucao->itemVenda->lote->numero_lote ?? 'Sem lote'); ?> <br>
                     <strong>Produto ID:</strong> 000<?php echo e(optional($devolucao->produto)->id ?? '-'); ?> <br>
                     <strong>Produto Nome:</strong> <?php echo e($devolucao->produto->nome ?? 'Sem Descrição'); ?> <br>
                     <strong>Motivo Rejeição:</strong> <?php echo e($devolucao->motivo_rejeicao); ?> <br>

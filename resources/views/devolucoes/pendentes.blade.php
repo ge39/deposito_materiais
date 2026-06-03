@@ -26,7 +26,7 @@
 
                     <strong>Venda ID:</strong> 000{{$devolucao->venda_id?? '-' }} <br>
                     <strong>Cliente:</strong> {{ $devolucao->itemVenda->venda->cliente->nome ?? '' }} <br>
-                    <strong>Lote:</strong> {{ $devolucao->itemVenda->lote->numero ?? 'Sem lote' }} <br>
+                    <strong>Lote:</strong> {{ $devolucao->itemVenda->lote->numero_lote ?? 'Sem lote' }} <br>
                     <strong>Produto ID:</strong> 000{{ optional($devolucao->produto)->id ?? '-' }} <br>
                     <strong>Produto Nome:</strong> {{ $devolucao->produto->nome ?? 'Sem Descrição' }} <br>
                     <strong>Motivo Rejeição:</strong> {{ $devolucao->motivo_rejeicao }} <br>

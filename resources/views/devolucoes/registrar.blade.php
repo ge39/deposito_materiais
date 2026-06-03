@@ -327,6 +327,8 @@
         "Cliente mudou de ideia",
         "Cliente recusou a receber",
         "Cor ou tonalidade divergente",
+        "Data de validade vencida",
+        "Data de validade próxima",
         "Defeito de fabricação",
         "Descrição incorreta do produto",
         "Desistência após orçamento",
