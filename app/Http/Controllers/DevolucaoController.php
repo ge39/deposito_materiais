@@ -243,73 +243,73 @@ class DevolucaoController extends Controller
     // }
 
     public function registrar($venda_id)
-{
-    $venda = Venda::with(['itens.produto', 'itens.lote', 'itens.devolucoes'])
-        ->where('id', $venda_id)
-        ->firstOrFail();
+    {
+        $venda = Venda::with(['itens.produto', 'itens.lote', 'itens.devolucoes'])
+            ->where('id', $venda_id)
+            ->firstOrFail();
 
-    $temPendente = $venda->itens->some(function ($item) {
-        return $item->devolucoes->contains('status', 'Pendente');
-    });
+        $temPendente = $venda->itens->some(function ($item) {
+            return $item->devolucoes->contains('status', 'Pendente');
+        });
 
-    if ($temPendente) {
-        $msg = '
-            <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0 p-3" style="font-size: 15px; border-radius: 8px;">
-                <div>
-                    <strong>Atenção!</strong><br>
-                    Já existe uma devolução pendente para esta venda.<br>
-                    Finalize a devolução pendente antes de abrir uma nova.
+        if ($temPendente) {
+            $msg = '
+                <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0 p-3" style="font-size: 15px; border-radius: 8px;">
+                    <div>
+                        <strong>Atenção!</strong><br>
+                        Já existe uma devolução pendente para esta venda.<br>
+                        Finalize a devolução pendente antes de abrir uma nova.
+                    </div>
+                    <a href="/devolucoes/pendentes" class="btn btn-sm btn-primary fw-bold shadow-sm ms-3" style="white-space: nowrap;">
+                        <i class="bi bi-clock-history"></i> Ver pendentes
+                    </a>
                 </div>
-                <a href="/devolucoes/pendentes" class="btn btn-sm btn-primary fw-bold shadow-sm ms-3" style="white-space: nowrap;">
-                    <i class="bi bi-clock-history"></i> Ver pendentes
-                </a>
-            </div>
-        ';
+            ';
 
-        return redirect()->back()->with('error', $msg);
+            return redirect()->back()->with('error', $msg);
+        }
+
+        // 🔥 Query estruturada adaptando as colunas validadas do MariaDB à sua lógica original
+            $itensVenda = DB::table('Item_Vendas as iv')
+                ->join('produtos as p', 'p.id', '=', 'iv.produto_id')
+                ->leftJoin('lotes as l', 'l.id', '=', 'iv.lote_id')
+                ->select([
+                    'iv.id as item_venda_id',
+                    'iv.id',
+                    'iv.venda_id',
+                    'iv.produto_id',
+                    'p.nome as produto_nome',
+                    'iv.preco_unitario as preco_unitario_item',
+                    'iv.subtotal as valor_compra',
+                    
+                    // 🔥 SOLUÇÃO: Seleciona como quantidade_comprada E cria o apelido qtd_comprada para aceitar os dois padrões
+                    'iv.quantidade as quantidade_comprada',
+                    'iv.quantidade as qtd_comprada', 
+                    
+                    DB::raw('COALESCE(l.numero_lote, "Nenhum") as numero_lote'),
+                    
+                    DB::raw('(SELECT COALESCE(SUM(d.quantidade), 0) 
+                            FROM devolucoes d 
+                            WHERE d.venda_item_id = iv.id 
+                            AND d.status != "rejeitada") as quantidade_devolvida'),
+                            
+                    DB::raw('(SELECT MAX(d.created_at) 
+                            FROM devolucoes d 
+                            WHERE d.venda_item_id = iv.id 
+                            AND d.status != "rejeitada") as data_ultima_devolucao')
+                ])
+                ->where('iv.venda_id', $venda_id)
+                ->get();
+
+
+        // 3. Processa o SALDO DISPONÍVEL na memória para cada linha (Sua matemática intacta)
+        foreach ($itensVenda as $item) {
+            $item->quantidade_disponivel = (float)$item->quantidade_comprada - (float)$item->quantidade_devolvida;
+        }
+
+        // Seu return original repassando a coleção completa de dados calculados para a View
+        return view('devolucoes.registrar', compact('venda', 'itensVenda'));
     }
-
-    // 🔥 Query estruturada adaptando as colunas validadas do MariaDB à sua lógica original
-           $itensVenda = DB::table('Item_Vendas as iv')
-            ->join('produtos as p', 'p.id', '=', 'iv.produto_id')
-            ->leftJoin('lotes as l', 'l.id', '=', 'iv.lote_id')
-            ->select([
-                'iv.id as item_venda_id',
-                'iv.id',
-                'iv.venda_id',
-                'iv.produto_id',
-                'p.nome as produto_nome',
-                'iv.preco_unitario as preco_unitario_item',
-                'iv.subtotal as valor_compra',
-                
-                // 🔥 SOLUÇÃO: Seleciona como quantidade_comprada E cria o apelido qtd_comprada para aceitar os dois padrões
-                'iv.quantidade as quantidade_comprada',
-                'iv.quantidade as qtd_comprada', 
-                
-                DB::raw('COALESCE(l.numero_lote, "Nenhum") as numero_lote'),
-                
-                DB::raw('(SELECT COALESCE(SUM(d.quantidade), 0) 
-                        FROM devolucoes d 
-                        WHERE d.venda_item_id = iv.id 
-                        AND d.status != "rejeitada") as quantidade_devolvida'),
-                        
-                DB::raw('(SELECT MAX(d.created_at) 
-                        FROM devolucoes d 
-                        WHERE d.venda_item_id = iv.id 
-                        AND d.status != "rejeitada") as data_ultima_devolucao')
-            ])
-            ->where('iv.venda_id', $venda_id)
-            ->get();
-
-
-    // 3. Processa o SALDO DISPONÍVEL na memória para cada linha (Sua matemática intacta)
-    foreach ($itensVenda as $item) {
-        $item->quantidade_disponivel = (float)$item->quantidade_comprada - (float)$item->quantidade_devolvida;
-    }
-
-    // Seu return original repassando a coleção completa de dados calculados para a View
-    return view('devolucoes.registrar', compact('venda', 'itensVenda'));
-}
 
 
 
@@ -427,18 +427,149 @@ class DevolucaoController extends Controller
     //     }
     // }
   
+    // public function salvar(Request $request)
+    // {
+    //     $request->validate([
+    //         'item_id' => 'required|exists:Item_Vendas,id',
+    //         'quantidade' => 'nullable|numeric|min:1',
+    //         'completo' => 'nullable|boolean',
+    //         'motivo' => 'required|string|max:255',
+    //         'motivo_outro' => 'nullable|string|max:255',
+    //         // Valida a estrutura de array para as 4 imagens do item enviado
+    //         "imagem1_{$itemId}" => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //         "imagem2_{$itemId}" => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //         "imagem3_{$itemId}" => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //         "imagem4_{$itemId}" => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //     ]);
+
+    //     $motivoSelecionado = $request->motivo;
+    //     $motivoFinal = ($motivoSelecionado === 'Outro motivo' || $motivoSelecionado === 'Outro')
+    //         ? ($request->motivo_outro ?? $motivoSelecionado)
+    //         : $motivoSelecionado;
+
+    //     $existingPending = Devolucao::where('venda_item_id', $request->item_id)
+    //         ->where('status', 'pendente')
+    //         ->exists();
+
+    //     if ($existingPending) {
+    //         return back()->with('error', 'Já existe uma devolução pendente para este item. Aguarde a análise antes de registrar outra.');
+    //     }
+
+    //     DB::beginTransaction();
+    //     try {
+    //         $existingPending = Devolucao::where('venda_item_id', $request->item_id)
+    //             ->where('status', 'pendente')
+    //             ->lockForUpdate()
+    //             ->exists();
+
+    //         if ($existingPending) {
+    //             DB::rollBack();
+    //             return back()->with('error', 'Já existe uma devolução pendente para este item (verificação final).');
+    //         }
+
+    //         // 🔥 CORREÇÃO 1: Buscamos os dados da venda diretamente via Query Builder para evitar falhas de relacionamento do Eloquent
+    //         $itemVendaDados = DB::table('Item_Vendas as iv')
+    //             ->join('vendas as v', 'v.id', '=', 'iv.venda_id')
+    //             ->select('iv.*', 'v.cliente_id', 'v.id as venda_id')
+    //             ->where('iv.id', $request->item_id)
+    //             ->first();
+
+    //         if (!$itemVendaDados) {
+    //             DB::rollBack();
+    //             return back()->with('error', 'Item da venda não encontrado.');
+    //         }
+
+    //         // Cálculo do histórico atualizado
+    //         $quantidadeJaDevolvida = DB::table('devolucoes')
+    //             ->where('venda_item_id', $request->item_id)
+    //             ->where('status', '!=', 'rejeitada')
+    //             ->sum('quantidade');
+
+    //         $qtdeDisponivel = (float)$itemVendaDados->quantidade - (float)$quantidadeJaDevolvida;
+
+    //         $quantidadeDevolver = ($request->has('completo') && $request->completo) 
+    //             ? $qtdeDisponivel 
+    //             : ((float)($request->quantidade ?? 0));
+
+    //         if ($quantidadeDevolver > $qtdeDisponivel || $quantidadeDevolver <= 0) {
+    //             DB::rollBack();
+    //             return back()->with('error', 'Quantidade informada inválida ou excede o limite permitido.');
+    //         }
+
+    //         // Upload de Imagens robusto buscando o nome dinâmico do formulário
+    //         $imagens = [];
+    //         $itemId = $request->item_id;
+
+    //         for ($i = 1; $i <= 4; $i++) {
+    //             $nomeCampoNoHtml = 'imagem' . $i . '_' . $itemId; // Ex: imagem1_12
+    //             $colunaBanco = 'imagem' . $i;                     // Ex: imagem1
+                
+    //             if ($request->hasFile($nomeCampoNoHtml)) {
+    //                 $file = $request->file($nomeCampoNoHtml);
+                    
+    //                 // Gera o nome único do arquivo
+    //                 $nomeArquivo = 'vendaItem_' . $itemId . '_foto' . $i . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    
+    //                 // Move para a pasta pública
+    //                 $file->move(public_path('imgDevolucoes'), $nomeArquivo);
+                    
+    //                 $imagens[$colunaBanco] = $nomeArquivo;
+    //             } else {
+    //                 $imagens[$colunaBanco] = null;
+    //             }
+    //         }
+
+
+    //         // Gravação da Devolução usando os dados seguros obtidos na query
+    //         $devolucao = Devolucao::create([
+    //             'cliente_id'    => $itemVendaDados->cliente_id,
+    //             'venda_id'      => $itemVendaDados->venda_id,
+    //             'venda_item_id' => $itemVendaDados->id,
+    //             'produto_id'    => $itemVendaDados->produto_id,
+    //             'quantidade'    => $quantidadeDevolver,
+    //             'motivo'        => $motivoFinal,
+    //             'status'        => 'pendente',
+    //             'imagem1'       => $imagens['imagem1'],
+    //             'imagem2'       => $imagens['imagem2'],
+    //             'imagem3'       => $imagens['imagem3'],
+    //             'imagem4'       => $imagens['imagem4'],
+    //         ]);
+        
+    //         DevolucaoLog::create([
+    //             'devolucao_id' => $devolucao->id,
+    //             'acao'         => 'registrada',
+    //             'descricao'    => 'Devolução registrada pelo cliente. Aguardando aprovação.',
+    //             'usuario'      => auth()->user()->name ?? 'Sistema',
+    //         ]);
+
+    //         DB::commit();
+
+    //         return redirect()->route('devolucoes.pendentes')
+    //             ->with('success', 'Devolução registrada com sucesso e aguardando aprovação.');
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         // Exibe o erro exato na tela em caso de falha física ou de banco
+    //         return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
+    //     }
+    // }
     public function salvar(Request $request)
     {
+        //  dd($request->all());
+        // 🔥 CORREÇÃO: Captura o ID do item na primeira linha para usá-lo na validação abaixo
+        $itemId = $request->input('item_id');
+
         $request->validate([
             'item_id' => 'required|exists:Item_Vendas,id',
             'quantidade' => 'nullable|numeric|min:1',
             'completo' => 'nullable|boolean',
             'motivo' => 'required|string|max:255',
             'motivo_outro' => 'nullable|string|max:255',
-            'imagem1' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'imagem2' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'imagem3' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'imagem4' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            // Agora o Laravel encontra a variável $itemId perfeitamente aqui:
+            "imagem1_{$itemId}" => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            "imagem2_{$itemId}" => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            "imagem3_{$itemId}" => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            "imagem4_{$itemId}" => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $motivoSelecionado = $request->motivo;
@@ -446,7 +577,7 @@ class DevolucaoController extends Controller
             ? ($request->motivo_outro ?? $motivoSelecionado)
             : $motivoSelecionado;
 
-        $existingPending = Devolucao::where('venda_item_id', $request->item_id)
+        $existingPending = Devolucao::where('venda_item_id', $itemId)
             ->where('status', 'pendente')
             ->exists();
 
@@ -456,7 +587,7 @@ class DevolucaoController extends Controller
 
         DB::beginTransaction();
         try {
-            $existingPending = Devolucao::where('venda_item_id', $request->item_id)
+            $existingPending = Devolucao::where('venda_item_id', $itemId)
                 ->where('status', 'pendente')
                 ->lockForUpdate()
                 ->exists();
@@ -466,11 +597,11 @@ class DevolucaoController extends Controller
                 return back()->with('error', 'Já existe uma devolução pendente para este item (verificação final).');
             }
 
-            // 🔥 CORREÇÃO 1: Buscamos os dados da venda diretamente via Query Builder para evitar falhas de relacionamento do Eloquent
+            // Buscamos os dados da venda com o ID isolado
             $itemVendaDados = DB::table('Item_Vendas as iv')
                 ->join('vendas as v', 'v.id', '=', 'iv.venda_id')
                 ->select('iv.*', 'v.cliente_id', 'v.id as venda_id')
-                ->where('iv.id', $request->item_id)
+                ->where('iv.id', $itemId)
                 ->first();
 
             if (!$itemVendaDados) {
@@ -480,7 +611,7 @@ class DevolucaoController extends Controller
 
             // Cálculo do histórico atualizado
             $quantidadeJaDevolvida = DB::table('devolucoes')
-                ->where('venda_item_id', $request->item_id)
+                ->where('venda_item_id', $itemId)
                 ->where('status', '!=', 'rejeitada')
                 ->sum('quantidade');
 
@@ -495,16 +626,19 @@ class DevolucaoController extends Controller
                 return back()->with('error', 'Quantidade informada inválida ou excede o limite permitido.');
             }
 
-           // Upload de Imagens robusto usando apenas nomes físicos limpos
+            // Upload de Imagens dinâmico buscando o padrão "imagemX_ID"
             $imagens = [];
+            $itemId = $request->item_id;
+
             for ($i = 1; $i <= 4; $i++) {
                 $campo = 'imagem' . $i;
                 
+                // Como os arquivos vêm limpos (imagem1, imagem2...), o Laravel encontra direto:
                 if ($request->hasFile($campo)) {
                     $file = $request->file($campo);
                     
-                    // Gera um nome único infalível: "vendaItem_12_foto1_1717355000.png"
-                    $nomeArquivo = 'vendaItem_' . $request->item_id . '_foto' . $i . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    // Gera o nome único do arquivo mantendo seu padrão original
+                    $nomeArquivo = 'vendaItem_' . $itemId . '_foto' . $i . '_' . time() . '.' . $file->getClientOriginalExtension();
                     
                     // Move diretamente para public/imgDevolucoes/
                     $file->move(public_path('imgDevolucoes'), $nomeArquivo);
@@ -515,8 +649,7 @@ class DevolucaoController extends Controller
                 }
             }
 
-
-            // Gravação da Devolução usando os dados seguros obtidos na query
+            // 3. O Model recebe o array exatamente com as chaves corretas:
             $devolucao = Devolucao::create([
                 'cliente_id'    => $itemVendaDados->cliente_id,
                 'venda_id'      => $itemVendaDados->venda_id,
@@ -530,6 +663,7 @@ class DevolucaoController extends Controller
                 'imagem3'       => $imagens['imagem3'],
                 'imagem4'       => $imagens['imagem4'],
             ]);
+
         
             DevolucaoLog::create([
                 'devolucao_id' => $devolucao->id,
@@ -545,10 +679,10 @@ class DevolucaoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            // Exibe o erro exato na tela em caso de falha física ou de banco
             return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
         }
     }
+
 
 //   public function aprovar(Devolucao $devolucao)
 //     {

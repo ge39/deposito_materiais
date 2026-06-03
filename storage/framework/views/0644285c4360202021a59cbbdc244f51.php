@@ -28,139 +28,167 @@
 
     <div class="row">
         <?php $__currentLoopData = $itensVenda; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemVenda): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-    <!-- Cards Informativos -->
-    <div class="row g-3 mb-4">
-        <!-- Lote Comercial -->
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm bg-light">
-                <span class="text-muted medium d-block">Lote Comercial</span>
-                <strong class="text-dark">#<?php echo e($itemVenda->numero_lote ?? 'Sem Lote'); ?></strong>
-            </div>
-        </div>
-
-        <!-- Preço Unitário -->
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm bg-light">
-                <span class="text-muted medium d-block">Preço Unitário</span>
-                <strong class="text-primary">R$ <?php echo e(number_format($itemVenda->preco_unitario_item, 2, ',', '.')); ?></strong>
-            </div>
-        </div>
-
-        <!-- Qtde Comprada -->
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm bg-light">
-                <span class="text-muted medium d-block">Qtde Comprada</span>
-                <strong class="text-dark"><?php echo e(number_format($itemVenda->qtd_comprada, 0, ',', '.')); ?> un</strong>
-            </div>
-        </div>
-
-        <!-- Valor Compra -->
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm bg-light">
-                <span class="text-muted medium d-block">Valor Compra</span>
-                <strong class="text-dark">R$ <?php echo e(number_format($itemVenda->valor_compra, 2, ',', '.')); ?></strong>
-            </div>
-        </div>
-
-        <!-- Saldo Disponível (Mostrará 9 un) -->
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm bg-light">
-                <span class="text-muted medium d-block">Saldo Disponível</span>
-                <strong class="text-success"><?php echo e(number_format($itemVenda->quantidade_disponivel, 0, ',', '.')); ?> un</strong>
-            </div>
-        </div>
-
-        <!-- Já Devolvido (Mostrará 1 un) -->
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm bg-light">
-                <span class="text-muted medium d-block">Já Devolvido</span>
-                <strong class="text-danger"><?php echo e(number_format($itemVenda->quantidade_devolvida, 0, ',', '.')); ?> un</strong>
-            </div>
-        </div>
-
-        <!-- Data da Venda -->
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm bg-light">
-                <span class="text-muted medium d-block">Data da Venda</span>
-                <strong class="text-dark"><?php echo e($venda->data_venda ? \Carbon\Carbon::parse($venda->data_venda)->format('d/m/Y') : '---'); ?></strong>
-            </div>
-        </div>
-
-        <!-- Última Devolução -->
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm bg-light">
-                <span class="text-muted medium d-block">Última Devolução</span>
-                <strong class="text-dark">
-                    <?php echo e($itemVenda->data_ultima_devolucao ? \Carbon\Carbon::parse($itemVenda->data_ultima_devolucao)->format('d/m/Y') : 'Nenhuma'); ?>
-
-                </strong>
-            </div>
-        </div>
-    </div>
-
-    <!-- SEÇÃO 3: FORMULÁRIO DE ENVIO DA DEVOLUÇÃO -->
-    <div style="background-color: #ffffff !important; padding: 25px !important; width: 100% !important; box-sizing: border-box !important;">
-        <?php if($itemVenda->quantidade_disponivel > 0): ?>
-            <form action="<?php echo e(route('devolucoes.salvar')); ?>" method="POST" enctype="multipart/form-data" class="m-0">
-                <?php echo csrf_field(); ?>
-                <!-- Vincula o ID correto do item para o método salvar ler no request -->
-                <input type="hidden" name="item_id" value="<?php echo e($itemVenda->item_venda_id); ?>">
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <label class="form-label medium font-weight-bold text-dark mb-2">À Devolver</label>
-                        <!-- Usa a propriedade data-preco e o max atualizado para o cálculo em tempo real -->
-                        <input type="number" 
-                               name="quantidade" 
-                               id="qtd-devolver-<?php echo e($itemVenda->item_venda_id); ?>" 
-                               min="1" 
-                               max="<?php echo e($itemVenda->quantidade_disponivel); ?>" 
-                               class="form-control input-calculo-estorno" 
-                               data-item-id="<?php echo e($itemVenda->item_venda_id); ?>"
-                               data-preco="<?php echo e($itemVenda->preco_unitario_item); ?>"
-                               required 
-                               placeholder="0">
-                    </div>
-                    <div class="col-md-8">
-                        <label class="form-label medium font-weight-bold text-dark mb-2">Motivo Logístico</label>
-                        <select name="motivo" class="form-control motivo-select" required></select>
-                        <input type="text" name="motivo_outro" class="form-control mt-2 d-none outro-motivo-input" placeholder="Descreva o motivo">
+            <!-- Cards Informativos -->
+            <div class="row g-3 mb-4">
+                <!-- Lote Comercial -->
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm bg-light">
+                        <span class="text-muted medium d-block">Lote Comercial</span>
+                        <strong class="text-dark">#<?php echo e($itemVenda->numero_lote ?? 'Sem Lote'); ?></strong>
                     </div>
                 </div>
 
-                <!-- Input Único para Upload de Imagem -->
-                <div class="mb-4">
-                    <label class="medium font-weight-bold text-dark d-block mb-2">Evidência Visual (1 imagem)</label>
-                    <div class="image-container">
-                        <input type="file" name="imagem1" id="imagem-<?php echo e($itemVenda->item_venda_id); ?>-1" class="image-input" accept="image/*" hidden>
-                        <label for="imagem-<?php echo e($itemVenda->item_venda_id); ?>-1" class="image-label">
-                            <img id="preview-<?php echo e($itemVenda->item_venda_id); ?>-1" class="img-preview" style="display: none;" alt="">
-                        </label>
+                <!-- Preço Unitário -->
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm bg-light">
+                        <span class="text-muted medium d-block">Preço Unitário</span>
+                        <strong class="text-primary">R$ <?php echo e(number_format($itemVenda->preco_unitario_item, 2, ',', '.')); ?></strong>
                     </div>
                 </div>
 
-                <!-- Barra de Totalização do Estorno -->
-                <div class="border-top pt-3 mt-3 d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted medium d-block">Previsão de Estorno Comercial</span>
-                        <strong class="text-danger h4 mb-0 font-weight-bold" id="preview-estorno-<?php echo e($itemVenda->item_venda_id); ?>">
-                            R$ 0,00
+                <!-- Qtde Comprada -->
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm bg-light">
+                        <span class="text-muted medium d-block">Qtde Comprada</span>
+                        <strong class="text-dark"><?php echo e(number_format($itemVenda->qtd_comprada, 0, ',', '.')); ?> un</strong>
+                    </div>
+                </div>
+
+                <!-- Valor Compra -->
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm bg-light">
+                        <span class="text-muted medium d-block">Valor Compra</span>
+                        <strong class="text-dark">R$ <?php echo e(number_format($itemVenda->valor_compra, 2, ',', '.')); ?></strong>
+                    </div>
+                </div>
+
+                <!-- Saldo Disponível (Mostrará 9 un) -->
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm bg-light">
+                        <span class="text-muted medium d-block">Saldo Disponível</span>
+                        <strong class="text-success"><?php echo e(number_format($itemVenda->quantidade_disponivel, 0, ',', '.')); ?> un</strong>
+                    </div>
+                </div>
+
+                <!-- Já Devolvido (Mostrará 1 un) -->
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm bg-light">
+                        <span class="text-muted medium d-block">Já Devolvido</span>
+                        <strong class="text-danger"><?php echo e(number_format($itemVenda->quantidade_devolvida, 0, ',', '.')); ?> un</strong>
+                    </div>
+                </div>
+
+                <!-- Data da Venda -->
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm bg-light">
+                        <span class="text-muted medium d-block">Data da Venda</span>
+                        <strong class="text-dark"><?php echo e($venda->data_venda ? \Carbon\Carbon::parse($venda->data_venda)->format('d/m/Y') : '---'); ?></strong>
+                    </div>
+                </div>
+
+                <!-- Última Devolução -->
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm bg-light">
+                        <span class="text-muted medium d-block">Última Devolução</span>
+                        <strong class="text-dark">
+                            <?php echo e($itemVenda->data_ultima_devolucao ? \Carbon\Carbon::parse($itemVenda->data_ultima_devolucao)->format('d/m/Y') : 'Nenhuma'); ?>
+
                         </strong>
                     </div>
-                    <div class="d-flex gap-2">
-                        <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary px-4 font-weight-bold">Voltar</a>
-                        <button type="submit" class="btn btn-danger px-4 font-weight-bold">Salvar Devolução</button>
-                    </div>
                 </div>
-            </form>
-        <?php else: ?>
-            <div class="alert alert-success text-center fw-bold">
-                <i class="bi bi-check-circle-fill"></i> Este item já foi totalmente devolvido.
             </div>
-        <?php endif; ?>
-    </div>
-<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
+            <!-- SEÇÃO 3: FORMULÁRIO DE ENVIO DA DEVOLUÇÃO -->
+            <div style="background-color: #ffffff !important; padding: 25px !important; width: 100% !important; box-sizing: border-box !important;">
+                <?php if($itemVenda->quantidade_disponivel > 0): ?>
+                    <form action="<?php echo e(route('devolucoes.salvar')); ?>" method="POST" enctype="multipart/form-data" class="m-0">
+                        <?php echo csrf_field(); ?>
+                        <!-- Vincula o ID correto do item para o método salvar ler no request -->
+                        <input type="hidden" name="item_id" value="<?php echo e($itemVenda->item_venda_id); ?>">
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label medium font-weight-bold text-dark mb-2">À Devolver</label>
+                                <!-- Usa a propriedade data-preco e o max atualizado para o cálculo em tempo real -->
+                                <input type="number" 
+                                    name="quantidade" 
+                                    id="qtd-devolver-<?php echo e($itemVenda->item_venda_id); ?>" 
+                                    min="1" 
+                                    max="<?php echo e($itemVenda->quantidade_disponivel); ?>" 
+                                    class="form-control input-calculo-estorno" 
+                                    data-item-id="<?php echo e($itemVenda->item_venda_id); ?>"
+                                    data-preco="<?php echo e($itemVenda->preco_unitario_item); ?>"
+                                    required 
+                                    placeholder="0">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label medium font-weight-bold text-dark mb-2">Motivo Logístico</label>
+                                <select name="motivo" class="form-control motivo-select" required></select>
+                                <input type="text" name="motivo_outro" class="form-control mt-2 d-none outro-motivo-input" placeholder="Descreva o motivo">
+                            </div>
+                        </div>
+                        <!-- Input Único para Upload de Imagem -->
+                        <div class="mb-4">
+                            <label class="medium font-weight-bold text-dark d-block mb-2">Evidência Visual (4 imagens)</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <!-- Foto 1 -->
+                                <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
+                                    <input type="file" name="imagem1" id="imagem-<?php echo e($itemVenda->item_venda_id); ?>-1" class="image-input" accept="image/*" hidden>
+                                    <label for="imagem-<?php echo e($itemVenda->item_venda_id); ?>-1" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer m-0 text-muted font-weight-bold" style="font-size: 0.65rem; cursor: pointer !important;">
+                                        ➕ FOTO 1
+                                        <img id="preview-<?php echo e($itemVenda->item_venda_id); ?>-1" class="img-preview position-absolute top-0 start-0 w-100 h-100 rounded" style="object-fit: cover; display: none; cursor: pointer !important;" alt="">
+                                    </label>
+                                </div>
+
+                                <!-- Foto 2 -->
+                                <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
+                                    <input type="file" name="imagem2" id="imagem-<?php echo e($itemVenda->item_venda_id); ?>-2" class="image-input" accept="image/*" hidden>
+                                    <label for="imagem-<?php echo e($itemVenda->item_venda_id); ?>-2" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center cursor-pointer m-0 text-muted font-weight-bold" style="font-size: 0.65rem; cursor: pointer !important;">
+                                        ➕ FOTO 2
+                                        <img id="preview-<?php echo e($itemVenda->item_venda_id); ?>-2" class="img-preview position-absolute top-0 start-0 w-100 h-100 rounded" style="object-fit: cover; display: none; cursor: pointer !important;" alt="">
+                                    </label>
+                                </div>
+
+                                <!-- Foto 3 -->
+                                <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
+                                    <input type="file" name="imagem3" id="imagem-<?php echo e($itemVenda->item_venda_id); ?>-3" class="image-input" accept="image/*" hidden>
+                                    <label for="imagem-<?php echo e($itemVenda->item_venda_id); ?>-3" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center m-0 text-muted font-weight-bold" style="font-size: 0.65rem; cursor: pointer !important;">
+                                        ➕ FOTO 3
+                                        <img id="preview-<?php echo e($itemVenda->item_venda_id); ?>-3" class="img-preview position-absolute top-0 start-0 w-100 h-100 rounded" style="object-fit: cover; display: none; cursor: pointer !important;" alt="">
+                                    </label>
+                                </div>
+
+                                <!-- Foto 4 -->
+                                <div class="position-relative bg-light border border-secondary rounded shadow-sm" style="width: 80px; height: 80px; border-style: dashed !important; cursor: pointer !important;">
+                                    <input type="file" name="imagem4" id="imagem-<?php echo e($itemVenda->item_venda_id); ?>-4" class="image-input" accept="image/*" hidden>
+                                    <label for="imagem-<?php echo e($itemVenda->item_venda_id); ?>-4" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center m-0 text-muted font-weight-bold" style="font-size: 0.65rem; cursor: pointer !important;">
+                                        ➕ FOTO 4
+                                        <img id="preview-<?php echo e($itemVenda->item_venda_id); ?>-4" class="img-preview position-absolute top-0 start-0 w-100 h-100 rounded" style="object-fit: cover; display: none; cursor: pointer !important;" alt="">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Barra de Totalização do Estorno -->
+                        <div class="border-top pt-3 mt-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted medium d-block">Previsão de Estorno Comercial</span>
+                                <strong class="text-danger h4 mb-0 font-weight-bold" id="preview-estorno-<?php echo e($itemVenda->item_venda_id); ?>">
+                                    R$ 0,00
+                                </strong>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary px-4 font-weight-bold">Voltar</a>
+                                <button type="submit" class="btn btn-danger px-4 font-weight-bold">Salvar Devolução</button>
+                            </div>
+                        </div>
+                    </form>
+                <?php else: ?>
+                    <div class="alert alert-success text-center fw-bold">
+                        <i class="bi bi-check-circle-fill"></i> Este item já foi totalmente devolvido.
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
 </div>
                                        
