@@ -72,11 +72,7 @@ if (window.__pdvProdutoJsCarregado) {
                 inputQuantidade.value = 1;
                 inputQuantidade.removeAttribute("max"); 
             }
-            if (qtdDisponivelInput) qtdDisponivelInput.value = ""; 
-            // if (imgProduto) imgProduto.src = "/images/produto-sem-imagem.png";
-            if (imgProduto) {
-                imgProduto.removeAttribute("src"); // Remove a URL com erro e limpa a imagem da tela com segurança
-            }
+           
             if (inputCodigo) inputCodigo.focus();
         }
 
@@ -257,15 +253,29 @@ if (window.__pdvProdutoJsCarregado) {
                 // Executa a requisição direta isolada de escopo usando o código higienizado
                 fetch(`/pdv/produto/${encodeURIComponent(codigoFinal)}`, { headers: { "Accept": "application/json" } })
                     .then(res => res.json())
-                    .then(dataRes => {
+                   .then(dataRes => {
                         if (dataRes.status === "ok" && dataRes.produto) {
+
                             const produto = dataRes.produto;
                             window.produtoAtual = produto;
+
+                            // Imagem do produto
+                            const imgProduto = document.getElementById("produto-imagem");
+
+                            if (imgProduto) {
+                                if (produto.imagem && produto.imagem.trim() !== "") {
+                                    imgProduto.src = "/" + produto.imagem;
+                                    imgProduto.style.display = "block";
+                                } else {
+                                    imgProduto.src = "/image/produto-sem-imagem.png";
+                                    imgProduto.style.display = "block";
+                                }
+                            }
 
                             if (inputId_produto) inputId_produto.value = produto.id;
                             if (inputDescricao) inputDescricao.value = produto.nome;
                             if (inputPrecoVenda) inputPrecoVenda.value = Number(produto.preco_venda).toFixed(2);
-                            
+
                             const qtdDisp = produto.quantidade_total_disponivel || 1;
                             if (qtdDisponivelInput) qtdDisponivelInput.value = qtdDisp;
 
@@ -275,15 +285,14 @@ if (window.__pdvProdutoJsCarregado) {
                             }
 
                             calcularTotalProduto();
-
-                            // Executa o fluxo contínuo de inserção
                             window.adicionarItemCarrinho(produto);
-                            
+
                         } else {
                             alert(dataRes.mensagem || "Produto não encontrado.");
                             if (inputCodigo) inputCodigo.value = "";
                         }
-                    })
+                    })  
+                    
                     .catch(err => {
                         console.error(err);
                         if (inputCodigo) inputCodigo.value = "";

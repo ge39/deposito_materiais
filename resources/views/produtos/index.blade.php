@@ -66,6 +66,7 @@
                             <h5 class="card-title">{{ $produto->nome }}</h5>
 
                             <p class="card-text mb-1"><strong>Produto ID:</strong> 000{{ $produto->id ?? '-' }}</p>
+                            <p class="card-text mb-1"><strong>Codigo de Barras:</strong> {{ $produto->codigo_barras ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Categoria:</strong> {{ $produto->categoria->nome ?? '-' }}</p>
                             <p class="card-text mb-1"><strong>Fornecedor:</strong> {{ $produto->fornecedor->nome ?? '-' }}</p>
 
@@ -158,10 +159,12 @@
                             <!-- Imagem -->
                             <div class="d-flex flex-wrap gap-1 mt-3">
                                 <div>
-                                    @if($produto->imagem)
-                                        <label class="form-label">Imagem do Produto</label>
-                                        <img 
-                                            src="{{ asset('storage/'.$produto->imagem) }}" 
+                                   @if(!empty($produto->imagem))
+                                        <label class="form-label">Imagem do Produto</label><br>
+
+                                        <img
+                                            src="{{ asset($produto->imagem) }}"
+                                            alt="{{ $produto->nome }}"
                                             style="max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
                                     @endif
                                 </div>

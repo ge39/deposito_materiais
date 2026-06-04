@@ -25,12 +25,18 @@ class ProdutoController extends Controller
         });
     }
 
-    public function index()
+   public function index()
     {
-        $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida','lotes'])
-            ->where('ativo', 1)
-            ->paginate(15);
-     
+        $produtos = Produto::with([
+            'categoria',
+            'fornecedor',
+            'marca',
+            'unidadeMedida',
+            'lotes'
+        ])
+        ->where('ativo', 1)
+        ->paginate(15);
+
         return view('produtos.index', compact('produtos'));
     }
 
@@ -78,6 +84,7 @@ class ProdutoController extends Controller
             'estoque_minimo'     => 'required|integer|min:0',
             'controla_validade'  => 'required|boolean', // ✅ Novo campo
             'validade_produto'   => 'nullable|date',
+            'imagem'             => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
         ]);
 
         // Validação condicional da validade
@@ -131,6 +138,26 @@ class ProdutoController extends Controller
                 ]);
             }
 
+            // 🔹 IMAGEM
+            if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
+
+                $arquivo = $request->file('imagem');
+
+                $nomeArquivo = time() . '.' . $arquivo->getClientOriginalExtension();
+
+                $destino = public_path('image/produtos');
+
+                if (!file_exists($destino)) {
+                    mkdir($destino, 0755, true);
+                }
+
+                $arquivo->move($destino, $nomeArquivo);
+
+                // Salve apenas o nome do arquivo
+                $produto->imagem = $nomeArquivo;
+
+                $produto->save();
+            }
             // 🔹 LOTE
             $lote = $produto->lotes()->create([
                 'numero_lote'           => 'L' . time(),
@@ -145,13 +172,33 @@ class ProdutoController extends Controller
                 'lancado_por'           => auth()->id(),
             ]);
 
-            // 🔹 ATUALIZA ESTOQUE
-            $produto->quantidade_estoque = $produto->lotes()->sum('quantidade');
+          // 🔹 ATUALIZA ESTOQUE
+        $produto->quantidade_estoque = $produto->lotes()->sum('quantidade');
 
-            if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
-                $path = $request->file('imagem')->store('produtos', 'public');
-                $produto->imagem = $path;
+        // 🔹 UPLOAD DA IMAGEM
+        if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
+
+            $destino = public_path('image/produtos');
+
+            if (!file_exists($destino)) {
+                mkdir($destino, 0755, true);
             }
+
+            $arquivo = $request->file('imagem');
+
+            $nomeArquivo = time() . '_' . preg_replace(
+                '/[^A-Za-z0-9._-]/',
+                '_',
+                $arquivo->getClientOriginalName()
+            );
+
+            $arquivo->move($destino, $nomeArquivo);
+
+            // Salva o caminho relativo para uso com asset()
+            $produto->imagem = 'image/produtos/' . $nomeArquivo;
+        }
+
+        $produto->save();
 
             $produto->save();
 
@@ -223,11 +270,33 @@ class ProdutoController extends Controller
             $produto->controla_validade = $request->controla_validade;
             $produto->validade_produto  = $request->validade_produto;
 
-            if ($request->hasFile('imagem')) {
-                if ($produto->imagem) {
-                    Storage::disk('public')->delete($produto->imagem);
+           if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
+
+            // Remove a imagem antiga
+            if ($produto->imagem) {
+                    $imagemAntiga = public_path($produto->imagem);
+
+                    if (file_exists($imagemAntiga)) {
+                        unlink($imagemAntiga);
+                    }
                 }
-                $produto->imagem = $request->file('imagem')->store('produtos', 'public');
+
+                // Gera nome único
+                $arquivo = $request->file('imagem');
+                $nomeArquivo = time() . '_' . preg_replace('/[^A-Za-z0-9\.\-_]/', '_', $arquivo->getClientOriginalName());
+
+                // Garante que a pasta exista
+                $destino = public_path('image/produtos');
+
+                if (!file_exists($destino)) {
+                    mkdir($destino, 0755, true);
+                }
+
+                // Move o arquivo
+                $arquivo->move($destino, $nomeArquivo);
+
+                // Salva o caminho no banco
+                $produto->imagem = 'image/produtos/' . $nomeArquivo;
             }
 
             // --- Libera o bloqueio de edição ---
@@ -244,42 +313,6 @@ class ProdutoController extends Controller
     }
 
      /** PESQUISAR COM VIEW e CARDS */
-    // public function search(Request $request)
-    // {
-    //     $query = $request->input('query');
-
-    //     $produtos = Produto::with(['categoria','fornecedor','marca','unidadeMedida'])
-    //         ->where('ativo', 1)
-    //         ->when($query, function ($q) use ($query) {
-    //             $q->where(function ($sub) use ($query) {
-    //                 $sub->where('nome', 'LIKE', "%$query%")
-    //                     ->orWhere('codigo_barras', 'LIKE', "%$query%")
-    //                     ->orWhere('descricao', 'LIKE', "%$query%")
-    //                     ->orWhere('id', $query); // busca pelo ID exato
-    //             })
-
-    //             // Categoria
-    //             ->orWhereHas('categoria', function($cat) use ($query) {
-    //                 $cat->where('ativo', 1)
-    //                     ->where('nome', 'LIKE', "%$query%");
-    //             })
-
-    //             // Fornecedor
-    //             ->orWhereHas('fornecedor', function($for) use ($query) {
-    //                 $for->where('ativo', 1)
-    //                     ->where('nome', 'LIKE', "%$query%");
-    //             })
-
-    //             // Marca
-    //             ->orWhereHas('marca', function($mar) use ($query) {
-    //                 $mar->where('ativo', 1)
-    //                     ->where('nome', 'LIKE', "%$query%");
-    //             });
-    //         })
-    //         ->paginate(20);
-
-    //     return view('produtos.index', compact('produtos'));
-    // }
     public function search(Request $request)
     {
         $query = $request->input('query');

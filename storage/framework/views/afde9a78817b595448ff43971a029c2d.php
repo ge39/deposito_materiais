@@ -9,7 +9,8 @@
         <div class="row g-4">
             <div class="col-md-12">
                 <label for="search" class="form-label fw-bold">Pesquisar Venda ou Cliente</label>
-                <input type="text" id="search" name="search" class="form-control" placeholder="Digite ID da venda ou nome do cliente" value="<?php echo e(request('search')); ?>">
+                <input type="text" id="search" name="search" class="form-control" 
+                placeholder="Digite ID da venda ou nome do cliente" value="<?php echo e(request('search')); ?>">
             </div>
 
             <div class="col-12 d-flex justify-content-end gap-2 mt-2">
@@ -176,7 +177,7 @@
                                                 text-transform: uppercase;
                                                 box-shadow: 0 4px 15px rgba(0,0,0,0.15);
                                             ">
-                                                <strong>Todos os itens foram devolvidos</strong>
+                                               <strong>O Produto  <span class="text-primary"> </span> <span class="text-danger"> <?php echo e($item->produto_nome ?? 'Verifique os produtos no formulário'); ?></span>, foi devolvido ao estoque</strong>
                                             </div>
                                         </div>
                                     <?php endif; ?>
