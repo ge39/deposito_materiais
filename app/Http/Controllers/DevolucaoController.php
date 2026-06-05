@@ -547,22 +547,60 @@ class DevolucaoController extends Controller
         }
     }
 
-    public function rejeitar(Devolucao $devolucao)
+    // public function rejeitar(Devolucao $devolucao)
+    // {
+    //     DB::transaction(function () use ($devolucao) {
+    //         $devolucao->status = 'rejeitada';
+    //         $devolucao->save();
+
+    //         DevolucaoLog::create([
+    //             'devolucao_id' => $devolucao->id,
+    //             'acao' => 'rejeitada',
+    //             'descricao' => 'Devolução rejeitada pelo setor responsável.',
+    //             'usuario' => auth()->user()->name ?? 'Administrador',
+    //             'observacao' => old('observacao'),
+    //             'motivo_rejeicao' => old('motivo_rejeicao') ?? 'Rejeição manual sem motivo específico' // Você pode adaptar para receber um motivo do request se desejar,
+    //         ]);
+    //     });
+
+    //     return redirect()->route('devolucoes.index')->with('success', 'Devolução rejeitada com sucesso!');
+    // }
+
+    public function rejeitar(Request $request, Devolucao $devolucao)
     {
-        DB::transaction(function () use ($devolucao) {
+        // 1. Validação obrigatória dos novos campos vindo do request
+        $request->validate([
+            'motivo_rejeicao' => 'required|string|max:255',
+            'observacao'      => 'required|string',
+        ], [
+            'motivo_rejeicao.required' => 'O motivo da rejeição é obrigatório.',
+            'observacao.required'      => 'A observação da rejeição é obrigatória.',
+        ]);
+
+        // 2. Execução da transação segura no banco de dados
+        DB::transaction(function () use ($devolucao, $request) {
+            
+            // Atualiza os dados na tabela 'devolucoes'
             $devolucao->status = 'rejeitada';
+            $devolucao->motivo_rejeicao = $request->input('motivo_rejeicao');
+            $devolucao->observacao = $request->input('observacao');
+            $devolucao->criado_por = auth()->id(); // Mantém o vínculo do funcionário auditor
             $devolucao->save();
 
+            // Grava o log detalhado no histórico
             DevolucaoLog::create([
-                'devolucao_id' => $devolucao->id,
-                'acao' => 'rejeitada',
-                'descricao' => 'Devolução rejeitada pelo setor responsável.',
-                'usuario' => auth()->user()->name ?? 'Administrador',
+                'devolucao_id'    => $devolucao->id,
+                'acao'            => 'rejeitada',
+                'descricao'       => 'Devolução rejeitada pelo setor responsável.',
+                'usuario'         => auth()->user()->name ?? 'Administrador',
+                'observacao'      => $request->input('observacao'),
+                'motivo_rejeicao' => $request->input('motivo_rejeicao'),
             ]);
         });
 
         return redirect()->route('devolucoes.index')->with('success', 'Devolução rejeitada com sucesso!');
     }
+
 
     public function pendentes()
     {

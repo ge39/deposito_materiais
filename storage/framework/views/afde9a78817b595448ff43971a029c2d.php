@@ -160,7 +160,7 @@
                                                 top: 50%;
                                                 left: 50%;
                                                 transform: translate(-50%, -50%) rotate(-5deg);
-                                                z-index: 9999;
+                                                z-index: 333;
                                                 pointer-events: none; /* Permite clicar no que estiver por baixo */
                                                 opacity: 0.9; /* Dá um efeito sutil de carimbo real */
                                             ">

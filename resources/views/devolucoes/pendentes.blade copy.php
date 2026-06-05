@@ -69,7 +69,7 @@
                             <strong>Motivo da Devolução:</strong>
                             <p>{{ $devolucao->motivo }}</p>
 
-                            <!-- <strong>Logs da Devolução:</strong>
+                            <strong>Logs da Devolução:</strong>
                             <ul class="list-group list-group-flush mb-2">
                                 @foreach(optional($devolucao->logs) as $log)
                                     <li class="list-group-item">
@@ -107,75 +107,9 @@
                                data-id="{{ $devolucao->id }}"
                                target="_blank">
                                 Gerar Vale-Troca
-                            </a> -->
+                            </a>
 
                         </div>
-                     <!-- Alinhamento dos botões principais originais -->
-                    <div class="d-flex gap-2 mb-2">
-                        <form action="{{ route('devolucoes.aprovar', $devolucao->id) }}" method="POST" style="display:inline;">
-                            @csrf
-                            @method('PUT')
-                            <button type="submit" id="btn-aprovar-{{ $devolucao->id }}" class="btn btn-success btn-sm" disabled>
-                                Aprovar
-                            </button>
-                        </form>
-
-                        <!-- O botão rejeitar agora abre a seção inferior -->
-                        <button type="button" class="btn btn-warning btn-sm btn-rejeitar-trigger" data-id="{{ $devolucao->id }}">
-                            Rejeitar
-                        </button>
-
-                        <a href="{{ route('devolucoes.cupom', $devolucao) }}" class="btn btn-primary btn-sm gerar-vale" data-id="{{ $devolucao->id }}" target="_blank">
-                            Gerar Vale-Troca
-                        </a>
-                    </div>
-
-                    <!-- 🔥 SEÇÃO DE REJEIÇÃO: Adicionada abaixo do bloco de botões -->
-                    <div id="secao-rejeitar-{{ $devolucao->id }}" class="card p-3 bg-light border-warning mt-3 {{ ($errors->has('motivo_rejeicao') || $errors->has('observacao')) && old('rejeicao_id') == $devolucao->id ? '' : 'd-none' }}">
-                        <h6 class="text-danger fw-bold mb-3">Registrar Rejeição do Item</h6>
-                        
-                        <form action="{{ route('devolucoes.rejeitar', $devolucao->id) }}" method="POST">
-                            @csrf
-                            @method('PUT')
-                            
-                            <input type="hidden" name="rejeicao_id" value="{{ $devolucao->id }}">
-
-                            <!-- Campo 1: Motivo da Rejeição -->
-                            <div class="mb-2">
-                                <label class="form-label small fw-bold mb-1">Motivo da Rejeição <span class="text-danger">*</span></label>
-                                <input type="text" 
-                                    name="motivo_rejeicao" 
-                                    class="form-control form-control-sm @error('motivo_rejeicao') is-invalid @enderror" 
-                                    value="{{ old('rejeicao_id') == $devolucao->id ? old('motivo_rejeicao') : '' }}" 
-                                    placeholder="Ex: Item violado ou fora do prazo de garantia">
-                                @error('motivo_rejeicao')
-                                    @if(old('rejeicao_id') == $devolucao->id)
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @endif
-                                @enderror
-                            </div>
-
-                            <!-- Campo 2: Observação -->
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold mb-1">Observação <span class="text-danger">*</span></label>
-                                <textarea name="observacao" 
-                                        rows="2" 
-                                        class="form-control form-control-sm @error('observacao') is-invalid @enderror" 
-                                        placeholder="Insira detalhes complementares da recusa...">{{ old('rejeicao_id') == $devolucao->id ? old('observacao') : '' }}</textarea>
-                                @error('observacao')
-                                    @if(old('rejeicao_id') == $devolucao->id)
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @endif
-                                @enderror
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-danger btn-sm">Confirmar Rejeição Comercial</button>
-                                <button type="button" class="btn btn-secondary btn-sm btn-cancelar-rejeitar" data-id="{{ $devolucao->id }}">Cancelar</button>
-                            </div>
-                        </form>
-                    </div>
-
                     </div>
                 </div>
             </div>
@@ -221,61 +155,48 @@
 </style>
 
 
+
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        
-        // 1. VALE-TROCA: Habilita o botão Aprovar do card correto
+
         document.querySelectorAll('.gerar-vale').forEach(btn => {
             btn.addEventListener('click', function (e) {
+
+                // OPÇÃO 1 – deixa abrir o PDF normalmente:
+                // (não usa preventDefault)
+
                 let id = this.dataset.id;
                 let btnAprovar = document.getElementById('btn-aprovar-' + id);
+
                 if (btnAprovar) {
-                    btnAprovar.removeAttribute('disabled');
+                    btnAprovar.removeAttribute('disabled');  // ✔ corrigido
                     btnAprovar.classList.remove('btn-secondary');
                     btnAprovar.classList.add('btn-success');
                 }
             });
         });
 
-        // 2. EXIBIR REJEIÇÃO: Abre o painel de inputs do card correto
-        document.querySelectorAll('.btn-rejeitar-trigger').forEach(btn => {
-            btn.addEventListener('click', function() {
-                let id = this.dataset.id;
-                let secao = document.getElementById('secao-rejeitar-' + id);
-                if (secao) {
-                    secao.classList.remove('d-none');
-                    secao.querySelector('input[name="motivo_rejeicao"]').focus();
-                }
-            });
-        });
+    });
 
-        // 3. CANCELAR REJEIÇÃO: Oculta o painel e limpa os campos
-        document.querySelectorAll('.btn-cancelar-rejeitar').forEach(btn => {
-            btn.addEventListener('click', function() {
-                let id = this.dataset.id;
-                let secao = document.getElementById('secao-rejeitar-' + id);
-                if (secao) {
-                    secao.classList.add('d-none');
-                    secao.querySelector('input[name="motivo_rejeicao"]').value = '';
-                    secao.querySelector('textarea[name="observacao"]').value = '';
-                }
-            });
-        });
+    document.addEventListener("DOMContentLoaded", function() {
 
-        // 4. ZOOM DAS IMAGENS: Controla o estado ativo nos cliques
+        // Seleciona todas as imagens das devoluções
         const imagens = document.querySelectorAll('.img-zoom');
+
         imagens.forEach(img => {
             img.addEventListener('click', function(event) {
-                event.stopPropagation();
-                this.classList.toggle('active');
+                event.stopPropagation(); // impede que o clique saia da imagem
+                this.classList.toggle('active'); // ativa o zoom
             });
         });
 
+        // Clicar fora da imagem tira o zoom
         document.addEventListener('click', function() {
             imagens.forEach(img => img.classList.remove('active'));
         });
+
     });
+
+
 </script>
-
-
 
