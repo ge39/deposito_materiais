@@ -219,12 +219,12 @@
         display: block;
         gap: 10px;
     }
-    #açoes-carrinho,
   
     .pdv-area {
     position: relative; /* cria o contexto do PDV */
     }
 
+    /* 
     .acoes-carrinho {
         position: absolute; /* flutua DENTRO do PDV */
         width:98.8%;
@@ -234,6 +234,34 @@
         border: 2px solid #ced4da;
         border-radius: 10px;
         /* padding: 10px; */
+        z-index: 1000;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    /* }  */
+    */
+
+        .linha-carrinho.selecionada {
+        background-color: #dbeafe !important;
+        outline: 3px solid #2563eb;
+    }
+
+    /* 🎯 CORRIGIDO: Removido o seletor duplicado e quebrado com vírgula */
+    #acoes-carrinho {
+        display: block;
+        gap: 10px;
+    }
+  
+    .pdv-area {
+        position: relative; /* cria o contexto do PDV */
+    }
+
+    .acoes-carrinho {
+        position: absolute; /* flutua DENTRO do PDV */
+        width: 98.8%;
+        display: none;
+        cursor: move;
+        background: #ffffff;
+        border: 2px solid #ced4da;
+        border-radius: 10px;
         z-index: 1000;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
@@ -740,226 +768,6 @@
     
 </div>
 
-
-
-<!-- Armazena total da venda globalmente e passa para view de finalizar -->
-<!-- <script>
-        document.addEventListener('DOMContentLoaded', function() {
-
-        const btnFinalizar = document.getElementById("btnF6");
-        const totalInput = document.getElementById("inputTotalGeral");
-        const modalTotal = document.getElementById("total-venda-modal");
-
-        if (btnFinalizar) {
-
-            btnFinalizar.addEventListener("click", function() {
-
-                if (totalInput && modalTotal) {
-                    modalTotal.value = totalInput.value;
-                } else {
-                    console.warn("Elemento de total não encontrado!");
-                }
-
-                const modalEl = document.getElementById('modalFinalizar');
-
-                if (modalEl && typeof bootstrap !== 'undefined') {
-                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    modal.show();
-                }
-
-            });
-
-        } else {
-            console.warn("btnF6 não encontrado no DOM");
-        }
-
-    });
-
-</script> -->
-
-<!-- controle dos lotes vencidos -->
-<!-- <script>
-    const data = <?php echo json_encode($data ?? [], 15, 512) ?>;
-    const alerta = document.getElementById('alerta-lote');
-
-    alerta.classList.add('d-none');
-    alerta.textContent = '';
-    alerta.className = 'fw-bold';
-
-    if (data.lote_alerta?.tipo === 'vencido') {
-        alerta.textContent = data.lote_alerta.mensagem;
-        alerta.classList.add('text-danger');
-        alerta.classList.remove('d-none');
-    }
-
-    if (data.lote_alerta?.tipo === 'a_vencer') {
-        alerta.textContent = data.lote_alerta.mensagem;
-        alerta.classList.add('text-warning');
-        alerta.classList.remove('d-none');
-    }
-
-</script> -->
-
-
-<!-- Armazena total da venda globalmente e passa para view de finalizar -->
-<!-- <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const btnFinalizar = document.getElementById("btnF6");
-        const totalInput = document.getElementById("inputTotalGeral");
-        const modalTotal = document.getElementById("total-venda-modal");
-        const modalEl = document.getElementById('modalFinalizar');
-
-        if (btnFinalizar) {
-            btnFinalizar.addEventListener("click", async function() {
-                // 1. VALIDAÇÃO DE SEGURANÇA LOCAL (Evita o erro de carrinho vazio)
-                // Lê o valor atual do input de total geral (removendo R$, espaços e ajustando a vírgula)
-                const valorTexto = totalInput ? totalInput.value.replace('R$', '').replace(/\s/g, '').replace('.', '').replace(',', '.') : '0';
-                const totalVenda = Number(valorTexto || 0);
-
-                if (totalVenda <= 0) {
-                    // Se o total for zero ou nulo, barra a operação antes de abrir o modal de fechamento
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire('Atenção operacional', 'Não é possível ir para o fechamento. O carrinho atual está vazio!', 'warning');
-                    } else {
-                        alert('Atenção operacional: O carrinho atual está vazio!');
-                    }
-                    return; // Aborta e não deixa a tela de pagamento abrir
-                }
-
-                // 2. ATUALIZAÇÃO DO FINANCEIRO DO CLIENTE (Migrado da função abrirModalFinalizar)
-                const inputCliente = document.querySelector('input[name="cliente_id"]') || document.getElementById('input-cliente-id');
-                const clienteId = inputCliente?.value;
-
-                if (clienteId) {
-                    try {
-                        const response = await fetch(`/clientes/${clienteId}/financeiro`);
-                        const data = await response.json();
-
-                        if (data.success && window.cliente) {
-                            window.cliente.saldo = Number(data.saldo || 0);
-                            window.cliente.limite = Number(data.limite || 0);
-                            window.cliente.status = data.status || 'bloqueado';
-
-                            const saldoEl = document.getElementById('saldo-cliente-modal');
-                            if (saldoEl) {
-                                const statusBadge = data.status === 'ativo'
-                                    ? '<span class="badge bg-success">Ativo</span>'
-                                    : '<span class="badge bg-danger">Bloqueado</span>';
-
-                                saldoEl.innerHTML = `
-                                    Status: ${statusBadge}<br>
-                                    Saldo: R$ ${Number(data.saldo).toFixed(2).replace('.', ',')}<br>
-                                    Limite: R$ ${Number(data.limite).toFixed(2).replace('.', ',')}
-                                `;
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Erro ao atualizar financeiro do cliente:', error);
-                    }
-                }
-
-                // 3. ENVIAR TOTAL PARA O MODAL E EXIBIR
-                if (totalInput && modalTotal) {
-                    modalTotal.value = totalInput.value;
-                    // Se o elemento do modal for um span/div de texto em vez de um input, use textContent:
-                    if(modalTotal.tagName !== 'INPUT') {
-                        modalTotal.textContent = totalInput.value;
-                    }
-                } else {
-                    console.warn("Elemento de total não encontrado!");
-                }
-
-                if (modalEl && typeof bootstrap !== 'undefined') {
-                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    modal.show();
-
-                    // Foca automaticamente no primeiro campo de pagamento (ex: Dinheiro) após abrir
-                    setTimeout(() => {
-                        const inputsPagamento = document.querySelectorAll('.input-pagamento'); // Ajuste a classe se necessário
-                        if (inputsPagamento && inputsPagamento.length > 0) {
-                            inputsPagamento[0].focus();
-                        }
-                    }, 300);
-                }
-            });
-        } else {
-            console.warn("btnF6 não encontrado no DOM");
-        }
-    });
-</script> -->
-
-
-<!-- armazendo id do caixa para o fechamento -->
-<!-- <script>
-    const CAIXA_ID = <?php echo json_encode($caixa->id ?? null, 15, 512) ?>;
-    const CAIXA_POSSUI_VENDAS = <?php echo json_encode($caixa->possui_vendas ?? false, 15, 512) ?>;
-</script> -->
-
-<!-- <script>
-    window.carrinho = [];
-
-    window.PDV = {
-        caixa_id: <?php echo e($caixa->id); ?>,
-        funcionario_id: <?php echo e(auth()->id()); ?>,
-        dataVenda: "<?php echo e(now()); ?>"
-    };
-</script> -->
- <!-- 4️⃣ Escuta qualquer digitação em qualquer campo para atualizar o botão na hora -->
-<!-- <script>
-    document.addEventListener("DOMContentLoaded", function () {
-    
-        function verificarRestanteSimples() {
-            // 1️⃣ Localiza o botão pelo texto exato da imagem
-            let btnFinalizar = null;
-            document.querySelectorAll('button').forEach(btn => {
-                if (btn.innerText && btn.innerText.trim() === 'Finalizar Venda') {
-                    btnFinalizar = btn;
-                }
-            });
-
-            if (!btnFinalizar) return;
-
-            // 2️⃣ Varre a tela procurando o elemento que exibe o Restante
-            let textoRestante = "";
-            document.querySelectorAll('div, p, span, h5, h4, td').forEach(el => {
-                if (el.innerText && el.innerText.includes('Restante:')) {
-                    textoRestante = el.innerText.trim(); // Captura ex: "Restante: R$ 38,00" ou "Restante: R$ 0,00"
-                }
-            });
-
-            // 3️⃣ TRAVA DIRETA: Se o texto contiver "R$ 0,00", o botão acende. Caso contrário, fica bloqueado.
-            if (textoRestante.includes('R$ 0,00')) {
-                // Habilita o botão verde
-                btnFinalizar.disabled = false;
-                btnFinalizar.style.opacity = '1';
-                btnFinalizar.style.backgroundColor = '#28a745'; 
-                btnFinalizar.style.borderColor = '#28a745';
-                btnFinalizar.style.cursor = 'pointer';
-                btnFinalizar.style.pointerEvents = 'auto';
-            } else {
-                // Desabilita e deixa cinza
-                btnFinalizar.disabled = true;
-                btnFinalizar.style.opacity = '0.4';
-                btnFinalizar.style.backgroundColor = '#6c757d'; 
-                btnFinalizar.style.borderColor = '#6c757d';
-                btnFinalizar.style.cursor = 'not-allowed';
-                btnFinalizar.style.pointerEvents = 'none';
-            }
-        }
-
-        // 4️⃣ Escuta qualquer digitação em qualquer campo para atualizar o botão na hora
-        document.querySelectorAll('input').forEach(input => {
-            input.addEventListener('keyup', verificarRestanteSimples);
-            input.addEventListener('change', verificarRestanteSimples);
-            input.addEventListener('input', verificarRestanteSimples);
-        });
-
-        // Roda um tiquinho depois de abrir a tela para já iniciar bloqueado
-        setTimeout(verificarRestanteSimples, 500);
-    });
-
-</script> -->
-
 <!-- caixas esquecidos abertos acima de 12 horas -->
 <script>
     document.addEventListener('DOMContentLoaded', async function () {
@@ -1032,55 +840,6 @@
             listaDiv.style.display = 'none';
         }
     });
-</script>
-
-<!-- script dos modais do pdv  -->
- <script>
-    
-    document.addEventListener('DOMContentLoaded', function () {
-
-    const listaDiv = document.getElementById('listaCaixasEsquecidos');
-
-    fetch('/pdv/caixas-esquecidos')
-        .then(response => response.json())
-        .then(data => {
-
-            // Se não existe caixa acima de 12h → OCULTA
-            if (!data || data.length === 0) {
-                listaDiv.style.display = 'none';
-                return;
-            }
-
-            // Existe caixa acima de 12h → MOSTRA
-            listaDiv.style.display = 'block';
-
-        })
-        .catch(() => {
-            // Em erro, por segurança, oculta
-            listaDiv.style.display = 'none';
-        });
-    });
-</script>
-
-<!-- =======================================================================
-1️⃣ CENTRALIZAÇÃO ÚNICA DE VARIÁVEIS GLOBAIS DO LARAVEL (RODA IMEDIATAMENTE)
-======================================================================= -->
-<script>
-    // Injeta os dados mestres do banco para o ecossistema Javascript ler
-    window.CLIENTE_BALCAO      = <?php echo json_encode($clienteBalcao ?? null, 15, 512) ?>; 
-    window.PDV_BLOQUEADO       = <?php echo json_encode($caixaBloqueado ?? false, 15, 512) ?>;
-    window.CAIXA_ID            = <?php echo json_encode($caixa->id ?? null, 15, 512) ?>;
-    window.CAIXA_POSSUI_VENDAS = <?php echo json_encode($caixa->possui_vendas ?? false, 15, 512) ?>;
-    
-    // Inicializadores obrigatórios de memória de escopo global
-    window.carrinho            = [];
-    window.orcamentoAtualId    = null; 
-
-    window.PDV = {
-        caixa_id: <?php echo e($caixa->id ?? 'null'); ?>,
-        funcionario_id: <?php echo e(auth()->id()); ?>,
-        dataVenda: "<?php echo e(now()); ?>"
-    };
 </script>
 
 <!-- Controle dos lotes vencidos -->
@@ -1243,6 +1002,28 @@
 <?php echo $__env->make('pdv.modals.modal_orcamento', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 <?php echo $__env->make('pdv.modals.modal_finalizar', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
+
+<!-- =======================================================================
+1️⃣ CENTRALIZAÇÃO ÚNICA DE VARIÁVEIS GLOBAIS DO LARAVEL (RODA IMEDIATAMENTE)
+======================================================================= -->
+<!-- <script>
+    // Injeta os dados mestres do banco para o ecossistema Javascript ler
+    window.CLIENTE_BALCAO      = <?php echo json_encode($clienteBalcao ?? null, 15, 512) ?>; 
+    window.PDV_BLOQUEADO       = <?php echo json_encode($caixaBloqueado ?? false, 15, 512) ?>;
+    window.CAIXA_ID            = <?php echo json_encode($caixa->id ?? null, 15, 512) ?>;
+    window.CAIXA_POSSUI_VENDAS = <?php echo json_encode($caixa->possui_vendas ?? false, 15, 512) ?>;
+    
+    // Inicializadores obrigatórios de memória de escopo global
+    window.carrinho            = [];
+    window.orcamentoAtualId    = null; 
+
+    window.PDV = {
+        caixa_id: <?php echo e($caixa->id ?? 'null'); ?>,
+        funcionario_id: <?php echo e(auth()->id()); ?>,
+        dataVenda: "<?php echo e(now()); ?>"
+    };
+</script> -->
+
 <!-- ⚡ INJECTOR AUTOMÁTICO REVISADO: CARREGA O CLIENTE BALCÃO AO FINALIZAR QUALQUER VENDA -->
 <script>
     // 1️⃣ O Laravel extrai o registro do banco de dados e entrega pronto para a memória do JS
@@ -1313,17 +1094,20 @@
     })();
 </script>
 
-<!-- 🎯 CARREGAMENTO SEQUENCIAL DOS ARQUIVOS (Continuam com defer normal) -->
+<!-- 🎯 CARREGAMENTO SEQUENCIAL DOS ARQUIVOS (Módulos Base) -->
+<script src="<?php echo e(asset('js/pdv/pdv_storage.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/carrinho.js')); ?>" defer></script>
+
+<!-- Scripts de Regras e Comportamento do Sistema -->
 <script src="<?php echo e(asset('js/pdv/app.js')); ?>" defer></script>
-<!-- <script src="<?php echo e(asset('js/pdv/teclado_bloqueado.js')); ?>" defer></script> -->
 <script src="<?php echo e(asset('js/pdv/regras.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/produto.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/orcamento.js')); ?>" defer></script>
-<script src="<?php echo e(asset('js/pdv/carrinho.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/ui.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/pdv.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/form-masks.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/atalhos.js')); ?>" defer></script>
+
 
 <?php $__env->stopSection(); ?>
 <?php echo $__env->make('layouts.app2', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>

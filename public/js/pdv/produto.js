@@ -211,9 +211,36 @@ if (window.__pdvProdutoJsCarregado) {
                 window.emitirBipPDV();
             }
 
-            // 6️⃣ LIMPA O FORMULÁRIO DO TOPO E DEVOLVE O FOCO PARA A PRÓXIMA COMPRA
+            // 6⃣ LIMPA O FORMULÁRIO DO TOPO E DEVOLVE O FOCO PARA A PRÓXIMA COMPRA
             resetarProdutoAtual();
+
+            // 🎯 GATILHO ESPELHO DIRETO E CIRÚRGICO INTEGRADO AO PDV_STORAGE
+            try {
+                if (window.carrinho && window.carrinho.length > 0) {
+                    // 🔄 Utiliza o método de salvar do seu PdvStorage centralizado
+                    if (typeof PdvStorage !== 'undefined') {
+                        PdvStorage.salvarCarrinho(window.carrinho);
+                    } else {
+                        localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
+                    }
+                    
+                    // 📊 EXIBIÇÃO NO F12
+                    // console.log("➡️ MOVIMENTAÇÃO DETECTADA NO INPUT!");
+                    console.log("💾 LOCALSTORAGE ESPELHADO COM SUCESSO:", window.carrinho);
+                } else {
+                    // 🧹 Limpa os dados de forma inteligente se o carrinho ficar vazio
+                    if (typeof PdvStorage !== 'undefined') {
+                        PdvStorage.limparPdv();
+                    } else {
+                        localStorage.removeItem('pdv_carrinho_atual');
+                    }
+                }
+            } catch (errStorage) {
+                console.error("Falha ao espelhar LocalStorage:", errStorage);
+            }
+
         };
+
 
         // ========================================================== //
         // 📡 GATILHO: LEITOR DE CÓDIGO DE BARRAS / BARRA PRINCIPAL   //
@@ -461,6 +488,8 @@ if (window.__pdvProdutoJsCarregado) {
                 if (acoesCarrinho) acoesCarrinho.style.display = "none";
             } else {
                 window.carrinho[index].quantidade--;
+                // Atualiza o LocalStorage e a linha visual correspondente
+                localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
                 const novaQtd = window.carrinho[index].quantidade;
                 linhaSelecionada.children[4].textContent = novaQtd; 
                 linhaSelecionada.children[6].textContent = (novaQtd * window.carrinho[index].preco_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); 
@@ -476,6 +505,8 @@ if (window.__pdvProdutoJsCarregado) {
                 const prodId = linhaSelecionada.dataset.produto;
                 const loteId = linhaSelecionada.dataset.lote;
                 window.carrinho = window.carrinho.filter(i => !(i.produto_id == prodId && i.lote_id == loteId));
+                // Atualiza o LocalStorage e remove a linha visual correspondente
+                localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
                 linhaSelecionada.remove();
                 linhaSelecionada = null;
                 if (acoesCarrinho) acoesCarrinho.style.display = "none";
@@ -493,4 +524,120 @@ if (window.__pdvProdutoJsCarregado) {
             if (acoesCarrinho) acoesCarrinho.style.display = "none";
         });
     });
+
+   // =======================================================================
+    // 🎯 RESGATAR DADOS DO LOCALSTORAGE NO F5 (REESCRITO COM TODAS AS LINHAS E MULTIPLICADOR)
+    // =======================================================================
+    window.resgatarCarrinhoF5 = function() {
+        try {
+            const salvo = localStorage.getItem('pdv_carrinho_atual');
+            if (!salvo) return;
+
+            const itensSalvos = JSON.parse(salvo);
+            if (!Array.isArray(itensSalvos) || itensSalvos.length === 0) return;
+
+            console.log("📂 [F5 RESTORE] Reconstruindo carrinho na marra...", itensSalvos);
+
+            // Limpa a array temporária e aponta para o elemento da tabela do seu PDV
+            window.carrinho = [];
+            const tabelaItens = document.getElementById("lista-itens");
+            if (!tabelaItens) return;
+
+            itensSalvos.forEach(item => {
+                // Lógica de Renderização Direta (Garante a tela cheia mesmo se o fetch falhar)
+                function injetarLinhaNaTela(nomeProduto, siglaUnidade) {
+                    const precoVenda = Number(item.preco_unitario || 0);
+                    const qtdSalva = Number(item.quantidade || 1);
+
+                    // 1. Alimenta a memória global exatamente no formato esperado pelo Laravel
+                    window.carrinho.push({
+                        produto_id: parseInt(item.produto_id),
+                        lote_id: item.lote_id || 0,
+                        quantidade: qtdSalva,
+                        preco_unitario: precoVenda,
+                        desconto: Number(item.desconto || 0),
+                        nome: nomeProduto // Mantém o nome na memória ativa do script
+                    });
+
+                    // 2. INJEÇÃO DIRETA NO HTML: Desenha a linha fisicamente na tabela com todas as colunas
+                    const numeroItem = tabelaItens.querySelectorAll("tr").length + 1;
+                    const novaLinha = document.createElement("tr");
+                    novaLinha.dataset.produto = item.produto_id;
+                    novaLinha.dataset.lote = item.lote_id || 0;
+                    novaLinha.style.cursor = "pointer";
+
+                    novaLinha.innerHTML = `
+                        <td>${numeroItem}</td>
+                        <td>${item.lote_id || 'OK'}</td>
+                        <td class="text-start">${nomeProduto}</td>
+                        <td>R$ ${precoVenda.toFixed(2).replace('.', ',')}</td>
+                        <td class="item-quantidade">${qtdSalva}</td>
+                        <td>${siglaUnidade}</td>
+                        <td class="subtotal fw-bold">${(qtdSalva * precoVenda).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                        <td class="text-muted d-none">Lote: OK</td>
+                    `;
+                    tabelaItens.appendChild(novaLinha);
+
+                    // 🛠️ RECALCULA O RODAPÉ AUTOMATICAMENTE
+                    let contadorSequencial = 1;
+                    tabelaItens.querySelectorAll("tr").forEach(linha => {
+                        const primeiraCelula = linha.querySelector("td");
+                        if (primeiraCelula) primeiraCelula.textContent = contadorSequencial++;
+                    });
+
+                    let subtotalAcumulado = 0;
+                    tabelaItens.querySelectorAll("tr").forEach(linha => {
+                        const campoSubtotal = linha.querySelector(".subtotal");
+                        if (campoSubtotal) {
+                            let textoValor = campoSubtotal.textContent
+                                .replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
+                            subtotalAcumulado += parseFloat(textoValor) || 0;
+                        }
+                    });
+
+                    const labelTotalGeral = document.getElementById("totalGeral") || document.getElementById("total_geral") || document.getElementById("inputTotalGeral");
+                    if (labelTotalGeral) {
+                        if (labelTotalGeral.tagName === 'INPUT') {
+                            labelTotalGeral.value = subtotalAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        } else {
+                            labelTotalGeral.textContent = subtotalAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        }
+                    }
+                }
+
+                // Tenta buscar o nome atualizado do produto no banco
+                fetch(`/pdv/produto/${item.produto_id}`, { headers: { "Accept": "application/json" } })
+                    .then(res => {
+                        // Se o Laravel retornar erro (como 404), pula direto para a contingência
+                        if (!res.ok) throw new Error("Rota de produto inválida ou não encontrada");
+                        return res.json();
+                    })
+                    .then(dataRes => {
+                        if (dataRes.status === "ok" && dataRes.produto) {
+                            // Plano A: Renderiza com o nome real vindo do banco de dados
+                            injetarLinhaNaTela(dataRes.produto.nome, dataRes.produto.unidade_sigla || 'UN');
+                        } else {
+                            // Plano B: Se a resposta vier vazia, usa o nome salvo no LocalStorage
+                            injetarLinhaNaTela(item.nome || item.descricao || `Produto #${item.produto_id}`, 'UN');
+                        }
+                    })
+                    .catch(err => {
+                        console.warn("⚠️ Rota /pdv/produto/ falhou. Ativando renderização de contingência do LocalStorage...", err.message);
+                        // 🎯 PLANO C CORRIGIDO: Puxa o nome real armazenado no JSON em vez do texto genérico fixo
+                        injetarLinhaNaTela(item.nome || item.descricao || `Produto #${item.produto_id}`, 'UN');
+                    });
+            });
+
+        } catch (error) {
+            console.error("Falha ao ler dados no F5:", error);
+        }
+    };
+
+    // Gatilho: Executa o script de forma segura dependendo do estado do DOM
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.resgatarCarrinhoF5);
+    } else {
+        window.resgatarCarrinhoF5();
+    }
+
 }

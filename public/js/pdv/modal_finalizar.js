@@ -739,35 +739,50 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const dataFinal = await res.json();
 
-            // if (!res.ok || !dataFinal.success) {
-            //     throw new Error(
-            //         dataFinal.erro
-            //         || 'Erro ao finalizar venda'
-            //     );
-            // }
-            if (dataFinal.cupom_url) {
-                let urlCorreta = dataFinal.cupom_url;
+            // if (dataFinal.cupom_url) {
+            //     let urlCorreta = dataFinal.cupom_url;
                 
-                // Se a URL enviada pelo Laravel não tiver o prefixo correto, ajusta dinamicamente
-                if (!urlCorreta.includes('/vendas/')) {
-                    urlCorreta = urlCorreta.replace('/venda/', '/vendas/venda/');
-                }
+            //     // Se a URL enviada pelo Laravel não tiver o prefixo correto, ajusta dinamicamente
+            //     if (!urlCorreta.includes('/vendas/')) {
+            //         urlCorreta = urlCorreta.replace('/venda/', '/vendas/venda/');
+            //     }
 
-                window.location.href = urlCorreta;
-                return;
+            //     window.location.href = urlCorreta;
+            //     return;
+            // }
+
+            // limparPDV();
+
+            // if (dataFinal.cupom_url) {
+            //     window.location.href = dataFinal.cupom_url;
+            //     return;
+            // }
+
+            // alert('Venda finalizada com sucesso!');
+            // Aqui você pode optar por recarregar a página ou apenas limpar o modal e o carrinho, dependendo do fluxo desejado
+            // location.reload();
+
+            const dataFinal = await res.json();
+
+            if (!res.ok || !dataFinal.success) {
+                throw new Error(dataFinal.erro || 'Erro ao finalizar venda');
             }
 
+            // 🎯 GATILHO DE SUCESSO: Limpa a memória do navegador antes de atualizar a página ou cupom
+            if (typeof PdvStorage !== 'undefined') {
+                PdvStorage.limparPdv();
+            }
 
-            limparPDV();
+            limparPDV(); // Sua função original que zera o HTML e a array da tela
 
             if (dataFinal.cupom_url) {
                 window.location.href = dataFinal.cupom_url;
                 return;
             }
 
-            // alert('Venda finalizada com sucesso!');
 
         }
+
         catch (err) {
 
             console.error(err);
@@ -789,13 +804,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // =====================================================
     // EVENTOS FINALIZAÇÃO
     // =====================================================
-    btnFinalizar.addEventListener('click', finalizarVenda);
-
-    btnFinalizar.addEventListener('keydown', function (e) {
-
+       btnFinalizar.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
+            // 🎯 GATILHO CHAVE: Garante que os dados finais da memória estejam gravados 
+            // no LocalStorage no milissegundo anterior ao disparo do fetch
+            if (typeof PdvStorage !== 'undefined' && window.carrinho) {
+                PdvStorage.salvarCarrinho(window.carrinho);
+            }
+
             finalizarVenda(e);
         }
     });
+
 });
 
