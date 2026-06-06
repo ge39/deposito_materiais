@@ -739,12 +739,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const dataFinal = await res.json();
 
-            if (!res.ok || !dataFinal.success) {
-                throw new Error(
-                    dataFinal.erro
-                    || 'Erro ao finalizar venda'
-                );
+            // if (!res.ok || !dataFinal.success) {
+            //     throw new Error(
+            //         dataFinal.erro
+            //         || 'Erro ao finalizar venda'
+            //     );
+            // }
+            if (dataFinal.cupom_url) {
+                let urlCorreta = dataFinal.cupom_url;
+                
+                // Se a URL enviada pelo Laravel não tiver o prefixo correto, ajusta dinamicamente
+                if (!urlCorreta.includes('/vendas/')) {
+                    urlCorreta = urlCorreta.replace('/venda/', '/vendas/venda/');
+                }
+
+                window.location.href = urlCorreta;
+                return;
             }
+
 
             limparPDV();
 

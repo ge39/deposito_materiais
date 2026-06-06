@@ -266,19 +266,17 @@ Route::middleware('auth')->group(function () {
     // Route::post('/vendas/finalizar', [VendaController::class, 'finalizar']);
     // Route::get('/venda/{id}/cupom', [VendaController::class, 'cupom'])->name('venda.cupom');
 
-    // ========================================================
-    // ROTAS DE VENDAS E CAIXA (ALINHADO COM O VENDA CONTROLLER)
-    // ========================================================
-
     // 1️⃣ Rota específica de finalização (DEVE FICAR ACIMA DO RESOURCE)
     Route::post('/vendas/finalizar', [\App\Http\Controllers\VendaController::class, 'finalizar']);
 
     // 2️⃣ Atalhos auxiliares do PDV
     Route::get('/pdv/ultima-venda-id', [\App\Http\Controllers\VendaController::class, 'obterUltimaVendaId']);
-    // Route::get('/venda/{id}/cupom', [\App\Http\Controllers\VendaController::class, 'cupom'])->name('venda.cupom');
-    
+
+    // 🎯 AQUI ESTÁ O SEGREDO: Criamos o caminho direto sem o prefixo apontando para o mesmo Controller
+    Route::get('/venda/{id}/cupom', [\App\Http\Controllers\VendaController::class, 'cupom']);
+
     Route::prefix('vendas')->group(function () {
-        Route::get('/venda/{id}/cupom', [VendaController::class, 'cupom'])
+        Route::get('/venda/{id}/cupom', [\App\Http\Controllers\VendaController::class, 'cupom'])
             ->name('venda.cupom');
     });
 

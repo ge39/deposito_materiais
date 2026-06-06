@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function(event) {
         
         // Captura a combinação ALT + P
+
         if (event.altKey && (event.key === 'p' || event.key === 'P' || event.code === 'KeyP')) {
             
             // Bloqueia de forma absoluta a impressão da tela inteira do navegador
@@ -77,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         // Se o banco retornou o ID, abre o iframe térmico silencioso
                         const iframeGarantido = document.createElement('iframe');
                         iframeGarantido.style.display = 'none';
-                        iframeGarantido.src = `/venda/${data.venda_id}/cupom`;
+                        iframeGarantido.src = `/vendas/venda/${data.venda_id}/cupom`;
                         document.body.appendChild(iframeGarantido);
                         
                         iframeGarantido.onload = function() {
