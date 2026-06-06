@@ -66,67 +66,28 @@
                         <div class="col-md-8">
                             <strong>Motivo da Devolução:</strong>
                             <p><?php echo e($devolucao->motivo); ?></p>
-
-                            <!-- <strong>Logs da Devolução:</strong>
-                            <ul class="list-group list-group-flush mb-2">
-                                <?php $__currentLoopData = optional($devolucao->logs); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $log): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <li class="list-group-item">
-                                        <small>
-                                            <strong><?php echo e(ucfirst($log->acao)); ?></strong> - <?php echo e($log->descricao); ?> 
-                                            (<?php echo e($log->usuario); ?> em <?php echo e($log->created_at->format('d/m/Y H:i')); ?>)
-                                        </small>
-                                    </li>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                            </ul>
-
-                            <form action="<?php echo e(route('devolucoes.aprovar', $devolucao->id)); ?>"
-                                  method="POST" style="display:inline;">
+                        </div>
+                         <!-- Alinhamento dos botões principais originais -->
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <!-- Formulário estruturado como um item flex direto -->
+                            <form action="<?php echo e(route('devolucoes.aprovar', $devolucao->id)); ?>" method="POST" class="m-0 p-0 d-flex align-items-center">
                                 <?php echo csrf_field(); ?>
                                 <?php echo method_field('PUT'); ?>
-                                <button type="submit"
-                                        id="btn-aprovar-<?php echo e($devolucao->id); ?>"
-                                        class="btn btn-success btn-sm"
-                                        disabled>
+                                <button type="submit" id="btn-aprovar-<?php echo e($devolucao->id); ?>" class="btn btn-success btn-sm" disabled>
                                     Aprovar
                                 </button>
                             </form>
 
-                            <form action="<?php echo e(route('devolucoes.rejeitar', $devolucao->id)); ?>"
-                                  method="POST" style="display:inline;">
-                                <?php echo csrf_field(); ?>
-                                <?php echo method_field('PUT'); ?>
-                                <button type="submit" class="btn btn-warning btn-sm">
-                                    Rejeitar
-                                </button>
-                            </form>
-
-                            <a href="<?php echo e(route('devolucoes.cupom', $devolucao)); ?>"
-                               class="btn btn-primary btn-sm gerar-vale"
-                               data-id="<?php echo e($devolucao->id); ?>"
-                               target="_blank">
-                                Gerar Vale-Troca
-                            </a> -->
-
-                        </div>
-                     <!-- Alinhamento dos botões principais originais -->
-                    <div class="d-flex gap-2 mb-2">
-                        <form action="<?php echo e(route('devolucoes.aprovar', $devolucao->id)); ?>" method="POST" style="display:inline;">
-                            <?php echo csrf_field(); ?>
-                            <?php echo method_field('PUT'); ?>
-                            <button type="submit" id="btn-aprovar-<?php echo e($devolucao->id); ?>" class="btn btn-success btn-sm" disabled>
-                                Aprovar
+                            <!-- Botão Rejeitar -->
+                            <button type="button" class="btn btn-warning btn-sm btn-rejeitar-trigger text-dark" data-id="<?php echo e($devolucao->id); ?>">
+                                Rejeitar
                             </button>
-                        </form>
 
-                        <!-- O botão rejeitar agora abre a seção inferior -->
-                        <button type="button" class="btn btn-warning btn-sm btn-rejeitar-trigger" data-id="<?php echo e($devolucao->id); ?>">
-                            Rejeitar
-                        </button>
-
-                        <a href="<?php echo e(route('devolucoes.cupom', $devolucao)); ?>" class="btn btn-primary btn-sm gerar-vale" data-id="<?php echo e($devolucao->id); ?>" target="_blank">
-                            Gerar Vale-Troca
-                        </a>
-                    </div>
+                            <!-- Link Gerar Vale-Troca estruturado como flex para bater a altura -->
+                            <a href="<?php echo e(route('devolucoes.cupom', $devolucao)); ?>" class="btn btn-primary btn-sm gerar-vale d-flex align-items-center justify-content-center" data-id="<?php echo e($devolucao->id); ?>" target="_blank">
+                                Gerar Vale-Troca
+                            </a>
+                        </div>
 
                     <!-- 🔥 SEÇÃO DE REJEIÇÃO: Adicionada abaixo do bloco de botões -->
                     <div id="secao-rejeitar-<?php echo e($devolucao->id); ?>" class="card p-3 bg-light border-warning mt-3 <?php echo e(($errors->has('motivo_rejeicao') || $errors->has('observacao')) && old('rejeicao_id') == $devolucao->id ? '' : 'd-none'); ?>">
@@ -203,7 +164,7 @@ unset($__errorArgs, $__bag); ?>
                     </div>
 
                     </div>
-                </div>
+                    </div>
             </div>
         </div>
 

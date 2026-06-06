@@ -68,67 +68,28 @@
                         <div class="col-md-8">
                             <strong>Motivo da Devolução:</strong>
                             <p>{{ $devolucao->motivo }}</p>
-
-                            <!-- <strong>Logs da Devolução:</strong>
-                            <ul class="list-group list-group-flush mb-2">
-                                @foreach(optional($devolucao->logs) as $log)
-                                    <li class="list-group-item">
-                                        <small>
-                                            <strong>{{ ucfirst($log->acao) }}</strong> - {{ $log->descricao }} 
-                                            ({{ $log->usuario }} em {{ $log->created_at->format('d/m/Y H:i') }})
-                                        </small>
-                                    </li>
-                                @endforeach
-                            </ul>
-
-                            <form action="{{ route('devolucoes.aprovar', $devolucao->id) }}"
-                                  method="POST" style="display:inline;">
+                        </div>
+                         <!-- Alinhamento dos botões principais originais -->
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <!-- Formulário estruturado como um item flex direto -->
+                            <form action="{{ route('devolucoes.aprovar', $devolucao->id) }}" method="POST" class="m-0 p-0 d-flex align-items-center">
                                 @csrf
                                 @method('PUT')
-                                <button type="submit"
-                                        id="btn-aprovar-{{ $devolucao->id }}"
-                                        class="btn btn-success btn-sm"
-                                        disabled>
+                                <button type="submit" id="btn-aprovar-{{ $devolucao->id }}" class="btn btn-success btn-sm" disabled>
                                     Aprovar
                                 </button>
                             </form>
 
-                            <form action="{{ route('devolucoes.rejeitar', $devolucao->id) }}"
-                                  method="POST" style="display:inline;">
-                                @csrf
-                                @method('PUT')
-                                <button type="submit" class="btn btn-warning btn-sm">
-                                    Rejeitar
-                                </button>
-                            </form>
-
-                            <a href="{{ route('devolucoes.cupom', $devolucao) }}"
-                               class="btn btn-primary btn-sm gerar-vale"
-                               data-id="{{ $devolucao->id }}"
-                               target="_blank">
-                                Gerar Vale-Troca
-                            </a> -->
-
-                        </div>
-                     <!-- Alinhamento dos botões principais originais -->
-                    <div class="d-flex gap-2 mb-2">
-                        <form action="{{ route('devolucoes.aprovar', $devolucao->id) }}" method="POST" style="display:inline;">
-                            @csrf
-                            @method('PUT')
-                            <button type="submit" id="btn-aprovar-{{ $devolucao->id }}" class="btn btn-success btn-sm" disabled>
-                                Aprovar
+                            <!-- Botão Rejeitar -->
+                            <button type="button" class="btn btn-warning btn-sm btn-rejeitar-trigger text-dark" data-id="{{ $devolucao->id }}">
+                                Rejeitar
                             </button>
-                        </form>
 
-                        <!-- O botão rejeitar agora abre a seção inferior -->
-                        <button type="button" class="btn btn-warning btn-sm btn-rejeitar-trigger" data-id="{{ $devolucao->id }}">
-                            Rejeitar
-                        </button>
-
-                        <a href="{{ route('devolucoes.cupom', $devolucao) }}" class="btn btn-primary btn-sm gerar-vale" data-id="{{ $devolucao->id }}" target="_blank">
-                            Gerar Vale-Troca
-                        </a>
-                    </div>
+                            <!-- Link Gerar Vale-Troca estruturado como flex para bater a altura -->
+                            <a href="{{ route('devolucoes.cupom', $devolucao) }}" class="btn btn-primary btn-sm gerar-vale d-flex align-items-center justify-content-center" data-id="{{ $devolucao->id }}" target="_blank">
+                                Gerar Vale-Troca
+                            </a>
+                        </div>
 
                     <!-- 🔥 SEÇÃO DE REJEIÇÃO: Adicionada abaixo do bloco de botões -->
                     <div id="secao-rejeitar-{{ $devolucao->id }}" class="card p-3 bg-light border-warning mt-3 {{ ($errors->has('motivo_rejeicao') || $errors->has('observacao')) && old('rejeicao_id') == $devolucao->id ? '' : 'd-none' }}">
@@ -177,7 +138,7 @@
                     </div>
 
                     </div>
-                </div>
+                    </div>
             </div>
         </div>
 

@@ -25,9 +25,11 @@
         <h2 class="mb-1 text-dark font-weight-bold">Registrar Devolução / Troca - Venda #<?php echo e($venda->id); ?></h2>
         <h4 class="text-secondary mb-0">Cliente: <?php echo e($venda->cliente->nome); ?></h4>
     </div>
-
+    
+    <span class="text-muted medium d-block mb-3">Selecione a quantidade a ser devolvida, o motivo logístico e anexe evidências visuais para cada item.</span>
     <div class="row">
         <?php $__currentLoopData = $itensVenda; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemVenda): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+        <span><strong class="text-dark">Produto:</strong> <?php echo e($itemVenda->produto_nome); ?></span>
             <!-- Cards Informativos -->
             <div class="row g-3 mb-4">
                 <!-- Lote Comercial -->

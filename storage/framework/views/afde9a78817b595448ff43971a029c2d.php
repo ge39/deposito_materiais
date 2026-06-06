@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('content'); ?>
 <div class="container">
     <h2 class="mb-4">Rastrear Devoluções Venda</h2>
