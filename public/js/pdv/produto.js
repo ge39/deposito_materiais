@@ -353,68 +353,176 @@ if (window.__pdvProdutoJsCarregado) {
             }
         });
 
-       // ========================================================== //
-        // ❌ AÇÃO UNIFICADA E SINCRONIZADA: REMOVER ITEM INTEIRO     //
         // ========================================================== //
-        btnRemover?.replaceWith(btnRemover.cloneNode(true)); // Limpa listeners fantasmas
+        // ❌ MODAL DINÂMICO COM NOME DO PRODUTO PARA REMOÇÃO        //
+        // ========================================================== //
+        btnRemover?.replaceWith(btnRemover.cloneNode(true));
 
-        document.getElementById("btnRemover")?.addEventListener("click", function(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        // ========================================================== //
+        // ❌ MODAL CORRIGIDO: SEM ERROS DE SELEÇÃO NO CONSOLE       //
+        // ========================================================== //
+        
+        if (!window.btnRemoverConfigurado) {
+            document.getElementById("btnRemover")?.addEventListener("click", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
 
-            if (!linhaSelecionada) {
-                alert("Clique em um item da tabela primeiro para selecioná-lo.");
-                return;
-            }
+                if (!linhaSelecionada) {
+                    alert("Clique em um item da tabela primeiro para selecioná-lo.");
+                    return;
+                }
 
-            // Pede confirmação rápida para evitar cliques acidentais no PDV
-            if (!confirm("Deseja realmente remover este item do carrinho?")) {
-                return;
-            }
+                const produtoId = linhaSelecionada.dataset.produto;
+                const loteId = linhaSelecionada.dataset.lote;
 
-            const produtoId = linhaSelecionada.dataset.produto;
-            const loteId = linhaSelecionada.dataset.lote;
+                // 🌟 CORREÇÃO: Captura especificamente a célula de descrição (índice 2)
+                const celulas = linhaSelecionada.querySelectorAll("td");
+                let nomeProduto = "Produto selecionado";
+                
+                if (celulas && celulas.length >= 3) {
+                    nomeProduto = celulas[2].textContent.trim(); // Índice 2 corresponde à 3ª coluna (Descrição)
+                }
 
-            // 1. Remove o item diretamente da memória global
+                const modalElemento = document.getElementById('modalPdvRemover');
+                if (!modalElemento) {
+                    if (confirm(`⚠️ ADVERTÊNCIA!\n\nYou está prestes a remover o produto:\n"${nomeProduto}"\n\nDeseja confirmar?`)) {
+                        executarRemocaoPdv(produtoId, loteId);
+                    }
+                    if (inputCodigo) inputCodigo.focus();
+                    return;
+                }
+
+                // Injeta dinamicamente o nome do produto no corpo do modal
+                const campoNomeModal = document.getElementById("modalNomeProduto");
+                if (campoNomeModal) campoNomeModal.textContent = nomeProduto;
+
+                // Inicializa e exibe o modal do Bootstrap
+                const meuModal = new bootstrap.Modal(modalElemento);
+                meuModal.show();
+
+                // Remove o fundo escuro se o modal sumir
+                modalElemento.addEventListener('hidden.bs.modal', function () {
+                    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    if (inputCodigo) inputCodigo.focus();
+                }, { once: true });
+
+                // Gerenciamento seguro dos botões internos do modal
+                const btnConf = document.getElementById("btnModalConfirmar");
+                const btnCanc = document.getElementById("btnModalCancelar");
+
+                const acaoConfirmar = function() {
+                    executarRemocaoPdv(produtoId, loteId);
+                    meuModal.hide();
+                    btnConf.removeEventListener("click", acaoConfirmar);
+                };
+                
+                const acaoCancelar = function() {
+                    meuModal.hide();
+                    btnCanc.removeEventListener("click", acaoCancelar);
+                };
+
+                btnConf.addEventListener("click", acaoConfirmar, { once: true });
+                btnCanc.addEventListener("click", acaoCancelar, { once: true });
+
+                // Atalhos de teclado seguros
+                const escutarTecladoModal = function(tecla) {
+                    if (tecla.key === "Enter") {
+                        tecla.preventDefault();
+                        btnConf.click();
+                        window.removeEventListener("keydown", escutarTecladoModal);
+                    }
+                    if (tecla.key === "Escape") {
+                        tecla.preventDefault();
+                        btnCanc.click();
+                        window.removeEventListener("keydown", escutarTecladoModal);
+                    }
+                };
+                window.addEventListener("keydown", escutarTecladoModal);
+            });
+
+            window.btnRemoverConfigurado = true;
+        }
+
+
+        // // 📦 FUNÇÃO CENTRALIZADA QUE FAZ A LIMPEZA REAL NO LOCALSTORAGE E NA TELA
+        function executarRemocaoPdv(produtoId, loteId) {
             window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
-
-            // 2. Remove o elemento físico/visual do HTML da tabela
             linhaSelecionada.remove();
             linhaSelecionada = null;
 
-            // 3. Esconde o painel lateral de ações amarela/flutuante
-            if (acoesCarrinho) {
-                acoesCarrinho.classList.add("d-none");
-                acoesCarrinho.style.display = "none";
-            }
+            if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
 
-            // 4. 💾 Sincroniza e espelha o LocalStorage de maneira inteligente
             try {
                 if (window.carrinho && window.carrinho.length > 0) {
-                    if (typeof PdvStorage !== 'undefined') {
-                        PdvStorage.salvarCarrinho(window.carrinho);
-                    } else {
-                        localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
-                    }
+                    if (typeof PdvStorage !== 'undefined') PdvStorage.salvarCarrinho(window.carrinho);
+                    else localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
                 } else {
-                    if (typeof PdvStorage !== 'undefined') {
-                        PdvStorage.limparPdv();
-                    } else {
-                        localStorage.removeItem('pdv_carrinho_atual');
-                    }
+                    if (typeof PdvStorage !== 'undefined') PdvStorage.limparPdv();
+                    else localStorage.removeItem('pdv_carrinho_atual');
                 }
-                console.log("💾 LOCALSTORAGE ATUALIZADO APÓS REMOÇÃO TOTAL:", window.carrinho);
             } catch (errStorage) {
-                console.error("Falha ao espelhar LocalStorage na remoção:", errStorage);
+                console.error("Erro ao salvar LocalStorage:", errStorage);
             }
 
-            // 5. Recalcula a paginação do PDV e os totais
             atualizarNumeroItens();
             atualizarTotalCarrinho();
+        }
 
-            // Devolve o foco imediato para a leitura de código de barras
-            if (inputCodigo) inputCodigo.focus();
-        });
+        // 📦 FUNÇÃO ISOLADA QUE FAZ A LIMPEZA REAL NO LOCALSTORAGE E NA TELA
+        // function executarRemocaoPdv(produtoId, loteId) {
+        //     // 1. Remove do array de memória
+        //     window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
+
+        //     // 2. Remove a linha física do HTML
+        //     linhaSelecionada.remove();
+        //     linhaSelecionada = null;
+
+        //     // 3. Oculta a barra lateral do Bootstrap
+        //     if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
+
+        //     // 4. 💾 Sincroniza o LocalStorage
+        //     try {
+        //         if (window.carrinho && window.carrinho.length > 0) {
+        //             if (typeof PdvStorage !== 'undefined') PdvStorage.salvarCarrinho(window.carrinho);
+        //             else localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
+        //         } else {
+        //             if (typeof PdvStorage !== 'undefined') PdvStorage.limparPdv();
+        //             else localStorage.removeItem('pdv_carrinho_atual');
+        //         }
+        //     } catch (errStorage) {
+        //         console.error("Erro ao salvar LocalStorage:", errStorage);
+        //     }
+
+        //     // 5. Atualiza os totais da tela de venda
+        //     atualizarNumeroItens();
+        //     atualizarTotalCarrinho();
+        // }
+
+        // 📦 FUNÇÃO ISOLADA PARA NÃO REPETIR CÓDIGO
+        function ejecutarRemocaoLogica(produtoId, loteId) {
+            window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
+            linhaSelecionada.remove();
+            linhaSelecionada = null;
+
+            if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
+
+            try {
+                if (window.carrinho && window.carrinho.length > 0) {
+                    if (typeof PdvStorage !== 'undefined') PdvStorage.salvarCarrinho(window.carrinho);
+                    else localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
+                } else {
+                    if (typeof PdvStorage !== 'undefined') PdvStorage.limparPdv();
+                    else localStorage.removeItem('pdv_carrinho_atual');
+                }
+            } catch (errStorage) {
+                console.error("Falha ao espelhar LocalStorage:", errStorage);
+            }
+
+            atualizarNumeroItens();
+            atualizarTotalCarrinho();
+        }
 
         // 4️⃣ PROGRAMA O BOTÃO DE OCULTAR / CANCELAR A SELEÇÃO
         btnOcultar?.addEventListener("click", function() {
@@ -424,20 +532,19 @@ if (window.__pdvProdutoJsCarregado) {
             if (inputCodigo) inputCodigo.focus();
         });
 
-
         inputQuantidade?.addEventListener("input", calcularTotalProduto);
 
         // ========================================== //
         // PAINEL DE AÇÕES FLUTUANTES (1 EM 1)        //
-        // ========================================== //
-        tabelaItens?.addEventListener("click", (e) => {
-            const linha = e.target.closest("tr");
-            if (!linha || !tabelaItens.contains(linha)) return;
-            tabelaItens.querySelectorAll("tr").forEach(tr => tr.classList.remove("table-active"));
-            linhaSelecionada = linha;
-            linhaSelecionada.classList.add("table-active");
-            if (acoesCarrinho) acoesCarrinho.style.display = "block";
-        });
+        // // ========================================== //
+        // tabelaItens?.addEventListener("click", (e) => {
+        //     const linha = e.target.closest("tr");
+        //     if (!linha || !tabelaItens.contains(linha)) return;
+        //     tabelaItens.querySelectorAll("tr").forEach(tr => tr.classList.remove("table-active"));
+        //     linhaSelecionada = linha;
+        //     linhaSelecionada.classList.add("table-active");
+        //     if (acoesCarrinho) acoesCarrinho.style.display = "block";
+        // });
 
         // ========================================================== //
         // ➖ AÇÃO UNIFICADA E SINCRONIZADA: DIMINUIR QUANTIDADE       //
@@ -593,33 +700,44 @@ if (window.__pdvProdutoJsCarregado) {
                     }
                 }
 
-                // Tenta buscar o nome atualizado do produto no banco
-                fetch(`/pdv/produto/${item.produto_id}`, { headers: { "Accept": "application/json" } })
+                // ========================================================== //
+                // 📡 VALIDAÇÃO INTEGRAL ANTES DE CONSULTAR A ROTA DO BANCO   //
+                // ========================================================== //
+                const idValido = parseInt(item.produto_id);
+
+                if (!idValido || isNaN(idValido)) {
+                    // 🎯 SE O ID FOR INVÁLIDO, PULA A API E CAI DIRETO NA CONTINGÊNCIA PERFEITA
+                    console.log(`📦 [F5 RECOVERY] ID ausente. Renderizando diretamente via LocalStorage:`, item.nome || item.descricao);
+                    injetarLinhaNaTela(item.nome || item.descricao || "Produto Sem Nome", 'UN');
+                    return; // Encerra o processamento deste item atual no laço do forEach
+                }
+
+                // Executa a busca oficial no Laravel apenas com a certeza do ID numérico
+                fetch(`/pdv/produto/${idValido}`, { headers: { "Accept": "application/json" } })
                     .then(res => {
-                        // Se o Laravel retornar erro (como 404), pula direto para a contingência
                         if (!res.ok) throw new Error("Rota de produto inválida ou não encontrada");
                         return res.json();
                     })
                     .then(dataRes => {
                         if (dataRes.status === "ok" && dataRes.produto) {
-                            // Plano A: Renderiza com o nome real vindo do banco de dados
+                            // Plano A: Renderiza com o nome atualizado vindo direto do banco de dados
                             injetarLinhaNaTela(dataRes.produto.nome, dataRes.produto.unidade_sigla || 'UN');
                         } else {
-                            // Plano B: Se a resposta vier vazia, usa o nome salvo no LocalStorage
-                            injetarLinhaNaTela(item.nome || item.descricao || `Produto #${item.produto_id}`, 'UN');
+                            // Plano B: Se a resposta da API vier incompleta, usa os metadados locais
+                            injetarLinhaNaTela(item.nome || item.descricao || `Produto #${idValido}`, 'UN');
                         }
                     })
                     .catch(err => {
-                        console.warn("⚠️ Rota /pdv/produto/ falhou. Ativando renderização de contingência do LocalStorage...", err.message);
-                        // 🎯 PLANO C CORRIGIDO: Puxa o nome real armazenado no JSON em vez do texto genérico fixo
-                        injetarLinhaNaTela(item.nome || item.descricao || `Produto #${item.produto_id}`, 'UN');
+                        // Plano C: Se a internet cair ou o Laravel der timeout, a contingência assume
+                        injetarLinhaNaTela(item.nome || item.descricao || `Produto #${idValido}`, 'UN');
                     });
-            });
+            }); // Fim do foreach
 
         } catch (error) {
             console.error("Falha ao ler dados no F5:", error);
         }
     };
+
 
     // Gatilho: Executa o script de forma segura dependendo do estado do DOM
     if (document.readyState === 'loading') {

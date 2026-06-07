@@ -765,6 +765,33 @@
 
         </div>
     </div>
+
+        
+    <!-- 🎨 MODAL MODERNO E CUSTOMIZADO PARA AVISOS DO PDV -->
+    <div class="modal fade" id="modalPdvRemover" "dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 25px; background-color: #fff9f9;">
+                <div class="modal-body p-5">
+                    <h5 class="fw-bold mb-4 text-dark" style="font-size: 1.25rem;">
+                        ⚠️ ATENÇÃO: ADVERTÊNCIA!
+                    </h5>
+                    <p class="text-secondary mb-5" style="font-size: 1.05rem; line-height: 1.6;">
+                        Você está prestes a REMOVER O PRODUTO:<br>
+                        <!-- 🌟 O ID abaixo receberá o nome via JS -->
+                        <span id="modalNomeProduto" class="fw-bold text-dark d-block my-2" style="font-size: 1.15rem;"></span>
+                        Deseja confirmar?
+                    </p>
+
+                   <div class="d-flex justify-content-end gap-3">
+                        <!-- 🌟 Adicionado: data-bs-dismiss="modal" -->
+                        <button type="button" class="btn fw-bold px-4 rounded-pill" id="btnModalCancelar" data-bs-dismiss="modal" style="background-color: #ffd8d8; color: #5a2020;">Cancelar</button>
+                        <button type="button" class="btn text-white fw-bold px-4 rounded-pill" id="btnModalConfirmar" data-bs-dismiss="modal" style="background-color: #804040; box-shadow: 0 4px 10px rgba(128, 64, 64, 0.3);">OK</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
     
 </div>
 

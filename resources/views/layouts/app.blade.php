@@ -260,15 +260,17 @@
           });
       });
   });
-  </script>
+@push('scripts')
+    <!-- 1º Carrega a biblioteca global (OBRIGATÓRIO SER PRIMEIRO) -->
+    <script src="https://jsdelivr.net"></script>
+    
+    <!-- 2º Carrega o script que consome a biblioteca -->
+    <script src="{{ asset('js/pdv/produto.js') }}"></script>
+@endpush
 
-    <!-- JS do Bootstrap e app.js -->
-        <!-- <script src="{{ asset('js/app.js') }}"></script> -->
 
-        <!-- Aqui serão inseridos os scripts específicos de cada página -->
-    @stack('scripts')
     
 </body>
-
-
 </html>
+
+

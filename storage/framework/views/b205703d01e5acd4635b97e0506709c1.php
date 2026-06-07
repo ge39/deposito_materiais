@@ -261,16 +261,18 @@
           });
       });
   });
-  </script>
+<?php $__env->startPush('scripts'); ?>
+    <!-- 1º Carrega a biblioteca global (OBRIGATÓRIO SER PRIMEIRO) -->
+    <script src="https://jsdelivr.net"></script>
+    
+    <!-- 2º Carrega o script que consome a biblioteca -->
+    <script src="<?php echo e(asset('js/pdv/produto.js')); ?>"></script>
+<?php $__env->stopPush(); ?>
 
-    <!-- JS do Bootstrap e app.js -->
-        <!-- <script src="<?php echo e(asset('js/app.js')); ?>"></script> -->
 
-        <!-- Aqui serão inseridos os scripts específicos de cada página -->
-    <?php echo $__env->yieldPushContent('scripts'); ?>
     
 </body>
-
-
 </html>
+
+
 <?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/layouts/app.blade.php ENDPATH**/ ?>
