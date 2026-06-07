@@ -178,6 +178,7 @@ if (window.__pdvProdutoJsCarregado) {
                 window.carrinho.push({
                     produto_id: produto.id,
                     lote_id: loteId,
+                    descricao: produto.nome, // 🌟 Correção: Salvando a descrição/nome do produto
                     quantidade: quantidade,
                     preco_unitario: preco,
                     desconto: 0
@@ -553,6 +554,7 @@ if (window.__pdvProdutoJsCarregado) {
                     window.carrinho.push({
                         produto_id: parseInt(item.produto_id),
                         lote_id: item.lote_id || 0,
+                        descricao: item.descricao || nomeProduto, // 🌟 Correção: Salvando a descrição/nome do produto
                         quantidade: qtdSalva,
                         preco_unitario: precoVenda,
                         desconto: Number(item.desconto || 0),
