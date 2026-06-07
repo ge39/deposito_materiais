@@ -353,100 +353,66 @@ if (window.__pdvProdutoJsCarregado) {
             }
         });
 
-        // 2️⃣ PROGRAMA O BOTÃO DE DIMINUIR QUANTIDADE (-1)
-      // ========================================================== //
-        // ➖ AÇÃO: DIMINUIR QUANTIDADE (BLINDADO CONTRA REPETIÇÃO)   //
+       // ========================================================== //
+        // ❌ AÇÃO UNIFICADA E SINCRONIZADA: REMOVER ITEM INTEIRO     //
         // ========================================================== //
-        btnDiminuir?.replaceWith(btnDiminuir.cloneNode(true)); // Limpa escutas fantasmas empilhados
-        document.getElementById("btnDiminuir")?.addEventListener("click", function(e) {
-            e.preventDefault();
-            e.stopPropagation(); // 🌟 Impede que o clique suba e execute duas vezes
+        btnRemover?.replaceWith(btnRemover.cloneNode(true)); // Limpa listeners fantasmas
 
-            if (!linhaSelecionada) {
-                alert("Clique em um item da tabela primeiro para selecioná-lo.");
-                return;
-            }
-
-            const produtoId = linhaSelecionada.dataset.produto;
-            const loteId    = linhaSelecionada.dataset.lote;
-
-            const item = window.carrinho.find(i => i.produto_id == produtoId && i.lote_id == loteId);
-
-            if (item) {
-                item.quantidade--; // Reduz exatamente 1
-
-                if (item.quantidade <= 0) {
-                    window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
-                    linhaSelecionada.remove();
-                    linhaSelecionada = null;
-                    if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
-                } else {
-                    const campoQtd = linhaSelecionada.querySelector('.item-quantidade');
-                    const campoSubtotal = linhaSelecionada.querySelector('.subtotal');
-                    const precoUnitario = Number(item.preco_unitario);
-
-                    if (campoQtd) campoQtd.textContent = item.quantidade;
-                    if (campoSubtotal) {
-                        campoSubtotal.textContent = (item.quantidade * precoUnitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    }
-                }
-
-                atualizarNumeroItens();
-                atualizarTotalCarrinho();
-                if (inputCodigo) inputCodigo.focus();
-            }
-        });
-
-        // ========================================================== //
-        // ❌ AÇÃO: REMOVER ITEM INTEIRO (BLINDADO CONTRA REPETIÇÃO)  //
-        // ========================================================== //
-        btnRemover?.replaceWith(btnRemover.cloneNode(true)); // Limpa escutas fantasmas empilhados
         document.getElementById("btnRemover")?.addEventListener("click", function(e) {
             e.preventDefault();
-            e.stopPropagation(); // 🌟 Impede execução duplicada no DOM
+            e.stopPropagation();
 
             if (!linhaSelecionada) {
                 alert("Clique em um item da tabela primeiro para selecioná-lo.");
                 return;
             }
 
-            const produtoId = linhaSelecionada.dataset.produto;
-            const loteId    = linhaSelecionada.dataset.lote;
-
-            window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
-
-            linhaSelecionada.remove();
-            linhaSelecionada = null;
-
-            if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
-
-            atualizarNumeroItens();
-            atualizarTotalCarrinho();
-            if (inputCodigo) inputCodigo.focus();
-        });
-
-
-        // 3️⃣ PROGRAMA O BOTÃO DE REMOVER O PRODUTO INTEIRO
-        btnRemover?.addEventListener("click", function() {
-            if (!linhaSelecionada) {
-                alert("Clique em um item da tabela primeiro para selecioná-lo.");
+            // Pede confirmação rápida para evitar cliques acidentais no PDV
+            if (!confirm("Deseja realmente remover este item do carrinho?")) {
                 return;
             }
 
             const produtoId = linhaSelecionada.dataset.produto;
-            const loteId    = linhaSelecionada.dataset.lote;
+            const loteId = linhaSelecionada.dataset.lote;
 
-            // Deleta o item direto do array de memória
+            // 1. Remove o item diretamente da memória global
             window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
 
-            // Remove a linha visual do HTML
+            // 2. Remove o elemento físico/visual do HTML da tabela
             linhaSelecionada.remove();
             linhaSelecionada = null;
 
-            if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
+            // 3. Esconde o painel lateral de ações amarela/flutuante
+            if (acoesCarrinho) {
+                acoesCarrinho.classList.add("d-none");
+                acoesCarrinho.style.display = "none";
+            }
 
+            // 4. 💾 Sincroniza e espelha o LocalStorage de maneira inteligente
+            try {
+                if (window.carrinho && window.carrinho.length > 0) {
+                    if (typeof PdvStorage !== 'undefined') {
+                        PdvStorage.salvarCarrinho(window.carrinho);
+                    } else {
+                        localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
+                    }
+                } else {
+                    if (typeof PdvStorage !== 'undefined') {
+                        PdvStorage.limparPdv();
+                    } else {
+                        localStorage.removeItem('pdv_carrinho_atual');
+                    }
+                }
+                console.log("💾 LOCALSTORAGE ATUALIZADO APÓS REMOÇÃO TOTAL:", window.carrinho);
+            } catch (errStorage) {
+                console.error("Falha ao espelhar LocalStorage na remoção:", errStorage);
+            }
+
+            // 5. Recalcula a paginação do PDV e os totais
             atualizarNumeroItens();
             atualizarTotalCarrinho();
+
+            // Devolve o foco imediato para a leitura de código de barras
             if (inputCodigo) inputCodigo.focus();
         });
 
@@ -473,46 +439,66 @@ if (window.__pdvProdutoJsCarregado) {
             if (acoesCarrinho) acoesCarrinho.style.display = "block";
         });
 
-        btnDiminuir?.addEventListener("click", (e) => {
+        // ========================================================== //
+        // ➖ AÇÃO UNIFICADA E SINCRONIZADA: DIMINUIR QUANTIDADE       //
+        // ========================================================== //
+
+        btnDiminuir?.replaceWith(btnDiminuir.cloneNode(true)); 
+
+        document.getElementById("btnDiminuir")?.addEventListener("click", function(e) {
             e.preventDefault();
-            if (!linhaSelecionada) return;
+            e.stopPropagation();
 
-            const prodId = linhaSelecionada.dataset.produto;
-            const loteId = linhaSelecionada.dataset.lote;
-            const index = window.carrinho?.findIndex(i => i.produto_id == prodId && i.lote_id == loteId);
-            if (index === -1 || index === undefined) return;
-
-            if (window.carrinho[index].quantidade <= 1) {
-                window.carrinho.splice(index, 1);
-                linhaSelecionada.remove();
-                linhaSelecionada = null;
-                if (acoesCarrinho) acoesCarrinho.style.display = "none";
-            } else {
-                window.carrinho[index].quantidade--;
-                // Atualiza o LocalStorage e a linha visual correspondente
-                localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
-                const novaQtd = window.carrinho[index].quantidade;
-                linhaSelecionada.children[4].textContent = novaQtd; 
-                linhaSelecionada.children[6].textContent = (novaQtd * window.carrinho[index].preco_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); 
+            if (!linhaSelecionada) {
+                alert("Clique em um item da tabela primeiro para selecioná-lo.");
+                return;
             }
-            atualizarTotalCarrinho();
-            atualizarNumeroItens();
-        });
 
-        btnRemover?.addEventListener("click", (e) => {
-            e.preventDefault();
-            if (!linhaSelecionada) return;
-            if (confirm("Deseja remover este item do carrinho?")) {
-                const prodId = linhaSelecionada.dataset.produto;
-                const loteId = linhaSelecionada.dataset.lote;
-                window.carrinho = window.carrinho.filter(i => !(i.produto_id == prodId && i.lote_id == loteId));
-                // Atualiza o LocalStorage e remove a linha visual correspondente
-                localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
-                linhaSelecionada.remove();
-                linhaSelecionada = null;
-                if (acoesCarrinho) acoesCarrinho.style.display = "none";
-                atualizarTotalCarrinho();
+            const produtoId = linhaSelecionada.dataset.produto;
+            const loteId = linhaSelecionada.dataset.lote;
+            const item = window.carrinho.find(i => i.produto_id == produtoId && i.lote_id == loteId);
+
+            if (item) {
+                item.quantidade--; 
+
+                if (item.quantidade <= 0) {
+                    window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
+                    linhaSelecionada.remove();
+                    linhaSelecionada = null;
+                    if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
+                } else {
+                    const campoQtd = linhaSelecionada.querySelector('.item-quantidade');
+                    const campoSubtotal = linhaSelecionada.querySelector('.subtotal');
+                    const precoUnitario = Number(item.preco_unitario);
+                    
+                    if (campoQtd) campoQtd.textContent = item.quantidade;
+                    if (campoSubtotal) {
+                        campoSubtotal.textContent = (item.quantidade * precoUnitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    }
+                }
+
+                // 💾 SALVA NO LOCALSTORAGE EM UM SÓ LUGAR
+                try {
+                    if (window.carrinho && window.carrinho.length > 0) {
+                        if (typeof PdvStorage !== 'undefined') {
+                            PdvStorage.salvarCarrinho(window.carrinho);
+                        } else {
+                            localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
+                        }
+                    } else {
+                        if (typeof PdvStorage !== 'undefined') {
+                            PdvStorage.limparPdv();
+                        } else {
+                            localStorage.removeItem('pdv_carrinho_atual');
+                        }
+                    }
+                } catch (errStorage) {
+                    console.error("Falha ao espelhar LocalStorage:", errStorage);
+                }
+
                 atualizarNumeroItens();
+                atualizarTotalCarrinho();
+                if (inputCodigo) inputCodigo.focus();
             }
         });
 
