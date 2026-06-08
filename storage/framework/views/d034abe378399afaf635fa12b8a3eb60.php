@@ -650,50 +650,18 @@
                     autofocus
                 >
             </div>
-                        <!-- descrição -->
-            <div class="border p-1 mb-21">
-                <label class="fw-bold">Descrição</label>
-                <input type="hidden" id="id_produto" name="id_produto">
-                <input style="font-size: 16px !important;"class="form-control form-control-sm fs-1 fw-bold " id="descricao" readonly>
-                <small id="alerta-lote" class="fw-bold d-none"></small>
+
+           <!-- CAMPO DE IMAGEM DO PRODUTO (PREENCHIMENTO INTELIGENTE 200PX) -->
+            <div class="border bg-white mt-1" style="height: 200px; width: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                
+                <!-- 1️⃣ Camada de Fundo: Desfoca e preenche as laterais vazias se a foto for proporcionalmente diferente -->
+                <img id="produto-imagem-bg" src="" alt="" style="position: absolute; width: 100%; height: 100%; object-fit: cover; filter: blur(15px) brightness(0.95); transform: scale(1.1); z-index: 1;">
+                
+                <!-- 2️⃣ Camada Principal: Mostra o produto centralizado, 100% visível, sem cortes e sem distorção -->
+                <img id="produto-imagem" src="" alt="Imagem" style="max-width: 100%; max-height: 100%; object-fit: contain; position: relative; z-index: 2;">
 
             </div>
 
-           <div class="row mt-2 border ">
-                <!-- Quantidade -->
-                <div class="col-md-2 p-1">
-                    <label for="quantidade" class="form-label">Qtde</label>
-                    <input id="quantidade" style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  type="number" name="quantidade"  value= "1" min="1" >
-                    <small id="msgEstoque" class="text-danger fw-bold"></small>
-                </div>
-
-                <!-- Unidade -->
-                <div class="col-md-2 p-1">
-                    <label for="unidade" class="form-label">Unidade</label>
-                    <input style="font-size: 16px !important;" type="text" name="unidade" id="unidade" readOnly class="form-control form-control-sm fs-1 fw-bold">
-                </div>
-                <!-- Preço venda -->
-                <div class="col-md-3 p-1">  
-                    <label for="preco_venda" class="form-label">Preço</label>
-                    <input style="font-size: 16px !important;" id="preco_venda" name="preco_venda" class="form-control form-control-sm fw-bold bg-warning"readOnly>
-                </div>
-                 <!-- Quantidade -->   
-                <div class="col-md-2 p-1">  
-                    <label for="preco_venda" class="form-label">QtdDisp</label>
-                    <input style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  name="qtd_disponivel" id="qtd_disponivel" type="text" min="1" step="1" readOnly>
-                </div>
-                <!-- Total Geral -->
-                <div class="col-md-3 p-1">
-                    <label for="total_geral" class="form-label">Sub Total</label>
-                    <input style="font-size: 16px !important;" class="form-control form-control-sm fw-bold bg-warning"  name="total_geral" id="total_geral" type="text" readOnly>
-                    
-                </div>
-
-            </div>
-            <!-- CAMPO DE IMAGEM DO PRODUTO -->
-            <div class="border bg-white mt-1" style="height: 200px; display:flex; align-items:center; justify-content:center;">
-                <img id="produto-imagem" src="" alt="Imagem" style="max-width:100%; height:100%; object-fit:contain;">
-            </div>
         </div>
 
         <!-- LADO DIREITO: LISTA DE ITENS -->
@@ -717,13 +685,22 @@
             </table>
 
              <!-- BOTÕES DE AÇÃO DO ITEM SELECIONADO -->
-                <div id="acoes-carrinho" class="acoes-carrinho mt-2 bg-dark d-none">
-                    <div class="d-flex gap-2 justify-content-end">
+            <div id="acoes-carrinho" class="acoes-carrinho mt-2 bg-dark d-none">
+                <!-- 🚀 O flexbox garante o nome na esquerda e os botões agrupados na direita -->
+                <div class="d-flex align-items-center justify-content-between px-3 w-100" style="height: 60px;">
+                    
+                    <!-- 🎯 RECUPERADO: Este elemento receberá a descrição dinamicamente via JS ao clicar na linha -->
+                    <span id="modalNomeProduto" class="fw-bold text-light text-start me-auto m-0" style="font-size: 1.25rem;"></span>
+                    
+                    <!-- Bloco dos botões alinhados à direita -->
+                    <div class="d-flex gap-2">
                         <button id="btnDiminuir" class="btn btn-warning btn-lg">− Diminuir</button>
                         <button id="btnRemover" class="btn btn-danger btn-lg">Remover</button>
                         <button id="btnOcultar" class="btn btn-secondary btn-lg">Ocultar</button>
                     </div>
-                </div>         
+                </div>
+            </div>
+       
         </div>
     </div>
 
@@ -765,10 +742,8 @@
 
         </div>
     </div>
-
-        
-    <!-- 🎨 MODAL MODERNO E CUSTOMIZADO PARA AVISOS DO PDV -->
-    <div class="modal fade" id="modalPdvRemover" "dialog" aria-hidden="true">
+    <!-- 🎨 SEU MODAL DE ADVERTÊNCIA ATUAL -->
+    <div class="modal fade" id="modalPdvRemover" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 25px; background-color: #fff9f9;">
                 <div class="modal-body p-5">
@@ -777,22 +752,21 @@
                     </h5>
                     <p class="text-secondary mb-5" style="font-size: 1.05rem; line-height: 1.6;">
                         Você está prestes a REMOVER O PRODUTO:<br>
-                        <!-- 🌟 O ID abaixo receberá o nome via JS -->
-                        <span id="modalNomeProduto" class="fw-bold text-dark d-block my-2" style="font-size: 1.15rem;"></span>
+                        
+                        <!-- 🎯 AJUSTE AQUI: O ID foi tornado único e alinhado à esquerda como você prefere -->
+                        <span id="modalNomeProdutoRemover" class="fw-bold text-dark text-start d-block my-2" style="font-size: 1.15rem;"></span>
+                        
                         Deseja confirmar?
                     </p>
 
-                   <div class="d-flex justify-content-end gap-3">
-                        <!-- 🌟 Adicionado: data-bs-dismiss="modal" -->
+                    <div class="d-flex justify-content-end gap-3">
                         <button type="button" class="btn fw-bold px-4 rounded-pill" id="btnModalCancelar" data-bs-dismiss="modal" style="background-color: #ffd8d8; color: #5a2020;">Cancelar</button>
                         <button type="button" class="btn text-white fw-bold px-4 rounded-pill" id="btnModalConfirmar" data-bs-dismiss="modal" style="background-color: #804040; box-shadow: 0 4px 10px rgba(128, 64, 64, 0.3);">OK</button>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
-    
 </div>
 
 <!-- caixas esquecidos abertos acima de 12 horas -->

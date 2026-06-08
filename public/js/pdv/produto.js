@@ -6,6 +6,8 @@ window.emitirBipPDV = function() {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
+        
+        const imgBg = document.getElementById('produto-imagem-bg');
 
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
@@ -19,6 +21,13 @@ window.emitirBipPDV = function() {
     } catch (e) {
         console.warn("Áudio bloqueado ou não suportado:", e);
     }
+    // Onde você carrega a imagem do produto após o bipe:
+    document.getElementById('produto-imagem').src = urlImagemDoLaravel;
+    if (imgBg) {
+        imgBg.src = urlImagemDoLaravel;
+        imgBg.style.display = 'block'; // Garante que o blur reative para fotos reais
+    }
+
 };
 
 // 🔥 PROTEÇÃO ABSOLUTA CONTRA DUPLICIDADE DE ARQUIVO NO VITE
@@ -351,7 +360,33 @@ if (window.__pdvProdutoJsCarregado) {
             if (acoesCarrinho) {
                 acoesCarrinho.classList.remove("d-none");
             }
+
+            // ========================================================== //
+            // 🎯 INJEÇÃO CIRÚRGICA: CAPTURA A DESCRIÇÃO AO CLICAR NA LINHA
+            // ========================================================== //
+            if (linhaSelecionada) {
+                const celulas = linhaSelecionada.getElementsByTagName("td");
+                
+                if (celulas && celulas.length >= 3) {
+                    // Captura o texto exato da 3ª coluna (Descrição)
+                    const descricaoProduto = celulas[2].textContent.trim(); 
+                    
+                    // Injeta dinamicamente no elemento ao lado do botão - Diminuir
+                    const campoTextoBarra = document.getElementById("modalNomeProduto");
+                    if (campoTextoBarra) {
+                        campoTextoBarra.textContent = descricaoProduto;
+                    }
+
+                    // 🚀 ADICIONADO: Injeta simultaneamente a mesma descrição no modal de remoção
+                    const campoModalRemover = document.getElementById("modalNomeProdutoRemover");
+                    if (campoModalRemover) {
+                        campoModalRemover.textContent = descricaoProduto;
+                    }
+                }
+            }
         });
+
+
 
         // ========================================================== //
         // ❌ MODAL DINÂMICO COM NOME DO PRODUTO PARA REMOÇÃO        //
