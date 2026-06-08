@@ -117,10 +117,14 @@ if (window.__pdvProdutoJsCarregado) {
         // ========================================================== //
         // 🛒 OPERAÇÃO DE INSERÇÃO NO CARRINHO (VERSÃO ULTRA PRO)     //
         // ========================================================== //
-        window.adicionarItemCarrinho = function(produto) {
+        // 🚀 AJUSTE DE PARÂMETRO: Adicionado 'qtdManual' para receber o multiplicador síncrono do Enter
+        window.adicionarItemCarrinho = function(produto, qtdManual) {
             // 1️⃣ CAPTURA A QUANTIDADE REAL DIGITADA NO INPUT ANTES DO RESET
             const inputQtdElement = document.getElementById("quantidade");
-            const quantidade = inputQtdElement ? Number(inputQtdElement.value) : 1;
+            
+            // Se o parâmetro 'qtdManual' vier preenchido (venda multiplicada), usa ele na hora. 
+            // Se não, lê o input HTML da tela normalmente.
+            const quantidade = qtdManual ? Number(qtdManual) : (inputQtdElement ? Number(inputQtdElement.value) : 1);
             const preco = Number(produto.preco_venda) || 0;
 
             // Validação de segurança primária
@@ -128,6 +132,9 @@ if (window.__pdvProdutoJsCarregado) {
                 alert("Quantidade ou preço inválidos para inserção.");
                 return;
             }
+
+            // ... TODO O RESTANTE DO SEU CÓDIGO DA SEÇÃO 2️⃣ ATÉ O FINAL CONTINUA EXATAMENTE IGUAL ...
+
 
             // 2️⃣ SELEÇÃO DO LOTE DISPONÍVEL (Regra nativa mantida)
             let loteSelecionado = null;
@@ -255,6 +262,91 @@ if (window.__pdvProdutoJsCarregado) {
         // ========================================================== //
         // 📡 GATILHO: LEITOR DE CÓDIGO DE BARRAS / BARRA PRINCIPAL   //
         // ========================================================== //
+        // inputCodigo?.addEventListener("keydown", function (e) {
+        //     if (e.key === "Enter") {
+        //         e.preventDefault();
+        //         e.stopPropagation(); // Trava barreira no DOM
+
+        //         let valorInput = inputCodigo.value.trim();
+        //         if (!valorInput) return;
+
+        //         let quantidadeDefinida = 1;
+        //         let codigoFinal = valorInput;
+
+        //         // Regra de negócio do multiplicador (Qtd * Código)
+        //         if (valorInput.includes("*")) {
+        //             const partes = valorInput.split("*");
+        //             const qtdInformada = Number(partes[0]);
+                    
+        //             if (!isNaN(qtdInformada) && qtdInformada > 0) {
+        //                 quantidadeDefinida = qtdInformada;
+        //                 codigoFinal = partes[1] ? partes[1].trim() : "";
+        //             }
+        //         }
+
+        //         if (!codigoFinal) {
+        //             alert("Código de barras ou formato multiplicador inválido.");
+        //             inputCodigo.value = "";
+        //             return;
+        //         }
+
+        //         if (inputQuantidade) {
+        //             inputQuantidade.value = quantidadeDefinida;
+        //         }
+
+        //         // Executa a requisição direta isolada de escopo usando o código higienizado
+        //         fetch(`/pdv/produto/${encodeURIComponent(codigoFinal)}`, { headers: { "Accept": "application/json" } })
+        //             .then(res => res.json())
+        //            .then(dataRes => {
+        //                 if (dataRes.status === "ok" && dataRes.produto) {
+
+        //                     const produto = dataRes.produto;
+        //                     window.produtoAtual = produto;
+
+        //                     // Imagem do produto
+        //                     const imgProduto = document.getElementById("produto-imagem");
+
+        //                     if (imgProduto) {
+        //                         if (produto.imagem && produto.imagem.trim() !== "") {
+        //                             imgProduto.src = "/" + produto.imagem;
+        //                             imgProduto.style.display = "block";
+        //                         } else {
+        //                             imgProduto.src = "/image/produto-sem-imagem.png";
+        //                             imgProduto.style.display = "block";
+        //                         }
+        //                     }
+
+        //                     if (inputId_produto) inputId_produto.value = produto.id;
+        //                     if (inputDescricao) inputDescricao.value = produto.nome;
+        //                     if (inputPrecoVenda) inputPrecoVenda.value = Number(produto.preco_venda).toFixed(2);
+
+        //                     const qtdDisp = produto.quantidade_total_disponivel || 1;
+        //                     if (qtdDisponivelInput) qtdDisponivelInput.value = qtdDisp;
+
+        //                     const inputUnidade = document.getElementById("unidade");
+        //                     if (inputUnidade) {
+        //                         inputUnidade.value = produto.unidade || produto.unidade_medida || "UN";
+        //                     }
+
+        //                     calcularTotalProduto();
+        //                     window.adicionarItemCarrinho(produto);
+
+        //                 } else {
+        //                     alert(dataRes.mensagem || "Produto não encontrado.");
+        //                     if (inputCodigo) inputCodigo.value = "";
+        //                 }
+        //             })  
+                    
+        //             .catch(err => {
+        //                 console.error(err);
+        //                 if (inputCodigo) inputCodigo.value = "";
+        //             });
+        //     }
+        // }); // 🌟 O EVENTO DO ENTER FECHA EXATAMENTE AQUI!
+
+         // ========================================================== //
+        // 📡 GATILHO: LEITOR DE CÓDIGO DE BARRAS / BARRA PRINCIPAL   //
+        // ========================================================== //
         inputCodigo?.addEventListener("keydown", function (e) {
             if (e.key === "Enter") {
                 e.preventDefault();
@@ -321,8 +413,11 @@ if (window.__pdvProdutoJsCarregado) {
                                 inputUnidade.value = produto.unidade || produto.unidade_medida || "UN";
                             }
 
+                            // Altera os valores na tela e calcula o subtotal do bloco esquerdo
                             calcularTotalProduto();
-                            window.adicionarItemCarrinho(produto);
+                            
+                            // 🚀 CORREÇÃO CIRÚRGICA: Passa a quantidade extraída do multiplicador para o carrinho
+                            window.adicionarItemCarrinho(produto, quantidadeDefinida);
 
                         } else {
                             alert(dataRes.mensagem || "Produto não encontrado.");
