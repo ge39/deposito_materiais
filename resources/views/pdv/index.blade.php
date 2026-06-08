@@ -643,7 +643,7 @@
             </div>
 
            <!-- CAMPO DE IMAGEM DO PRODUTO (PREENCHIMENTO INTELIGENTE 200PX) -->
-            <div class="border bg-white mt-1" style="height: 200px; width: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            <div class="border bg-white mt-1" style="height: 445px; width: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
                 
                 <!-- 1️⃣ Camada de Fundo: Desfoca e preenche as laterais vazias se a foto for proporcionalmente diferente -->
                 <img id="produto-imagem-bg" src="" alt="" style="position: absolute; width: 100%; height: 100%; object-fit: cover; filter: blur(15px) brightness(0.95); transform: scale(1.1); z-index: 1;">
