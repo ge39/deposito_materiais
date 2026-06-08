@@ -739,44 +739,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const dataFinal = await res.json();
 
-            // if (dataFinal.cupom_url) {
-            //     let urlCorreta = dataFinal.cupom_url;
-                
-            //     // Se a URL enviada pelo Laravel não tiver o prefixo correto, ajusta dinamicamente
-            //     if (!urlCorreta.includes('/vendas/')) {
-            //         urlCorreta = urlCorreta.replace('/venda/', '/vendas/venda/');
-            //     }
-
-            //     window.location.href = urlCorreta;
-            //     return;
-            // }
-
-            // limparPDV();
-
-            // if (dataFinal.cupom_url) {
-            //     window.location.href = dataFinal.cupom_url;
-            //     return;
-            // }
-
-            // alert('Venda finalizada com sucesso!');
-            // Aqui você pode optar por recarregar a página ou apenas limpar o modal e o carrinho, dependendo do fluxo desejado
-            // location.reload();
-
-            const dataFinal = await res.json();
-
             if (!res.ok || !dataFinal.success) {
                 throw new Error(dataFinal.erro || 'Erro ao finalizar venda');
             }
 
-            // 🎯 GATILHO DE SUCESSO: Limpa a memória do navegador antes de atualizar a página ou cupom
+            // 1️⃣ Zera as fontes de dados para que o finally não tenha o que salvar
+            window.carrinho = [];
             if (typeof PdvStorage !== 'undefined') {
-                PdvStorage.limparPdv();
+                PdvStorage.carrinho = []; // Esvazia o array interno da classe de persistência
+                PdvStorage.limparPdv();   // Executa a limpeza física das chaves do navegador
             }
 
-            limparPDV(); // Sua função original que zera o HTML e a array da tela
+            // 2️⃣ Executa a limpeza dos elementos do HTML da tela principal
+           // Dentro do sucesso (res.ok) na função finalizarVenda:
+            if (typeof PdvStorage !== 'undefined') {
+                PdvStorage.limparLocalStoragePDV(); // 🚀 Limpa o storage por string sem erros de escopo
+            }
+            limparPDV(); // Limpa a tela do caixa
 
+
+            // 3️⃣ Redirecionamento blindado
             if (dataFinal.cupom_url) {
-                window.location.href = dataFinal.cupom_url;
+                // Remove o bloco finally do fluxo destruindo os listeners antes de sair da página
+                btnFinalizar.disabled = true; 
+                
+                // Redireciona imediatamente
+                window.location.replace(dataFinal.cupom_url);
                 return;
             }
 
