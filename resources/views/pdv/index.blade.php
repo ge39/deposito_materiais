@@ -642,48 +642,54 @@
                 >
             </div>
                         <!-- descrição -->
-            <div class="border p-1 mb-21">
+            <!-- <div class="border p-1 mb-21">
                 <label class="fw-bold">Descrição</label>
                 <input type="hidden" id="id_produto" name="id_produto">
                 <input style="font-size: 16px !important;"class="form-control form-control-sm fs-1 fw-bold " id="descricao" readonly>
                 <small id="alerta-lote" class="fw-bold d-none"></small>
 
-            </div>
+            </div> -->
 
            <div class="row mt-2 border ">
                 <!-- Quantidade -->
-                <div class="col-md-2 p-1">
+                <!-- <div class="col-md-2 p-1">
                     <label for="quantidade" class="form-label">Qtde</label>
                     <input id="quantidade" style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  type="number" name="quantidade"  value= "1" min="1" >
                     <small id="msgEstoque" class="text-danger fw-bold"></small>
-                </div>
+                </div> -->
 
                 <!-- Unidade -->
-                <div class="col-md-2 p-1">
+                <!-- <div class="col-md-2 p-1">
                     <label for="unidade" class="form-label">Unidade</label>
                     <input style="font-size: 16px !important;" type="text" name="unidade" id="unidade" readOnly class="form-control form-control-sm fs-1 fw-bold">
-                </div>
+                </div> -->
                 <!-- Preço venda -->
-                <div class="col-md-3 p-1">  
+                <!-- <div class="col-md-3 p-1">  
                     <label for="preco_venda" class="form-label">Preço</label>
                     <input style="font-size: 16px !important;" id="preco_venda" name="preco_venda" class="form-control form-control-sm fw-bold bg-warning"readOnly>
-                </div>
+                </div> -->
                  <!-- Quantidade -->   
-                <div class="col-md-2 p-1">  
+                <!-- <div class="col-md-2 p-1">  
                     <label for="preco_venda" class="form-label">QtdDisp</label>
                     <input style="font-size: 16px !important;" class="form-control form-control-sm fw-bold"  name="qtd_disponivel" id="qtd_disponivel" type="text" min="1" step="1" readOnly>
-                </div>
+                </div> -->
                 <!-- Total Geral -->
-                <div class="col-md-3 p-1">
+                <!-- <div class="col-md-3 p-1">
                     <label for="total_geral" class="form-label">Sub Total</label>
                     <input style="font-size: 16px !important;" class="form-control form-control-sm fw-bold bg-warning"  name="total_geral" id="total_geral" type="text" readOnly>
                     
-                </div>
+                </div> -->
 
             </div>
-            <!-- CAMPO DE IMAGEM DO PRODUTO -->
-            <div class="border bg-white mt-1" style="height: 200px; display:flex; align-items:center; justify-content:center;">
-                <img id="produto-imagem" src="" alt="Imagem" style="max-width:100%; height:100%; object-fit:contain;">
+            <!-- CAMPO DE IMAGEM DO PRODUTO (LAYOUT FIXO DE PDV) -->
+            <div class="border mt-1" style="height: 440px; width: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #1a1a1a;">
+                
+                <!-- 1️⃣ Camada de Fundo: Estica e desfoca a imagem para preencher os 440px sem deixar faixas pretas vazias -->
+                <img id="produto-imagem-bg" src="" alt="" style="position: absolute; width: 100%; height: 100%; object-fit: cover; filter: blur(15px) brightness(0.5); transform: scale(1.1); z-index: 1;">
+                
+                <!-- 2️⃣ Camada Principal: Mostra o produto centralizado, 100% visível, sem cortes e sem distorção -->
+                <img id="produto-imagem" src="" alt="Imagem do Produto" style="max-width: 100%; max-height: 100%; object-fit: contain; position: relative; z-index: 2;">
+
             </div>
         </div>
 
