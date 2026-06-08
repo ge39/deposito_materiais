@@ -445,7 +445,6 @@ if (window.__pdvProdutoJsCarregado) {
             window.btnRemoverConfigurado = true;
         }
 
-
         // // 📦 FUNÇÃO CENTRALIZADA QUE FAZ A LIMPEZA REAL NO LOCALSTORAGE E NA TELA
         function executarRemocaoPdv(produtoId, loteId) {
             window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
@@ -537,14 +536,14 @@ if (window.__pdvProdutoJsCarregado) {
         // ========================================== //
         // PAINEL DE AÇÕES FLUTUANTES (1 EM 1)        //
         // // ========================================== //
-        // tabelaItens?.addEventListener("click", (e) => {
-        //     const linha = e.target.closest("tr");
-        //     if (!linha || !tabelaItens.contains(linha)) return;
-        //     tabelaItens.querySelectorAll("tr").forEach(tr => tr.classList.remove("table-active"));
-        //     linhaSelecionada = linha;
-        //     linhaSelecionada.classList.add("table-active");
-        //     if (acoesCarrinho) acoesCarrinho.style.display = "block";
-        // });
+        tabelaItens?.addEventListener("click", (e) => {
+            const linha = e.target.closest("tr");
+            if (!linha || !tabelaItens.contains(linha)) return;
+            tabelaItens.querySelectorAll("tr").forEach(tr => tr.classList.remove("table-active"));
+            linhaSelecionada = linha;
+            linhaSelecionada.classList.add("table-active");
+            if (acoesCarrinho) acoesCarrinho.style.display = "block";
+        });
 
         // ========================================================== //
         // ➖ AÇÃO UNIFICADA E SINCRONIZADA: DIMINUIR QUANTIDADE       //
