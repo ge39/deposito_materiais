@@ -183,7 +183,7 @@
             </li>
         </ul>
     </li>
-     <li class="dropdown-submenu">
+     <!-- <li class="dropdown-submenu">
         <a class="dropdown-item dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#">
             <i class="bi bi-tag me-2"></i>Relatórios
         </a>
@@ -207,7 +207,49 @@
                 </a>
             </li>
         </ul>
-    </li>
+    </li> -->
+
+    <!-- ======================================================================================= -->
+<!-- SUBMENU: DASHBOARDS (Menu Pai) -->
+<!-- ======================================================================================= -->
+<li><hr class="dropdown-divider"></li>
+<li class="dropdown-submenu">
+    <a class="dropdown-item dropdown-toggle py-2 fw-bold text-primary" href="#">
+        <i class="fas fa-chart-pie me-2" style="width: 20px;"></i> Dashboards
+    </a>
+    <!-- Submenus (Filhos) -->
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-shopping-cart text-muted me-2" style="width: 20px;"></i> Comercial e Vendas</a></li>
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-dollar-sign text-muted me-2" style="width: 20px;"></i> Financeiro Estratégico</a></li>
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-boxes text-muted me-2" style="width: 20px;"></i> Estoque & Logística</a></li>
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-users text-muted me-2" style="width: 20px;"></i> Clientes & Crédito</a></li>
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-desktop text-muted me-2" style="width: 20px;"></i> Frente de Caixa (PDV)</a></li>
+    </ul>
+</li>
+
+<!-- ======================================================================================= -->
+<!-- SUBMENU: RELATÓRIOS (Menu Pai) -->
+<!-- ======================================================================================= -->
+<li class="dropdown-submenu">
+    <a class="dropdown-item dropdown-toggle py-2 fw-bold text-primary" href="#">
+        <i class="fas fa-file-alt me-2" style="width: 20px;"></i> Relatórios
+    </a>
+    <!-- Submenus (Filhos + Novos Relatórios) -->
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-list text-muted me-2" style="width: 20px;"></i> Listagem de Vendas</a></li>
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-user-tag text-muted me-2" style="width: 20px;"></i> Comissões de Vendedores</a></li>
+        <!-- <li><a class="dropdown-item py-2" href="#"><i class="fas fa-cash-register text-muted me-2" style="width: 20px;"></i> Fechamentos de Caixa</a></li> -->
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-exclamation-triangle text-muted me-2" style="width: 20px;"></i> Produtos Sem Giro</a></li>
+        
+        <!-- 🎯 NOVOS RELATÓRIOS ADICIONADOS -->
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-truck text-muted me-2" style="width: 20px;"></i> Relatório de Entregas</a></li>
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-file-invoice-dollar text-muted me-2" style="width: 20px;"></i> Relatório de Orçamentos</a></li>
+        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-hand-holding-usd text-muted me-2" style="width: 20px;"></i> Relatório de Recebíveis</a></li>
+    </ul>
+</li>
+
+
+
   </ul>
 </li>
       </ul>

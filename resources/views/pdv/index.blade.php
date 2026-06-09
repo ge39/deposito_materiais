@@ -721,6 +721,11 @@
         <div class="col">
             <button class="btn btn-danger fs-6  w-100 md-1 p-2">F10 Fecham. Caixa</button>
         </div> 
+
+         <div class="col">
+            <button class="btn btn-primary fs-6  w-100 md-1 p-2">Alt+P Reimprimir</button>
+        </div>
+
         <div class="col btn btn-dark w-100 md-1 p-1 fw-bold d-flex flex-column align-items-center justify-content-center">
             
             <div class="col btn btn-dark w-100 md-1 p-2 fw-bold d-flex flex-column align-items-center justify-content-center">
