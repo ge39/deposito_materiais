@@ -759,7 +759,30 @@
         </div>
     </div>
 </div>
+<!-- BLINDAGEM DE INICIALIZAÇÃO: TRAVA CARTEIRA PARA VENDA BALCÃO -->
+<script>
+    // ========================================================
+    // BLINDAGEM DE INICIALIZAÇÃO: TRAVA CARTEIRA PARA VENDA BALCÃO
+    // ========================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        // Busca o elemento onde fica o nome do cliente na tela inicial do PDV
+        // Nota: Substitua pelo ID ou Classe real do elemento que exibe "VENDA BALCAO" na sua tela
+        const nomeClienteInicial = document.getElementById('nome-cliente-modal') || document.querySelector('.cliente-nome');
+        const textoCliente = nomeClienteInicial ? nomeClienteInicial.textContent.toUpperCase() : '';
 
+        // Se o PDV iniciar com a Venda Balcão pré-carregada, passa o cadeado na carteira na hora!
+        if (textoCliente.includes('VENDA BALCAO')) {
+            const inputCarteira = document.querySelector('.pagamento-modal[data-forma="carteira"]');
+            if (inputCarteira) {
+                inputCarteira.value = '';             // Remove qualquer valor injetado automaticamente
+                inputCarteira.disabled = true;        // Bloqueia fisicamente o campo
+                inputCarteira.tabIndex = -1;          // Remove da navegação por TAB
+                inputCarteira.placeholder = 'Bloqueado';
+            }
+        }
+    });
+
+</script>
 <!-- caixas esquecidos abertos acima de 12 horas -->
 <script>
     document.addEventListener('DOMContentLoaded', async function () {

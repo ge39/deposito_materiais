@@ -470,15 +470,38 @@
         // ========================================================
         // VALIDAÇÃO CIRÚRGICA: TRAVA EXCLUSIVA DA FORMA CARTEIRA
         // ========================================================
+        // const inputCarteira = document.querySelector('.pagamento-modal[data-forma="carteira"]');
+        // if (inputCarteira) {
+        //     if (window.cliente.status === 'bloqueado') {
+        //         inputCarteira.value = '';             // Limpa dízimas, R$ 150,00 ou resíduos
+        //         inputCarteira.disabled = true;        // Tranca cliques do mouse e setas do número
+        //         inputCarteira.tabIndex = -1;          // 🚀 REMOVE DO TAB: O teclado pula este campo direto
+        //         inputCarteira.placeholder = 'Bloqueado';
+        //     } else {
+        //         // Cliente ativo: libera a modalidade e restaura o comportamento padrão
+        //         inputCarteira.disabled = false;
+        //         inputCarteira.tabIndex = 0;           // Restaura a sequência natural do TAB
+        //         inputCarteira.placeholder = '0,00';
+        //     }
+        // }
+
+        // ========================================================
+        // VALIDAÇÃO CIRÚRGICA: TRAVA EXCLUSIVA DA FORMA CARTEIRA
+        // ========================================================
         const inputCarteira = document.querySelector('.pagamento-modal[data-forma="carteira"]');
         if (inputCarteira) {
-            if (window.cliente.status === 'bloqueado') {
-                inputCarteira.value = '';             // Limpa dízimas, R$ 150,00 ou resíduos
-                inputCarteira.disabled = true;        // Tranca cliques do mouse e setas do número
+            
+            // 🎯 NOVA REGRA ABSOLUTA: Se for VENDA BALCAO (ID igual ao seu padrão, ou pelo nome), bloqueia na marra!
+            // Nota: Geralmente o ID da Venda Balcão no banco é 1 ou o cliente genérico. Ajuste o ID se necessário.
+            const ehVendaBalcao = window.cliente.nome?.toUpperCase().includes('VENDA BALCAO') || Number(window.cliente.id) === 6;
+
+            if (window.cliente.status === 'bloqueado' || ehVendaBalcao) {
+                inputCarteira.value = '';             // Remove na hora os R$ 192,00 injetados
+                inputCarteira.disabled = true;        // Tranca fisicamente o input contra digitação/setas
                 inputCarteira.tabIndex = -1;          // 🚀 REMOVE DO TAB: O teclado pula este campo direto
-                inputCarteira.placeholder = 'Bloqueado';
+                inputCarteira.placeholder = 'Não Permitido';
             } else {
-                // Cliente ativo: libera a modalidade e restaura o comportamento padrão
+                // Cliente ativo comum: libera a modalidade normalmente
                 inputCarteira.disabled = false;
                 inputCarteira.tabIndex = 0;           // Restaura a sequência natural do TAB
                 inputCarteira.placeholder = '0,00';
