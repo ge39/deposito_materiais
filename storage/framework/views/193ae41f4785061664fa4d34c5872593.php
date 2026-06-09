@@ -198,14 +198,33 @@
         // ===============================
         if (modalCliente) {
 
-            modalCliente.addEventListener('shown.bs.modal', function(){
-                setTimeout(() => {
-                    if (inputBusca) {
-                        inputBusca.focus();
-                        inputBusca.select();
-                    }
-                }, 200);
+           // ========================================================
+            // RESET DA BUSCA E DOS RESULTADOS NA ABERTURA DO MODAL (F2)
+            // ========================================================
+           // ========================================================
+            // RESET TOTAL DA BUSCA E DOS RESULTADOS NA ABERTURA (F2)
+            // ========================================================
+            document.getElementById('modalCliente')?.addEventListener('shown.bs.modal', function () {
+                
+                // 1. Limpa e foca o campo de texto de busca
+                const inputBusca = this.querySelector('input[type="text"], input[type="search"]');
+                if (inputBusca) {
+                    inputBusca.value = ''; 
+                    inputBusca.focus();    
+                }
+
+                // 2. 🎯 ALVO EXATO: Caça o elemento que você localizou pelo ID ou pela Classe
+                const tabelaResultados = document.getElementById('resultadoClientePDV') || document.querySelector('.resultadoClientePDV');
+                
+                if (tabelaResultados) {
+                    tabelaResultados.innerHTML = ''; // 🚀 Esvazia as linhas do Carlos Souza na hora!
+                } else {
+                    // Log de segurança caso o seletor mude de nome no futuro
+                    console.log("⚠️ [DEBUG] O elemento resultadoClientePDV não foi encontrado no HTML.");
+                }
             });
+
+
 
             modalCliente.addEventListener('hidden.bs.modal', function(){
                 document.body.classList.remove('modal-open');
@@ -334,156 +353,168 @@
     });
 
     // ===============================
-// BUSCAR CLIENTES
-// ===============================
-async function buscarClientes(query){
-    const resultadoClientePDV = document.getElementById('resultadoClientePDV');
-    
-    // Cancela request anterior para evitar concorrência (Debounce/Abort)
-    if(controller) controller.abort();
-    controller = new AbortController();
+    // BUSCAR CLIENTES
+    // ===============================
+    async function buscarClientes(query){
+        const resultadoClientePDV = document.getElementById('resultadoClientePDV');
+        
+        // Cancela request anterior para evitar concorrência (Debounce/Abort)
+        if(controller) controller.abort();
+        controller = new AbortController();
 
-    if (resultadoClientePDV) {
-        resultadoClientePDV.innerHTML = `
-            <div class="text-center py-2 text-muted bg-info">Buscando clientes...</div>
-        `;
-    }
-
-    try{
-        const res = await fetch(
-            `<?php echo e(route('pdv.buscarCliente')); ?>?query=` + encodeURIComponent(query),
-            { signal: controller.signal, headers: { 'Accept': 'application/json' } }
-        );
-
-        const text = await res.text();
-
-        if (!res.ok) {
-            throw new Error(`Erro backend (${res.status})`);
-        }
-
-        let data = [];
-        try {
-            data = JSON.parse(text);
-        } catch(jsonError){
-            throw jsonError;
-        }
-
-        clientes = Array.isArray(data) ? data : (data.clientes ?? []);
-        clienteIndex = -1;
-
-        if(!clientes.length){
-            resultadoClientePDV.innerHTML = `
-                <div class="text-center py-2 text-light bg-secondary fw-bold">Nenhum cliente encontrado</div>
-            `;
-            return;
-        }
-
-        // Monta o HTML injetando o INDEX do array para capturar o objeto completo depois
-        let html = '';
-        clientes.forEach((c, i) => {
-            html += `
-                <div class="cliente-row" data-index="${i}" onclick="selecionarClientePorIndex(${i})">
-                    <div>${c.id ?? ''}</div>
-                    <div>${c.nome ?? ''}</div>
-                    <div>${c.tipo ?? ''}</div>
-                    <div>${c.cpf_cnpj ?? ''}</div>
-                    <div>${c.telefone ?? ''}</div>
-                    <div>${c.endereco ?? ''}</div>
-                    <div>${c.numero ?? ''}</div>
-                    <div>${c.cep ?? ''}</div>
-                    <div>${c.bairro ?? ''}</div>
-                    <div>${c.cidade ?? ''}</div>
-                    <div>${c.estado ?? ''}</div>
-                </div>`;
-        });
-        resultadoClientePDV.innerHTML = html;
-
-    } catch(e){
-        if(e.name === 'AbortError') return;
-        console.error('Erro buscarClientes:', e);
         if (resultadoClientePDV) {
             resultadoClientePDV.innerHTML = `
-                <div class="text-center text-danger py-2 bg-dark">Erro ao buscar clientes</div>
+                <div class="text-center py-2 text-muted bg-info">Buscando clientes...</div>
             `;
         }
-    }
-}
 
-// ===============================
-// NOVA FUNÇÃO AUXILIAR DE SELEÇÃO (SEGURA)
-// ===============================
-function selecionarClientePorIndex(index) {
-    const c = clientes[index];
-    if (!c) return;
+        try{
+            const res = await fetch(
+                `<?php echo e(route('pdv.buscarCliente')); ?>?query=` + encodeURIComponent(query),
+                { signal: controller.signal, headers: { 'Accept': 'application/json' } }
+            );
 
-    selecionarClientePDV(c.id, c.nome, c.tipo, c.telefone, c.endereco, c.numero, c.cep, c.bairro, c.cidade, c.estado);
-}
+            const text = await res.text();
 
-// ===============================
-// SELECIONAR CLIENTE
-// ===============================
-function selecionarClientePDV(id, nome, tipo, telefone = '', endereco = '', numero = '', cep = '', bairro = '', cidade = '', estado = ''){
-    
-    // Busca garantida dentro do array local mapeado pelo ID
-    const clienteData = clientes.find(c => Number(c.id) === Number(id));
+            if (!res.ok) {
+                throw new Error(`Erro backend (${res.status})`);
+            }
 
-    // ===============================
-    // INPUTS DO FORMULÁRIO
-    // ===============================
-    document.querySelector('input[name="cliente_id"]').value = id;
-    document.querySelector('input[name="nome"]').value = nome;
-    document.querySelector('input[name="pessoa"]').value = tipo;
-    document.querySelector('input[name="telefone"]').value = telefone;
-    
-    const enderecoCompleto = `${endereco} ${numero} - ${bairro}, ${cidade} - ${estado}, CEP: ${cep}`.trim();
-    document.querySelector('input[name="endereco"]').value = enderecoCompleto;
+            let data = [];
+            try {
+                data = JSON.parse(text);
+            } catch(jsonError){
+                throw jsonError;
+            }
 
-    // ===============================
-    // CLIENTE GLOBAL (Garante reativação dos novos campos do Laravel)
-    // ===============================
-    window.cliente = {
-        id: id,
-        nome: nome,
-        tipo: tipo,
-        telefone: telefone,
-        saldo: Number(clienteData?.saldo ?? 0),
-        limite: Number(clienteData?.limite ?? 0),
-        credito_usado: Number(clienteData?.credito_usado ?? 0),
-        status: clienteData?.status ?? null,
-        formas: clienteData?.formas ?? []
-    };
+            clientes = Array.isArray(data) ? data : (data.clientes ?? []);
+            clienteIndex = -1;
 
-    // ===============================
-    // MODAL INFO
-    // ===============================
-    const nomeEl = document.getElementById('nome-cliente-modal');
-    const saldoEl = document.getElementById('saldo-cliente-modal');
+            if(!clientes.length){
+                resultadoClientePDV.innerHTML = `
+                    <div class="text-center py-2 text-light bg-secondary fw-bold">Nenhum cliente encontrado</div>
+                `;
+                return;
+            }
 
-    if (nomeEl) { nomeEl.textContent = nome; }
-    
-    if (saldoEl) {
-        // Validação visual de segurança baseada no status trazido do banco
-        const statusBadge = window.cliente.status === 'ativo' 
-            ? '<span class="badge bg-success">Ativo</span>' 
-            : '<span class="badge bg-danger">Bloqueado</span>';
+            // Monta o HTML injetando o INDEX do array para capturar o objeto completo depois
+            let html = '';
+            clientes.forEach((c, i) => {
+                html += `
+                    <div class="cliente-row" data-index="${i}" onclick="selecionarClientePorIndex(${i})">
+                        <div>${c.id ?? ''}</div>
+                        <div>${c.nome ?? ''}</div>
+                        <div>${c.tipo ?? ''}</div>
+                        <div>${c.cpf_cnpj ?? ''}</div>
+                        <div>${c.telefone ?? ''}</div>
+                        <div>${c.endereco ?? ''}</div>
+                        <div>${c.numero ?? ''}</div>
+                        <div>${c.cep ?? ''}</div>
+                        <div>${c.bairro ?? ''}</div>
+                        <div>${c.cidade ?? ''}</div>
+                        <div>${c.estado ?? ''}</div>
+                    </div>`;
+            });
+            resultadoClientePDV.innerHTML = html;
 
-        saldoEl.innerHTML = `
-            Status: ${statusBadge}<br>
-            Saldo: R$ ${window.cliente.saldo.toFixed(2).replace('.', ',')}<br>
-            Limite: R$ ${window.cliente.limite.toFixed(2).replace('.', ',')}
-        `;
+        } catch(e){
+            if(e.name === 'AbortError') return;
+            console.error('Erro buscarClientes:', e);
+            if (resultadoClientePDV) {
+                resultadoClientePDV.innerHTML = `
+                    <div class="text-center text-danger py-2 bg-dark">Erro ao buscar clientes</div>
+                `;
+            }
+        }
     }
 
     // ===============================
-    // FECHA MODAL
+    // NOVA FUNÇÃO AUXILIAR DE SELEÇÃO (SEGURA)
     // ===============================
-    const modalEl = document.getElementById('modalCliente');
-    if (modalEl && typeof bootstrap !== 'undefined') {
-        const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-        modalInstance?.hide();
+    function selecionarClientePorIndex(index) {
+        const c = clientes[index];
+        if (!c) return;
+
+        selecionarClientePDV(c.id, c.nome, c.tipo, c.telefone, c.endereco, c.numero, c.cep, c.bairro, c.cidade, c.estado);
+    }
+
+    function selecionarClientePDV(id, nome, tipo, telefone = '', endereco = '', numero = '', cep = '', bairro = '', cidade = '', estado = ''){
         
-    }
-    
-}
+        // Busca garantida dentro do array local mapeado pelo ID
+        const clienteData = clientes.find(c => Number(c.id) === Number(id));
 
+        // ===============================
+        // INPUTS DO FORMULÁRIO
+        // ===============================
+        document.querySelector('input[name="cliente_id"]').value = id;
+        document.querySelector('input[name="nome"]').value = nome;
+        document.querySelector('input[name="pessoa"]').value = tipo;
+        document.querySelector('input[name="telefone"]').value = telefone;
+        
+        const enderecoCompleto = `${endereco} ${numero} - ${bairro}, ${cidade} - ${estado}, CEP: ${cep}`.trim();
+        document.querySelector('input[name="endereco"]').value = enderecoCompleto;
+
+        // ===============================
+        // CLIENTE GLOBAL (Garante reativação dos novos campos do Laravel)
+        // ===============================
+        window.cliente = {
+            id: id,
+            nome: nome,
+            tipo: tipo,
+            telefone: telefone,
+            saldo: Number(clienteData?.saldo ?? 0),
+            limite: Number(clienteData?.limite ?? 0),
+            credito_usado: Number(clienteData?.credito_usado ?? 0),
+            status: clienteData?.status ?? null,
+            formas: clienteData?.formas ?? []
+        };
+
+        // ========================================================
+        // VALIDAÇÃO CIRÚRGICA: TRAVA EXCLUSIVA DA FORMA CARTEIRA
+        // ========================================================
+        const inputCarteira = document.querySelector('.pagamento-modal[data-forma="carteira"]');
+        if (inputCarteira) {
+            if (window.cliente.status === 'bloqueado') {
+                inputCarteira.value = '';             // Limpa dízimas, R$ 150,00 ou resíduos
+                inputCarteira.disabled = true;        // Tranca cliques do mouse e setas do número
+                inputCarteira.tabIndex = -1;          // 🚀 REMOVE DO TAB: O teclado pula este campo direto
+                inputCarteira.placeholder = 'Bloqueado';
+            } else {
+                // Cliente ativo: libera a modalidade e restaura o comportamento padrão
+                inputCarteira.disabled = false;
+                inputCarteira.tabIndex = 0;           // Restaura a sequência natural do TAB
+                inputCarteira.placeholder = '0,00';
+            }
+        }
+
+        // ===============================
+        // MODAL INFO
+        // ===============================
+        const nomeEl = document.getElementById('nome-cliente-modal');
+        const saldoEl = document.getElementById('saldo-cliente-modal');
+
+        if (nomeEl) { nomeEl.textContent = nome; }
+        
+        if (saldoEl) {
+            // Validação visual de segurança baseada no status trazido do banco
+            const statusBadge = window.cliente.status === 'ativo' 
+                ? '<span class="badge bg-success">Ativo</span>' 
+                : '<span class="badge bg-danger">Bloqueado</span>';
+
+            saldoEl.innerHTML = `
+                Status: ${statusBadge}<br>
+                Saldo: R$ ${window.cliente.saldo.toFixed(2).replace('.', ',')}<br>
+                Limite: R$ ${window.cliente.limite.toFixed(2).replace('.', ',')}
+            `;
+        }
+
+        // ===============================
+        // FECHA MODAL
+        // ===============================
+        const modalEl = document.getElementById('modalCliente');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modalInstance?.hide();
+        }
+    }
 </script><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/modals/modal_cliente_pdv.blade.php ENDPATH**/ ?>

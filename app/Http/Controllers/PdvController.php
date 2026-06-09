@@ -173,8 +173,7 @@ class PdvController extends Controller
 
    /**
      * F2 – Buscar Cliente (Modal de cliente) */
-    
-    public function buscarCliente(Request $request) 
+     public function buscarCliente(Request $request) 
     { 
         $query = $request->input('query'); 
 

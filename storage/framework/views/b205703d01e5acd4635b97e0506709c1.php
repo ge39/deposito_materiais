@@ -234,14 +234,14 @@
     <?php echo $__env->yieldContent('content'); ?>
 </div>
 
-<footer class="mt-5 py-3 border-top bg-light text-center text-muted">
+<!-- <footer class="mt-5 py-3 border-top bg-light text-center text-muted">
     <small>
         © <?php echo e(date('Y')); ?> <?php echo e(config('app.name') .' -  JMFSoftware2017'); ?> — Todos os direitos reservados.
     </small>
-</footer>
+</footer> -->
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
   document.addEventListener('DOMContentLoaded', function() {
       // Submenus flyout
       document.querySelectorAll('.dropdown-submenu .dropdown-toggle').forEach(function(toggle) {
@@ -261,18 +261,13 @@
           });
       });
   });
-<?php $__env->startPush('scripts'); ?>
-    <!-- 1º Carrega a biblioteca global (OBRIGATÓRIO SER PRIMEIRO) -->
-    <script src="https://jsdelivr.net"></script>
-    
-    <!-- 2º Carrega o script que consome a biblioteca -->
-    <script src="<?php echo e(asset('js/pdv/produto.js')); ?>"></script>
-<?php $__env->stopPush(); ?>
+</script>
 
+    <!-- JS do Bootstrap e app.js -->
+        <!-- <script src="<?php echo e(asset('js/app.js')); ?>"></script> -->
 
+        <!-- Aqui serão inseridos os scripts específicos de cada página -->
+    <?php echo $__env->yieldPushContent('scripts'); ?>
     
 </body>
-</html>
-
-
-<?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/layouts/app.blade.php ENDPATH**/ ?>
+</html><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/layouts/app.blade.php ENDPATH**/ ?>

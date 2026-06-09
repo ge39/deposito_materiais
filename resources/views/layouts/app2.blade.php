@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Mao tem rodapé -->
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
@@ -100,9 +99,9 @@
         </li>
 
        <!-- Administração -->
-        @php
-            $canAccessAdmin = in_array(auth()->user()->nivel_acesso, ['admin', 'gerente']);
-        @endphp
+@php
+    $canAccessAdmin = auth()->check() && in_array(auth()->user()->nivel_acesso, ['admin', 'gerente']);
+@endphp
 
 <li class="nav-item dropdown">
   <a class="nav-link dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#"
@@ -131,25 +130,31 @@
             <i class="bi bi-tag me-2"></i>Financeiro
         </a>
         <ul class="dropdown-menu">
-               <li>
-                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
-                   href="{{ $canAccessAdmin ? route('sangria-config.index') : '#'}}">
-                   <i class="bi bi-list-stars me-2"></i>Define Sangria
-                </a>
-            </li>
+           
              <li>
                 <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
                    href="{{ $canAccessAdmin ? route('fechamento.lista') : '#'}}">
                    <i class="bi bi-list-stars me-2"></i>Fechamento de Caixa
                 </a>
             </li>
-            <li>
-                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
-                   href="{{ $canAccessAdmin ? route('fechamento.auditar', ['caixa' => 0]) : '#' }}">
-                   <i class="bi bi-list-stars me-2"></i>Auditoria de Caixa
+             <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
+                  href="{{ $canAccessAdmin ? route('auditoria_caixa.index') : '#' }}">
+                  <i class="bi bi-list-stars me-2"></i>Auditoria de Caixa
                 </a>
             </li>
-           
+             <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('limites-view') : '#'}}">
+                   <i class="bi bi-list-stars me-2"></i>ControleLimite Credito
+                </a>
+            </li>
+             <li>
+              <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                  href="{{ $canAccessAdmin ? route('sangria-config.index') : '#'}}">
+                  <i class="bi bi-list-stars me-2"></i>Define Sangria
+              </a>
+            </li>
         </ul>
     </li>
       <li><hr class="dropdown-divider"></li>
@@ -178,25 +183,48 @@
             </li>
         </ul>
     </li>
+     <li class="dropdown-submenu">
+        <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
+            <i class="bi bi-tag me-2"></i>Relatórios
+        </a>
+        <ul class="dropdown-menu">
+             <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('relatorio.reposicao') : '#' }}">
+                   <i class="bi bi-list-stars me-2"></i>Orcamento / Repor/Estoque
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('dashboard.movimentacoes') : '#' }}">
+                   <i class="bi bi-list-stars me-2"></i>Orcamento / Dashboard
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                   href="{{ $canAccessAdmin ? route('promocoes.create') : '#' }}">
+                   <i class="bi bi-plus-circle me-2"></i>Nova Promoção
+                </a>
+            </li>
+        </ul>
+    </li>
   </ul>
 </li>
-
-
       </ul>
 
       <!-- Usuário logado -->
       @auth
-      <div class="d-flex align-items-center text-white">
-        <span class="me-3">
-          <i class="bi bi-person-circle me-1"></i>{{ Auth::user()->name }}
-        </span>
-        <form method="POST" action="{{ route('logout') }}" class="d-inline">
-            @csrf
-            <button type="submit" class="btn btn-outline-light btn-sm">
-                Sair
-            </button>
-        </form>
-      </div>
+        <div class="d-flex align-items-center text-white">
+          <span class="me-3">
+            <i class="bi bi-person-circle me-1"></i>{{ Auth::user()->name }}
+          </span>
+          <form method="POST" action="{{ route('logout') }}" class="d-inline">
+              @csrf
+              <button type="submit" class="btn btn-outline-light btn-sm">
+                  Sair
+              </button>
+          </form>
+        </div>
       @endauth
     </div>
 </nav>
@@ -204,6 +232,12 @@
 <div class="container mt-4">
     @yield('content')
 </div>
+
+<!-- <footer class="mt-5 py-3 border-top bg-light text-center text-muted">
+    <small>
+        © {{ date('Y') }} {{ config('app.name') .' -  JMFSoftware2017' }} — Todos os direitos reservados.
+    </small>
+</footer> -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
