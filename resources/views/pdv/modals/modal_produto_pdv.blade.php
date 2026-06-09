@@ -130,12 +130,30 @@
 
     /* FOCO AUTOMÁTICO */
 
+      /* FOCO AUTOMÁTICO E RESET DA TELA */
     document.getElementById('modalProduto')
-        .addEventListener('shown.bs.modal',function(){
+    .addEventListener('shown.bs.modal', function(){
+        
+        // 🎯 Aguarda 100 milissegundos para a animação do Bootstrap estabilizar no navegador
+        setTimeout(() => {
+            const inputBusca = document.getElementById('buscaProdutoPDV');
+            const divResultados = document.getElementById('resultadoProdutoPDV');
 
-        document.getElementById('buscaProdutoPDV').focus();
+            // 1. Limpa o texto antigo e puxa o cursor do teclado de volta
+            if (inputBusca) {
+                inputBusca.value = ''; 
+                inputBusca.focus();    // 🚀 Força o cursor a piscar dentro da caixa limpa
+            }
+
+            // 2. Limpa os blocos de produtos da pesquisa anterior
+            if (divResultados) {
+                divResultados.innerHTML = '';
+            }
+        }, 100);
 
     });
+
+
 
     /* LIMPAR BACKDROP */
 
