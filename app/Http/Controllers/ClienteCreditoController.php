@@ -26,55 +26,55 @@ class ClienteCreditoController extends Controller
      * POST /api/clientes/{id}/credito/pagar
      * Cenário de amortização ou pagamento total do saldo utilizado.
      */
-       public function pagarCredito(Request $request, $id)
-    {
-        $request->validate([
-            'valor'        => 'required|numeric|min:0.01',
-            'meio_captura' => 'required|string|in:dinheiro,pix,debito'
-        ]);
+    //    public function pagarCredito(Request $request, $id)
+    // {
+    //     $request->validate([
+    //         'valor'        => 'required|numeric|min:0.01',
+    //         'meio_captura' => 'required|string|in:dinheiro,pix,debito'
+    //     ]);
 
-        $cliente = Cliente::findOrFail($id);
+    //     $cliente = Cliente::findOrFail($id);
 
-        try {
-            $novoSaldo = DB::transaction(function () use ($request, $cliente) {
+    //     try {
+    //         $novoSaldo = DB::transaction(function () use ($request, $cliente) {
                 
-                // 1. Executa a entrada de saldo na Conta Corrente (Chama seu Service)
-                $saldoCalculado = $this->contaCorrenteService->adicionarCredito(
-                    $cliente->id,
-                    (float) $request->valor
-                );
+    //             // 1. Executa a entrada de saldo na Conta Corrente (Chama seu Service)
+    //             $saldoCalculado = $this->contaCorrenteService->adicionarCredito(
+    //                 $cliente->id,
+    //                 (float) $request->valor
+    //             );
 
-                // 2. 🔥 GRAVAÇÃO COMPLEMENTAR DO HISTÓRICO (Garante a submissão para a auditoria)
-                DB::table('cliente_historico_creditos')->insert([
-                    'cliente_id'     => $cliente->id,
-                    'tipo_evento'    => 'desbloqueio', // Tipo padrão mapeado na sua migration
-                    'descricao'      => "Recebimento de pagamento via " . strtoupper($request->meio_captura) . " no valor de R$ " . number_format($request->valor, 2, ',', '.'),
-                    'score_anterior' => $cliente->score_credito, // Respeitando a estrutura da sua tabela
-                    'score_novo'     => $cliente->score_credito,
-                    'created_at'     => now()
-                ]);
+    //             // 2. 🔥 GRAVAÇÃO COMPLEMENTAR DO HISTÓRICO (Garante a submissão para a auditoria)
+    //             DB::table('cliente_historico_creditos')->insert([
+    //                 'cliente_id'     => $cliente->id,
+    //                 'tipo_evento'    => 'desbloqueio', // Tipo padrão mapeado na sua migration
+    //                 'descricao'      => "Recebimento de pagamento via " . strtoupper($request->meio_captura) . " no valor de R$ " . number_format($request->valor, 2, ',', '.'),
+    //                 'score_anterior' => $cliente->score_credito, // Respeitando a estrutura da sua tabela
+    //                 'score_novo'     => $cliente->score_credito,
+    //                 'created_at'     => now()
+    //             ]);
 
-                // Opcional: Se tiver tabela de movimentacao de caixa do operador, ela entra aqui também.
+    //             // Opcional: Se tiver tabela de movimentacao de caixa do operador, ela entra aqui também.
 
-                return $saldoCalculado;
-            });
+    //             return $saldoCalculado;
+    //         });
 
-            // Devolve o JSON exato que o seu FETCH JavaScript está esperando ler lá na linha 25 (data.dados.saldo_disponivel)
-            return response()->json([
-                'status'  => 'success',
-                'message' => 'Pagamento processado com sucesso!',
-                'dados'   => [
-                    'saldo_disponivel' => $novoSaldo
-                ]
-            ], 200);
+    //         // Devolve o JSON exato que o seu FETCH JavaScript está esperando ler lá na linha 25 (data.dados.saldo_disponivel)
+    //         return response()->json([
+    //             'status'  => 'success',
+    //             'message' => 'Pagamento processado com sucesso!',
+    //             'dados'   => [
+    //                 'saldo_disponivel' => $novoSaldo
+    //             ]
+    //         ], 200);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => $e->getMessage()
-            ], 400);
-        }
-    }
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status'  => 'error',
+    //             'message' => $e->getMessage()
+    //         ], 400);
+    //     }
+    // }
 
 
     /**
@@ -154,6 +154,126 @@ class ClienteCreditoController extends Controller
             ], 200);
 
         } catch (Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+     /**
+     * POST /clientes/{id}/credito/pagar
+     * Processa o pagamento, atualiza a conta corrente vinculando à venda, reativa se total e alimenta o caixa.
+     */
+    public function pagarCredito(Request $request, $id)
+    {
+        $request->validate([
+            'valor'        => 'required|numeric|min:0.01',
+            'meio_captura' => 'required|string|in:dinheiro,pix,debito',
+            'venda_id'     => 'nullable|integer' // 🔥 Adicionada a validação do campo venda_id
+        ]);
+
+        $usuarioLogado = auth()->user();
+        if (!$usuarioLogado) {
+            return response()->json(['status' => 'error', 'message' => 'Sessão expirada.'], 401);
+        }
+
+        try {
+            $saldoFinal = DB::transaction(function () use ($request, $id, $usuarioLogado) {
+                
+                // 1. 🔒 Localiza e trava a sessão de caixa ativa do operador logado
+                $caixaAtivo = DB::table('caixas')
+                    ->where('user_id', $usuarioLogado->id) 
+                    ->where('status', 'aberto')            
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$caixaAtivo) {
+                    throw new \Exception('Operação Negada: O operador não possui uma sessão de caixa aberta para este turno.');
+                }
+
+                // 2. Captura as configurações de crédito do cliente
+                $creditoConfig = DB::table('cliente_creditos')->where('cliente_id', $id)->first();
+                $limiteCredito = $creditoConfig ? (float) $creditoConfig->limite_credito : 500.00;
+
+                // 3. 🔒 Trava e busca o último registro do cliente na Conta Corrente
+                $ultimaMovimentacao = DB::table('cliente_conta_correntes')
+                    ->where('cliente_id', $id)
+                    ->orderByDesc('id')
+                    ->lockForUpdate()
+                    ->first();
+
+                $saldoAtual = $ultimaMovimentacao !== null ? (float) $ultimaMovimentacao->saldo_apos : $limiteCredito;
+                $novoSaldoCC = $saldoAtual + (float) $request->valor;
+
+                // 4. 🔥 INSERE O PAGAMENTO NA TABELA VINCULANDO O VENDA_ID RECEBIDO
+                $ccId = DB::table('cliente_conta_correntes')->insertGetId([
+                    'cliente_id'         => $id,
+                    'venda_id'           => $request->input('venda_id'), // 🔥 AGORA SALVA O VENDA_ID DO COMPORTAMENTO DO PDV
+                    'pagamento_venda_id' => null, 
+                    'tipo'               => 'credito', 
+                    'origem'             => 'pagamento', 
+                    'valor'              => (float) $request->valor,
+                    'saldo_apos'         => $novoSaldoCC, 
+                    'descricao'          => "Recebimento de pagamento / amortização de carteira via " . strtoupper($request->meio_captura),
+                    'created_at'         => now(),
+                    'updated_at'         => now()
+                ]);
+
+                // 5. REGRA DE DESBLOQUEIO AUTOMÁTICO
+                if (round($novoSaldoCC, 2) >= round($limiteCredito, 2)) {
+                    DB::table('cliente_creditos')->where('cliente_id', $id)->update([
+                        'status' => 'ativo',
+                        'updated_at' => now()
+                    ]);
+
+                    DB::table('clientes')->where('id', $id)->update([
+                        'bloqueado_credito'     => 0,
+                        'data_bloqueio_credito' => null,
+                        'ativo'                 => '1', 
+                        'updated_at'            => now()
+                    ]);
+                }
+
+                // 6. REGISTRA A AUDITORIA CONTÁBIL
+                DB::table('cliente_historico_creditos')->insert([
+                    'cliente_id'     => $id,
+                    'tipo_evento'    => 'desbloqueio',
+                    'descricao'      => "Quitação de saldo devedor via " . strtoupper($request->meio_captura) . " no valor de R$ " . number_format($request->valor, 2, ',', '.') . ". Vinculado à Venda ID #" . $request->input('venda_id'),
+                    'score_anterior' => DB::table('clientes')->where('id', $id)->value('score_credito') ?? 100,
+                    'score_novo'     => DB::table('clientes')->where('id', $id)->value('score_credito') ?? 100,
+                    'created_at'     => now()
+                ]);
+
+                // 7. REGISTRA NO FLUXO DE CAIXA DO PDV
+                DB::table('movimentacoes_caixa')->insert([
+                    'caixa_id'          => $caixaAtivo->id,
+                    'user_id'           => $usuarioLogado->id, 
+                    'tipo'              => 'entrada', 
+                    'forma_pagamento'   => $request->meio_captura, 
+                    'valor'             => (float) $request->valor,
+                    'valor_auditado'    => 0.00,
+                    'origem_id'         => $ccId, 
+                    'observacao'        => "Recebimento de saldo de carteira. Cliente ID #{$id}", 
+                    'data_movimentacao' => now(),
+                    'created_at'        => now(),
+                    'updated_at'        => now()
+                ]);
+
+                \Illuminate\Support\Facades\Cache::forget("cliente_saldo_{$id}");
+
+                return $novoSaldoCC;
+            });
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Pagamento vinculado à venda com sucesso!',
+                'dados'   => [
+                    'saldo_disponivel' => $saldoFinal
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'status'  => 'error',
                 'message' => $e->getMessage()

@@ -871,26 +871,18 @@
                 inputValor.select();
             }, { once: true });
     }
-
-
     // 🔥 ESSA É A FUNÇÃO QUE ESTAVA FALTANDO PARA GRAVAR NO BANCO!
-   function processarPagamentoAvulsoPDV(event) {
-        event.preventDefault();
+    function processarPagamentoAvulsoPDV(event) {
+        event.preventDefault(); 
 
         let inputValor = document.getElementById('valor_recebimento_pdv');
         let clienteId = inputValor.dataset.clienteId;
-        let valorPago = parseFloat(inputValor.value || 0);
-        let dividaMaximaAllowed = parseFloat(inputValor.dataset.dividaMaxima || 0);
-
-        if (valorPago <= 0) {
-            alert('⚠️ Erro Operacional: O valor do pagamento deve ser maior que zero!');
-            return;
-        }
-
-        if (valorPago > dividaMaximaAllowed) {
-            alert(`⚠️ Bloqueio de Caixa: Não é permitido receber um valor maior do que a dívida atual! Máximo permitido: R$ ${dividaMaximaAllowed.toFixed(2).replace('.', ',')}`);
-            return;
-        }
+        let valorPago = inputValor.value;
+        let meio = document.getElementById('meio_recebimento_pdv').value;
+        
+        // 🔥 CAPTURA O ID DA VENDA ATUAL DA MEMÓRIA DO SEU PDV (Ex: 766 como na sua tabela)
+        // Ajuste o termo abaixo para a variável real que o seu produto.js usa para o ID da venda
+        let vendaIdAtual = window.venda_id || window.venda?.id || null; 
 
         let btn = document.getElementById('btn-confirmar-cc');
         if (btn) {
@@ -909,58 +901,52 @@
             },
             body: JSON.stringify({
                 valor: valorPago,
-                meio_captura: document.getElementById('meio_recebimento_pdv').value
+                meio_captura: meio,
+                venda_id: vendaIdAtual // 🔥 PASSA O VENDA_ID NO CORPO DO ENVIO PARA O LARAVEL
             })
         })
         .then(async response => {
             const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro interno no servidor.');
-
-            let novoSaldoDisponivel = parseFloat(data.dados.saldo_disponivel);
-            let limiteConfigurado = parseFloat(window.cliente.limite ?? 100.00);
-
-            alert('Pagamento processado com sucesso! Saldo atualizado no banco.');
             
-            // Fecha o modal de quitação
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuitarCarteiraPDV')).hide();
-
-            // 1. Sempre atualiza o saldo disponível na memória do seu PDV
-            window.cliente.saldo = novoSaldoDisponivel;
-
-            // 2. 🚨 REGRA CRÍTICA: Só altera o status na tela se o pagamento foi TOTAL (Saldo de volta ao Limite)
-            if (Math.abs(novoSaldoDisponivel - limiteConfigurado) < 0.01) {
-                
-                window.cliente.status = 'ativo';
-
-                // Muda o badge visual da tela de Finalizar Venda de Vermelho para Verde
-                const badgeStatus = document.querySelector('.badge') || document.querySelector('.badge-danger');
-                if (badgeStatus) {
-                    badgeStatus.textContent = 'Ativo';
-                    badgeStatus.className = 'badge bg-success';
-                }
-
-                // DESTRAVA A CARTEIRA: Substitui o container cinza "Não Permitido" pelo input livre
-                const containerCarteira = document.querySelector('input[placeholder="Não Permitido"]')?.parentElement;
-                if (containerCarteira) {
-                    containerCarteira.innerHTML = `<input type="number" step="0.01" class="form-control text-end input-pagamento" id="input_ca_carteira" name="pagamento_carteira" placeholder="0,00">`;
-                    
-                    // 🔥 Opcional: Já preenche automaticamente os R$ 96,00 da compra atual para poupar tempo
-                    document.getElementById('input_ca_carteira').value = 96.00; 
-                    document.getElementById('input_ca_carteira').focus();
-                }
-                
-            } else {
-                // Cenário de Pagamento Parcial: Avisa o operador que o saldo subiu, mas o bloqueio continua
-                // alert(`Aviso: O cliente realizou um pagamento parcial. Novo saldo disponível: R$ ${novoSaldoDisponivel.toFixed(2).replace('.', ',')}. A carteira continuará BLOQUEADA até a quitação total.`);
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro interno no servidor.');
             }
 
-            // Atualiza o texto do saldo na interface de finalização independente de ser parcial ou total
+            let novoSaldoDisponivel = parseFloat(data.dados.saldo_disponivel);
+            
+            alert('Pagamento processado com sucesso! Saldo e Venda atualizados no banco.');
+            
+            let modalEl = document.getElementById('modalQuitarCarteiraPDV');
+            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+
+            window.cliente.saldo = novoSaldoDisponivel;
+            window.cliente.status = 'ativo';
+
+            const badgeStatus = document.querySelector('.badge');
+            if (badgeStatus) {
+                badgeStatus.textContent = 'Ativo';
+                badgeStatus.className = 'badge bg-success';
+            }
+
             const textoSaldo = document.getElementById('saldo-cliente-finalizar');
             if (textoSaldo) {
                 textoSaldo.textContent = `Saldo: R$ ${novoSaldoDisponivel.toFixed(2).replace('.', ',')}`;
             }
+
+            const containerCarteira = document.querySelector('input[placeholder="Não Permitido"]')?.parentElement;
+            if (containerCarteira) {
+                containerCarteira.innerHTML = `<input type="number" step="0.01" class="form-control text-end input-pagamento" id="input_ca_carteira" name="pagamento_carteira" placeholder="0,00">`;
+                
+                // 🔥 PREENCHIMENTO AUTOMÁTICO: Coloca os R$ 96,00 da compra direto no campo que acabou de liberar!
+                // Busque o valor total da venda atual que está em memória no seu PDV
+                let totalCompraAtual = parseFloat(document.getElementById('total-venda')?.textContent || 96.00);
+                document.getElementById('input_ca_carteira').value = totalCompraAtual.toFixed(2);
+                document.getElementById('input_ca_carteira').focus();
+            }
         })
-        .catch(error => alert('Erro operacional do banco: ' + error.message))
+        .catch(error => {
+            alert('Erro operacional do banco: ' + error.message);
+        })
         .finally(() => {
             if (btn) {
                 btn.disabled = false;
@@ -968,7 +954,6 @@
             }
         });
     }
-
 
 </script>
 
