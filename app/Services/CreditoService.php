@@ -210,4 +210,140 @@ class CreditoService
 
         return true;
     }
+
+    public function aumentarLimiteCredito(Cliente $cliente, float $novoLimite): void
+    {
+        $credito = $cliente->creditoAtivo; // Seu relacionamento existente
+        if (!$credito) {
+            throw new \Exception('O cliente não possui registro de crédito configurado.');
+        }
+
+        $limiteAnterior = (float)($credito->limite_credito ?? 0);
+        if ($novoLimite <= $limiteAnterior) {
+            throw new \Exception('O novo limite deve ser estritamente maior que o limite de crédito atual.');
+        }
+
+        // Calcula a diferença que será injetada como fôlego na conta corrente
+        $diferenca = $novoLimite - $limiteAnterior;
+
+        // 1. Atualiza o teto na tabela de configurações de crédito
+        $credito->update([
+            'limite_credito' => $novoLimite,
+            // Se estava bloqueado por falta de limite, o aumento restabelece o status ativo
+            'status'         => $credito->status === 'bloqueado' ? 'ativo' : $credito->status
+        ]);
+
+        // Atualiza as flags na tabela de clientes caso estivesse marcado como bloqueado
+        if ($cliente->bloqueado_credito == 1) {
+            $cliente->update([
+                'bloqueado_credito'     => 0,
+                'data_bloqueio_credito' => null,
+                'ativo'                 => 'ativo'
+            ]);
+        }
+
+        // 2. 🔒 SEGURANÇA MÁXIMA: Aplica o lockForUpdate para travar a conta corrente contra compras simultâneas no PDV
+        $ultimaMovimentacao = ClienteContaCorrente::where('cliente_id', $cliente->id)
+            ->orderByDesc('id')
+            ->lockForUpdate() 
+            ->first();
+
+        $saldoAtual = $ultimaMovimentacao !== null ? (float)$ultimaMovimentacao->saldo_apos : $limiteAnterior;
+        $novoSaldoCC = $saldoAtual + $diferenca;
+
+        // Registra a transação de ajuste na conta corrente
+        ClienteContaCorrente::create([
+            'cliente_id' => $cliente->id,
+            'tipo'       => 'credito',
+            'origem'     => 'ajuste',
+            'valor'      => $diferenca,
+            'saldo_apos' => $novoSaldoCC,
+            'descricao'  => "Aumento de limite de crédito de R$ " . number_format($limiteAnterior, 2, ',', '.') . " para R$ " . number_format($novoLimite, 2, ',', '.')
+        ]);
+
+        // 3. Registra o evento na tabela de histórico de crédito
+        DB::table('cliente_historico_creditos')->insert([
+            'cliente_id'    => $cliente->id,
+            'tipo_evento'   => 'ajuste_score', // Enum disponível na sua tabela
+            'descricao'     => "Aumento de limite homologado. Novo teto: R$ " . number_format($novoLimite, 2, ',', '.'),
+            'score_anterior'=> $cliente->score_credito, // Mapeando campos da sua tabela
+            'score_novo'    => $cliente->score_credito,
+            'created_at'    => now()
+        ]);
+
+        // 🔥 Invalida o cache de saldo imediatamente para atualizar o PDV e os painéis
+        \Illuminate\Support\Facades\Cache::forget("cliente_saldo_{$cliente->id}");
+    }
+
+    
+    /**
+     * Varre o cliente específico e aplica o bloqueio caso ele possua faturas vencidas.
+     * Perfeito para ser chamado de forma individual ou dentro de um Command/Job diário.
+     */
+    public function verificarEBloquearPorAtraso(Cliente $cliente): bool
+    {
+        // Reutiliza o seu método otimizado com join para checar inadimplência
+        if ($this->possuiPagamentoEmAtraso($cliente)) {
+            
+            $credito = $cliente->creditoAtivo;
+            if ($credito && $credito->status !== 'bloqueado') {
+                
+                DB::transaction(function () use ($cliente, $credito) {
+                    // 1. Modifica o status da configuração de crédito
+                    $credito->update(['status' => 'bloqueado']);
+
+                    // 2. Modifica o status na tabela master de clientes
+                    $cliente->update([
+                        'bloqueado_credito'     => 1,
+                        'data_bloqueio_credito' => now(),
+                        'ativo'                 => 'bloqueado_credito' // Conforme enums da sua tabela
+                    ]);
+
+                    // 3. Registra o evento específico na tabela de históricos
+                    DB::table('cliente_historico_creditos')->insert([
+                        'cliente_id'    => $cliente->id,
+                        'tipo_evento'   => 'bloqueio_atraso', // Alinhado ao enum mapeado
+                        'descricao'     => 'Bloqueio administrativo aplicado devido a parcelas/vendas em atraso na carteira.',
+                        'score_anterior'=> $cliente->score_credito,
+                        'score_novo'    => $cliente->score_credito,
+                        'created_at'    => now()
+                    ]);
+
+                    // 🔥 Invalida o cache para travar o PDV na hora
+                    \Illuminate\Support\Facades\Cache::forget("cliente_saldo_{$cliente->id}");
+                });
+
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Método auxiliar para bloqueios originados por estouro de saldo/estorno.
+     */
+    public function bloquearPorLimiteEstourado(Cliente $cliente, string $motivo): void
+    {
+        $credito = $cliente->creditoAtivo;
+        if ($credito && $credito->status !== 'bloqueado') {
+            $credito->update(['status' => 'bloqueado']);
+            
+            $cliente->update([
+                'bloqueado_credito'     => 1,
+                'data_bloqueio_credito' => now(),
+                'ativo'                 => 'bloqueado_credito'
+            ]);
+
+            DB::table('cliente_historico_creditos')->insert([
+                'cliente_id'    => $cliente->id,
+                'tipo_evento'   => 'bloqueio_limite', // Enum correspondente
+                'descricao'     => $motivo,
+                'score_anterior'=> $cliente->score_credito,
+                'score_novo'    => $cliente->score_credito,
+                'created_at'    => now()
+            ]);
+        }
+    }
+
+
 }

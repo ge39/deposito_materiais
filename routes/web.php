@@ -8,7 +8,9 @@ use App\Http\Controllers\{
     CaixaController,
     ContaCorrenteController,
     CategoriaController,
+    ClienteCreditoController,
     ClienteController,
+    Cliente,
     FornecedorController,
     FuncionarioController,
     UserController,
@@ -433,4 +435,21 @@ Route::middleware('auth')->group(function () {
     Route::post('/clientes/{id}/bloquear', [LimiteClienteController::class, 'bloquear']);
     Route::post('/clientes/{id}/desbloquear', [LimiteClienteController::class, 'desbloquear']); 
     
+
+    //Pagamento de Carteira
+    Route::prefix('clientes/{id}/credito')->group(function () {
+        Route::post('/pagar', [ClienteCreditoController::class, 'pagarCredito']);
+        Route::post('/aumentar-limite', [ClienteCreditoController::class, 'aumentarLimite']);
+    });
+
+    // Rota dedicada a executar o estorno de lançamentos da conta corrente
+    Route::post('credito/movimentacoes/{id}/estornar', [ClienteCreditoController::class, 'estornar']);
     
+    //Rota de Renderização da Tela
+    Route::get('/financeiro/recebimento-credito', function () {
+        // Traz apenas clientes ativos e que possuem configuração de crédito inicial associada
+        $clientes = Cliente::whereHas('creditoAtivo')->orderBy('nome')->get();
+        
+        return view('credito.recebimento', compact('clientes'));
+    })->middleware(['auth']); // Garante proteção por login
+

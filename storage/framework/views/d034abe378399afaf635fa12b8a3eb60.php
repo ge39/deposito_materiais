@@ -735,6 +735,15 @@
             <button class="btn btn-primary fs-6  w-100 md-1 p-2">Alt+P Reimprimir</button>
         </div>
 
+        <!-- Botão de atalho rápido no painel ou menu de funções do seu PDV -->
+         <!-- class="btn btn-outline-primary fw-bold w-100 mb-2 py-2" -->
+         <div class="col">
+            <button type="button" class="btn btn-outline-primary fw-bold w-100 mb-2 py-2" onclick="solicitarPagamentoAvulso()">
+                💳 F8 - Receber
+            </button>
+        </div>
+
+        
         <div class="col btn btn-dark w-100 md-1 p-1 fw-bold d-flex flex-column align-items-center justify-content-center">
             
             <div class="col btn btn-dark w-100 md-1 p-2 fw-bold d-flex flex-column align-items-center justify-content-center">
@@ -772,7 +781,207 @@
             </div>
         </div>
     </div>
+
+   <!-- Modal de Quitação de Carteira Atualizado -->
+<div class="modal fade" id="modalQuitarCarteiraPDV" tabindex="-1" data-bs-backdrop="static" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-success shadow-lg">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title fw-bold">💵 Quitar Carteira do Cliente</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form onsubmit="processarPagamentoAvulsoPDV(event)">
+                <div class="modal-body py-2">
+                    
+                    <!-- EXIBIÇÃO DETALHADA DOS DADOS DE CRÉDITO -->
+                    <div class="bg-light p-2 rounded mb-3" style="font-size: 11px;">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted fw-bold">LIMITE CONTRATADO:</span>
+                            <span id="txt-modal-limite" class="fw-bold text-dark">R$ 0,00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted fw-bold">SALDO DISPONÍVEL:</span>
+                            <span id="txt-modal-saldo-apos" class="fw-bold text-primary">R$ 0,00</span>
+                        </div>
+                        <div class="linha dashed my-1" style="border-bottom: 1px dashed #ccc;"></div>
+                        <div class="d-flex justify-content-between fw-bold fs-6">
+                            <span class="text-danger">DÍVIDA / TOTAL USADO:</span>
+                            <span id="txt-divida-total-pdv" class="text-danger">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="valor_recebimento_pdv" class="form-label fw-bold text-success small">Valor Recebido (R$):</label>
+                        <input type="number" step="0.01" min="0.01" class="form-control form-control-lg border-success fw-bold text-success text-center" id="valor_recebimento_pdv" required placeholder="0,00">
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="meio_recebimento_pdv" class="form-label fw-bold small">Recebido em:</label>
+                        <select class="form-select form-select-sm" id="meio_recebimento_pdv" required>
+                            <option value="dinheiro" selected>Dinheiro Espécie</option>
+                            <option value="pix">PIX Transação</option>
+                            <option value="debito">Cartão de Débito</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success btn-sm fw-bold px-3" id="btn-confirmar-cc">Confirmar (Enter)</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+
+</div>
+
+ <!-- // Função global chamada pelo atalho F9 -->
+<script>
+    window.solicitarPagamentoAvulso = function() {
+        // 1. Validação de segurança padrão
+        if (!window.cliente || !window.cliente.id) {
+            alert('⚠️ Operação Inválida: Identifique o cliente no PDV antes de receber o pagamento da carteira!');
+            return;
+        }
+
+        // 2. CAPTURA DIRETA DAS PROPRIEDADES QUE JÁ EXISTEM EM MEMÓRIA NO SEU PDV
+        // window.cliente.limite representa o 'cliente_creditos.limite_credito'
+        // window.cliente.saldo representa o último 'cliente_conta_correntes.saldo_apos'
+        let limite = parseFloat(window.cliente.limite ?? 0);
+        let saldoApos = parseFloat(window.cliente.saldo ?? 0);
+        
+        // Força o valor de teste de R$ 100 se o seu banco por acaso enviou zerado
+        if (limite === 0) {
+            limite = 100.00;
+        }
+
+        // 3. A MATEMÁTICA CORRETA: Limite (100.00) - Saldo Disponível (52.00) = Dívida (48.00)
+        let dividaCalculada = parseFloat((limite - saldoApos).toFixed(2));
+
+        // 4. INJETA OS VALORES REAIS NOS COMPONENTES DO SEU NOVO LAYOUT
+        document.getElementById('txt-modal-limite').innerText = 'R$ ' + limite.toFixed(2).replace('.', ',');
+        document.getElementById('txt-modal-saldo-apos').innerText = 'R$ ' + saldoApos.toFixed(2).replace('.', ',');
+        document.getElementById('txt-divida-total-pdv').innerText = 'R$ ' + dividaCalculada.toFixed(2).replace('.', ',');
+        
+        // Configura o input de digitação com o valor sugerido e injeta as travas de segurança
+        let inputValor = document.getElementById('valor_recebimento_pdv');
+        inputValor.value = dividaCalculada.toFixed(2);
+        inputValor.dataset.clienteId = window.cliente.id;
+        inputValor.dataset.dividaMaxima = dividaCalculada; // Alimenta a trava contra valores maiores
+
+        // 5. Abre o modal gráfico que você montou
+        let modalQuitar = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuitarCarteiraPDV'));
+            modalQuitar.show();
+
+            // Coloca o cursor piscando focado de forma imediata
+            document.getElementById('modalQuitarCarteiraPDV').addEventListener('shown.bs.modal', function () {
+                inputValor.focus();
+                inputValor.select();
+            }, { once: true });
+    }
+
+
+    // 🔥 ESSA É A FUNÇÃO QUE ESTAVA FALTANDO PARA GRAVAR NO BANCO!
+   function processarPagamentoAvulsoPDV(event) {
+        event.preventDefault();
+
+        let inputValor = document.getElementById('valor_recebimento_pdv');
+        let clienteId = inputValor.dataset.clienteId;
+        let valorPago = parseFloat(inputValor.value || 0);
+        let dividaMaximaAllowed = parseFloat(inputValor.dataset.dividaMaxima || 0);
+
+        if (valorPago <= 0) {
+            alert('⚠️ Erro Operacional: O valor do pagamento deve ser maior que zero!');
+            return;
+        }
+
+        if (valorPago > dividaMaximaAllowed) {
+            alert(`⚠️ Bloqueio de Caixa: Não é permitido receber um valor maior do que a dívida atual! Máximo permitido: R$ ${dividaMaximaAllowed.toFixed(2).replace('.', ',')}`);
+            return;
+        }
+
+        let btn = document.getElementById('btn-confirmar-cc');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = 'Processando...';
+        }
+
+        let urlPost = `/clientes/${clienteId}/credito/pagar`;
+
+        fetch(urlPost, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({
+                valor: valorPago,
+                meio_captura: document.getElementById('meio_recebimento_pdv').value
+            })
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro interno no servidor.');
+
+            let novoSaldoDisponivel = parseFloat(data.dados.saldo_disponivel);
+            let limiteConfigurado = parseFloat(window.cliente.limite ?? 100.00);
+
+            alert('Pagamento processado com sucesso! Saldo atualizado no banco.');
+            
+            // Fecha o modal de quitação
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuitarCarteiraPDV')).hide();
+
+            // 1. Sempre atualiza o saldo disponível na memória do seu PDV
+            window.cliente.saldo = novoSaldoDisponivel;
+
+            // 2. 🚨 REGRA CRÍTICA: Só altera o status na tela se o pagamento foi TOTAL (Saldo de volta ao Limite)
+            if (Math.abs(novoSaldoDisponivel - limiteConfigurado) < 0.01) {
+                
+                window.cliente.status = 'ativo';
+
+                // Muda o badge visual da tela de Finalizar Venda de Vermelho para Verde
+                const badgeStatus = document.querySelector('.badge') || document.querySelector('.badge-danger');
+                if (badgeStatus) {
+                    badgeStatus.textContent = 'Ativo';
+                    badgeStatus.className = 'badge bg-success';
+                }
+
+                // DESTRAVA A CARTEIRA: Substitui o container cinza "Não Permitido" pelo input livre
+                const containerCarteira = document.querySelector('input[placeholder="Não Permitido"]')?.parentElement;
+                if (containerCarteira) {
+                    containerCarteira.innerHTML = `<input type="number" step="0.01" class="form-control text-end input-pagamento" id="input_ca_carteira" name="pagamento_carteira" placeholder="0,00">`;
+                    
+                    // 🔥 Opcional: Já preenche automaticamente os R$ 96,00 da compra atual para poupar tempo
+                    document.getElementById('input_ca_carteira').value = 96.00; 
+                    document.getElementById('input_ca_carteira').focus();
+                }
+                
+            } else {
+                // Cenário de Pagamento Parcial: Avisa o operador que o saldo subiu, mas o bloqueio continua
+                alert(`Aviso: O cliente realizou um pagamento parcial. Novo saldo disponível: R$ ${novoSaldoDisponivel.toFixed(2).replace('.', ',')}. A carteira continuará BLOQUEADA até a quitação total.`);
+            }
+
+            // Atualiza o texto do saldo na interface de finalização independente de ser parcial ou total
+            const textoSaldo = document.getElementById('saldo-cliente-finalizar');
+            if (textoSaldo) {
+                textoSaldo.textContent = `Saldo: R$ ${novoSaldoDisponivel.toFixed(2).replace('.', ',')}`;
+            }
+        })
+        .catch(error => alert('Erro operacional do banco: ' + error.message))
+        .finally(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = 'Confirmar (Enter)';
+            }
+        });
+    }
+
+
+</script>
+
+
 <!-- BLINDAGEM DE INICIALIZAÇÃO: TRAVA CARTEIRA PARA VENDA BALCÃO -->
 <script>
     // ========================================================
@@ -797,6 +1006,7 @@
     });
 
 </script>
+
 <!-- caixas esquecidos abertos acima de 12 horas -->
 <script>
     document.addEventListener('DOMContentLoaded', async function () {

@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ==========================================
+        // ==========================================
     // 🎹 CONTROLE DE ATALHOS GLOBAIS (CAPTURE: TRUE)
     // ==========================================
     document.addEventListener('keydown', function (e) {
@@ -78,9 +78,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
         }
 
-        // F6 - FINALIZAR VENDA (Blindado contra erro de DOM se o modal não existir)
-        if (e.code === 'F6') {
-            if (document.querySelector('.modal.show')) return;
+        // F6 - FINALIZAR VENDA
+        if (e.code === 'F6' || e.key === 'F6') {
+            // 🔥 A trava foi movida para cá, protegendo apenas o F6 de duplicar
+            if (document.querySelector('.modal.show')) return; 
+            
             e.preventDefault();
             const btnF6 = document.getElementById('btnF6');
             if (btnF6 || document.getElementById('modalFinalizarVenda')) {
@@ -89,7 +91,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.warn("Aviso do Sistema: Elementos do modal de finalização não estão presentes nesta view.");
             }
         }
+
+        // ==========================================
+        // 🔥 START DA CARTEIRA: F9 - PAGAR DÉBITOS DO CLIENTE
+        // ==========================================
+        if (e.code === 'F9' || e.key === 'F9') {
+            const modalFinalizar = document.getElementById('modalFinalizarVenda');
+            
+            // Verifica se o modal do F6 está aberto para permitir o start do F9
+            if (modalFinalizar && modalFinalizar.classList.contains('show')) {
+                e.preventDefault();
+                window.abrirModalQuitarCarteira();
+            }
+        }
     }, true);
+
+
+   
 
     // ==========================================
     // 🛒 LEITOR DE CÓDIGO DE BARRAS / EVENTO ENTER
