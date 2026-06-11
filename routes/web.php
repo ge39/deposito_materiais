@@ -437,19 +437,29 @@ Route::middleware('auth')->group(function () {
     
 
     //Pagamento de Carteira
+// 🔒 GRUPO DE ROTAS DE CRÉDITO E CARTEIRA (PROTEGIDAS POR AUTENTICAÇÃO)
+Route::middleware(['auth'])->group(function () {
+
+    // Tela de Renderização Principal
+    Route::get('/financeiro/recebimento-credito', function () {
+        $clientes = Cliente::whereHas('creditoAtivo')->orderBy('nome')->get();
+        return view('credito.recebimento', compact('clientes'));
+    });
+
+    // Sub-grupo de Operações por Cliente
     Route::prefix('clientes/{id}/credito')->group(function () {
         Route::post('/pagar', [ClienteCreditoController::class, 'pagarCredito']);
         Route::post('/aumentar-limite', [ClienteCreditoController::class, 'aumentarLimite']);
     });
 
-    // Rota dedicada a executar o estorno de lançamentos da conta corrente
+    // Rota dedicada a executar o estorno
     Route::post('credito/movimentacoes/{id}/estornar', [ClienteCreditoController::class, 'estornar']);
-    
-    //Rota de Renderização da Tela
-    Route::get('/financeiro/recebimento-credito', function () {
-        // Traz apenas clientes ativos e que possuem configuração de crédito inicial associada
-        $clientes = Cliente::whereHas('creditoAtivo')->orderBy('nome')->get();
-        
-        return view('credito.recebimento', compact('clientes'));
-    })->middleware(['auth']); // Garante proteção por login
+
+    // 💎 AS DUAS ROTAS DA IMPRESSÃO AGORA NO LUGAR CORRETO (DENTRO DO AUTH)
+    Route::post('/clientes/credito/obter-pagamento', [ClienteCreditoController::class, 'obterPagamento']);
+    Route::get('/clientes/credito/exibircomprovante/{id}', [ClienteCreditoController::class, 'exibirComprovante'])->name('credito.comprovante');
+
+});
+
+
 

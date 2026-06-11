@@ -773,59 +773,60 @@
         </div>
     </div>
 
-   <!-- Modal de Quitação de Carteira Atualizado -->
-<div class="modal fade" id="modalQuitarCarteiraPDV" tabindex="-1" data-bs-backdrop="static" aria-hidden="true" style="z-index: 1060;">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-success shadow-lg">
-            <div class="modal-header bg-success text-white py-2">
-                <h6 class="modal-title fw-bold">💵 Quitar Carteira do Cliente</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- Modal de Quitação de Carteira Atualizado -->
+    <div class="modal fade" id="modalQuitarCarteiraPDV" tabindex="-1" data-bs-backdrop="static" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-success shadow-lg">
+                <div class="modal-header bg-success text-white py-2">
+                    <h6 class="modal-title fw-bold">💵 Quitar Carteira do Cliente</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form onsubmit="processarPagamentoAvulsoPDV(event)">
+                    <div class="modal-body py-2">
+                        
+                        <!-- EXIBIÇÃO DETALHADA DOS DADOS DE CRÉDITO -->
+                        <div class="bg-light p-2 rounded mb-3" style="font-size: 11px;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted fw-bold">LIMITE CONTRATADO:</span>
+                                <span id="txt-modal-limite" class="fw-bold text-dark">R$ 0,00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted fw-bold">SALDO DISPONÍVEL:</span>
+                                <span id="txt-modal-saldo-apos" class="fw-bold text-primary">R$ 0,00</span>
+                            </div>
+                            <div class="linha dashed my-1" style="border-bottom: 1px dashed #ccc;"></div>
+                            <div class="d-flex justify-content-between fw-bold fs-6">
+                                <span class="text-danger">DÍVIDA / TOTAL USADO:</span>
+                                <span id="txt-divida-total-pdv" class="text-danger">R$ 0,00</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="valor_recebimento_pdv" class="form-label fw-bold text-success small">Valor Recebido (R$):</label>
+                            <input type="number" step="0.01" min="0.01" class="form-control form-control-lg border-success fw-bold text-success text-center" id="valor_recebimento_pdv" required placeholder="0,00">
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="meio_recebimento_pdv" class="form-label fw-bold small">Recebido em:</label>
+                            <select class="form-select form-select-sm" id="meio_recebimento_pdv" required>
+                                <option value="dinheiro" selected>Dinheiro Espécie</option>
+                                <option value="pix">PIX Transação</option>
+                                <option value="debito">Cartão de Débito</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light py-2">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success btn-sm fw-bold px-3" id="btn-confirmar-cc">Confirmar (Enter)</button>
+                    </div>
+                </form>
             </div>
-            <form onsubmit="processarPagamentoAvulsoPDV(event)">
-                <div class="modal-body py-2">
-                    
-                    <!-- EXIBIÇÃO DETALHADA DOS DADOS DE CRÉDITO -->
-                    <div class="bg-light p-2 rounded mb-3" style="font-size: 11px;">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted fw-bold">LIMITE CONTRATADO:</span>
-                            <span id="txt-modal-limite" class="fw-bold text-dark">R$ 0,00</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted fw-bold">SALDO DISPONÍVEL:</span>
-                            <span id="txt-modal-saldo-apos" class="fw-bold text-primary">R$ 0,00</span>
-                        </div>
-                        <div class="linha dashed my-1" style="border-bottom: 1px dashed #ccc;"></div>
-                        <div class="d-flex justify-content-between fw-bold fs-6">
-                            <span class="text-danger">DÍVIDA / TOTAL USADO:</span>
-                            <span id="txt-divida-total-pdv" class="text-danger">R$ 0,00</span>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="valor_recebimento_pdv" class="form-label fw-bold text-success small">Valor Recebido (R$):</label>
-                        <input type="number" step="0.01" min="0.01" class="form-control form-control-lg border-success fw-bold text-success text-center" id="valor_recebimento_pdv" required placeholder="0,00">
-                    </div>
-
-                    <div class="mb-2">
-                        <label for="meio_recebimento_pdv" class="form-label fw-bold small">Recebido em:</label>
-                        <select class="form-select form-select-sm" id="meio_recebimento_pdv" required>
-                            <option value="dinheiro" selected>Dinheiro Espécie</option>
-                            <option value="pix">PIX Transação</option>
-                            <option value="debito">Cartão de Débito</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light py-2">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success btn-sm fw-bold px-3" id="btn-confirmar-cc">Confirmar (Enter)</button>
-                </div>
-            </form>
         </div>
     </div>
-</div>
 
 
 </div>
+
 
  <!-- // Função global chamada pelo atalho F9 -->
 <!-- <script>
@@ -954,84 +955,103 @@
             }
         });
     }
+
 </script> -->
 
-<!-- // Função global chamada pelo atalho F9 -->
+<!-- // Gerenciamento Completo do Pagamento Avulso da Carteira -->
+<!-- // Gerenciamento do Pagamento Avulso da Carteira Corrigido -->
 <script>
+    // =========================================================================
+    // 1. GATILHO GLOBAL (CHAMADO PELO ATALHO F9) - ABRE O MODAL E VALIDA DÍVIDA
+    // =========================================================================
     window.solicitarPagamentoAvulso = function() {
-        // 1. Validação de segurança padrão
+        // Validação de segurança padrão: Cliente logado no sistema
         if (!window.cliente || !window.cliente.id) {
             alert('⚠️ Operação Inválida: Identifique o cliente no PDV antes de receber o pagamento da carteira!');
-            // 🎯 FOCO RETORNA AO CÓDIGO DE BARRAS
             setTimeout(() => { document.getElementById('codigo_barras')?.focus(); }, 50);
             return;
         }
 
         let limite = parseFloat(window.cliente.limite ?? 0);
         let saldoApos = parseFloat(window.cliente.saldo ?? 0);
-        
-        if (limite === 0) {
-            limite = 100.00;
-        }
 
-        // 3. A MATEMÁTICA CORRETA
+        // A matemática da dívida baseada no saldo real em memória
         let dividaCalculada = parseFloat((limite - saldoApos).toFixed(2));
 
-        // 🛑 TRAVA 1: Impede a abertura do modal se o cliente não possuir dívida ativa
-        if (dividaCalculada <= 0) {
+        // TRAVA 1: Bloqueia a abertura se o cliente já estiver com a conta zerada
+        if (dividaCalculada <= 0 || isNaN(dividaCalculada)) {
             alert('ℹ️ Este cliente já possui o saldo totalmente quitado. Não há valores pendentes na carteira!');
-            // 🎯 FOCO RETORNA AO CÓDIGO DE BARRAS
             setTimeout(() => { document.getElementById('codigo_barras')?.focus(); }, 50);
             return;
         }
 
-        // 4. INJETA OS VALORES REAIS NOS COMPONENTES DO LAYOUT
-        document.getElementById('txt-modal-limite').innerText = 'R$ ' + limite.toFixed(2).replace('.', ',');
-        document.getElementById('txt-modal-saldo-apos').innerText = 'R$ ' + saldoApos.toFixed(2).replace('.', ',');
-        document.getElementById('txt-divida-total-pdv').innerText = 'R$ ' + dividaCalculada.toFixed(2).replace('.', ',');
+        // Injeta os valores reais do banco nos textos informativos do modal
+        if (document.getElementById('txt-modal-limite')) document.getElementById('txt-modal-limite').innerText = 'R$ ' + limite.toFixed(2).replace('.', ',');
+        if (document.getElementById('txt-modal-saldo-apos')) document.getElementById('txt-modal-saldo-apos').innerText = 'R$ ' + saldoApos.toFixed(2).replace('.', ',');
+        if (document.getElementById('txt-divida-total-pdv')) document.getElementById('txt-divida-total-pdv').innerText = 'R$ ' + dividaCalculada.toFixed(2).replace('.', ',');
         
+        // Alimenta o campo de digitação principal e configura as amarras de dados (Dataset)
         let inputValor = document.getElementById('valor_recebimento_pdv');
-        inputValor.value = dividaCalculada.toFixed(2);
-        inputValor.dataset.clienteId = window.cliente.id;
-        inputValor.dataset.dividaMaxima = dividaCalculada;
+        if (inputValor) {
+            inputValor.value = dividaCalculada.toFixed(2);
+            inputValor.dataset.clienteId = window.cliente.id;
+            inputValor.dataset.dividaMaxima = dividaCalculada;
+        }
 
+        // Restaura o botão de confirmação para o estado clicável
         let btn = document.getElementById('btn-confirmar-cc');
         if (btn) {
             btn.disabled = false;
             btn.innerText = 'Confirmar (Enter)';
         }
 
-        // 5. Abre o modal gráfico
+        // Abre o modal gráfico usando a instância do Bootstrap 5
         let modalQuitar = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuitarCarteiraPDV'));
-        modalQuitar.show();
+        if (modalQuitar) {
+            modalQuitar.show();
+        }
 
-        document.getElementById('modalQuitarCarteiraPDV').addEventListener('shown.bs.modal', function () {
-            inputValor.focus();
-            inputValor.select();
+        // Aplica o foco automático no input assim que a transição do modal terminar
+        document.getElementById('modalQuitarCarteiraPDV')?.addEventListener('shown.bs.modal', function () {
+            if (inputValor) {
+                inputValor.focus();
+                inputValor.select();
+            }
         }, { once: true });
     }
 
-    // FUNÇÃO PARA GRAVAR NO BANCO COM VALIDAÇÕES DE SEGURANÇA INTEGRADAS
+    // =========================================================================
+    // 2. PROCESSO DE GRAVAÇÃO (CHAMADO NO SUBMIT DO FORMULÁRIO DO MODAL)
+    // =========================================================================
     function processarPagamentoAvulsoPDV(event) {
         event.preventDefault(); 
 
         let inputValor = document.getElementById('valor_recebimento_pdv');
+        if (!inputValor) return;
+
         let clienteId = inputValor.dataset.clienteId;
-        
         let valorPago = parseFloat(parseFloat(inputValor.value).toFixed(2));
         let dividaMaxima = parseFloat(parseFloat(inputValor.dataset.dividaMaxima ?? 0).toFixed(2));
         
         let meio = document.getElementById('meio_recebimento_pdv').value;
         let vendaIdAtual = window.venda_id || window.venda?.id || null; 
 
-        // 🛑 TRAVA 3: Bloqueia valores zerados ou negativos
+        // TRAVA 2: Segurança redundante contra fraudes ou manipulação manual no console
+        if (dividaMaxima <= 0 || isNaN(dividaMaxima)) {
+            alert('ℹ️ Operação Recusada: Não há histórico de dívida activa para este cliente.');
+            let modalEl = document.getElementById('modalQuitarCarteiraPDV');
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+            setTimeout(() => { document.getElementById('codigo_barras')?.focus(); }, 50);
+            return;
+        }
+
+        // Validações estritas do valor digitado na caixa de texto pelo operador
         if (isNaN(valorPago) || valorPago <= 0) {
             alert('⚠️ Valor Inválido: Digite um valor maior que R$ 0,00 para processar o recebimento.');
             inputValor.focus();
             return;
         }
 
-        // 🛑 TRAVA 4: Impede receber mais do que o cliente deve
         if (valorPago > dividaMaxima) {
             alert(`⚠️ Valor Não Permitido: O valor digitado (R$ ${valorPago.toFixed(2).replace('.', ',')}) é maior do que a dívida total do cliente (R$ ${dividaMaxima.toFixed(2).replace('.', ',')}).`);
             inputValor.value = dividaMaxima.toFixed(2);
@@ -1039,12 +1059,14 @@
             return;
         }
 
+        // Desativa o botão temporariamente para evitar cliques duplos que geram duplicidade no banco
         let btn = document.getElementById('btn-confirmar-cc');
         if (btn) {
             btn.disabled = true;
             btn.innerText = 'Processando...';
         }
 
+        // Dispara o pagamento para a API do Laravel
         let urlPost = `/clientes/${clienteId}/credito/pagar`;
 
         fetch(urlPost, {
@@ -1067,46 +1089,68 @@
                 throw new Error(data.message || 'Erro interno no servidor.');
             }
 
-            let novoSaldoDisponivel = parseFloat(data.dados.saldo_disponivel);
+            // ➔ Captura os dados retornados de forma direta do nó "dados" configurado no Controller
+            let pagamentoId = data.dados?.pagamento_id || null;
             
-            alert('Pagamento processado com sucesso! Saldo e Venda atualizados no banco.');
-            
-            let modalEl = document.getElementById('modalQuitarCarteiraPDV');
-            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+            // 🎯 CORREÇÃO DO FIX: Declarado apenas uma única vez no escopo seguro da resposta
+            let novoSaldoDisponivel = parseFloat(data.dados?.saldo_disponivel ?? 0);
 
+            // 🖨️ DISPARA A IMPRESSÃO UTILIZANDO O ID EXATO DO BANCO (MULTI-CAIXAS SEGURO)
+            if (pagamentoId) {
+                window.open(`/clientes/credito/exibircomprovante/${pagamentoId}`, '_blank');
+            } else {
+                console.error('⚠️ Atenção: O pagamento foi salvo, mas a sua API não retornou a propriedade pagamento_id no JSON.');
+            }
+
+            // =================================================================
+            // 🔄 SINCRO DE INTERFACE - ATUALIZA O ESTADO DO SEU PDV EM TEMPO REAL
+            // =================================================================
+            let modalEl = document.getElementById('modalQuitarCarteiraPDV');
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+
+            // Sincroniza a memória RAM do cliente logado com o novo saldo livre enviado pelo Laravel
             window.cliente.saldo = novoSaldoDisponivel;
             window.cliente.status = 'ativo';
 
+            // Altera visualmente a tag de badge de restrição para Ativo (Verde)
             const badgeStatus = document.querySelector('.badge');
             if (badgeStatus) {
                 badgeStatus.textContent = 'Ativo';
                 badgeStatus.className = 'badge bg-success';
             }
 
+            // Atualiza o espelho de saldo na tela de fechamento de venda
             const textoSaldo = document.getElementById('saldo-cliente-finalizar');
             if (textoSaldo) {
                 textoSaldo.textContent = `Saldo: R$ ${novoSaldoDisponivel.toFixed(2).replace('.', ',')}`;
             }
 
+            // Libera o input de pagamento por carteira se ele estava bloqueado na venda atual do PDV
             const containerCarteira = document.querySelector('input[placeholder="Não Permitido"]')?.parentElement;
             if (containerCarteira) {
                 containerCarteira.innerHTML = `<input type="number" step="0.01" class="form-control text-end input-pagamento" id="input_ca_carteira" name="pagamento_carteira" placeholder="0,00">`;
                 
                 let totalCompraAtual = parseFloat(document.getElementById('total-venda')?.textContent || 96.00);
-                document.getElementById('input_ca_carteira').value = totalCompraAtual.toFixed(2);
-                document.getElementById('input_ca_carteira').focus();
+                let inputCaCarteira = document.getElementById('input_ca_carteira');
+                if (inputCaCarteira) {
+                    inputCaCarteira.value = totalCompraAtual.toFixed(2);
+                    inputCaCarteira.focus();
+                }
             } else {
-                // 🎯 CASO NÃO ABRA O CAMPO DE COMPRA DA CARTEIRA, O FOCO VOLTA PRO PRODUTO
+                // Caso não precise injetar o input de pagamento, o cursor volta pro leitor de código de barras
                 setTimeout(() => { document.getElementById('codigo_barras')?.focus(); }, 50);
             }
+
+            // Exibe o aviso final em tela
+            alert('Pagamento processado com sucesso!');
         })
         .catch(error => {
             alert('Erro operacional do banco: ' + error.message);
+            // Em caso de falha física de rede/banco, devolve o botão para o operador tentar novamente
             if (btn) {
                 btn.disabled = false;
                 btn.innerText = 'Confirmar (Enter)';
             }
-            // 🎯 EM CASO DE ERRO DE REDE/BANCO, RETORNA O FOCO PARA RE-DIGITAÇÃO NO MODAL
             inputValor.focus();
         });
     }
