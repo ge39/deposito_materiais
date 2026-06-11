@@ -828,7 +828,7 @@
 </div>
 
  <!-- // Função global chamada pelo atalho F9 -->
-<script>
+<!-- <script>
     window.solicitarPagamentoAvulso = function() {
         // 1. Validação de segurança padrão
         if (!window.cliente || !window.cliente.id) {
@@ -954,9 +954,163 @@
             }
         });
     }
+</script> -->
 
+<!-- // Função global chamada pelo atalho F9 -->
+<script>
+    window.solicitarPagamentoAvulso = function() {
+        // 1. Validação de segurança padrão
+        if (!window.cliente || !window.cliente.id) {
+            alert('⚠️ Operação Inválida: Identifique o cliente no PDV antes de receber o pagamento da carteira!');
+            // 🎯 FOCO RETORNA AO CÓDIGO DE BARRAS
+            setTimeout(() => { document.getElementById('codigo_barras')?.focus(); }, 50);
+            return;
+        }
+
+        let limite = parseFloat(window.cliente.limite ?? 0);
+        let saldoApos = parseFloat(window.cliente.saldo ?? 0);
+        
+        if (limite === 0) {
+            limite = 100.00;
+        }
+
+        // 3. A MATEMÁTICA CORRETA
+        let dividaCalculada = parseFloat((limite - saldoApos).toFixed(2));
+
+        // 🛑 TRAVA 1: Impede a abertura do modal se o cliente não possuir dívida ativa
+        if (dividaCalculada <= 0) {
+            alert('ℹ️ Este cliente já possui o saldo totalmente quitado. Não há valores pendentes na carteira!');
+            // 🎯 FOCO RETORNA AO CÓDIGO DE BARRAS
+            setTimeout(() => { document.getElementById('codigo_barras')?.focus(); }, 50);
+            return;
+        }
+
+        // 4. INJETA OS VALORES REAIS NOS COMPONENTES DO LAYOUT
+        document.getElementById('txt-modal-limite').innerText = 'R$ ' + limite.toFixed(2).replace('.', ',');
+        document.getElementById('txt-modal-saldo-apos').innerText = 'R$ ' + saldoApos.toFixed(2).replace('.', ',');
+        document.getElementById('txt-divida-total-pdv').innerText = 'R$ ' + dividaCalculada.toFixed(2).replace('.', ',');
+        
+        let inputValor = document.getElementById('valor_recebimento_pdv');
+        inputValor.value = dividaCalculada.toFixed(2);
+        inputValor.dataset.clienteId = window.cliente.id;
+        inputValor.dataset.dividaMaxima = dividaCalculada;
+
+        let btn = document.getElementById('btn-confirmar-cc');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = 'Confirmar (Enter)';
+        }
+
+        // 5. Abre o modal gráfico
+        let modalQuitar = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuitarCarteiraPDV'));
+        modalQuitar.show();
+
+        document.getElementById('modalQuitarCarteiraPDV').addEventListener('shown.bs.modal', function () {
+            inputValor.focus();
+            inputValor.select();
+        }, { once: true });
+    }
+
+    // FUNÇÃO PARA GRAVAR NO BANCO COM VALIDAÇÕES DE SEGURANÇA INTEGRADAS
+    function processarPagamentoAvulsoPDV(event) {
+        event.preventDefault(); 
+
+        let inputValor = document.getElementById('valor_recebimento_pdv');
+        let clienteId = inputValor.dataset.clienteId;
+        
+        let valorPago = parseFloat(parseFloat(inputValor.value).toFixed(2));
+        let dividaMaxima = parseFloat(parseFloat(inputValor.dataset.dividaMaxima ?? 0).toFixed(2));
+        
+        let meio = document.getElementById('meio_recebimento_pdv').value;
+        let vendaIdAtual = window.venda_id || window.venda?.id || null; 
+
+        // 🛑 TRAVA 3: Bloqueia valores zerados ou negativos
+        if (isNaN(valorPago) || valorPago <= 0) {
+            alert('⚠️ Valor Inválido: Digite um valor maior que R$ 0,00 para processar o recebimento.');
+            inputValor.focus();
+            return;
+        }
+
+        // 🛑 TRAVA 4: Impede receber mais do que o cliente deve
+        if (valorPago > dividaMaxima) {
+            alert(`⚠️ Valor Não Permitido: O valor digitado (R$ ${valorPago.toFixed(2).replace('.', ',')}) é maior do que a dívida total do cliente (R$ ${dividaMaxima.toFixed(2).replace('.', ',')}).`);
+            inputValor.value = dividaMaxima.toFixed(2);
+            inputValor.focus();
+            return;
+        }
+
+        let btn = document.getElementById('btn-confirmar-cc');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = 'Processando...';
+        }
+
+        let urlPost = `/clientes/${clienteId}/credito/pagar`;
+
+        fetch(urlPost, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({
+                valor: valorPago,
+                meio_captura: meio,
+                venda_id: vendaIdAtual
+            })
+        })
+        .then(async response => {
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro interno no servidor.');
+            }
+
+            let novoSaldoDisponivel = parseFloat(data.dados.saldo_disponivel);
+            
+            alert('Pagamento processado com sucesso! Saldo e Venda atualizados no banco.');
+            
+            let modalEl = document.getElementById('modalQuitarCarteiraPDV');
+            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+
+            window.cliente.saldo = novoSaldoDisponivel;
+            window.cliente.status = 'ativo';
+
+            const badgeStatus = document.querySelector('.badge');
+            if (badgeStatus) {
+                badgeStatus.textContent = 'Ativo';
+                badgeStatus.className = 'badge bg-success';
+            }
+
+            const textoSaldo = document.getElementById('saldo-cliente-finalizar');
+            if (textoSaldo) {
+                textoSaldo.textContent = `Saldo: R$ ${novoSaldoDisponivel.toFixed(2).replace('.', ',')}`;
+            }
+
+            const containerCarteira = document.querySelector('input[placeholder="Não Permitido"]')?.parentElement;
+            if (containerCarteira) {
+                containerCarteira.innerHTML = `<input type="number" step="0.01" class="form-control text-end input-pagamento" id="input_ca_carteira" name="pagamento_carteira" placeholder="0,00">`;
+                
+                let totalCompraAtual = parseFloat(document.getElementById('total-venda')?.textContent || 96.00);
+                document.getElementById('input_ca_carteira').value = totalCompraAtual.toFixed(2);
+                document.getElementById('input_ca_carteira').focus();
+            } else {
+                // 🎯 CASO NÃO ABRA O CAMPO DE COMPRA DA CARTEIRA, O FOCO VOLTA PRO PRODUTO
+                setTimeout(() => { document.getElementById('codigo_barras')?.focus(); }, 50);
+            }
+        })
+        .catch(error => {
+            alert('Erro operacional do banco: ' + error.message);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = 'Confirmar (Enter)';
+            }
+            // 🎯 EM CASO DE ERRO DE REDE/BANCO, RETORNA O FOCO PARA RE-DIGITAÇÃO NO MODAL
+            inputValor.focus();
+        });
+    }
 </script>
-
 
 <!-- BLINDAGEM DE INICIALIZAÇÃO: TRAVA CARTEIRA PARA VENDA BALCÃO -->
 <script>
