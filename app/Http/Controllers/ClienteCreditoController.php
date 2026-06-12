@@ -282,126 +282,126 @@ class ClienteCreditoController extends Controller
     // }
 
     public function pagarCredito(Request $request, $id)
-{
-    $request->validate([
-        'valor'        => 'required|numeric|min:0.01',
-        'meio_captura' => 'required|string|in:dinheiro,pix,debito',
-        'venda_id'     => 'nullable|integer' 
-    ]);
+    {
+        $request->validate([
+            'valor'        => 'required|numeric|min:0.01',
+            'meio_captura' => 'required|string|in:dinheiro,pix,debito',
+            'venda_id'     => 'nullable|integer' 
+        ]);
 
-    $usuarioLogado = auth()->user();
-    if (!$usuarioLogado) {
-        return response()->json(['status' => 'error', 'message' => 'Sessão expirada.'], 401);
-    }
-
-    try {
-        // Altera o retorno da transação para entregar um array com os dois dados essenciais
-        $retornoTransacao = DB::transaction(function () use ($request, $id, $usuarioLogado) {
-            
-            // 1. 🔒 Localiza e trava a sessão de caixa ativa do operador logado
-            $caixaAtivo = DB::table('caixas')
-                ->where('user_id', $usuarioLogado->id) 
-                ->where('status', 'aberto')            
-                ->lockForUpdate()
-                ->first();
-
-            if (!$caixaAtivo) {
-                throw new \Exception('Operação Negada: O operador não possui uma sessão de caixa aberta para este turno.');
-            }
-
-            // 2. Captura as configurações de crédito do cliente
-            $creditoConfig = DB::table('cliente_creditos')->where('cliente_id', $id)->first();
-            $limiteCredito = $creditoConfig ? (float) $creditoConfig->limite_credito : 500.00;
-
-            // 3. 🔒 Trava e busca o último registro do cliente na Conta Corrente
-            $ultimaMovimentacao = DB::table('cliente_conta_correntes')
-                ->where('cliente_id', $id)
-                ->orderByDesc('id')
-                ->lockForUpdate()
-                ->first();
-
-            $saldoAtual = $ultimaMovimentacao !== null ? (float) $ultimaMovimentacao->saldo_apos : $limiteCredito;
-            $novoSaldoCC = $saldoAtual + (float) $request->valor;
-
-            // 4. 🔥 INSERE O PAGAMENTO NA TABELA VINCULANDO O VENDA_ID RECEBIDO
-            $ccId = DB::table('cliente_conta_correntes')->insertGetId([
-                'cliente_id'         => $id,
-                'venda_id'           => $request->input('venda_id'), 
-                'pagamento_venda_id' => null, 
-                'tipo'               => 'credito', 
-                'origem'             => 'pagamento', 
-                'valor'              => (float) $request->valor,
-                'saldo_apos'         => $novoSaldoCC, 
-                'descricao'          => "Recebimento de pagamento / amortização de carteira via " . strtoupper($request->meio_captura),
-                'created_at'         => now(),
-                'updated_at'         => now()
-            ]);
-
-            // 5. REGRA DE DESBLOQUEIO AUTOMÁTICO
-            if (round($novoSaldoCC, 2) >= round($limiteCredito, 2)) {
-                DB::table('cliente_creditos')->where('cliente_id', $id)->update([
-                    'status' => 'ativo',
-                    'updated_at' => now()
-                ]);
-
-                DB::table('clientes')->where('id', $id)->update([
-                    'bloqueado_credito'     => 0,
-                    'data_bloqueio_credito' => null,
-                    'ativo'                 => '1', 
-                    'updated_at'            => now()
-                ]);
-            }
-
-            // 6. REGISTRA A AUDITORIA CONTÁBIL
-            DB::table('cliente_historico_creditos')->insert([
-                'cliente_id'     => $id,
-                'tipo_evento'    => 'desbloqueio',
-                'descricao'      => "Quitação de saldo devedor via " . strtoupper($request->meio_captura) . " no valor de R$ " . number_format($request->valor, 2, ',', '.') . ". Vinculado à Venda ID #" . $request->input('venda_id'),
-                'score_anterior' => DB::table('clientes')->where('id', $id)->value('score_credito') ?? 100,
-                'score_novo'     => DB::table('clientes')->where('id', $id)->value('score_credito') ?? 100,
-                'created_at'     => now()
-            ]);
-
-            // 7. REGISTRA NO FLUXO DE CAIXA DO PDV
-            DB::table('movimentacoes_caixa')->insert([
-                'caixa_id'          => $caixaAtivo->id,
-                'user_id'           => $usuarioLogado->id, 
-                'tipo'              => 'entrada', 
-                'forma_pagamento'   => $request->meio_captura, 
-                'valor'             => (float) $request->valor,
-                'valor_auditado'    => 0.00,
-                'origem_id'         => $ccId, 
-                'observacao'        => "Recebimento de saldo de carteira. Cliente ID #{$id}", 
-                'data_movimentacao' => now(),
-                'created_at'        => now(),
-                'updated_at'        => now()
-                ]);
-
-                \Illuminate\Support\Facades\Cache::forget("cliente_saldo_{$id}");
-
-                // Retorna os dois dados capturados dentro do escopo seguro do banco
-                return [
-                    'pagamento_id'     => $ccId,
-                    'saldo_disponivel' => $novoSaldoCC
-                ];
-            });
-
-            // 💎 RETORNO JSON COMPLETAMENTE CORRIGIDO (DADOS COMPATÍVEIS COM MÚLTIPLOS PDVS)
-            return response()->json([
-                'status'  => 'success',
-                'message' => 'Pagamento vinculado à venda com sucesso!',
-                'dados'   => [
-                    'pagamento_id'     => $retornoTransacao['pagamento_id'], // ➔ Agora o ID é entregue com sucesso!
-                    'saldo_disponivel' => $retornoTransacao['saldo_disponivel']
-                ]
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => $e->getMessage()
-            ], 400);
+        $usuarioLogado = auth()->user();
+        if (!$usuarioLogado) {
+            return response()->json(['status' => 'error', 'message' => 'Sessão expirada.'], 401);
         }
+
+        try {
+            // Altera o retorno da transação para entregar um array com os dois dados essenciais
+            $retornoTransacao = DB::transaction(function () use ($request, $id, $usuarioLogado) {
+                
+                // 1. 🔒 Localiza e trava a sessão de caixa ativa do operador logado
+                $caixaAtivo = DB::table('caixas')
+                    ->where('user_id', $usuarioLogado->id) 
+                    ->where('status', 'aberto')            
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$caixaAtivo) {
+                    throw new \Exception('Operação Negada: O operador não possui uma sessão de caixa aberta para este turno.');
+                }
+
+                // 2. Captura as configurações de crédito do cliente
+                $creditoConfig = DB::table('cliente_creditos')->where('cliente_id', $id)->first();
+                $limiteCredito = $creditoConfig ? (float) $creditoConfig->limite_credito : 500.00;
+
+                // 3. 🔒 Trava e busca o último registro do cliente na Conta Corrente
+                $ultimaMovimentacao = DB::table('cliente_conta_correntes')
+                    ->where('cliente_id', $id)
+                    ->orderByDesc('id')
+                    ->lockForUpdate()
+                    ->first();
+
+                $saldoAtual = $ultimaMovimentacao !== null ? (float) $ultimaMovimentacao->saldo_apos : $limiteCredito;
+                $novoSaldoCC = $saldoAtual + (float) $request->valor;
+
+                // 4. 🔥 INSERE O PAGAMENTO NA TABELA VINCULANDO O VENDA_ID RECEBIDO
+                $ccId = DB::table('cliente_conta_correntes')->insertGetId([
+                    'cliente_id'         => $id,
+                    'venda_id'           => $request->input('venda_id'), 
+                    'pagamento_venda_id' => null, 
+                    'tipo'               => 'credito', 
+                    'origem'             => 'pagamento', 
+                    'valor'              => (float) $request->valor,
+                    'saldo_apos'         => $novoSaldoCC, 
+                    'descricao'          => "Recebimento de pagamento / amortização de carteira via " . strtoupper($request->meio_captura),
+                    'created_at'         => now(),
+                    'updated_at'         => now()
+                ]);
+
+                // 5. REGRA DE DESBLOQUEIO AUTOMÁTICO
+                if (round($novoSaldoCC, 2) >= round($limiteCredito, 2)) {
+                    DB::table('cliente_creditos')->where('cliente_id', $id)->update([
+                        'status' => 'ativo',
+                        'updated_at' => now()
+                    ]);
+
+                    DB::table('clientes')->where('id', $id)->update([
+                        'bloqueado_credito'     => 0,
+                        'data_bloqueio_credito' => null,
+                        'ativo'                 => '1', 
+                        'updated_at'            => now()
+                    ]);
+                }
+
+                // 6. REGISTRA A AUDITORIA CONTÁBIL
+                DB::table('cliente_historico_creditos')->insert([
+                    'cliente_id'     => $id,
+                    'tipo_evento'    => 'desbloqueio',
+                    'descricao'      => "Quitação de saldo devedor via " . strtoupper($request->meio_captura) . " no valor de R$ " . number_format($request->valor, 2, ',', '.') . ". Vinculado à Venda ID #" . $request->input('venda_id'),
+                    'score_anterior' => DB::table('clientes')->where('id', $id)->value('score_credito') ?? 100,
+                    'score_novo'     => DB::table('clientes')->where('id', $id)->value('score_credito') ?? 100,
+                    'created_at'     => now()
+                ]);
+
+                // 7. REGISTRA NO FLUXO DE CAIXA DO PDV
+                DB::table('movimentacoes_caixa')->insert([
+                    'caixa_id'          => $caixaAtivo->id,
+                    'user_id'           => $usuarioLogado->id, 
+                    'tipo'              => 'entrada', 
+                    'forma_pagamento'   => $request->meio_captura, 
+                    'valor'             => (float) $request->valor,
+                    'valor_auditado'    => 0.00,
+                    'origem_id'         => $ccId, 
+                    'observacao'        => "Recebimento de saldo de carteira. Cliente ID #{$id}", 
+                    'data_movimentacao' => now(),
+                    'created_at'        => now(),
+                    'updated_at'        => now()
+                    ]);
+
+                    \Illuminate\Support\Facades\Cache::forget("cliente_saldo_{$id}");
+
+                    // Retorna os dois dados capturados dentro do escopo seguro do banco
+                    return [
+                        'pagamento_id'     => $ccId,
+                        'saldo_disponivel' => $novoSaldoCC
+                    ];
+                });
+
+                // 💎 RETORNO JSON COMPLETAMENTE CORRIGIDO (DADOS COMPATÍVEIS COM MÚLTIPLOS PDVS)
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => 'Pagamento vinculado à venda com sucesso!',
+                    'dados'   => [
+                        'pagamento_id'     => $retornoTransacao['pagamento_id'], // ➔ Agora o ID é entregue com sucesso!
+                        'saldo_disponivel' => $retornoTransacao['saldo_disponivel']
+                    ]
+                ], 200);
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => $e->getMessage()
+                ], 400);
+            }
     }
 
 
@@ -467,6 +467,7 @@ class ClienteCreditoController extends Controller
                 'cliente_conta_correntes.valor',
                 'cliente_conta_correntes.saldo_apos',
                 'cliente_conta_correntes.origem',
+                'cliente_conta_correntes.tipo',
                 'cliente_conta_correntes.created_at',
                 'clientes.nome as cliente_nome'
             )
@@ -481,6 +482,7 @@ class ClienteCreditoController extends Controller
         $cliente   = $pagamento->cliente_nome;
         $valor     = number_format($pagamento->valor, 2, ',', '.');
         $meio      = strtoupper($pagamento->origem ?: 'DINHEIRO');
+        $tipo      = $pagamento->tipo;
         $saldo     = number_format($pagamento->saldo_apos, 2, ',', '.');
         $dataHora  = date('d/m/Y H:i:s', strtotime($pagamento->created_at));
 
@@ -515,6 +517,7 @@ class ClienteCreditoController extends Controller
                 <div><b>Cliente:</b> $cliente</div>
                 <hr>
                 <div class='valor-destaque'>VALOR PAGO: R$ $valor</div>
+                 <div><b>Forma de Pagamento:</b> $tipo</div>
                 <div><b>Saldo Restante na Carteira:</b> R$ $saldo</div>
                 <hr>
                 <div class='bloco-assinatura'>______________________________________________________<br>Assinatura do Cliente</div>
@@ -532,6 +535,7 @@ class ClienteCreditoController extends Controller
                 <div><b>Cliente:</b> $cliente</div>
                 <hr>
                 <div class='valor-destaque'>VALOR PAGO: R$ $valor</div>
+                 <div><b>Forma de Pagamento:</b> $tipo</div>
                 <div><b>Saldo Restante na Carteira:</b> R$ $saldo</div>
                 <hr>
                 <div class='bloco-assinatura'>______________________________________________________<br>Controle Interno do Caixa</div>

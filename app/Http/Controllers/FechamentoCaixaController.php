@@ -18,79 +18,15 @@ class FechamentoCaixaController extends Controller
     /**
      * Mostra a view de fechamento/auditoria
      */
-
-    // public function index($caixaId)
-    // {
-    //     $caixa = Caixa::with('movimentacoes')->findOrFail($caixaId);
-    
-    //     $total_esperado = CaixaService::total_esperado($caixaId);
-
-    //     $total_entradas = DB::table('movimentacoes_caixa')
-    //         ->where('caixa_id', $caixaId)
-    //         // ->whereIn('tipo', ['abertura', 'entrada_manual', 'venda'])
-    //         // ->where('tipo', 'venda')
-    //         ->sum('valor');
-           
-
-    //     $total_saidas = DB::table('movimentacoes_caixa')
-    //     ->where('caixa_id', $caixaId)
-    //     ->whereIn('tipo', ['saida_manual', 'cancelamento_venda'])
-    //     ->sum('valor');
-        
-
-    //     /** ============================
-    //      * INICIALIZAÇÃO SEGURA
-    //      * ============================ */
-    //     $divergencia = 0;
-    //     $totaisPorForma = [];
-    //     $totalGeralSistema = 0;
-    //     $total_sangrias = 0;
-
-    //      $total_sangrias = DB::table('movimentacoes_caixa')
-    //     ->where('caixa_id', $caixaId)
-    //     ->where('tipo', 'sangria')
-    //     ->where('forma_pagamento', 'sangria')
-    //     ->sum('valor');
-
-    //     /** ============================
-    //      * TOTAIS DO SISTEMA POR FORMA
-    //      * ============================ */
-    //     if ($caixa->vendas->count()) {
-    //         foreach ($caixa->vendas as $venda) {
-    //             foreach ($venda->pagamentos as $pag) {
-    //                 if ($pag->status !== 'confirmado') {
-    //                     continue;
-    //                 }
-
-    //                 $forma = $pag->forma_pagamento;
-    //                 $totaisPorForma[$forma] = ($totaisPorForma[$forma] ?? 0) + $pag->valor;
-    //             }
-    //         }
-
-    //         $totalGeralSistema = array_sum($totaisPorForma);
-    //     }
-
-    //         return view('fechamento_caixa.index', compact(
-    //             'caixa',
-    //             'total_entradas',
-    //             'total_saidas',
-    //             'total_esperado',
-    //             'divergencia',
-    //             'totaisPorForma',
-    //             'totalGeralSistema',
-    //             'total_sangrias'
-    //         ));
-    // }
-
     // public function index($caixaId)
     // {
     //     // 1️⃣ Carrega o caixa garantindo que ele exista
     //     $caixa = Caixa::findOrFail($caixaId);
 
-    //     // 2️⃣ TOTAL ENTRADAS: Soma tudo o que injetou dinheiro (Abertura, Vendas do PDV, Aportes/Entradas Manuais)
+    //     // 2️⃣ TOTAL ENTRADAS: Soma tudo o que injetou dinheiro no caixa_id
     //     $total_entradas = DB::table('movimentacoes_caixa')
     //         ->where('caixa_id', $caixaId)
-    //         ->whereIn('tipo', ['abertura', 'venda'])
+    //         ->whereIn('tipo', ['abertura', 'venda', 'entrada', 'aporte', 'entrada_manual'])
     //         ->sum('valor');
 
     //     // 3️⃣ TOTAL SAÍDAS: Soma retiradas manuais, despesas e cancelamentos
@@ -105,39 +41,59 @@ class FechamentoCaixaController extends Controller
     //         ->where('tipo', 'sangria')
     //         ->sum('valor');
 
-    //     // 5️⃣ FORMAS DE PAGAMENTO DO SISTEMA: Inicializa a matriz zerada para a Blade
+    //     // 5️⃣ FORMAS DE PAGAMENTO DO SISTEMA: Cálculos isolados com filtros estritos (Evita mistura de escopo)
+    //     // ➔ Dinheiro: Filtra estritamente o dinheiro físico que entrou por movimentação real
+    //     $dinheiroReal = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'dinheiro')
+    //         ->whereIn('tipo', ['venda', 'entrada', 'entrada_manual', 'aporte'])
+    //         ->sum('valor');
+
+    //     // ➔ Pix: Soma apenas transações via Pix
+    //     $pixReal = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'pix')
+    //         ->whereIn('tipo', ['venda', 'entrada', 'entrada_manual'])
+    //         ->sum('valor');
+
+    //     // ➔ Carteira (Crediário): Captura as vendas feitas na caderneta de forma isolada
+    //     $carteiraReal = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'carteira')
+    //         ->whereIn('tipo', ['venda', 'entrada', 'entrada_manual'])
+    //         ->sum('valor');
+
+    //     // ➔ Cartão Débito
+    //     $debitoReal = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'cartao_debito')
+    //         ->whereIn('tipo', ['venda', 'entrada', 'entrada_manual'])
+    //         ->sum('valor');
+
+    //     // ➔ Cartão Crédito
+    //     $creditoReal = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'cartao_credito')
+    //         ->whereIn('tipo', ['venda', 'entrada', 'entrada_manual'])
+    //         ->sum('valor');
+
+    //     // Alimenta a matriz final que a Blade consome com os valores tipados corretamente
     //     $totaisPorForma = [
-    //         'dinheiro'       => 0.00,
-    //         'pix'            => 0.00,
-    //         'carteira'       => 0.00,
-    //         'cartao_debito'  => 0.00,
-    //         'cartao_credito' => 0.00
+    //         'dinheiro'       => (float) $dinheiroReal,       // Vai exibir os R$ 653,00 exatos do lote
+    //         'pix'            => (float) $pixReal,
+    //         'carteira'       => (float) $carteiraReal,
+    //         'cartao_debito'  => (float) $debitoReal,
+    //         'cartao_credito' => (float) $creditoReal
     //     ];
 
-    //     // Busca e agrupa os valores de vendas ou lançamentos manuais já consolidados nesta fita
-    //     $movimentosAgrupados = DB::table('movimentacoes_caixa')
-    //         ->where('caixa_id', $caixaId)
-    //         ->whereIn('tipo', ['venda', 'entrada_manual']) // Lê as vendas do dia E os fechamentos dos caixas antigos
-    //         ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
-    //         ->groupBy('forma_pagamento')
-    //         ->get();
-
-    //     foreach ($movimentosAgrupados as $mov) {
-    //         $forma = strtolower(trim($mov->forma_pagamento));
-    //         // Remove possíveis variações de escrita (ex: "cartao debito" vira "cartao_debito")
-    //         $forma = str_replace(' ', '_', $forma); 
-
-    //         if (array_key_exists($forma, $totaisPorForma)) {
-    //             $totaisPorForma[$forma] = (float) $mov->total;
-    //         }
-    //     }
-
-    //     // 6️⃣ MATEMÁTICA CONSOLIDADA DO SISTEMA
-    //     $totalGeralSistema = array_sum($totaisPorForma);
-
-    //     // O esperado em dinheiro físico é: Fundo de Troco + Entradas em Dinheiro Vivo - Saídas/Sangrias
-    //     $dinheiroDoSistema = $totaisPorForma['dinheiro'] ?? 0.00;
-    //     $total_esperado = ($caixa->fundo_troco + $dinheiroDoSistema) - ($total_saidas + $total_sangrias);
+    //     // 6️⃣ MATEMÁTICA CONSOLIDADA E ISOLADA DO DINHEIRO
+    //     $dinheiroDasVendas = $totaisPorForma['dinheiro'] ?? 0.00; 
+        
+    //     // 🔥 FÓRMULA CORRETA: Fundo de troco (150) + Entradas em espécie (653) - Saídas (0) - Sangrias (0) = R$ 803,00
+    //     $total_esperado = ($caixa->fundo_troco + $dinheiroDasVendas) - ($total_saidas + $total_sangrias);
+        
+    //     // Total Geral do Sistema para exibição e conferência na Blade
+    //     $totalGeralSistema = array_sum($totaisPorForma) + $caixa->fundo_troco;
         
     //     $divergencia = 0.00;
 
@@ -160,12 +116,23 @@ class FechamentoCaixaController extends Controller
     {
         // 1️⃣ Carrega o caixa garantindo que ele exista
         $caixa = Caixa::findOrFail($caixaId);
-
-        // 2️⃣ TOTAL ENTRADAS: Soma tudo o que injetou dinheiro no caixa_id
+        // 2️⃣ TOTAL ENTRADAS: Faturamento líquido real do turno (💎 FIX: Removemos 'abertura' daqui para não inflar as entradas)
         $total_entradas = DB::table('movimentacoes_caixa')
             ->where('caixa_id', $caixaId)
-            ->whereIn('tipo', ['abertura', 'venda', 'entrada', 'aporte', 'entrada_manual'])
+            ->whereIn('tipo', ['venda', 'entrada', 'aporte', 'entrada_manual'])
             ->sum('valor');
+
+        // 🔍 BUSCA DA OBSERVAÇÃO: Busca a última movimentação deste caixa que possua uma observação preenchida
+        $movimentacaoComObservacao = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->whereNotNull('observacao')
+            ->where('observacao', '<>', '')
+            ->latest('id') // Pega a mais recente primeiro
+            ->first();
+
+        // Define a variável com o texto encontrado ou uma string vazia caso não exista nada
+        $observacao = $movimentacaoComObservacao->observacao ?? '';
+
 
         // 3️⃣ TOTAL SAÍDAS: Soma retiradas manuais, despesas e cancelamentos
         $total_saidas = DB::table('movimentacoes_caixa')
@@ -179,55 +146,94 @@ class FechamentoCaixaController extends Controller
             ->where('tipo', 'sangria')
             ->sum('valor');
 
-        // 5️⃣ FORMAS DE PAGAMENTO DO SISTEMA: Inicializa a matriz zerada para a Blade
+        // =========================================================================
+        // 5️⃣ FORMAS DE PAGAMENTO DO SISTEMA: SEPARAÇÃO SECO POR TIPO E FORMA
+        // =========================================================================
+        
+        // ➔ Dinheiro (Estritamente Vendas Diretas no Balcão em Espécie)
+        $dinheiroVendas = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->where('forma_pagamento', 'dinheiro')
+            ->where('tipo', 'venda') // Venda direta
+            ->sum('valor');
+
+        // ➔ 💎 NOVO: Dinheiro vindo de Recebimentos de Carteira (F9 / Amortizações)
+        $dinheiroCarteiraRecebida = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->where('forma_pagamento', 'dinheiro')
+            ->where('tipo', 'entrada') // Recebimento de conta
+            ->sum('valor');
+
+        // ➔ Aportes e Entradas Manuais na gaveta de dinheiro
+        $dinheiroAportesManuais = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->where('forma_pagamento', 'dinheiro')
+            ->whereIn('tipo', ['entrada_manual','entrada', 'aporte'])
+            ->sum('valor');
+
+        // ➔ Pix (Apenas Vendas Diretas)
+        $pixReal = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->where('forma_pagamento', 'pix')
+            ->where('tipo', 'venda')
+            ->sum('valor');
+
+        // ➔ Carteira (Apenas o que foi ASSINADO a prazo na caderneta neste turno - Venda a prazo)
+        $carteiraReal = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->where('forma_pagamento', 'carteira')
+            ->where('tipo', 'venda')
+            ->sum('valor');
+
+        // ➔ Cartão Débito (Apenas Vendas Diretas)
+        $debitoReal = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->where('forma_pagamento', 'cartao_debito')
+            ->where('tipo', 'venda')
+            ->sum('valor');
+
+        // ➔ Cartão Crédito (Apenas Vendas Diretas)
+        $creditoReal = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->where('forma_pagamento', 'cartao_credito')
+            ->where('tipo', 'venda')
+            ->sum('valor');
+
+        // Alimenta a matriz final que a Blade consome com as chaves separadas
         $totaisPorForma = [
-            'dinheiro'       => 0.00,
-            'pix'            => 0.00,
-            'carteira'       => 0.00,
-            'cartao_debito'  => 0.00,
-            'cartao_credito' => 0.00
+            'dinheiro'             => (float) $dinheiroVendas,
+            'recebimento_carteira' => (float) $dinheiroCarteiraRecebida, // 💎 Nova linha para a Blade
+            'dinheiro_manual'      => (float) $dinheiroAportesManuais,
+            'pix'                  => (float) $pixReal,
+            'carteira'             => (float) $carteiraReal,
+            'cartao_debito'        => (float) $debitoReal,
+            'cartao_credito'       => (float) $creditoReal
         ];
 
-        // Busca e agrupa os valores diretamente pelo caixa_id, independente de ID da venda
-        $movimentosAgrupados = DB::table('movimentacoes_caixa')
-            ->where('caixa_id', $caixaId)
-            ->whereIn('tipo', ['venda', 'entrada_manual', 'entrada', 'aporte']) // Ignora 'abertura' aqui para não duplicar no dinheiro de venda
-            ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
-            ->groupBy('forma_pagamento')
-            ->get();
-
-        foreach ($movimentosAgrupados as $mov) {
-            $forma = strtolower(trim($mov->forma_pagamento));
-            $forma = str_replace(' ', '_', $forma);
-            
-            // Remove acentuações para bater com as chaves
-            $forma = preg_replace('/[áàãâä]/u', 'a', $forma);
-            $forma = preg_replace('/[éèêë]/u', 'e', $forma);
-            $forma = preg_replace('/[íìîï]/u', 'i', $forma);
-            $forma = preg_replace('/[óòõôö]/u', 'o', $forma);
-            $forma = preg_replace('/[úùûü]/u', 'u', $forma);
-            $forma = str_replace('ç', 'c', $forma);
-
-            if (array_key_exists($forma, $totaisPorForma)) {
-                $totaisPorForma[$forma] = (float) $mov->total;
-            }
-        }
-
+        // =========================================================================
         // 6️⃣ MATEMÁTICA CONSOLIDADA E ISOLADA DO DINHEIRO
-        $dinheiroDasVendas = $totaisPorForma['dinheiro'] ?? 0.00; // R$ 986,00
+        // =========================================================================
         
-        // 🔥 FÓRMULA SOMA SOMENTE O DINHEIRO: Abertura (220) + Vendas Dinheiro (986) - Saídas - Sangrias
-        // Dá exatamente o total esperado em espécie na gaveta: R$ 1.206,00
-        $total_esperado = ($caixa->fundo_troco + $dinheiroDasVendas) - ($total_saidas + $total_sangrias);
+        // O total arrecadado fisicamente em dinheiro vivo na gaveta soma as vendas, as quitações e aportes
+        $totalDinheiroEntradoNoTurno = $dinheiroVendas + $dinheiroCarteiraRecebida + $dinheiroAportesManuais;
+
+        // 🔥 FÓRMULA CORRETA DA GAVETA: Fundo de troco (200) + Todo Dinheiro Vivo que entrou (10) - Saídas (0) - Sangrias (0) = R$ 210,00 esperados em espécie!
+        $total_esperado = ($caixa->fundo_troco + $totalDinheiroEntradoNoTurno) - ($total_saidas + $total_sangrias);
         
-        // Total Geral do Sistema (Soma de todas as formas + Fundo Inicial) para bater com as Entradas Totais (R$ 1.358,00)
-        $totalGeralSistema = array_sum($totaisPorForma) + $caixa->fundo_troco;
+        // Total Geral do faturamento líquido registrado no sistema pelas formas de pagamento (R$ 10,00)
+        // 💎 FIX: Não embutimos o fundo de troco aqui para o card de faturamento não confundir o operador
+        $totalGeralSistema = array_sum($totaisPorForma); 
         
         $divergencia = 0.00;
 
-        // Carrega o histórico completo de movimentações para alimentar a tabela do rodapé da Blade
-        $caixa->setRelation('movimentacoes', $caixa->movimentacoes()->orderBy('id', 'asc')->get());
-
+        // Carrega o histórico completo filtrando a linha de abertura para o extrato do rodapé não duplicar os totais
+        $caixa->setRelation('movimentacoes', $caixa->movimentacoes()
+            ->where('tipo', '!=', 'abertura') // 💎 FIX: Limpa a linha de abertura do loop do rodapé
+            ->orderBy('id', 'asc')
+            ->get());
+        
+        
+        
         return view('fechamento_caixa.index', compact(
             'caixa',
             'total_entradas',
@@ -236,7 +242,8 @@ class FechamentoCaixaController extends Controller
             'divergencia',
             'totaisPorForma',
             'totalGeralSistema',
-            'total_sangrias'
+            'total_sangrias',
+            'observacao',
         ));
     }
    
@@ -854,27 +861,191 @@ class FechamentoCaixaController extends Controller
     }
 
     //FAZ A AUDITORIA DO FECHAMENTO
-    public function auditar(Request $request, $id)
-    {
-        $movimentacao = MovimentacaoCaixa::findOrFail($id);
+    // public function auditar(Request $request, $id)
+    // {
+    //     $movimentacao = MovimentacaoCaixa::findOrFail($id);
 
-        if ($movimentacao->tipo !== 'fechamento') {
-            return redirect()->back()
-                ->withErrors('Somente o fechamento de caixa pode ser auditado.');
-        }
+    //     if ($movimentacao->tipo !== 'fechamento') {
+    //         return redirect()->back()
+    //             ->withErrors('Somente o fechamento de caixa pode ser auditado.');
+    //     }
 
-        $request->validate([
-            'valor_auditado' => ['required', 'numeric', 'min:0'],
-        ]);
+    //     $request->validate([
+    //         'valor_auditado' => ['required', 'numeric', 'min:0'],
+    //     ]);
 
-        $movimentacao->update([
-            'valor_auditado' => $request->valor_auditado,
-            'user_id' => auth()->id(),
-            'observacao' => 'Correção de divergência',
-        ]);
+    //     $movimentacao->update([
+    //         'valor_auditado' => $request->valor_auditado,
+    //         'user_id' => auth()->id(),
+    //         'observacao' => 'Correção de divergência',
+    //     ]);
 
-        return back()->with('success', 'Auditoria registrada com sucesso.');
-    }
+    //     return back()->with('success', 'Auditoria registrada com sucesso.');
+    // }
+
+    // FAZ A AUDITORIA DO FECHAMENTO SEGUINDO AS BOAS PRÁTICAS
+    // public function auditar(\Illuminate\Http\Request $request, $caixaId)
+    // {
+    //     // 1️⃣ Validação rigorosa dos dados de entrada
+    //     $request->validate([
+    //         'valor_auditado' => ['required', 'numeric', 'min:0'],
+    //         'justificativa'  => ['nullable', 'string', 'max:255'], // Campo opcional para o auditor
+    //     ]);
+
+    //     $usuarioLogado = auth()->user();
+    //     if (!$usuarioLogado) {
+    //         return redirect()->back()->withErrors('Sessão expirada. Faça login novamente.');
+    //     }
+
+    //     try {
+    //         // 2️⃣ Executa a auditoria dentro de uma transação isolada para blindar múltiplos PDVs
+    //         \Illuminate\Support\Facades\DB::transaction(function () use ($request, $caixaId, $usuarioLogado) {
+                
+    //             // 🔒 Localiza a movimentação de fechamento vinculada estritamente a este Caixa e aplica o travamento
+    //             $movimentacao = \App\Models\MovimentacaoCaixa::where('caixa_id', (int) $caixaId)
+    //                 ->where('tipo', 'fechamento')
+    //                 ->lockForUpdate() // Impede concorrência de dados se dois gerentes tentarem auditar juntos
+    //                 ->first();
+
+    //             if (!$movimentacao) {
+    //                 throw new \Exception('Operação Negada: O registro de fechamento para este caixa não foi localizado.');
+    //             }
+
+    //             // 🧠 PRESERVAÇÃO DE HISTÓRICO: Junta a observação antiga com a nota da nova auditoria
+    //             $observacaoAntiga = $movimentacao->observacao ? $movimentacao->observacao . ' | ' : '';
+    //             $notaAuditor = $request->input('justificativa', 'Correção de divergência efetuada na auditoria.');
+    //             $novaObservacao = $observacaoAntiga . "Auditado por: {$usuarioLogado->nome}. Nota: " . $notaAuditor;
+
+    //             // 3️⃣ Realiza a atualização segura dos valores auditados
+    //             \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
+    //                 ->where('id', $movimentacao->id)
+    //                 ->update([
+    //                     'valor_auditado' => (float) $request->valor_auditado,
+    //                     'user_id'        => $usuarioLogado->id, // Grava qual auditor/gerente fez a correção
+    //                     'observacao'     => $novaObservacao,
+    //                     'updated_at'     => now()
+    //                 ]);
+
+    //             // Se o seu sistema possuir uma tabela de 'caixas', você pode opcionalmente mudar o status dele aqui
+    //             \Illuminate\Support\Facades\DB::table('caixas')
+    //                 ->where('id', $caixaId)
+    //                 ->update([
+    //                     'status'     => 'auditado', // Altera de 'inconsistente' para 'auditado'
+    //                     'updated_at' => now()
+    //                 ]);
+    //         });
+
+    //         return redirect()->back()->with('success', 'Auditoria de caixa registrada com sucesso.');
+
+    //     } catch (\Exception $e) {
+    //         return redirect()->back()->withErrors('Erro ao processar auditoria: ' + $e->getMessage());
+    //     }
+    // }
+
+    // FAZ A AUDITORIA DO FECHAMENTO RECALCULANDO OS TOTAIS DO SISTEMA DE FORMA SEPARADA
+    // public function auditar(\Illuminate\Http\Request $request, $caixaId)
+    // {
+    //     // 1️⃣ Validação rigorosa do valor enviado pelo auditor
+    //     $request->validate([
+    //         'valor_auditado' => ['required', 'numeric', 'min:0'],
+    //     ]);
+
+    //     $usuarioLogado = auth()->user();
+    //     if (!$usuarioLogado) {
+    //         return redirect()->back()->withErrors('Sessão expirada. Faça login novamente.');
+    //     }
+
+    //     try {
+    //         // 2️⃣ Executa a operação dentro de uma transação isolada (Impede erro concorrente em múltiplos PDVs)
+    //         \Illuminate\Support\Facades\DB::transaction(function () use ($request, $caixaId, $usuarioLogado) {
+                
+    //             // 🔒 Localiza e trava a linha de movimentação do tipo 'fechamento' para este caixa específico
+    //             $movimentacaoFechamento = \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
+    //                 ->where('caixa_id', (int) $caixaId)
+    //                 ->where('tipo', 'fechamento')
+    //                 ->lockForUpdate()
+    //                 ->first();
+
+    //             if (!$movimentacaoFechamento) {
+    //                 throw new \Exception('O registro de fechamento para este caixa não foi localizado.');
+    //             }
+
+    //             // 🔒 Localiza e trava a tabela mestre do Caixa para atualização dos cards da tela
+    //             $caixa = \Illuminate\Support\Facades\DB::table('caixas')
+    //                 ->where('id', (int) $caixaId)
+    //                 ->lockForUpdate()
+    //                 ->first();
+
+    //             if (!$caixa) {
+    //                 throw new \Exception('Caixa mestre não localizado.');
+    //             }
+
+    //             // 🧮 A NOVA MATEMÁTICA DA CORREÇÃO (SINCRONIZADA COM AS REGRAS DO INDEX):
+                
+    //             // ➔ Pega apenas o dinheiro físico que entrou por Vendas Diretas no Balcão
+    //             $dinheiroVendasBalcao = \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
+    //                 ->where('caixa_id', $caixaId)
+    //                 ->where('forma_pagamento', 'dinheiro')
+    //                 ->where('tipo', 'venda')
+    //                 ->sum('valor');
+
+    //             // ➔ Pega apenas o dinheiro físico que entrou por Recebimentos de Carteira (F9 / Quitações)
+    //             $dinheiroCarteiraRecebida = \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
+    //                 ->where('caixa_id', $caixaId)
+    //                 ->where('forma_pagamento', 'dinheiro')
+    //                 ->where('tipo', 'entrada')
+    //                 ->sum('valor');
+
+    //             // ➔ Soma também aportes ou entradas manuais avulsas em espécie se houverem
+    //             $dinheiroAportesManuais = \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
+    //                 ->where('caixa_id', $caixaId)
+    //                 ->where('forma_pagamento', 'dinheiro')
+    //                 ->where('tipo', 'entrada_manual')
+    //                 ->sum('valor');
+
+    //             // 📊 O total arrecadado real em dinheiro vivo neste turno é a união das três fontes limpas
+    //             $faturamentoDinheiroTotal = (float)$dinheiroVendasBalcao + (float)$dinheiroCarteiraRecebida + (float)$dinheiroAportesManuais;
+
+    //             // Total esperado em espécie na gaveta: Fundo de troco + Todo o faturamento real em dinheiro vivo
+    //             $totalEsperadoDinheiro = (float) $caixa->fundo_troco + $faturamentoDinheiroTotal;
+
+    //             // O novo valor informado pelo auditor na tela (Contagem física final do gerente)
+    //             $valorAuditadoInformado = (float) $request->valor_auditado;
+
+    //             // Diferença real entre o dinheiro que o sistema esperava e o que o gerente contou fisicamente
+    //             $novaDivergencia = $valorAuditadoInformado - $totalEsperadoDinheiro;
+
+    //             // Define o novo status contábil baseado no resultado do recálculo
+    //             $novoStatus = (round($novaDivergencia, 2) == 0) ? 'auditado' : 'inconsistente_revisado';
+
+    //             // 3️⃣ ATUALIZAÇÃO DA LINHA FILHO (movimentacoes_caixa)
+    //             $observacaoAntiga = $movimentacaoFechamento->observacao ? $movimentacaoFechamento->observacao . ' | ' : '';
+    //             \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
+    //                 ->where('id', $movimentacaoFechamento->id)
+    //                 ->update([
+    //                     'valor_auditado' => $valorAuditadoInformado,
+    //                     'user_id'        => $usuarioLogado->id,
+    //                     'observacao'     => $observacaoAntiga . "Auditado por: {$usuarioLogado->name}. Correção de divergência financeira baseada em fluxo real.",
+    //                     'updated_at'     => now()
+    //                 ]);
+
+    //             // 4️⃣ ATUALIZAÇÃO DA TABELA MESTRE (caixas) - CRUCIAL PARA CORRIGIR OS CARDS DA TELA
+    //             \Illuminate\Support\Facades\DB::table('caixas')
+    //                 ->where('id', $caixaId)
+    //                 ->update([
+    //                     'status'         => $novoStatus,
+    //                     // Se o seu banco possuir colunas de controle de divergência na tabela caixas, atualize aqui:
+    //                     // 'divergencia'  => $novaDivergencia, 
+    //                     'updated_at'     => now()
+    //                 ]);
+    //         });
+
+    //         return redirect()->back()->with('success', 'Auditoria contábil de caixa registrada com sucesso.');
+
+    //     } catch (\Exception $e) {
+    //         return redirect()->back()->withErrors('Erro ao processar recálculo de auditoria: ' . $e->getMessage());
+    //     }
+    // }
    
     //CORRIGE AS DIVERGÊNCIAS APÓS A AUDITORIA FISCAL e imprime mensagem na tela
    public function auditoria($caixa)

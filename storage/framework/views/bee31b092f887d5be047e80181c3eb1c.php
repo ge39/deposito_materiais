@@ -103,7 +103,7 @@
                 <div class="card-header fs-5 bg-primary text-white fw-bold"> Total Entradas / Saidas:</div>
                 <strong>✅ Total Entradas:</strong> R$ <?php echo e(number_format($total_entradas, 2, ',', '.')); ?><br>
                 <strong>Total Saídas:</strong> R$ <?php echo e(number_format($total_saidas, 2, ',', '.')); ?><br>
-                <span class="text-primary fw-bold"> ✅ Total  Esperado Dinheiro:</span> R$ <?php echo e(number_format($caixa->fundo_troco + ($totaisPorForma['dinheiro'] ?? 0), 2, ',', '.')); ?><br>
+                <span class="text-primary fw-bold"> ✅ Total Esperado Dinheiro:</span> R$ <?php echo e(number_format($caixa->fundo_troco + ($totaisPorForma['dinheiro'] ?? 0), 2, ',', '.')); ?><br>
                 <strong>Divergência:</strong> 
                 <span class="<?php echo e($divergencia != 0 ? 'text-danger fw-bold' : 'text-success fw-bold'); ?>">
                     R$ <?php echo e(number_format($divergencia, 2, ',', '.')); ?>
@@ -264,7 +264,9 @@
                     
                     
                     <div class="col-2 text-muted" style="font-size: 0.9rem;">
-                         Consol. <?php echo e($itensDoGrupo->count()); ?> venda(s)
+                         <!-- Consol. <?php echo e($itensDoGrupo->count()); ?> venda(s) -->
+                         <?php echo e($observacao); ?>
+
                          
                     </div>
                 </div>
