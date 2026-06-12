@@ -114,7 +114,7 @@
 
         <div class="col-md-4">
             <div class="card p-2">
-                <div class="card-header fs-5 bg-primary text-white fw-bold">Formas Pagamento (Sistema):</div>
+                <div class="card-header fs-5 bg-primary text-white fw-bold">Vendas PDV (Sistema):</div>
                 <strong>✅  Sistema</strong>
                 <ul class="list-unstyled mb-0">
                     <?php $__currentLoopData = ['dinheiro','pix','carteira','cartao_debito','cartao_credito']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $forma): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -199,7 +199,7 @@
         
         
         <div class="col-12 mb-4">
-            <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações - Recebimento Carteira</div>
+            <div class="card-header fs-5 bg-success p-1 text-white fw-bold"> Movimentações - Recebimento Carteira</div>
             <div class="movimentacoes-container">
 
             
@@ -355,10 +355,26 @@
 
             <!-- <strong>✅ Movimentações Gerais:</strong> R$ <?php echo e(number_format($geralMovimentacoes->sum('valor'), 2, ',', '.')); ?><br> -->
             
-            <div class="mt-3 p-2 bg-light border rounded d-flex justify-content-between align-items-center">
-    <span class="text-muted fw-bold">Total Geral Movimentações:</span>
-    <span class="fs-5 fw-bold text-success">R$ <?php echo e(number_format($total_entradas, 2, ',', '.')); ?></span>
-</div>
+            <div class="p-3 bg-light border rounded mt-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong class="fs-5 text-dark">Total Geral Movimentações:</strong>
+                        
+                        <div class="text-muted small mt-1">
+                            (Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <span class="fs-4 fw-bold text-success">R$ <?php echo e(number_format($total_entradas, 2, ',', '.')); ?></span>
+                        <div class="text-muted text-xs" style="font-size: 0.75rem;">
+                            R$ <?php echo e(number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.')); ?> + 
+                            R$ <?php echo e(number_format($carteiraMovimentacoes->sum('valor'), 2, ',', '.')); ?> - 
+                            R$ <?php echo e(number_format($total_saidas + $total_sangrias, 2, ',', '.')); ?>
+
+                        </div>
+                    </div>
+                </div>
+            </div>>
                 
 
             
