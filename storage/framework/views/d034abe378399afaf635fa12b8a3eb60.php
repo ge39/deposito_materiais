@@ -1151,7 +1151,7 @@
             }
 
             // Exibe o aviso final em tela
-            alert('Pagamento processado com sucesso!');
+            // alert('Pagamento processado com sucesso!');
         })
         .catch(error => {
             alert('Erro operacional do banco: ' + error.message);

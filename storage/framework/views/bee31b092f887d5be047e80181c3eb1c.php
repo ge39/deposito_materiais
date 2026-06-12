@@ -195,56 +195,49 @@
 
     
     <div class="row mt-4">
-        <div class="col-12">
-            <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações do Caixa</div>
+        
+        
+        
+        <div class="col-12 mb-4">
+            <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações - Recebimento Carteira</div>
             <div class="movimentacoes-container">
 
             
             <div class="row bg-light fw-bold py-2 px-3 border-bottom">
-                <!-- <div class="col-1">ID</div> -->
                 <div class="col-2">Tipo</div>
                 <div class="col-2">Forma</div>
                 <div class="col-2">Valor</div>
                 <div class="col-1">Origem</div>
                 <div class="col-2">Data</div>
-                <div class="col-2">Observação</div>
+                <div class="col-3">Observação</div>
             </div>
 
             
             <?php
-                $movimentacoesAgrupadas = $caixa->movimentacoes->groupBy(function($mov) {
-                    $forma = strtolower(trim($mov->forma_pagamento));
-                    // Se for abertura, joga no grupo do dinheiro para somar junto
-                    return $forma === 'abertura' ? 'dinheiro' : $forma;
+                $carteiraMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
+                    return in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
+                });
+
+                $movimentacoesAgrupadasCarteira = $carteiraMovimentacoes->groupBy(function($mov) {
+                    return strtolower(trim($mov->forma_pagamento));
                 });
             ?>
 
-            <?php $__currentLoopData = $movimentacoesAgrupadas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $formaGrupo => $itensDoGrupo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php $__empty_1 = true; $__currentLoopData = $movimentacoesAgrupadasCarteira; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $formaGrupo => $itensDoGrupo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                 <?php
-                    // Soma todos os valores pertencentes a este grupo específico
                     $totalDoGrupo = $itensDoGrupo->sum('valor');
-                    // Pega o primeiro item do grupo para exibir informações genéricas de layout
                     $primeiroItem = $itensDoGrupo->first();
                 ?>
                 <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
-                    <!-- 
-                    <div class="col-1 text-muted" style="font-size: 0.85rem;">
-                        <?php echo e($itensDoGrupo->pluck('id')->implode(', ')); ?>
-
-                    </div>
-                     -->
-                    
                     <div class="col-2">
-                        <?php echo e($itensDoGrupo->pluck('tipo')->unique()->count() > 1 ? 'Entradas' : ucfirst($primeiroItem->tipo)); ?>
+                        <?php echo e($itensDoGrupo->pluck('tipo')->unique()->count() > 1 ? 'Entradas' : ucfirst(str_replace('_', ' ', $primeiroItem->tipo))); ?>
 
                     </div>
-                    
                     
                     <div class="col-2 font-weight-bold">
                         <?php echo e(ucfirst(str_replace('_', ' ', $formaGrupo))); ?>
 
                     </div>
-                    
                     
                     <div class="col-2 text-success font-weight-bold">
                         R$ <?php echo e(number_format($totalDoGrupo, 2, ',', '.')); ?>
@@ -256,47 +249,128 @@
 
                     </div>
                     
-                    
                     <div class="col-2">
-                        <?php echo e($itensDoGrupo->max('data_movimentacao')->format('d/m/Y')); ?>
+                         <?php echo e($itensDoGrupo->max('data_movimentacao') ? \Carbon\Carbon::parse($itensDoGrupo->max('data_movimentacao'))->format('d/m/Y') : ''); ?>
 
                     </div>
                     
-                    
-                    <div class="col-2 text-muted" style="font-size: 0.9rem;">
-                         <!-- Consol. <?php echo e($itensDoGrupo->count()); ?> venda(s) -->
-                         <?php echo e($observacao); ?>
+                    <div class="col-3 text-muted" style="font-size: 0.9rem;">
+                         <?php echo e($primeiroItem->observacao ?: 'Recebimento de saldo de carteira.'); ?>
 
-                         
                     </div>
                 </div>
-                
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            <strong>✅ Movimentações:</strong> R$ <?php echo e(number_format($total_entradas, 2, ',', '.')); ?><br>
-
-
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhum recebimento de carteira neste turno.</div>
+            <?php endif; ?>
+            
+            <strong>✅ Total Carteira:</strong> R$ <?php echo e(number_format($carteiraMovimentacoes->sum('valor'), 2, ',', '.')); ?><br>
+            </div>
         </div>
 
-                <div class="mt-3">
-                        <?php if($caixa->estaAberto()): ?>
-                            <a href="<?php echo e(route('fechamento.view', $caixa->id)); ?>"
-                            class="btn btn-primary">
-                                Lançamento de Valores Manuais
-                            </a>
-                        <?php else: ?>
-                            <button class="btn btn-primary" disabled
-                                    title="Caixa já fechado">
-                                Lançamento de Valores Manuais
-                            </button>
-                        <?php endif; ?>
+        
+        
+        
+        <div class="col-12">
+            <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações do Caixa</div>
+            <div class="movimentacoes-container">
 
-                        <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary ">
-                            Cancelar
-                        </a>
+            
+            <div class="row bg-light fw-bold py-2 px-3 border-bottom">
+                <div class="col-2">Tipo</div>
+                <div class="col-2">Forma</div>
+                <div class="col-2">Valor</div>
+                <div class="col-1">Origem</div>
+                <div class="col-2">Data</div>
+                <div class="col-3">Observação</div>
+            </div>
+
+            
+            <?php
+                $geralMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
+                    return !in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
+                });
+
+                $movimentacoesAgrupadasGeral = $geralMovimentacoes->groupBy(function($mov) {
+                    $forma = strtolower(trim($mov->forma_pagamento));
+                    return $forma === 'abertura' ? 'dinheiro' : $forma;
+                });
+            ?>
+
+            <?php $__empty_1 = true; $__currentLoopData = $movimentacoesAgrupadasGeral; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $formaGrupo => $itensDoGrupo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <?php
+                    $totalDoGrupo = $itensDoGrupo->sum('valor');
+                    $primeiroItem = $itensDoGrupo->first();
+                ?>
+                <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
+                    <div class="col-2">
+                        <?php echo e($itensDoGrupo->pluck('tipo')->unique()->count() > 1 ? 'Mix' : ucfirst(str_replace('_', ' ', $primeiroItem->tipo))); ?>
+
+                    </div>
+                    
+                    <div class="col-2 font-weight-bold">
+                        <?php echo e(ucfirst(str_replace('_', ' ', $formaGrupo))); ?>
+
+                    </div>
+                    
+                    <div class="col-2 text-success font-weight-bold">
+                        R$ <?php echo e(number_format($totalDoGrupo, 2, ',', '.')); ?>
+
+                    </div>
+                    
+                    <div class="col-1">
+                         Caixa <?php echo e($caixa->id); ?>
+
+                    </div>
+                    
+                    <div class="col-2">
+                        <?php echo e($itensDoGrupo->max('data_movimentacao') ? \Carbon\Carbon::parse($itensDoGrupo->max('data_movimentacao'))->format('d/m/Y') : ''); ?>
+
+                    </div>
+                    
+                    <div class="col-3 text-muted" style="font-size: 0.9rem;">
+                         <?php echo e($primeiroItem->observacao ?: 'Movimentação padrão de turno.'); ?>
+
+                    </div>
                 </div>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhuma movimentação geral de caixa registrada.</div>
+            <?php endif; ?>
+            
+            <strong>✅ Total Vendas:</strong> R$ <?php echo e(number_format($geralMovimentacoes->sum('valor'), 2, ',', '.')); ?><br>
+            </div>
+
+            <!-- <strong>✅ Movimentações Gerais:</strong> R$ <?php echo e(number_format($geralMovimentacoes->sum('valor'), 2, ',', '.')); ?><br> -->
+            
+            <div class="mt-3 p-2 bg-light border rounded d-flex justify-content-between align-items-center">
+    <span class="text-muted fw-bold">Total Geral Movimentações:</span>
+    <span class="fs-5 fw-bold text-success">R$ <?php echo e(number_format($total_entradas, 2, ',', '.')); ?></span>
+</div>
+                
+
+            
+            
+            
+            <div class="mt-3">
+                    <?php if($caixa->estaAberto()): ?>
+                        <a href="<?php echo e(route('fechamento.view', $caixa->id)); ?>"
+                        class="btn btn-primary">
+                            Lançamento de Valores Manuais
+                        </a>
+                    <?php else: ?>
+                        <button class="btn btn-primary" disabled
+                                title="Caixa já fechado">
+                            Lançamento de Valores Manuais
+                        </button>
+                    <?php endif; ?>
+
+                    <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary ">
+                        Cancelar
+                    </a>
+            </div>
 
         </div>
     </div>
+
 
 </div>
 <?php $__env->stopSection(); ?>

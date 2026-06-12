@@ -196,54 +196,48 @@
         TABELA DE MOVIMENTAÇÕES
     ======================== --}}
     <div class="row mt-4">
-        <div class="col-12">
-            <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações do Caixa</div>
+        {{-- ========================================================================= --}}
+        {{-- 💳 TABELA 1: MOVIMENTAÇÕES - RECEBIMENTO CARTEIRA --}}
+        {{-- ========================================================================= --}}
+        <div class="col-12 mb-4">
+            <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações - Recebimento Carteira</div>
             <div class="movimentacoes-container">
 
             {{-- Cabeçalho --}}
             <div class="row bg-light fw-bold py-2 px-3 border-bottom">
-                <!-- <div class="col-1">ID</div> -->
                 <div class="col-2">Tipo</div>
                 <div class="col-2">Forma</div>
                 <div class="col-2">Valor</div>
                 <div class="col-1">Origem</div>
                 <div class="col-2">Data</div>
-                <div class="col-2">Observação</div>
+                <div class="col-3">Observação</div>
             </div>
 
-            {{-- Linhas de movimentação agrupadas por Forma de Pagamento --}}
+            {{-- Filtra APENAS os tipos de recebimento de carteira e agrupa por forma --}}
             @php
-                $movimentacoesAgrupadas = $caixa->movimentacoes->groupBy(function($mov) {
-                    $forma = strtolower(trim($mov->forma_pagamento));
-                    // Se for abertura, joga no grupo do dinheiro para somar junto
-                    return $forma === 'abertura' ? 'dinheiro' : $forma;
+                $carteiraMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
+                    return in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
+                });
+
+                $movimentacoesAgrupadasCarteira = $carteiraMovimentacoes->groupBy(function($mov) {
+                    return strtolower(trim($mov->forma_pagamento));
                 });
             @endphp
 
-            @foreach($movimentacoesAgrupadas as $formaGrupo => $itensDoGrupo)
+            @forelse($movimentacoesAgrupadasCarteira as $formaGrupo => $itensDoGrupo)
                 @php
-                    // Soma todos os valores pertencentes a este grupo específico
                     $totalDoGrupo = $itensDoGrupo->sum('valor');
-                    // Pega o primeiro item do grupo para exibir informações genéricas de layout
                     $primeiroItem = $itensDoGrupo->first();
                 @endphp
                 <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
-                    <!-- {{-- Exibe uma lista com todos os IDs que compõem esse grupo --}}
-                    <div class="col-1 text-muted" style="font-size: 0.85rem;">
-                        {{ $itensDoGrupo->pluck('id')->implode(', ') }}
-                    </div>
-                     -->
-                    {{-- Tipo: Se houver mais de um tipo (ex: abertura e venda), exibe 'Mix' ou o principal --}}
                     <div class="col-2">
-                        {{ $itensDoGrupo->pluck('tipo')->unique()->count() > 1 ? 'Entradas' : ucfirst($primeiroItem->tipo) }}
+                        {{ $itensDoGrupo->pluck('tipo')->unique()->count() > 1 ? 'Entradas' : ucfirst(str_replace('_', ' ', $primeiroItem->tipo)) }}
                     </div>
                     
-                    {{-- Forma de Pagamento Padronizada --}}
                     <div class="col-2 font-weight-bold">
                         {{ ucfirst(str_replace('_', ' ', $formaGrupo)) }}
                     </div>
                     
-                    {{-- Valor Total Consolidado do Grupo --}}
                     <div class="col-2 text-success font-weight-bold">
                         R$ {{ number_format($totalDoGrupo, 2, ',', '.') }}
                     </div>
@@ -252,45 +246,120 @@
                          Caixa {{$caixa->id }}
                     </div>
                     
-                    {{-- Data do último lançamento desse grupo --}}
                     <div class="col-2">
-                        {{ $itensDoGrupo->max('data_movimentacao')->format('d/m/Y') }}
+                         {{ $itensDoGrupo->max('data_movimentacao') ? \Carbon\Carbon::parse($itensDoGrupo->max('data_movimentacao'))->format('d/m/Y') : '' }}
                     </div>
                     
-                    {{-- Observação Consolidadora --}}
-                    <div class="col-2 text-muted" style="font-size: 0.9rem;">
-                         <!-- Consol. {{ $itensDoGrupo->count() }} venda(s) -->
-                         {{ $observacao }}
-                         
+                    <div class="col-3 text-muted" style="font-size: 0.9rem;">
+                         {{ $primeiroItem->observacao ?: 'Recebimento de saldo de carteira.' }}
                     </div>
                 </div>
-                
-            @endforeach
-            <strong>✅ Movimentações:</strong> R$ {{ number_format($total_entradas, 2, ',', '.') }}<br>
-
-
+            @empty
+                <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhum recebimento de carteira neste turno.</div>
+            @endforelse
+            
+            <strong>✅ Total Carteira:</strong> R$ {{ number_format($carteiraMovimentacoes->sum('valor'), 2, ',', '.') }}<br>
+            </div>
         </div>
 
-                <div class="mt-3">
-                        @if($caixa->estaAberto())
-                            <a href="{{ route('fechamento.view', $caixa->id) }}"
-                            class="btn btn-primary">
-                                Lançamento de Valores Manuais
-                            </a>
-                        @else
-                            <button class="btn btn-primary" disabled
-                                    title="Caixa já fechado">
-                                Lançamento de Valores Manuais
-                            </button>
-                        @endif
+        {{-- ========================================================================= --}}
+        {{-- 🏪 TABELA 2: MOVIMENTAÇÕES DO CAIXA (VENDAS GERAIS E SAÍDAS) --}}
+        {{-- ========================================================================= --}}
+        <div class="col-12">
+            <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações do Caixa</div>
+            <div class="movimentacoes-container">
 
-                        <a href="{{ url()->previous() }}" class="btn btn-secondary ">
-                            Cancelar
-                        </a>
+            {{-- Cabeçalho --}}
+            <div class="row bg-light fw-bold py-2 px-3 border-bottom">
+                <div class="col-2">Tipo</div>
+                <div class="col-2">Forma</div>
+                <div class="col-2">Valor</div>
+                <div class="col-1">Origem</div>
+                <div class="col-2">Data</div>
+                <div class="col-3">Observação</div>
+            </div>
+
+            {{-- Filtra as movimentações normais (Gerais) REMOVENDO os recebimentos de carteira --}}
+            @php
+                $geralMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
+                    return !in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
+                });
+
+                $movimentacoesAgrupadasGeral = $geralMovimentacoes->groupBy(function($mov) {
+                    $forma = strtolower(trim($mov->forma_pagamento));
+                    return $forma === 'abertura' ? 'dinheiro' : $forma;
+                });
+            @endphp
+
+            @forelse($movimentacoesAgrupadasGeral as $formaGrupo => $itensDoGrupo)
+                @php
+                    $totalDoGrupo = $itensDoGrupo->sum('valor');
+                    $primeiroItem = $itensDoGrupo->first();
+                @endphp
+                <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
+                    <div class="col-2">
+                        {{ $itensDoGrupo->pluck('tipo')->unique()->count() > 1 ? 'Mix' : ucfirst(str_replace('_', ' ', $primeiroItem->tipo)) }}
+                    </div>
+                    
+                    <div class="col-2 font-weight-bold">
+                        {{ ucfirst(str_replace('_', ' ', $formaGrupo)) }}
+                    </div>
+                    
+                    <div class="col-2 text-success font-weight-bold">
+                        R$ {{ number_format($totalDoGrupo, 2, ',', '.') }}
+                    </div>
+                    
+                    <div class="col-1">
+                         Caixa {{$caixa->id }}
+                    </div>
+                    
+                    <div class="col-2">
+                        {{ $itensDoGrupo->max('data_movimentacao') ? \Carbon\Carbon::parse($itensDoGrupo->max('data_movimentacao'))->format('d/m/Y') : '' }}
+                    </div>
+                    
+                    <div class="col-3 text-muted" style="font-size: 0.9rem;">
+                         {{ $primeiroItem->observacao ?: 'Movimentação padrão de turno.' }}
+                    </div>
                 </div>
+            @empty
+                <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhuma movimentação geral de caixa registrada.</div>
+            @endforelse
+            
+            <strong>✅ Total Vendas:</strong> R$ {{ number_format($geralMovimentacoes->sum('valor'), 2, ',', '.') }}<br>
+            </div>
+
+            <!-- <strong>✅ Movimentações Gerais:</strong> R$ {{ number_format($geralMovimentacoes->sum('valor'), 2, ',', '.') }}<br> -->
+            
+            <div class="mt-3 p-2 bg-light border rounded d-flex justify-content-between align-items-center">
+    <span class="text-muted fw-bold">Total Geral Movimentações:</span>
+    <span class="fs-5 fw-bold text-success">R$ {{ number_format($total_entradas, 2, ',', '.') }}</span>
+</div>
+                
+
+            {{-- ========================================================================= --}}
+            {{-- BOTOÕES DE AÇÃO --}}
+            {{-- ========================================================================= --}}
+            <div class="mt-3">
+                    @if($caixa->estaAberto())
+                        <a href="{{ route('fechamento.view', $caixa->id) }}"
+                        class="btn btn-primary">
+                            Lançamento de Valores Manuais
+                        </a>
+                    @else
+                        <button class="btn btn-primary" disabled
+                                title="Caixa já fechado">
+                            Lançamento de Valores Manuais
+                        </button>
+                    @endif
+
+                    <a href="{{ url()->previous() }}" class="btn btn-secondary ">
+                        Cancelar
+                    </a>
+            </div>
 
         </div>
     </div>
+
 
 </div>
 @endsection

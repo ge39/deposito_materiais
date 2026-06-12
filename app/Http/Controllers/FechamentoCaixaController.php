@@ -112,14 +112,149 @@ class FechamentoCaixaController extends Controller
     //     ));
     // }
 
+    // public function index($caixaId)
+    // {
+    //     // 1️⃣ Carrega o caixa garantindo que ele exista
+    //     $caixa = Caixa::findOrFail($caixaId);
+    //     // 2️⃣ TOTAL ENTRADAS: Faturamento líquido real do turno (💎 FIX: Removemos 'abertura' daqui para não inflar as entradas)
+    //     $total_entradas = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->whereIn('tipo', ['venda', 'entrada', 'aporte', 'entrada_manual'])
+    //         ->sum('valor');
+
+    //     // 🔍 BUSCA DA OBSERVAÇÃO: Busca a última movimentação deste caixa que possua uma observação preenchida
+    //     $movimentacaoComObservacao = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->whereNotNull('observacao')
+    //         ->where('observacao', '<>', '')
+    //         ->latest('id') // Pega a mais recente primeiro
+    //         ->first();
+
+    //     // Define a variável com o texto encontrado ou uma string vazia caso não exista nada
+    //     $observacao = $movimentacaoComObservacao->observacao ?? '';
+
+
+    //     // 3️⃣ TOTAL SAÍDAS: Soma retiradas manuais, despesas e cancelamentos
+    //     $total_saidas = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->whereIn('tipo', ['saida_manual', 'cancelamento_venda', 'saida', 'despesa'])
+    //         ->sum('valor');
+
+    //     // 4️⃣ SANGRIAS: Isola o total de sangrias para dedução ou exibição limpa
+    //     $total_sangrias = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('tipo', 'sangria')
+    //         ->sum('valor');
+
+    //     // =========================================================================
+    //     // 5️⃣ FORMAS DE PAGAMENTO DO SISTEMA: SEPARAÇÃO SECO POR TIPO E FORMA
+    //     // =========================================================================
+        
+    //     // ➔ Dinheiro (Estritamente Vendas Diretas no Balcão em Espécie)
+    //     $dinheiroVendas = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'dinheiro')
+    //         ->where('tipo', 'venda') // Venda direta
+    //         ->sum('valor');
+
+    //     // ➔ 💎 NOVO: Dinheiro vindo de Recebimentos de Carteira (F9 / Amortizações)
+    //     $dinheiroCarteiraRecebida = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'dinheiro')
+    //         ->where('tipo', 'entrada') // Recebimento de conta
+    //         ->sum('valor');
+
+    //     // ➔ Aportes e Entradas Manuais na gaveta de dinheiro
+    //     $dinheiroAportesManuais = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'dinheiro')
+    //         ->whereIn('tipo', ['entrada_manual','entrada', 'aporte'])
+    //         ->sum('valor');
+
+    //     // ➔ Pix (Apenas Vendas Diretas)
+    //     $pixReal = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'pix')
+    //         ->where('tipo', 'venda')
+    //         ->sum('valor');
+
+    //     // ➔ Carteira (Apenas o que foi ASSINADO a prazo na caderneta neste turno - Venda a prazo)
+    //     $carteiraReal = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'carteira')
+    //         ->where('tipo', 'venda')
+    //         ->sum('valor');
+
+    //     // ➔ Cartão Débito (Apenas Vendas Diretas)
+    //     $debitoReal = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'cartao_debito')
+    //         ->where('tipo', 'venda')
+    //         ->sum('valor');
+
+    //     // ➔ Cartão Crédito (Apenas Vendas Diretas)
+    //     $creditoReal = DB::table('movimentacoes_caixa')
+    //         ->where('caixa_id', $caixaId)
+    //         ->where('forma_pagamento', 'cartao_credito')
+    //         ->where('tipo', 'venda')
+    //         ->sum('valor');
+
+    //     // Alimenta a matriz final que a Blade consome com as chaves separadas
+    //     $totaisPorForma = [
+    //         'dinheiro'             => (float) $dinheiroVendas,
+    //         'recebimento_carteira' => (float) $dinheiroCarteiraRecebida, // 💎 Nova linha para a Blade
+    //         'dinheiro_manual'      => (float) $dinheiroAportesManuais,
+    //         'pix'                  => (float) $pixReal,
+    //         'carteira'             => (float) $carteiraReal,
+    //         'cartao_debito'        => (float) $debitoReal,
+    //         'cartao_credito'       => (float) $creditoReal
+    //     ];
+
+    //     // =========================================================================
+    //     // 6️⃣ MATEMÁTICA CONSOLIDADA E ISOLADA DO DINHEIRO
+    //     // =========================================================================
+        
+    //     // O total arrecadado fisicamente em dinheiro vivo na gaveta soma as vendas, as quitações e aportes
+    //     $totalDinheiroEntradoNoTurno = $dinheiroVendas + $dinheiroCarteiraRecebida + $dinheiroAportesManuais;
+
+    //     // 🔥 FÓRMULA CORRETA DA GAVETA: Fundo de troco (200) + Todo Dinheiro Vivo que entrou (10) - Saídas (0) - Sangrias (0) = R$ 210,00 esperados em espécie!
+    //     $total_esperado = ($caixa->fundo_troco + $totalDinheiroEntradoNoTurno) - ($total_saidas + $total_sangrias);
+        
+    //     // Total Geral do faturamento líquido registrado no sistema pelas formas de pagamento (R$ 10,00)
+    //     // 💎 FIX: Não embutimos o fundo de troco aqui para o card de faturamento não confundir o operador
+    //     $totalGeralSistema = array_sum($totaisPorForma); 
+        
+    //     $divergencia = 0.00;
+
+    //     // Carrega o histórico completo filtrando a linha de abertura para o extrato do rodapé não duplicar os totais
+    //     $caixa->setRelation('movimentacoes', $caixa->movimentacoes()
+    //         ->where('tipo', '!=', 'abertura') // 💎 FIX: Limpa a linha de abertura do loop do rodapé
+    //         ->orderBy('id', 'asc')
+    //         ->get());
+        
+        
+        
+    //     return view('fechamento_caixa.index', compact(
+    //         'caixa',
+    //         'total_entradas',
+    //         'total_saidas',
+    //         'total_esperado',
+    //         'divergencia',
+    //         'totaisPorForma',
+    //         'totalGeralSistema',
+    //         'total_sangrias',
+    //         'observacao',
+    //     ));
+    // }
     public function index($caixaId)
     {
         // 1️⃣ Carrega o caixa garantindo que ele exista
         $caixa = Caixa::findOrFail($caixaId);
-        // 2️⃣ TOTAL ENTRADAS: Faturamento líquido real do turno (💎 FIX: Removemos 'abertura' daqui para não inflar as entradas)
+        
+        // 2️⃣ TOTAL ENTRADAS: Incluído o novo tipo 'entrada_pagto_carteira' para somar nos recebimentos reais do turno
         $total_entradas = DB::table('movimentacoes_caixa')
             ->where('caixa_id', $caixaId)
-            ->whereIn('tipo', ['venda', 'entrada', 'aporte', 'entrada_manual'])
+            ->whereIn('tipo', ['venda', 'entrada', 'aporte', 'entrada_manual', 'entrada_pagto_carteira'])
             ->sum('valor');
 
         // 🔍 BUSCA DA OBSERVAÇÃO: Busca a última movimentação deste caixa que possua uma observação preenchida
@@ -132,7 +267,6 @@ class FechamentoCaixaController extends Controller
 
         // Define a variável com o texto encontrado ou uma string vazia caso não exista nada
         $observacao = $movimentacaoComObservacao->observacao ?? '';
-
 
         // 3️⃣ TOTAL SAÍDAS: Soma retiradas manuais, despesas e cancelamentos
         $total_saidas = DB::table('movimentacoes_caixa')
@@ -147,35 +281,21 @@ class FechamentoCaixaController extends Controller
             ->sum('valor');
 
         // =========================================================================
-        // 5️⃣ FORMAS DE PAGAMENTO DO SISTEMA: SEPARAÇÃO SECO POR TIPO E FORMA
+        // 5️⃣ FORMAS DE PAGAMENTO DO SISTEMA: APENAS VENDAS DO DIA (SEM CARTEIRA)
         // =========================================================================
         
-        // ➔ Dinheiro (Estritamente Vendas Diretas no Balcão em Espécie)
+        // ➔ Dinheiro (Apenas Vendas Diretas no Balcão em Espécie)
         $dinheiroVendas = DB::table('movimentacoes_caixa')
             ->where('caixa_id', $caixaId)
             ->where('forma_pagamento', 'dinheiro')
-            ->where('tipo', 'venda') // Venda direta
+            ->where('tipo', 'venda') 
             ->sum('valor');
 
-        // ➔ 💎 NOVO: Dinheiro vindo de Recebimentos de Carteira (F9 / Amortizações)
-        $dinheiroCarteiraRecebida = DB::table('movimentacoes_caixa')
-            ->where('caixa_id', $caixaId)
-            ->where('forma_pagamento', 'dinheiro')
-            ->where('tipo', 'entrada') // Recebimento de conta
-            ->sum('valor');
-
-        // ➔ Aportes e Entradas Manuais na gaveta de dinheiro
-        $dinheiroAportesManuais = DB::table('movimentacoes_caixa')
-            ->where('caixa_id', $caixaId)
-            ->where('forma_pagamento', 'dinheiro')
-            ->whereIn('tipo', ['entrada_manual','entrada', 'aporte'])
-            ->sum('valor');
-
-        // ➔ Pix (Apenas Vendas Diretas)
+        // ➔ Pix (Apenas Vendas Diretas do Dia)
         $pixReal = DB::table('movimentacoes_caixa')
             ->where('caixa_id', $caixaId)
             ->where('forma_pagamento', 'pix')
-            ->where('tipo', 'venda')
+            ->where('tipo', 'venda') 
             ->sum('valor');
 
         // ➔ Carteira (Apenas o que foi ASSINADO a prazo na caderneta neste turno - Venda a prazo)
@@ -185,54 +305,81 @@ class FechamentoCaixaController extends Controller
             ->where('tipo', 'venda')
             ->sum('valor');
 
-        // ➔ Cartão Débito (Apenas Vendas Diretas)
+        // ➔ Cartão Débito (Apenas Vendas Diretas do Dia)
         $debitoReal = DB::table('movimentacoes_caixa')
             ->where('caixa_id', $caixaId)
-            ->where('forma_pagamento', 'cartao_debito')
-            ->where('tipo', 'venda')
+            ->whereIn('forma_pagamento', ['cartao_debito', 'debito', 'Debito'])
+            ->where('tipo', 'venda') 
             ->sum('valor');
 
-        // ➔ Cartão Crédito (Apenas Vendas Diretas)
+        // ➔ Cartão Crédito (Apenas Vendas Diretas do Dia)
         $creditoReal = DB::table('movimentacoes_caixa')
             ->where('caixa_id', $caixaId)
-            ->where('forma_pagamento', 'cartao_credito')
+            ->whereIn('forma_pagamento', ['cartao_credito', 'credito', 'Credito'])
             ->where('tipo', 'venda')
             ->sum('valor');
 
-        // Alimenta a matriz final que a Blade consome com as chaves separadas
+        // =========================================================================
+        // 📊 ISOLAMENTO COMPLETO DOS RECEBIMENTOS DE CARTEIRA (ENTRADA PAGTO CARTEIRA)
+        // =========================================================================
+        
+        // ➔ Dinheiro vindo de Recebimentos de Carteira
+        $dinheiroCarteiraRecebida = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->where('forma_pagamento', 'dinheiro')
+            ->whereIn('tipo', ['entrada', 'entrada_pagto_carteira']) 
+            ->sum('valor');
+
+        // ➔ Pix vindo de Recebimentos de Carteira
+        $pixCarteira = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->where('forma_pagamento', 'pix')
+            ->where('tipo', 'entrada_pagto_carteira')
+            ->sum('valor');
+
+        // ➔ Débito vindo de Recebimentos de Carteira
+        $debitoCarteira = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->whereIn('forma_pagamento', ['cartao_debito', 'debito', 'Debito'])
+            ->where('tipo', 'entrada_pagto_carteira')
+            ->sum('valor');
+
+        // ➔ Aportes e Entradas Manuais na gaveta de dinheiro
+        $dinheiroAportesManuais = DB::table('movimentacoes_caixa')
+            ->where('caixa_id', $caixaId)
+            ->where('forma_pagamento', 'dinheiro')
+            ->whereIn('tipo', ['entrada_manual', 'aporte']) 
+            ->sum('valor');
+
+               // Matriz de vendas do dia (alimenta o card da direita "Formas Pagamento (Sistema)")
         $totaisPorForma = [
-            'dinheiro'             => (float) $dinheiroVendas,
-            'recebimento_carteira' => (float) $dinheiroCarteiraRecebida, // 💎 Nova linha para a Blade
-            'dinheiro_manual'      => (float) $dinheiroAportesManuais,
-            'pix'                  => (float) $pixReal,
-            'carteira'             => (float) $carteiraReal,
-            'cartao_debito'        => (float) $debitoReal,
-            'cartao_credito'       => (float) $creditoReal
+            'dinheiro'       => (float) $dinheiroVendas,
+            'pix'            => (float) $pixReal,
+            'carteira'       => (float) $carteiraReal,
+            'cartao_debito'  => (float) $debitoReal,
+            'cartao_credito' => (float) $creditoReal
         ];
 
         // =========================================================================
-        // 6️⃣ MATEMÁTICA CONSOLIDADA E ISOLADA DO DINHEIRO
+        // 6️⃣ MATEMÁTICA CONSOLIDADA E ENTRADA DE VALORES NO CAIXA
         // =========================================================================
         
-        // O total arrecadado fisicamente em dinheiro vivo na gaveta soma as vendas, as quitações e aportes
+        // O total arrecadado fisicamente em DINHEIRO VIVO na gaveta soma: vendas em dinheiro + recebimentos de carteira em dinheiro + aportes
         $totalDinheiroEntradoNoTurno = $dinheiroVendas + $dinheiroCarteiraRecebida + $dinheiroAportesManuais;
 
-        // 🔥 FÓRMULA CORRETA DA GAVETA: Fundo de troco (200) + Todo Dinheiro Vivo que entrou (10) - Saídas (0) - Sangrias (0) = R$ 210,00 esperados em espécie!
+        // 🔥 FÓRMULA DA GAVETA (Dinheiro Esperado): Fundo de troco (150) + Todo Dinheiro Vivo (138 + 253) - Saídas (0) - Sangrias (0) = R$ 541,00
         $total_esperado = ($caixa->fundo_troco + $totalDinheiroEntradoNoTurno) - ($total_saidas + $total_sangrias);
         
-        // Total Geral do faturamento líquido registrado no sistema pelas formas de pagamento (R$ 10,00)
-        // 💎 FIX: Não embutimos o fundo de troco aqui para o card de faturamento não confundir o operador
+        // 💎 FIX: Agora o Total Sistema reflete EXATAMENTE as vendas diretas do PDV mostradas no card (R$ 336,00)
         $totalGeralSistema = array_sum($totaisPorForma); 
         
         $divergencia = 0.00;
 
         // Carrega o histórico completo filtrando a linha de abertura para o extrato do rodapé não duplicar os totais
         $caixa->setRelation('movimentacoes', $caixa->movimentacoes()
-            ->where('tipo', '!=', 'abertura') // 💎 FIX: Limpa a linha de abertura do loop do rodapé
+            ->where('tipo', '!=', 'abertura') 
             ->orderBy('id', 'asc')
             ->get());
-        
-        
         
         return view('fechamento_caixa.index', compact(
             'caixa',
@@ -246,6 +393,7 @@ class FechamentoCaixaController extends Controller
             'observacao',
         ));
     }
+
    
     public function listaCaixas()
     {
