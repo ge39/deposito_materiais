@@ -279,12 +279,19 @@
                 <div class="col-3">Observação</div>
             </div>
 
-            {{-- Filtra as movimentações normais (Gerais) REMOVENDO os recebimentos de carteira --}}
+           {{-- Filtra as movimentações normais (Gerais) REMOVENDO recebimentos de carteira e saídas/sangrias da soma de vendas --}}
             @php
+                // Pega tudo que não é recebimento de carteira
                 $geralMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
                     return !in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
                 });
 
+                // Isola APENAS as vendas reais do dia para o cálculo correto do rodapé do bloco
+                $vendasReaisDoBloco = $geralMovimentacoes->filter(function($mov) {
+                    return $mov->tipo === 'venda';
+                });
+
+                // Agrupa para a listagem em tela
                 $movimentacoesAgrupadasGeral = $geralMovimentacoes->groupBy(function($mov) {
                     $forma = strtolower(trim($mov->forma_pagamento));
                     return $forma === 'abertura' ? 'dinheiro' : $forma;
@@ -293,6 +300,11 @@
 
             @forelse($movimentacoesAgrupadasGeral as $formaGrupo => $itensDoGrupo)
                 @php
+                    // Se o grupo contiver uma sangria ou saída, tratamos a cor e o comportamento de soma
+                    $contemSaida = $itensDoGrupo->contains(function($item) {
+                        return in_array($item->tipo, ['sangria', 'saida_manual', 'despesa', 'saida']);
+                    });
+
                     $totalDoGrupo = $itensDoGrupo->sum('valor');
                     $primeiroItem = $itensDoGrupo->first();
                 @endphp
@@ -305,8 +317,9 @@
                         {{ ucfirst(str_replace('_', ' ', $formaGrupo)) }}
                     </div>
                     
-                    <div class="col-2 text-success font-weight-bold">
-                        R$ {{ number_format($totalDoGrupo, 2, ',', '.') }}
+                    {{-- 💎 FIX COR DO VALOR: Se for saída/sangria, exibe em vermelho. Se for entrada/venda, exibe em verde --}}
+                    <div class="col-2 font-weight-bold {{ $contemSaida ? 'text-danger' : 'text-success' }}">
+                        {{ $contemSaida ? '-' : '' }} R$ {{ number_format($totalDoGrupo, 2, ',', '.') }}
                     </div>
                     
                     <div class="col-1">
@@ -325,7 +338,8 @@
                 <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhuma movimentação geral de caixa registrada.</div>
             @endforelse
             
-            <strong>✅ Total Vendas:</strong> R$ {{ number_format($geralMovimentacoes->sum('valor'), 2, ',', '.') }}<br>
+                {{-- 💎 FIX DO TOTALIZADOR: Soma estritamente as Vendas do PDV, ignorando a sangria --}}
+                <strong>✅ Total Vendas:</strong> R$ {{ number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.') }}<br>
             </div>
 
             <!-- <strong>✅ Movimentações Gerais:</strong> R$ {{ number_format($geralMovimentacoes->sum('valor'), 2, ',', '.') }}<br> -->

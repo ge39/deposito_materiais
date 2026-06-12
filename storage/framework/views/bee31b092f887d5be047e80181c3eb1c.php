@@ -284,12 +284,19 @@
                 <div class="col-3">Observação</div>
             </div>
 
-            
+           
             <?php
+                // Pega tudo que não é recebimento de carteira
                 $geralMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
                     return !in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
                 });
 
+                // Isola APENAS as vendas reais do dia para o cálculo correto do rodapé do bloco
+                $vendasReaisDoBloco = $geralMovimentacoes->filter(function($mov) {
+                    return $mov->tipo === 'venda';
+                });
+
+                // Agrupa para a listagem em tela
                 $movimentacoesAgrupadasGeral = $geralMovimentacoes->groupBy(function($mov) {
                     $forma = strtolower(trim($mov->forma_pagamento));
                     return $forma === 'abertura' ? 'dinheiro' : $forma;
@@ -298,6 +305,11 @@
 
             <?php $__empty_1 = true; $__currentLoopData = $movimentacoesAgrupadasGeral; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $formaGrupo => $itensDoGrupo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                 <?php
+                    // Se o grupo contiver uma sangria ou saída, tratamos a cor e o comportamento de soma
+                    $contemSaida = $itensDoGrupo->contains(function($item) {
+                        return in_array($item->tipo, ['sangria', 'saida_manual', 'despesa', 'saida']);
+                    });
+
                     $totalDoGrupo = $itensDoGrupo->sum('valor');
                     $primeiroItem = $itensDoGrupo->first();
                 ?>
@@ -312,8 +324,9 @@
 
                     </div>
                     
-                    <div class="col-2 text-success font-weight-bold">
-                        R$ <?php echo e(number_format($totalDoGrupo, 2, ',', '.')); ?>
+                    
+                    <div class="col-2 font-weight-bold <?php echo e($contemSaida ? 'text-danger' : 'text-success'); ?>">
+                        <?php echo e($contemSaida ? '-' : ''); ?> R$ <?php echo e(number_format($totalDoGrupo, 2, ',', '.')); ?>
 
                     </div>
                     
@@ -336,7 +349,8 @@
                 <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhuma movimentação geral de caixa registrada.</div>
             <?php endif; ?>
             
-            <strong>✅ Total Vendas:</strong> R$ <?php echo e(number_format($geralMovimentacoes->sum('valor'), 2, ',', '.')); ?><br>
+                
+                <strong>✅ Total Vendas:</strong> R$ <?php echo e(number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.')); ?><br>
             </div>
 
             <!-- <strong>✅ Movimentações Gerais:</strong> R$ <?php echo e(number_format($geralMovimentacoes->sum('valor'), 2, ',', '.')); ?><br> -->
