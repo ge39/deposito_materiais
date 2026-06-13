@@ -203,7 +203,7 @@
         </form>
     </div>
 
-méricos originais:html
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // 🧠 Busca todos os inputs numéricos de finanças da sua tela

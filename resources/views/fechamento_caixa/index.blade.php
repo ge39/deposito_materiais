@@ -104,7 +104,9 @@
                 <div class="card-header fs-5 bg-primary text-white fw-bold"> Total Entradas / Saidas:</div>
                 <strong>✅ Total Entradas:</strong> R$ {{ number_format($total_entradas, 2, ',', '.') }}<br>
                 <strong>Total Saídas:</strong> R$ {{ number_format($total_saidas, 2, ',', '.') }}<br>
-                <span class="text-primary fw-bold"> ✅ Total Esperado Dinheiro:</span> R$ {{ number_format($caixa->fundo_troco + ($totaisPorForma['dinheiro'] ?? 0), 2, ',', '.') }}<br>
+                <!-- <span class="text-primary fw-bold"> ✅ Total Esperado Dinheiro:</span> R$ {{ number_format($caixa->fundo_troco + ($totaisPorForma['dinheiro'] ?? 0), 2, ',', '.') }}<br> -->
+                <span class="text-primary fw-bold"> ✅ Total Esperado Dinheiro:</span> R$ {{ number_format($total_esperado, 2, ',', '.') }}<br>
+
                 <strong>Divergência:</strong> 
                 <span class="{{ $divergencia != 0 ? 'text-danger fw-bold' : 'text-success fw-bold' }}">
                     R$ {{ number_format($divergencia, 2, ',', '.') }}
@@ -126,7 +128,10 @@
                 <ul class="list-unstyled mb-0">
                      ✅ 
                        <strong>Total Sistema:</strong>
-                        R$ {{ number_format($totalGeralSistema, 2, ',', '.') }}
+                        R$ {{ number_format($total_entradas, 2, ',', '.') }}
+                        <div class="text-muted text-xs" style="font-size: 0.75rem;">
+                            Pagamento <strong>Carteira</strong> não é contabilizado no fechamento do caixa
+                        </div>
                 </ul>
             </div>
         </div>
@@ -135,8 +140,7 @@
     {{-- =======================
         FORMULÁRIO DE FECHAMENTO
     ======================== --}}
-     {{ $caixa->status }}
-
+    
     @if($caixa->estaAberto() && auth()->user()->can('fechar-caixa'))
    
 
@@ -155,6 +159,7 @@
                 <input type="text" class="form-control" name="pix" id="pix" 
                        value="{{ number_format($totaisPorForma['pix'] ?? 0, 2, ',', '.') }}">
             </div>
+            
             <div class="col-md-4">
                 <label for="carteira" class="form-label">Carteira</label>
                 <input type="text" class="form-control" name="carteira" id="carteira" 
@@ -185,8 +190,6 @@
                             placeholder="Ex.: falha no terminal, pinpad inoperante, abertura indevida..."></textarea>
                 </div>
             @endif
-
-
 
         <button type="submit" class="btn btn-success">Fechar Caixa</button>
     </form>
@@ -259,6 +262,7 @@
             @endforelse
             
             <strong>✅ Total Carteira:</strong> R$ {{ number_format($carteiraMovimentacoes->sum('valor'), 2, ',', '.') }}<br>
+            
             </div>
         </div>
 
@@ -348,21 +352,31 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <strong class="fs-5 text-dark">Total Geral Movimentações:</strong>
-                        {{-- 🧠 TEXTO DISCRIMINADO: Explica a fórmula contábil de forma simples pro operador --}}
                         <div class="text-muted small mt-1">
                             (Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
                         </div>
                     </div>
                     <div class="text-end">
-                        <span class="fs-4 fw-bold text-success">R$ {{ number_format($total_entradas, 2, ',', '.') }}</span>
+                        {{-- 🎯 FIX DEFINITIVO: Soma o faturamento do PDV com o recebimento real e abate as sangrias/saídas --}}
+                        @php
+                            $vendasPurasPDV = (float) $vendasReaisDoBloco->sum('valor');
+                            $recebimentoCarteiraReal = (float) $carteiraMovimentacoes->sum('valor');
+                            $totalMovimentadoLíquido = ($vendasPurasPDV + $recebimentoCarteiraReal) - (float) $total_sangrias;
+                        @endphp
+                        
+                        {{-- 🟢 Exibe o valor total líquido correto na tela (R$ 1.646,00) --}}
+                        <span class="fs-4 fw-bold text-success">R$ {{ number_format($totalMovimentadoLíquido, 2, ',', '.') }}</span>
+                        
                         <div class="text-muted text-xs" style="font-size: 0.75rem;">
-                            R$ {{ number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.') }} + 
-                            R$ {{ number_format($carteiraMovimentacoes->sum('valor'), 2, ',', '.') }} - 
-                            R$ {{ number_format($total_saidas + $total_sangrias, 2, ',', '.') }}
+                            R$ {{ number_format($vendasPurasPDV, 2, ',', '.') }} +
+                            R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} -
+                            R$ {{ number_format($total_sangrias, 2, ',', '.') }}
                         </div>
                     </div>
                 </div>
-            </div>>
+            </div>
+
+
                 
 
             {{-- ========================================================================= --}}
