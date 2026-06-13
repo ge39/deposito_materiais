@@ -119,37 +119,12 @@
                 <div class="card-header fs-5 bg-primary text-white fw-bold">Vendas PDV (Sistema):</div>
                 <strong>✅  Sistema</strong>
                 <ul class="list-unstyled mb-0">
-                    <?php $__currentLoopData = $caixa->movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $movimentacao): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-            <tr>
-                
-                <?php
-                    $badgeColor = 'badge-secondary';
-                    if($movimentacao->tipo === 'venda' || $movimentacao->tipo === 'entrada' || $movimentacao->tipo === 'entrada_pagto_carteira') {
-                        $badgeColor = 'badge-success';
-                    } elseif($movimentacao->tipo === 'saida_manual' || $movimentacao->tipo === 'sangria') {
-                        $badgeColor = 'badge-danger';
-                    } elseif($movimentacao->tipo === 'abertura') {
-                        $badgeColor = 'badge-info'; // 🔵 Azul informativo para a abertura
-                    }
-                ?>
+                    <?php $__currentLoopData = ['dinheiro','pix','carteira','cartao_debito','cartao_credito']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $forma): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <li><?php echo e(ucfirst(str_replace('_',' ',$forma))); ?>: 
+                            R$ <?php echo e(number_format($totaisPorForma[$forma] ?? 0, 2, ',', '.')); ?>
 
-                <td>
-                    <span class="badge <?php echo e($badgeColor); ?>">
-                        <?php echo e(ucfirst(str_replace('_', ' ', $movimentacao->tipo))); ?>
-
-                    </span>
-                </td>
-                <td><?php echo e(ucfirst($movimentacao->forma_pagamento)); ?></td>
-                <td class="<?php echo e($movimentacao->tipo === 'saida_manual' || $movimentacao->tipo === 'sangria' ? 'text-danger' : 'text-success'); ?>">
-                    R$ <?php echo e(number_format($movimentacao->valor, 2, ',', '.')); ?>
-
-                </td>
-                <td><?php echo e($movimentacao->origem_id ?? '-'); ?></td>
-                <td><?php echo e(\Carbon\Carbon::parse($movimentacao->data_movimentacao)->format('d/m/Y H:i')); ?></td>
-                <td><?php echo e($movimentacao->observacao ?? '-'); ?></td>
-            </tr>
-        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-
+                        </li>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </ul>
                 <ul class="list-unstyled mb-0">
                      ✅ 
@@ -312,76 +287,68 @@
                 <div class="col-3">Observação</div>
             </div>
 
-           
-            <?php
-                // Pega tudo que não é recebimento de carteira
-                $geralMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
-                    return !in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
-                });
-
-                // Isola APENAS as vendas reais do dia para o cálculo correto do rodapé do bloco
-                $vendasReaisDoBloco = $geralMovimentacoes->filter(function($mov) {
-                    return $mov->tipo === 'venda';
-                });
-
-                // Agrupa para a listagem em tela
-                $movimentacoesAgrupadasGeral = $geralMovimentacoes->groupBy(function($mov) {
-                    $forma = strtolower(trim($mov->forma_pagamento));
-                    return $forma === 'abertura' ? 'dinheiro' : $forma;
-                });
-            ?>
-
-            <?php $__empty_1 = true; $__currentLoopData = $movimentacoesAgrupadasGeral; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $formaGrupo => $itensDoGrupo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                
                 <?php
-                    // Se o grupo contiver uma sangria ou saída, tratamos a cor e o comportamento de soma
-                    $contemSaida = $itensDoGrupo->contains(function($item) {
-                        return in_array($item->tipo, ['sangria', 'saida_manual', 'despesa', 'saida']);
+                    // Pega tudo que não é recebimento de carteira
+                    $geralMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
+                        return !in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
                     });
 
-                    $totalDoGrupo = $itensDoGrupo->sum('valor');
-                    $primeiroItem = $itensDoGrupo->first();
+                    // Isola APENAS as vendas reais do dia para o cálculo correto do rodapé do bloco
+                    $vendasReaisDoBloco = $geralMovimentacoes->filter(function($mov) {
+                        return $mov->tipo === 'venda';
+                    });
                 ?>
-                <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
-                    <div class="col-2">
-                        <?php echo e($itensDoGrupo->pluck('tipo')->unique()->count() > 1 ? 'Mix' : ucfirst(str_replace('_', ' ', $primeiroItem->tipo))); ?>
 
-                    </div>
-                    
-                    <div class="col-2 font-weight-bold">
-                        <?php echo e(ucfirst(str_replace('_', ' ', $formaGrupo))); ?>
+                
+                <?php $__empty_1 = true; $__currentLoopData = $geralMovimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $movimentacao): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                    <?php
+                        // Identifica se o registro é uma saída para aplicar a cor vermelha e o sinal de menos
+                        $isSaida = in_array($movimentacao->tipo, ['sangria', 'saida_manual', 'despesa', 'saida']);
+                    ?>
+                    <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
+                        <div class="col-2">
+                            
+                            <?php echo e(ucfirst(str_replace('_', ' ', $movimentacao->tipo))); ?>
 
-                    </div>
-                    
-                    
-                    <div class="col-2 font-weight-bold <?php echo e($contemSaida ? 'text-danger' : 'text-success'); ?>">
-                        <?php echo e($contemSaida ? '-' : ''); ?> R$ <?php echo e(number_format($totalDoGrupo, 2, ',', '.')); ?>
+                        </div>
+                        
+                        <div class="col-2 font-weight-bold">
+                            <?php echo e(ucfirst(str_replace('_', ' ', $movimentacao->forma_pagamento))); ?>
 
-                    </div>
-                    
-                    <div class="col-1">
-                         Caixa <?php echo e($caixa->id); ?>
+                        </div>
+                        
+                        
+                        <div class="col-2 font-weight-bold <?php echo e($isSaida ? 'text-danger' : 'text-success'); ?>">
+                            <?php echo e($isSaida ? '-' : ''); ?> R$ <?php echo e(number_format($movimentacao->valor, 2, ',', '.')); ?>
 
-                    </div>
-                    
-                    <div class="col-2">
-                        <?php echo e($itensDoGrupo->max('data_movimentacao') ? \Carbon\Carbon::parse($itensDoGrupo->max('data_movimentacao'))->format('d/m/Y') : ''); ?>
+                        </div>
+                        
+                        <div class="col-1">
+                            Caixa <?php echo e($caixa->id); ?>
 
-                    </div>
-                    
-                    <div class="col-3 text-muted" style="font-size: 0.9rem;">
-                         <?php echo e($primeiroItem->observacao ?: 'Movimentação padrão de turno.'); ?>
+                        </div>
+                        
+                        <div class="col-2">
+                            <?php echo e($movimentacao->data_movimentacao ? \Carbon\Carbon::parse($movimentacao->data_movimentacao)->format('d/m/Y') : ''); ?>
 
+                        </div>
+                        
+                        <div class="col-3 text-muted" style="font-size: 0.9rem;">
+                            <?php echo e($movimentacao->observacao ?: 'Movimentação padrão de turno.'); ?>
+
+                        </div>
                     </div>
-                </div>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhuma movimentação geral de caixa registrada.</div>
-            <?php endif; ?>
-            
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                    <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhuma movimentação geral de caixa registrada.</div>
+                <?php endif; ?>
+                
                 
                 <strong>✅ Total Vendas:</strong> R$ <?php echo e(number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.')); ?><br>
-            </div>
+
 
             <!-- <strong>✅ Movimentações Gerais:</strong> R$ <?php echo e(number_format($geralMovimentacoes->sum('valor'), 2, ',', '.')); ?><br> -->
+            
             <div class="p-3 bg-light border rounded mt-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -395,7 +362,10 @@
                         
                         <?php
                             $valorAberturaFundo = (float) $caixa->fundo_troco;
-                            $totalMovimentadoComAbertura = $valorAberturaFundo + (float) $totalMovimentadoLiquido;
+                            $vendasPurasPDV = (float) $vendasReaisDoBloco->sum('valor');
+                            $recebimentoCarteiraReal = (float) $carteiraMovimentacoes->sum('valor');
+                            
+                            $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasPurasPDV + $recebimentoCarteiraReal) - (float) $total_sangrias;
                         ?>
                         
                         
@@ -404,8 +374,8 @@
                         
                         <div class="text-muted text-xs" style="font-size: 0.75rem;">
                             R$ <?php echo e(number_format($valorAberturaFundo, 2, ',', '.')); ?> +
-                            R$ <?php echo e(number_format($totalGeralSistema, 2, ',', '.')); ?> +
-                            R$ <?php echo e(number_format($totalRecebimentosCarteiraExclusivo, 2, ',', '.')); ?> -
+                            R$ <?php echo e(number_format($vendasPurasPDV, 2, ',', '.')); ?> +
+                            R$ <?php echo e(number_format($recebimentoCarteiraReal, 2, ',', '.')); ?> -
                             R$ <?php echo e(number_format($total_sangrias, 2, ',', '.')); ?>
 
                         </div>
@@ -413,6 +383,8 @@
                 </div>
             </div>
 
+
+                
 
             
             
