@@ -119,12 +119,37 @@
                 <div class="card-header fs-5 bg-primary text-white fw-bold">Vendas PDV (Sistema):</div>
                 <strong>✅  Sistema</strong>
                 <ul class="list-unstyled mb-0">
-                    <?php $__currentLoopData = ['dinheiro','pix','carteira','cartao_debito','cartao_credito']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $forma): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                        <li><?php echo e(ucfirst(str_replace('_',' ',$forma))); ?>: 
-                            R$ <?php echo e(number_format($totaisPorForma[$forma] ?? 0, 2, ',', '.')); ?>
+                    <?php $__currentLoopData = $caixa->movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $movimentacao): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <tr>
+                
+                <?php
+                    $badgeColor = 'badge-secondary';
+                    if($movimentacao->tipo === 'venda' || $movimentacao->tipo === 'entrada' || $movimentacao->tipo === 'entrada_pagto_carteira') {
+                        $badgeColor = 'badge-success';
+                    } elseif($movimentacao->tipo === 'saida_manual' || $movimentacao->tipo === 'sangria') {
+                        $badgeColor = 'badge-danger';
+                    } elseif($movimentacao->tipo === 'abertura') {
+                        $badgeColor = 'badge-info'; // 🔵 Azul informativo para a abertura
+                    }
+                ?>
 
-                        </li>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                <td>
+                    <span class="badge <?php echo e($badgeColor); ?>">
+                        <?php echo e(ucfirst(str_replace('_', ' ', $movimentacao->tipo))); ?>
+
+                    </span>
+                </td>
+                <td><?php echo e(ucfirst($movimentacao->forma_pagamento)); ?></td>
+                <td class="<?php echo e($movimentacao->tipo === 'saida_manual' || $movimentacao->tipo === 'sangria' ? 'text-danger' : 'text-success'); ?>">
+                    R$ <?php echo e(number_format($movimentacao->valor, 2, ',', '.')); ?>
+
+                </td>
+                <td><?php echo e($movimentacao->origem_id ?? '-'); ?></td>
+                <td><?php echo e(\Carbon\Carbon::parse($movimentacao->data_movimentacao)->format('d/m/Y H:i')); ?></td>
+                <td><?php echo e($movimentacao->observacao ?? '-'); ?></td>
+            </tr>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
                 </ul>
                 <ul class="list-unstyled mb-0">
                      ✅ 
@@ -357,29 +382,30 @@
             </div>
 
             <!-- <strong>✅ Movimentações Gerais:</strong> R$ <?php echo e(number_format($geralMovimentacoes->sum('valor'), 2, ',', '.')); ?><br> -->
-            
             <div class="p-3 bg-light border rounded mt-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <strong class="fs-5 text-dark">Total Geral Movimentações:</strong>
+                        
                         <div class="text-muted small mt-1">
-                            (Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
+                            (Abertura + Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
                         </div>
                     </div>
                     <div class="text-end">
                         
                         <?php
-                            $vendasPurasPDV = (float) $vendasReaisDoBloco->sum('valor');
-                            $recebimentoCarteiraReal = (float) $carteiraMovimentacoes->sum('valor');
-                            $totalMovimentadoLíquido = ($vendasPurasPDV + $recebimentoCarteiraReal) - (float) $total_sangrias;
+                            $valorAberturaFundo = (float) $caixa->fundo_troco;
+                            $totalMovimentadoComAbertura = $valorAberturaFundo + (float) $totalMovimentadoLiquido;
                         ?>
                         
                         
-                        <span class="fs-4 fw-bold text-success">R$ <?php echo e(number_format($totalMovimentadoLíquido, 2, ',', '.')); ?></span>
+                        <span class="fs-4 fw-bold text-success">R$ <?php echo e(number_format($totalMovimentadoComAbertura, 2, ',', '.')); ?></span>
+                        
                         
                         <div class="text-muted text-xs" style="font-size: 0.75rem;">
-                            R$ <?php echo e(number_format($vendasPurasPDV, 2, ',', '.')); ?> +
-                            R$ <?php echo e(number_format($recebimentoCarteiraReal, 2, ',', '.')); ?> -
+                            R$ <?php echo e(number_format($valorAberturaFundo, 2, ',', '.')); ?> +
+                            R$ <?php echo e(number_format($totalGeralSistema, 2, ',', '.')); ?> +
+                            R$ <?php echo e(number_format($totalRecebimentosCarteiraExclusivo, 2, ',', '.')); ?> -
                             R$ <?php echo e(number_format($total_sangrias, 2, ',', '.')); ?>
 
                         </div>
@@ -387,8 +413,6 @@
                 </div>
             </div>
 
-
-                
 
             
             

@@ -119,11 +119,35 @@
                 <div class="card-header fs-5 bg-primary text-white fw-bold">Vendas PDV (Sistema):</div>
                 <strong>✅  Sistema</strong>
                 <ul class="list-unstyled mb-0">
-                    @foreach(['dinheiro','pix','carteira','cartao_debito','cartao_credito'] as $forma)
-                        <li>{{ ucfirst(str_replace('_',' ',$forma)) }}: 
-                            R$ {{ number_format($totaisPorForma[$forma] ?? 0, 2, ',', '.') }}
-                        </li>
-                    @endforeach
+                    @foreach($caixa->movimentacoes as $movimentacao)
+            <tr>
+                {{-- 🎨 Define a classe de cor baseada no tipo da movimentação --}}
+                @php
+                    $badgeColor = 'badge-secondary';
+                    if($movimentacao->tipo === 'venda' || $movimentacao->tipo === 'entrada' || $movimentacao->tipo === 'entrada_pagto_carteira') {
+                        $badgeColor = 'badge-success';
+                    } elseif($movimentacao->tipo === 'saida_manual' || $movimentacao->tipo === 'sangria') {
+                        $badgeColor = 'badge-danger';
+                    } elseif($movimentacao->tipo === 'abertura') {
+                        $badgeColor = 'badge-info'; // 🔵 Azul informativo para a abertura
+                    }
+                @endphp
+
+                <td>
+                    <span class="badge {{ $badgeColor }}">
+                        {{ ucfirst(str_replace('_', ' ', $movimentacao->tipo)) }}
+                    </span>
+                </td>
+                <td>{{ ucfirst($movimentacao->forma_pagamento) }}</td>
+                <td class="{{ $movimentacao->tipo === 'saida_manual' || $movimentacao->tipo === 'sangria' ? 'text-danger' : 'text-success' }}">
+                    R$ {{ number_format($movimentacao->valor, 2, ',', '.') }}
+                </td>
+                <td>{{ $movimentacao->origem_id ?? '-' }}</td>
+                <td>{{ \Carbon\Carbon::parse($movimentacao->data_movimentacao)->format('d/m/Y H:i') }}</td>
+                <td>{{ $movimentacao->observacao ?? '-' }}</td>
+            </tr>
+        @endforeach
+
                 </ul>
                 <ul class="list-unstyled mb-0">
                      ✅ 
@@ -347,37 +371,36 @@
             </div>
 
             <!-- <strong>✅ Movimentações Gerais:</strong> R$ {{ number_format($geralMovimentacoes->sum('valor'), 2, ',', '.') }}<br> -->
-            
             <div class="p-3 bg-light border rounded mt-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <strong class="fs-5 text-dark">Total Geral Movimentações:</strong>
+                        {{-- 🧠 TEXTO DISCRIMINADO: Atualizado para incluir a Abertura na explicação contábil --}}
                         <div class="text-muted small mt-1">
-                            (Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
+                            (Abertura + Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
                         </div>
                     </div>
                     <div class="text-end">
-                        {{-- 🎯 FIX DEFINITIVO: Soma o faturamento do PDV com o recebimento real e abate as sangrias/saídas --}}
+                        {{-- 🎯 FIX DEFINITIVO: Soma a abertura (fundo de troco) às movimentações líquidas do turno --}}
                         @php
-                            $vendasPurasPDV = (float) $vendasReaisDoBloco->sum('valor');
-                            $recebimentoCarteiraReal = (float) $carteiraMovimentacoes->sum('valor');
-                            $totalMovimentadoLíquido = ($vendasPurasPDV + $recebimentoCarteiraReal) - (float) $total_sangrias;
+                            $valorAberturaFundo = (float) $caixa->fundo_troco;
+                            $totalMovimentadoComAbertura = $valorAberturaFundo + (float) $totalMovimentadoLiquido;
                         @endphp
                         
-                        {{-- 🟢 Exibe o valor total líquido correto na tela (R$ 1.646,00) --}}
-                        <span class="fs-4 fw-bold text-success">R$ {{ number_format($totalMovimentadoLíquido, 2, ',', '.') }}</span>
+                        {{-- 🟢 VISOR GRANDE VERDE: Renderiza o cálculo incluindo o valor inicial de abertura --}}
+                        <span class="fs-4 fw-bold text-success">R$ {{ number_format($totalMovimentadoComAbertura, 2, ',', '.') }}</span>
                         
+                        {{-- 📊 DETALHAMENTO MIÚDO: Adicionada a parcela da abertura para o operador conferir a soma física --}}
                         <div class="text-muted text-xs" style="font-size: 0.75rem;">
-                            R$ {{ number_format($vendasPurasPDV, 2, ',', '.') }} +
-                            R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} -
+                            R$ {{ number_format($valorAberturaFundo, 2, ',', '.') }} +
+                            R$ {{ number_format($totalGeralSistema, 2, ',', '.') }} +
+                            R$ {{ number_format($totalRecebimentosCarteiraExclusivo, 2, ',', '.') }} -
                             R$ {{ number_format($total_sangrias, 2, ',', '.') }}
                         </div>
                     </div>
                 </div>
             </div>
 
-
-                
 
             {{-- ========================================================================= --}}
             {{-- BOTOÕES DE AÇÃO --}}
