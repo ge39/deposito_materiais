@@ -217,7 +217,9 @@
             </div>
 
             {{-- Filtra APENAS os tipos de recebimento de carteira e agrupa por forma --}}
+           {{-- Filtra APENAS os tipos de recebimento de carteira e agrupa por forma --}}
             @php
+                // 1️⃣ Mantém o seu filtro original de recebimento de carteiras antigo intacto
                 $carteiraMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
                     return in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
                 });
@@ -225,7 +227,28 @@
                 $movimentacoesAgrupadasCarteira = $carteiraMovimentacoes->groupBy(function($mov) {
                     return strtolower(trim($mov->forma_pagamento));
                 });
+
+                // 2️⃣ INTEGRAÇÃO DOS TOTAIS BASEADO NA COLEÇÃO DE MOVIMENTAÇÕES EXISTENTE
+                $valorAberturaFundo = (float) $caixa->fundo_troco;
+                
+                // Filtra todas as vendas brutas lançadas no PDV (R$ 1.942,00)
+                $vendasBrutasPDV = (float) $caixa->movimentacoes
+                    ->where('tipo', 'venda')
+                    ->sum('valor');
+                
+                // Isola as vendas feitas em carteira (fiado) hoje para retirá-las (R$ 48,00)
+                $vendasFiadoHoje = (float) $caixa->movimentacoes
+                    ->where('tipo', 'venda')
+                    ->where('forma_pagamento', 'carteira')
+                    ->sum('valor');
+                
+                // Soma os recebimentos REAIS de parcelas pagas no dia
+                $recebimentoCarteiraReal = (float) $carteiraMovimentacoes->sum('valor');
+
+                // EQUAÇÃO COMPLETA: (Abertura + Vendas Brutas - Fiado Hoje + Recebimentos Reais) - Sangrias
+                $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV - $vendasFiadoHoje + $recebimentoCarteiraReal) - (float) $total_sangrias;
             @endphp
+
 
             @forelse($movimentacoesAgrupadasCarteira as $formaGrupo => $itensDoGrupo)
                 @php
@@ -355,19 +378,23 @@
                             $vendasPurasPDV = (float) $vendasReaisDoBloco->sum('valor');
                             $recebimentoCarteiraReal = (float) $carteiraMovimentacoes->sum('valor');
                             
-                            $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasPurasPDV + $recebimentoCarteiraReal) - (float) $total_sangrias;
+                            // 🎯 CORREÇÃO DO BUG: Deduz o valor de carteira para eliminar a duplicidade contábil
+                            $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasPurasPDV) - (float) $total_sangrias;
                         @endphp
+
                         
-                        {{-- 🟢 VISOR GRANDE VERDE: Renderiza o cálculo total incluindo o valor inicial de abertura --}}
+                        {{-- 🟢 VISOR GRANDE VERDE --}}
                         <span class="fs-4 fw-bold text-success">R$ {{ number_format($totalMovimentadoComAbertura, 2, ',', '.') }}</span>
-                        
-                        {{-- 📊 DETALHAMENTO MIÚDO: Adicionada a parcela da abertura de forma explícita para conferência --}}
+
+                        {{-- 📊 DETALHAMENTO MIÚDO --}}
                         <div class="text-muted text-xs" style="font-size: 0.75rem;">
-                            R$ {{ number_format($valorAberturaFundo, 2, ',', '.') }} +
-                            R$ {{ number_format($vendasPurasPDV, 2, ',', '.') }} +
-                            R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} -
-                            R$ {{ number_format($total_sangrias, 2, ',', '.') }}
+                            (Abertura: R$ {{ number_format($valorAberturaFundo, 2, ',', '.') }} + 
+                            Vendas Líquidas: R$ {{ number_format($vendasBrutasPDV - $vendasFiadoHoje, 2, ',', '.') }} + 
+                            Recebimentos: R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} - 
+                            Sangrias: R$ {{ number_format($total_sangrias, 2, ',', '.') }})
                         </div>
+
+
                     </div>
                 </div>
             </div>
