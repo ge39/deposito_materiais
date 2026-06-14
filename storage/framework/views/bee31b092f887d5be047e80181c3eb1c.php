@@ -195,9 +195,8 @@
     </form>
     <?php endif; ?>
 
-    
-    <div class="row mt-4">
         
+         
         
         
         <div class="col-12 mb-4">
@@ -214,7 +213,6 @@
                 <div class="col-3">Observação</div>
             </div>
 
-            
            
             <?php
                 // 1️⃣ Mantém o seu filtro original de recebimento de carteiras antigo intacto
@@ -278,11 +276,6 @@
                          <?php echo e($itensDoGrupo->max('data_movimentacao') ? \Carbon\Carbon::parse($itensDoGrupo->max('data_movimentacao'))->format('d/m/Y') : ''); ?>
 
                     </div>
-                    
-                    <div class="col-3 text-muted" style="font-size: 0.9rem;">
-                         <?php echo e($primeiroItem->observacao ?: 'Recebimento de saldo de carteira.'); ?>
-
-                    </div>
                 </div>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhum recebimento de carteira neste turno.</div>
@@ -300,50 +293,59 @@
             <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações do Caixa</div>
             <div class="movimentacoes-container">
 
-            
-            <div class="row bg-light fw-bold py-2 px-3 border-bottom">
-                <div class="col-2">Tipo</div>
-                <div class="col-2">Forma</div>
-                <div class="col-2">Valor</div>
-                <div class="col-1">Origem</div>
-                <div class="col-2">Data</div>
-                <div class="col-3">Observação</div>
-            </div>
+                
+                <div class="row bg-light fw-bold py-2 px-3 border-bottom">
+                    <div class="col-2">Tipo</div>
+                    <div class="col-2">Forma</div>
+                    <div class="col-2">Valor Total</div>
+                    <div class="col-1">Origem</div>
+                    <div class="col-2">Última Ação</div>
+                    <div class="col-3">Detalhamento</div>
+                </div>
 
                 
                 <?php
-                    // Pega tudo que não é recebimento de carteira
+                    // 1️⃣ Pega tudo que não é recebimento de carteira antiga
                     $geralMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
                         return !in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
                     });
 
-                    // Isola APENAS as vendas reais do dia para o cálculo correto do rodapé do bloco
+                    // 2️⃣ Isola APENAS as vendas reais do dia para o cálculo correto do rodapé do bloco
                     $vendasReaisDoBloco = $geralMovimentacoes->filter(function($mov) {
                         return $mov->tipo === 'venda';
+                    });
+
+                    // 3️⃣ AGRUPAMENTO ARQUITETURAL: Junta centenas de registros por Tipo + Forma de Pagamento
+                    $movimentacoesVisualmenteAgrupadas = $geralMovimentacoes->groupBy(function($mov) {
+                        return $mov->tipo . '_' . strtolower(trim($mov->forma_pagamento));
                     });
                 ?>
 
                 
-                <?php $__empty_1 = true; $__currentLoopData = $geralMovimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $movimentacao): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <?php $__empty_1 = true; $__currentLoopData = $movimentacoesVisualmenteAgrupadas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $chaveGrupo => $grupoItens): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                     <?php
-                        // Identifica se o registro é uma saída para aplicar a cor vermelha e o sinal de menos
-                        $isSaida = in_array($movimentacao->tipo, ['sangria', 'saida_manual', 'despesa', 'saida']);
+                        // Extrai as propriedades base usando o primeiro item do lote agrupado
+                        $primeiroItem = $grupoItens->first();
+                        $totalDoGrupo = $grupoItens->sum('valor');
+                        $quantidadeNoGrupo = $grupoItens->count();
+                        $ultimaDataDoGrupo = $grupoItens->max('data_movimentacao');
+
+                        $isSaida = in_array($primeiroItem->tipo, ['sangria', 'saida_manual', 'despesa', 'saida']);
                     ?>
                     <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
                         <div class="col-2">
-                            
-                            <?php echo e(ucfirst(str_replace('_', ' ', $movimentacao->tipo))); ?>
+                            <?php echo e(ucfirst(str_replace('_', ' ', $primeiroItem->tipo))); ?>
 
                         </div>
                         
                         <div class="col-2 font-weight-bold">
-                            <?php echo e(ucfirst(str_replace('_', ' ', $movimentacao->forma_pagamento))); ?>
+                            <?php echo e(ucfirst(str_replace('_', ' ', $primeiroItem->forma_pagamento ?? 'N/A'))); ?>
 
                         </div>
                         
                         
                         <div class="col-2 font-weight-bold <?php echo e($isSaida ? 'text-danger' : 'text-success'); ?>">
-                            <?php echo e($isSaida ? '-' : ''); ?> R$ <?php echo e(number_format($movimentacao->valor, 2, ',', '.')); ?>
+                            <?php echo e($isSaida ? '-' : ''); ?> R$ <?php echo e(number_format(abs($totalDoGrupo), 2, ',', '.')); ?>
 
                         </div>
                         
@@ -353,13 +355,12 @@
                         </div>
                         
                         <div class="col-2">
-                            <?php echo e($movimentacao->data_movimentacao ? \Carbon\Carbon::parse($movimentacao->data_movimentacao)->format('d/m/Y') : ''); ?>
+                            <?php echo e($ultimaDataDoGrupo ? \Carbon\Carbon::parse($ultimaDataDoGrupo)->format('d/m/Y H:i') : ''); ?>
 
                         </div>
                         
                         <div class="col-3 text-muted" style="font-size: 0.9rem;">
-                            <?php echo e($movimentacao->observacao ?: 'Movimentação padrão de turno.'); ?>
-
+                            Consolidado (<?php echo e($quantidadeNoGrupo); ?> registro(s) no turno)
                         </div>
                     </div>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -367,76 +368,62 @@
                 <?php endif; ?>
                 
                 
-                <strong>✅ Total Vendas:</strong> R$ <?php echo e(number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.')); ?><br>
+                <div class="mt-2 px-3">
+                    <strong>✅ Total Vendas:</strong> R$ <?php echo e(number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.')); ?><br>
+                </div>
 
-
-            <!-- <strong>✅ Movimentações Gerais:</strong> R$ <?php echo e(number_format($geralMovimentacoes->sum('valor'), 2, ',', '.')); ?><br> -->
-            
-            <div class="p-3 bg-light border rounded mt-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong class="fs-5 text-dark">Total Geral Movimentações:</strong>
-                        
-                        <div class="text-muted small mt-1">
-                            (Abertura + Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
+                <div class="p-3 bg-light border rounded mt-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong class="fs-5 text-dark">Total Geral Movimentações:</strong>
+                            <div class="text-muted small mt-1">
+                                (Abertura + Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
+                            </div>
                         </div>
-                    </div>
-                    <div class="text-end">
-                        
-                        <?php
-                            $valorAberturaFundo = (float) $caixa->fundo_troco;
-                            $vendasPurasPDV = (float) $vendasReaisDoBloco->sum('valor');
-                            $recebimentoCarteiraReal = (float) $carteiraMovimentacoes->sum('valor');
+                        <div class="text-end">
                             
-                            // 🎯 CORREÇÃO DO BUG: Deduz o valor de carteira para eliminar a duplicidade contábil
-                            $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasPurasPDV) - (float) $total_sangrias;
-                        ?>
+                            <?php
+                                $valorAberturaFundo = (float) $caixa->fundo_troco;
+                                $vendasBrutasPDV = (float) $vendasReaisDoBloco->sum('valor');
+                                $vendasFiadoHoje = (float) $vendasReaisDoBloco->where('forma_pagamento', 'carteira')->sum('valor');
+                                $recebimentoCarteiraReal = (float) ($carteiraMovimentacoes ?? collect())->sum('valor');
+                                
+                                // Cálculo definitivo sem duplicidades
+                                $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV) - (float) $total_sangrias;
+                            ?>
 
-                        
-                        
-                        <span class="fs-4 fw-bold text-success">R$ <?php echo e(number_format($totalMovimentadoComAbertura, 2, ',', '.')); ?></span>
+                            
+                            <span class="fs-4 fw-bold text-success">R$ <?php echo e(number_format($totalMovimentadoComAbertura, 2, ',', '.')); ?></span>
 
-                        
-                        <div class="text-muted text-xs" style="font-size: 0.75rem;">
-                            (Abertura: R$ <?php echo e(number_format($valorAberturaFundo, 2, ',', '.')); ?> + 
-                            Vendas Líquidas: R$ <?php echo e(number_format($vendasBrutasPDV - $vendasFiadoHoje, 2, ',', '.')); ?> + 
-                            Recebimentos: R$ <?php echo e(number_format($recebimentoCarteiraReal, 2, ',', '.')); ?> - 
-                            Sangrias: R$ <?php echo e(number_format($total_sangrias, 2, ',', '.')); ?>)
+                            
+                            <div class="text-muted text-xs" style="font-size: 0.75rem;">
+                                (Abertura: R$ <?php echo e(number_format($valorAberturaFundo, 2, ',', '.')); ?> + 
+                                Vendas Líquidas: R$ <?php echo e(number_format($vendasBrutasPDV - $vendasFiadoHoje, 2, ',', '.')); ?> + 
+                                Recebimentos: R$ <?php echo e(number_format($recebimentoCarteiraReal, 2, ',', '.')); ?> - 
+                                Sangrias: R$ <?php echo e(number_format($total_sangrias, 2, ',', '.')); ?>)
+                            </div>
                         </div>
-
-
                     </div>
                 </div>
-            </div>
-
 
                 
-
-            
-            
-            
-            <div class="mt-3">
+                <div class="mt-3">
                     <?php if($caixa->estaAberto()): ?>
-                        <a href="<?php echo e(route('fechamento.view', $caixa->id)); ?>"
-                        class="btn btn-primary">
+                        <a href="<?php echo e(route('fechamento.view', $caixa->id)); ?>" class="btn btn-primary">
                             Lançamento de Valores Manuais
                         </a>
                     <?php else: ?>
-                        <button class="btn btn-primary" disabled
-                                title="Caixa já fechado">
+                        <button class="btn btn-primary" disabled title="Caixa já fechado">
                             Lançamento de Valores Manuais
                         </button>
                     <?php endif; ?>
 
-                    <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary ">
+                    <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary">
                         Cancelar
                     </a>
+                </div>
             </div>
-
         </div>
-    </div>
-
-
 </div>
 <?php $__env->stopSection(); ?>
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/fechamento_caixa/index.blade.php ENDPATH**/ ?>

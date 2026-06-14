@@ -195,11 +195,10 @@
     </form>
     @endif
 
-    {{-- =======================
-        TABELA DE MOVIMENTAÇÕES
-    ======================== --}}
-    <div class="row mt-4">
-        {{-- ========================================================================= --}}
+        {{-- =======================
+            TABELA DE MOVIMENTAÇÕES
+        ======================== --}}
+         {{-- ========================================================================= --}}
         {{-- 💳 TABELA 1: MOVIMENTAÇÕES - RECEBIMENTO CARTEIRA --}}
         {{-- ========================================================================= --}}
         <div class="col-12 mb-4">
@@ -216,7 +215,6 @@
                 <div class="col-3">Observação</div>
             </div>
 
-            {{-- Filtra APENAS os tipos de recebimento de carteira e agrupa por forma --}}
            {{-- Filtra APENAS os tipos de recebimento de carteira e agrupa por forma --}}
             @php
                 // 1️⃣ Mantém o seu filtro original de recebimento de carteiras antigo intacto
@@ -275,10 +273,6 @@
                     <div class="col-2">
                          {{ $itensDoGrupo->max('data_movimentacao') ? \Carbon\Carbon::parse($itensDoGrupo->max('data_movimentacao'))->format('d/m/Y') : '' }}
                     </div>
-                    
-                    <div class="col-3 text-muted" style="font-size: 0.9rem;">
-                         {{ $primeiroItem->observacao ?: 'Recebimento de saldo de carteira.' }}
-                    </div>
                 </div>
             @empty
                 <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhum recebimento de carteira neste turno.</div>
@@ -290,142 +284,137 @@
         </div>
 
         {{-- ========================================================================= --}}
-        {{-- 🏪 TABELA 2: MOVIMENTAÇÕES DO CAIXA (VENDAS GERAIS E SAÍDAS) --}}
+        {{-- 🏪 TABELA 2: MOVIMENTAÇÕES DO CAIXA (VENDAS GERAIS E SAÍDAS CONSOLIDADAS) --}}
         {{-- ========================================================================= --}}
         <div class="col-12">
             <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações do Caixa</div>
             <div class="movimentacoes-container">
 
-            {{-- Cabeçalho --}}
-            <div class="row bg-light fw-bold py-2 px-3 border-bottom">
-                <div class="col-2">Tipo</div>
-                <div class="col-2">Forma</div>
-                <div class="col-2">Valor</div>
-                <div class="col-1">Origem</div>
-                <div class="col-2">Data</div>
-                <div class="col-3">Observação</div>
-            </div>
+                {{-- Cabeçalho --}}
+                <div class="row bg-light fw-bold py-2 px-3 border-bottom">
+                    <div class="col-2">Tipo</div>
+                    <div class="col-2">Forma</div>
+                    <div class="col-2">Valor Total</div>
+                    <div class="col-1">Origem</div>
+                    <div class="col-2">Última Ação</div>
+                    <div class="col-3">Detalhamento</div>
+                </div>
 
-                {{-- Filtra as movimentações normais (Gerais) REMOVENDO recebimentos de carteira e saídas/sangrias da soma de vendas --}}
+                {{-- Filtra e Agrupa as movimentações normais na memória para manter o visual limpo --}}
                 @php
-                    // Pega tudo que não é recebimento de carteira
+                    // 1️⃣ Pega tudo que não é recebimento de carteira antiga
                     $geralMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
                         return !in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
                     });
 
-                    // Isola APENAS as vendas reais do dia para o cálculo correto do rodapé do bloco
+                    // 2️⃣ Isola APENAS as vendas reais do dia para o cálculo correto do rodapé do bloco
                     $vendasReaisDoBloco = $geralMovimentacoes->filter(function($mov) {
                         return $mov->tipo === 'venda';
                     });
+
+                    // 3️⃣ AGRUPAMENTO ARQUITETURAL: Junta centenas de registros por Tipo + Forma de Pagamento
+                    $movimentacoesVisualmenteAgrupadas = $geralMovimentacoes->groupBy(function($mov) {
+                        return $mov->tipo . '_' . strtolower(trim($mov->forma_pagamento));
+                    });
                 @endphp
 
-                {{-- 🎯 ALTERAÇÃO: Varre o array original de forma linear. Cada registro vira uma linha única na fita --}}
-                @forelse($geralMovimentacoes as $movimentacao)
+                {{-- Varre os grupos consolidados. Cada grupo de vendas semelhantes vira uma única linha visual --}}
+                @forelse($movimentacoesVisualmenteAgrupadas as $chaveGrupo => $grupoItens)
                     @php
-                        // Identifica se o registro é uma saída para aplicar a cor vermelha e o sinal de menos
-                        $isSaida = in_array($movimentacao->tipo, ['sangria', 'saida_manual', 'despesa', 'saida']);
+                        // Extrai as propriedades base usando o primeiro item do lote agrupado
+                        $primeiroItem = $grupoItens->first();
+                        $totalDoGrupo = $grupoItens->sum('valor');
+                        $quantidadeNoGrupo = $grupoItens->count();
+                        $ultimaDataDoGrupo = $grupoItens->max('data_movimentacao');
+
+                        $isSaida = in_array($primeiroItem->tipo, ['sangria', 'saida_manual', 'despesa', 'saida']);
                     @endphp
                     <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
                         <div class="col-2">
-                            {{-- 🟢 Tipo real individual de cada linha (Abertura, Venda, Sangria, etc.) --}}
-                            {{ ucfirst(str_replace('_', ' ', $movimentacao->tipo)) }}
+                            {{ ucfirst(str_replace('_', ' ', $primeiroItem->tipo)) }}
                         </div>
                         
                         <div class="col-2 font-weight-bold">
-                            {{ ucfirst(str_replace('_', ' ', $movimentacao->forma_pagamento)) }}
+                            {{ ucfirst(str_replace('_', ' ', $primeiroItem->forma_pagamento ?? 'N/A')) }}
                         </div>
                         
-                        {{-- 💎 COR DO VALOR: Se for saída/sangria, exibe em vermelho com o sinal de menos. Se for entrada/venda/abertura, exibe em verde --}}
+                        {{-- 💎 COR DO VALOR CONSOLIDADO --}}
                         <div class="col-2 font-weight-bold {{ $isSaida ? 'text-danger' : 'text-success' }}">
-                            {{ $isSaida ? '-' : '' }} R$ {{ number_format($movimentacao->valor, 2, ',', '.') }}
+                            {{ $isSaida ? '-' : '' }} R$ {{ number_format(abs($totalDoGrupo), 2, ',', '.') }}
                         </div>
                         
                         <div class="col-1">
-                            Caixa {{$caixa->id }}
+                            Caixa {{ $caixa->id }}
                         </div>
                         
                         <div class="col-2">
-                            {{ $movimentacao->data_movimentacao ? \Carbon\Carbon::parse($movimentacao->data_movimentacao)->format('d/m/Y') : '' }}
+                            {{ $ultimaDataDoGrupo ? \Carbon\Carbon::parse($ultimaDataDoGrupo)->format('d/m/Y H:i') : '' }}
                         </div>
                         
                         <div class="col-3 text-muted" style="font-size: 0.9rem;">
-                            {{ $movimentacao->observacao ?: 'Movimentação padrão de turno.' }}
+                            Consolidado ({{ $quantidadeNoGrupo }} registro(s) no turno)
                         </div>
                     </div>
                 @empty
                     <div class="row py-2 px-3 border-bottom text-muted justify-content-center">Nenhuma movimentação geral de caixa registrada.</div>
                 @endforelse
                 
-                {{-- 💎 FIX DO TOTALIZADOR: Soma estritamente as Vendas do PDV, ignorando a sangria e a abertura --}}
-                <strong>✅ Total Vendas:</strong> R$ {{ number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.') }}<br>
+                {{-- 💎 FIX DO TOTALIZADOR: Soma estritamente as Vendas do PDV --}}
+                <div class="mt-2 px-3">
+                    <strong>✅ Total Vendas:</strong> R$ {{ number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.') }}<br>
+                </div>
 
-
-            <!-- <strong>✅ Movimentações Gerais:</strong> R$ {{ number_format($geralMovimentacoes->sum('valor'), 2, ',', '.') }}<br> -->
-            
-            <div class="p-3 bg-light border rounded mt-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong class="fs-5 text-dark">Total Geral Movimentações:</strong>
-                        {{-- 🧠 TEXTO DISCRIMINADO: Atualizado para incluir a Abertura na fórmula visual pro operador --}}
-                        <div class="text-muted small mt-1">
-                            (Abertura + Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
+                <div class="p-3 bg-light border rounded mt-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong class="fs-5 text-dark">Total Geral Movimentações:</strong>
+                            <div class="text-muted small mt-1">
+                                (Abertura + Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
+                            </div>
                         </div>
-                    </div>
-                    <div class="text-end">
-                        {{-- 🎯 FIX DEFINITIVO: Soma a abertura (fundo de troco) às vendas puras e recebimentos, e abate as saídas/sangrias --}}
-                        @php
-                            $valorAberturaFundo = (float) $caixa->fundo_troco;
-                            $vendasPurasPDV = (float) $vendasReaisDoBloco->sum('valor');
-                            $recebimentoCarteiraReal = (float) $carteiraMovimentacoes->sum('valor');
-                            
-                            // 🎯 CORREÇÃO DO BUG: Deduz o valor de carteira para eliminar a duplicidade contábil
-                            $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasPurasPDV) - (float) $total_sangrias;
-                        @endphp
+                        <div class="text-end">
+                            {{-- 🎯 RESOLUÇÃO COMPLETA DE VARIÁVEIS DO ESCOPO --}}
+                            @php
+                                $valorAberturaFundo = (float) $caixa->fundo_troco;
+                                $vendasBrutasPDV = (float) $vendasReaisDoBloco->sum('valor');
+                                $vendasFiadoHoje = (float) $vendasReaisDoBloco->where('forma_pagamento', 'carteira')->sum('valor');
+                                $recebimentoCarteiraReal = (float) ($carteiraMovimentacoes ?? collect())->sum('valor');
+                                
+                                // Cálculo definitivo sem duplicidades
+                                $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV) - (float) $total_sangrias;
+                            @endphp
 
-                        
-                        {{-- 🟢 VISOR GRANDE VERDE --}}
-                        <span class="fs-4 fw-bold text-success">R$ {{ number_format($totalMovimentadoComAbertura, 2, ',', '.') }}</span>
+                            {{-- 🟢 VISOR GRANDE VERDE --}}
+                            <span class="fs-4 fw-bold text-success">R$ {{ number_format($totalMovimentadoComAbertura, 2, ',', '.') }}</span>
 
-                        {{-- 📊 DETALHAMENTO MIÚDO --}}
-                        <div class="text-muted text-xs" style="font-size: 0.75rem;">
-                            (Abertura: R$ {{ number_format($valorAberturaFundo, 2, ',', '.') }} + 
-                            Vendas Líquidas: R$ {{ number_format($vendasBrutasPDV - $vendasFiadoHoje, 2, ',', '.') }} + 
-                            Recebimentos: R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} - 
-                            Sangrias: R$ {{ number_format($total_sangrias, 2, ',', '.') }})
+                            {{-- 📊 DETALHAMENTO MIÚDO TOTALMENTE CONFIGURADO --}}
+                            <div class="text-muted text-xs" style="font-size: 0.75rem;">
+                                (Abertura: R$ {{ number_format($valorAberturaFundo, 2, ',', '.') }} + 
+                                Vendas Líquidas: R$ {{ number_format($vendasBrutasPDV - $vendasFiadoHoje, 2, ',', '.') }} + 
+                                Recebimentos: R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} - 
+                                Sangrias: R$ {{ number_format($total_sangrias, 2, ',', '.') }})
+                            </div>
                         </div>
-
-
                     </div>
                 </div>
-            </div>
 
-
-                
-
-            {{-- ========================================================================= --}}
-            {{-- BOTOÕES DE AÇÃO --}}
-            {{-- ========================================================================= --}}
-            <div class="mt-3">
+                {{-- BOTOÕES DE AÇÃO --}}
+                <div class="mt-3">
                     @if($caixa->estaAberto())
-                        <a href="{{ route('fechamento.view', $caixa->id) }}"
-                        class="btn btn-primary">
+                        <a href="{{ route('fechamento.view', $caixa->id) }}" class="btn btn-primary">
                             Lançamento de Valores Manuais
                         </a>
                     @else
-                        <button class="btn btn-primary" disabled
-                                title="Caixa já fechado">
+                        <button class="btn btn-primary" disabled title="Caixa já fechado">
                             Lançamento de Valores Manuais
                         </button>
                     @endif
 
-                    <a href="{{ url()->previous() }}" class="btn btn-secondary ">
+                    <a href="{{ url()->previous() }}" class="btn btn-secondary">
                         Cancelar
                     </a>
+                </div>
             </div>
-
         </div>
-    </div>
-
-
 </div>
 @endsection

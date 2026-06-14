@@ -198,8 +198,12 @@
 
             
             <div class="d-flex justify-content-end mt-3">
-                <button type="submit" class="btn btn-success btn-submit shadow-sm">Confirmar Fechamento do Caixa</button>
+                <button type="button" class="btn btn-success btn-submit shadow-sm">
+                    Confirmar Fechamento do Caixa
+                </button>
             </div>
+
+
         </form>
     </div>
 
@@ -258,19 +262,38 @@
             });
         });
 
-        // 5️⃣ 🛡️ SUBMIT LIMPO E SEGURO: Como os inputs já guardam números puros, 
-        // o formulário envia instantaneamente sem precisar converter nada!
-        const form = document.getElementById('formFechamento');
-        if (form) {
-            form.addEventListener('submit', function() {
-                inputs.forEach(input => {
-                    let valorFloat = parseFloat(input.value);
-                    if (!input.value || isNaN(valorFloat)) {
-                        input.value = '0.00';
+        // 🎯 BLINDAGEM MESTRE: Monitora o clique diretamente pelo ciclo de vida global do navegador
+        document.addEventListener('click', function(event) {
+            // 1️⃣ Verifica se o elemento clicado possui a classe do nosso botão de submit
+            if (event.target && event.target.classList.contains('btn-submit')) {
+                
+                // 2️⃣ Descobre o formulário correspondente subindo a árvore do HTML
+                const formularioCaixa = event.target.closest('form');
+                
+                if (formularioCaixa) {
+                    // 3️⃣ Realiza a varredura e a higienização dos campos numéricos para zeros
+                    const inputsMonetarios = formularioCaixa.querySelectorAll('input[type="text"], input[type="number"]');
+                    inputsMonetarios.forEach(input => {
+                        let valorFloat = parseFloat(input.value);
+                        if (!input.value || isNaN(valorFloat)) {
+                            input.value = '0.00';
+                        }
+                    });
+
+                    // 4️⃣ Dispara a mensagem de confirmação em segunda instância (Double-Check)
+                    const operadorConfirmou = confirm("⚠️ ATENÇÃO: CONFIRMAÇÃO DE SEGURANÇA\n\nVocê tem certeza absoluta que deseja encerrar e fechar este caixa definitivamente?");
+                    
+                    // 5️⃣ Se o operador confirmar, o formulário é enviado de verdade
+                    if (operadorConfirmou) {
+                        formularioCaixa.submit();
                     }
-                });
-            });
-        }
+                } else {
+                    console.error("Erro Contábil: Não foi encontrado nenhuma tag <form> ao redor do botão de fechamento.");
+                }
+            }
+        });
+
+
     });
 </script>
 
