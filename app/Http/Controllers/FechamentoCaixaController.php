@@ -237,223 +237,189 @@ class FechamentoCaixaController extends Controller
     }
 
   
-    public function fecharMovimentoComAuditoria(Request $request, Caixa $caixa)
-{
-    // 1️⃣ VALIDAÇÃO: Garante o recebimento dos valores do formulário
-    $request->validate([
-        'valores_fisicos' => 'required|array',
-        'valores_fisicos.dinheiro' => 'required',
-        'valores_fisicos.pix' => 'required',
-        'valores_fisicos.carteira' => 'required',
-        'valores_fisicos.cartao_debito' => 'required',
-        'valores_fisicos.cartao_credito' => 'required',
-        'carteira_fisicos' => 'nullable|array'
-    ]);
+   public function fecharMovimentoComAuditoria(Request $request, Caixa $caixa)
+    {
+        // 1️⃣ VALIDAÇÃO: Garante o recebimento dos valores do formulário
+        $request->validate([
+            'valores_fisicos' => 'required|array',
+            'valores_fisicos.dinheiro' => 'required',
+            'valores_fisicos.pix' => 'required',
+            'valores_fisicos.carteira' => 'required',
+            'valores_fisicos.cartao_debito' => 'required',
+            'valores_fisicos.cartao_credito' => 'required',
+            'carteira_fisicos' => 'nullable|array'
+        ]);
 
-    $userId = auth()->id();
-    $formas = ['dinheiro', 'pix', 'carteira', 'cartao_debito', 'cartao_credito'];
-    
-    // 2️⃣ TRATAMENTO DE ENTRADAS: Vendas do PDV
-    $valoresFisicos = [];
-    foreach ($formas as $forma) {
-        $valorRaw = $request->input("valores_fisicos.{$forma}", 0);
-        $valoresFisicos[$forma] = is_numeric($valorRaw) 
-            ? (float) $valorRaw 
-            : (float) str_replace(',', '.', str_replace('.', '', $valorRaw));
-    }
-
-    // Mapeia os valores declarados de Recebimento de Carteira
-    $valoresFisicosCarteira = [];
-    $formasCarteira = ['dinheiro', 'pix', 'cartao_debito'];
-    foreach ($formasCarteira as $forma) {
-        $valorRaw = $request->input("carteira_fisicos.{$forma}", 0);
-        $valoresFisicosCarteira[$forma] = is_numeric($valorRaw) 
-            ? (float) $valorRaw 
-            : (float) str_replace(',', '.', str_replace('.', '', $valorRaw));
-    }
-
-    // 3️⃣ INÍCIO DA TRANSAÇÃO ATÔMICA
-    return DB::transaction(function () use ($caixa, $userId, $formas, $valoresFisicos, $valoresFisicosCarteira, $request) {
+        $userId = auth()->id();
+        $formas = ['dinheiro', 'pix', 'carteira', 'cartao_debito', 'cartao_credito'];
         
-        $caixa->refresh();
-        
-        if ($caixa->status !== 'aberto' && $caixa->status !== 'inconsistente') { 
-            throw new \Exception('Este caixa já foi processado ou fechado por outra sessão.'); 
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 4️⃣ APURAÇÃO DE DADOS DA FITA COMERCIAL (VENDAS E RECEBIMENTOS)
-        |--------------------------------------------------------------------------
-        */
-        $vendasDoCaixaRaw = DB::table('movimentacoes_caixa')
-            ->where('caixa_id', $caixa->id)
-            ->where('tipo', 'venda')
-            ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
-            ->groupBy('forma_pagamento')
-            ->get();
-
-        $vendasDoCaixa = collect();
-        foreach ($vendasDoCaixaRaw as $venda) {
-            $formaLimpa = str_replace(' ', '_', strtolower(trim($venda->forma_pagamento)));
-            $vendasDoCaixa->put($formaLimpa, $venda);
-        }
-
-        $recebimentosCarteiraRaw = DB::table('movimentacoes_caixa')
-            ->where('caixa_id', $caixa->id)
-            ->whereIn('tipo', ['entrada', 'entrada_pagto_carteira'])
-            ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
-            ->groupBy('forma_pagamento')
-            ->get();
-
-        $recebimentosCarteira = collect();
-        foreach ($recebimentosCarteiraRaw as $recebimento) {
-            $formaLimpa = str_replace(' ', '_', strtolower(trim($recebimento->forma_pagamento)));
-            $recebimentosCarteira->put($formaLimpa, $recebimento);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 5️⃣ COMPOSIÇÃO DOS VALORES E DEDUÇÃO EXCLUSIVA DE SANGRIA NO DINHEIRO
-        |--------------------------------------------------------------------------
-        */
-        // Registra saídas vindas da requisição atual, se houver
-        $this->registrarSaidas($request, $caixa); 
-
-        // Captura saídas físicas em dinheiro
-        $totalSaidasDinheiro = DB::table('movimentacoes_caixa')
-            ->where('caixa_id', $caixa->id)
-            ->whereIn('tipo', ['saida_manual', 'cancelamento_venda', 'saida', 'despesa', 'sangria'])
-            ->sum('valor');
-
-        /*
-        |--------------------------------------------------------------------------
-        | 6️⃣ 💎 A REGRA DE CONCILIAÇÃO INDIVIDUAL (BLINDAGEM DA INVERSÃO)
-        |--------------------------------------------------------------------------
-        | 🎯 AJUSTE ARQUITETURAL: Movido para cima para que o array $valoresFisicosUnificados
-        | seja preenchido ANTES do cálculo da variável mestre $totalFisicoGeral.
-        */
-        $valoresFisicosUnificados = [];
+        // 2️⃣ TRATAMENTO DE ENTRADAS: Vendas do PDV
+        $valoresFisicos = [];
         foreach ($formas as $forma) {
-            if ($forma === 'carteira') {
-                $valoresFisicosUnificados[$forma] = 0.00;
-            } else {
-                // O dinheiro informado já é o total em espécie da gaveta, não somamos a carteira de forma duplicada
+            $valorRaw = $request->input("valores_fisicos.{$forma}", 0);
+            $valoresFisicos[$forma] = is_numeric($valorRaw) 
+                ? (float) $valorRaw 
+                : (float) str_replace(',', '.', str_replace('.', '', $valorRaw));
+        }
+
+        // Mapeia os valores declarados de Recebimento de Carteira
+        $valoresFisicosCarteira = [];
+        $formasCarteira = ['dinheiro', 'pix', 'cartao_debito'];
+        foreach ($formasCarteira as $forma) {
+            $valorRaw = $request->input("carteira_fisicos.{$forma}", 0);
+            $valoresFisicosCarteira[$forma] = is_numeric($valorRaw) 
+                ? (float) $valorRaw 
+                : (float) str_replace(',', '.', str_replace('.', '', $valorRaw));
+        }
+
+        // 3️⃣ INÍCIO DA TRANSAÇÃO ATÔMICA
+        return DB::transaction(function () use ($caixa, $userId, $formas, $valoresFisicos, $valoresFisicosCarteira, $request) {
+            
+            $caixa->refresh();
+            
+            if ($caixa->status !== 'aberto' && $caixa->status !== 'inconsistente') { 
+                throw new \Exception('Este caixa já foi processado ou fechado por outra sessão.'); 
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 4️⃣ APURAÇÃO DE DADOS DA FITA COMERCIAL (VENDAS E RECEBIMENTOS)
+            |--------------------------------------------------------------------------
+            */
+            $vendasDoCaixaRaw = DB::table('movimentacoes_caixa')
+                ->where('caixa_id', $caixa->id)
+                ->where('tipo', 'venda')
+                ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
+                ->groupBy('forma_pagamento')
+                ->get();
+
+            $vendasDoCaixa = collect();
+            foreach ($vendasDoCaixaRaw as $venda) {
+                $formaLimpa = str_replace(' ', '_', strtolower(trim($venda->forma_pagamento)));
+                $vendasDoCaixa->put($formaLimpa, $venda);
+            }
+
+            $recebimentosCarteiraRaw = DB::table('movimentacoes_caixa')
+                ->where('caixa_id', $caixa->id)
+                ->whereIn('tipo', ['entrada', 'entrada_pagto_carteira'])
+                ->select('forma_pagamento', DB::raw('SUM(valor) as total'))
+                ->groupBy('forma_pagamento')
+                ->get();
+
+            $recebimentosCarteira = collect();
+            foreach ($recebimentosCarteiraRaw as $recebimento) {
+                $formaLimpa = str_replace(' ', '_', strtolower(trim($recebimento->forma_pagamento)));
+                $recebimentosCarteira->put($formaLimpa, $recebimento);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 5️⃣ COMPOSIÇÃO DOS VALORES DO SISTEMA (POR FORMA DE PAGAMENTO)
+            |--------------------------------------------------------------------------
+            */
+            $this->registrarSaidas($request, $caixa); 
+
+            $totalSaidasDinheiro = DB::table('movimentacoes_caixa')
+                ->where('caixa_id', $caixa->id)
+                ->whereIn('tipo', ['saida_manual', 'cancelamento_venda', 'saida', 'despesa', 'sangria'])
+                ->sum('valor');
+
+            $valoresSistemas = [];
+            foreach ($formas as $forma) {
+                $vendaForma = $vendasDoCaixa->get($forma) ? (float)$vendasDoCaixa->get($forma)->total : 0.00;
+                $carteiraForma = $recebimentosCarteira->get($forma) ? (float)$recebimentosCarteira->get($forma)->total : 0.00;
+                
+                // O sistema espera o valor correto lançado da carteira (R$ 48,00) na linha dela
+                if ($forma === 'carteira') {
+                    $valoresSistemas[$forma] = $vendaForma;
+                } else {
+                    $valoresSistemas[$forma] = $vendaForma + $carteiraForma;
+                }
+
                 if ($forma === 'dinheiro') {
-                    $valoresFisicosUnificados[$forma] = (float) ($valoresFisicos[$forma] ?? 0.00);
+                    $valoresSistemas[$forma] += (float)$caixa->fundo_troco;
+                    $valoresSistemas[$forma] -= (float)$totalSaidasDinheiro;
+                }
+            }
+
+            // 🎯 TOTAL SISTEMA MESTRE: Soma o fluxo financeiro real que DEVE estar depositado (Ignora a carteira)
+            $totalSistemaGeral = 0.00;
+            foreach ($formas as $forma) {
+                if ($forma !== 'carteira') {
+                    $totalSistemaGeral += $valoresSistemas[$forma];
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 6️⃣ CONCILIAÇÃO DOS VALORES INFORMADOS PELO OPERADOR
+            |--------------------------------------------------------------------------
+            */
+            $valoresFisicosUnificados = [];
+            foreach ($formas as $forma) {
+                if ($forma === 'carteira') {
+                    $valoresFisicosUnificados[$forma] = (float)($valoresFisicos[$forma] ?? 0.00);
+                } else if ($forma === 'dinheiro') {
+                    $valoresFisicosUnificados[$forma] = (float)($valoresFisicos[$forma] ?? 0.00);
                 } else {
                     $vendaFisica = $valoresFisicos[$forma] ?? 0.00;
                     $carteiraFisica = $valoresFisicosCarteira[$forma] ?? 0.00;
                     $valoresFisicosUnificados[$forma] = $vendaFisica + $carteiraFisica;
                 }
             }
-        }
 
-        // 🎯 CÁLCULO INTELIGENTE E UNIFICADO DO TOTAL FÍSICO REAL (Soma exata das linhas filhos)
-        $totalFisicoGeral = array_sum($valoresFisicosUnificados);
+            // 🎯 A CORREÇÃO MATEMÁTICA REAL:
+            // O sistema mestre só pode esperar dinheiro vivo, pix e cartões. 
+            // Devemos subtrair a carteira (fiado do dia) do cálculo geral do sistema.
+            $totalSistemaGeral = 0.00;
+            foreach ($formas as $forma) {
+                if ($forma !== 'carteira') {
+                    $totalSistemaGeral += $valoresSistemas[$forma];
+                }
+            }
 
-        // Processa os valores esperados pelo sistema
-        $valoresSistemas = [];
-        $totalSistemaGeral = 0.00;
+            // O total físico geral deve ser o que o operador realmente contou nas 5 formas de pagamento unificadas
+            $totalFisicoGeral = array_sum($valoresFisicosUnificados);
 
-        foreach ($formas as $forma) {
-            if ($forma === 'carteira') {
-                $valoresSistemas[$forma] = 0.00; 
-            } else {
-                $vendaForma = $vendasDoCaixa->get($forma) ? (float)$vendasDoCaixa->get($forma)->total : 0.00;
-                $carteiraForma = $recebimentosCarteira->get($forma) ? (float)$recebimentosCarteira->get($forma)->total : 0.00;
+            // 🧠 VALIDAÇÃO INDIVIDUAL DAS LINHAS DA TABELA (Pente-fino)
+            $caixaInconsistente = false;
+            foreach ($formas as $forma) {
+                $sistemaForma  = $valoresSistemas[$forma] ?? 0.00;
+                $unificadoForma = $valoresFisicosUnificados[$forma] ?? 0.00;
                 
-                $valoresSistemas[$forma] = $vendaForma + $carteiraForma;
+                if (abs($unificadoForma - $sistemaForma) > 0.01) {
+                    $caixaInconsistente = true;
+                }
             }
 
-            // Aplicando a sangria isolada no fluxo de dinheiro do sistema
-            if ($forma === 'dinheiro') {
-                $valoresSistemas[$forma] += (float)$caixa->fundo_troco;
-                $valoresSistemas[$forma] -= (float)$totalSaidasDinheiro;
-            }
+            $novoStatusCaixa = ($caixaInconsistente) ? 'inconsistente' : 'fechado';
 
-            $totalSistemaGeral += $valoresSistemas[$forma];
-        }
-
-        // 🧠 PENALIZAÇÃO POR LINHA: Varre cada meio de pagamento individualmente.
-        $caixaInconsistente = false;
-        foreach ($formas as $forma) {
-            $sistemaForma  = $valoresSistemas[$forma] ?? 0.00;
-            $unificadoForma = $valoresFisicosUnificados[$forma] ?? 0.00;
+            // Grava o cabeçalho mestre da auditoria (AUDITORIAS_CAIXA) com R$ 1.442,00
+            $auditoriaId = $this->criarAuditoriaCabecalho(
+                $caixa->id, 
+                $userId, 
+                $totalSistemaGeral, 
+                $totalFisicoGeral, 
+                $novoStatusCaixa === 'fechado' ? 'Fechamento comercial auditado e validado' : 'Fechamento inconsistente por divergência nas formas de pagamento'
+            );
             
-            // Tolerância estrita de 1 centavo por moeda
-            if (abs($unificadoForma - $sistemaForma) > 0.01) {
-                $caixaInconsistente = true;
-            }
-        }
+            // Grava as linhas de detalhe preservando a carteira com R$ 48,00
+            $this->salvarAuditoriaDetalhes($auditoriaId, $valoresSistemas, $valoresFisicosUnificados);
+            
+            // Salva o valor real de fechamento na tabela principal caixas (R$ 1.442,00)
+            $caixa->update([
+                'valor_fechamento' => $totalFisicoGeral,
+                'status'           => $novoStatusCaixa,
+                'data_fechamento'  => now(),
+                'fechado_por'      => $userId
+            ]);
 
-        // Define o status final baseado na verificação individual das linhas
-        $novoStatusCaixa = ($caixaInconsistente) ? 'inconsistente' : 'fechado';
-
-        // Grava o cabeçalho mestre da auditoria refletindo o total corrigido de R$ 1.442,00
-        $auditoriaId = $this->criarAuditoriaCabecalho(
-            $caixa->id, 
-            $userId, 
-            $totalSistemaGeral, 
-            $totalFisicoGeral, 
-            $novoStatusCaixa === 'fechado' ? 'Fechamento comercial auditado e validado' : 'Fechamento inconsistente por divergência nas formas de pagamento'
-        );
-        
-        // Grava os detalhes por forma de pagamento no banco
-        $this->salvarAuditoriaDetalhes($auditoriaId, $valoresSistemas, $valoresFisicosUnificados);
-        
-        // Salva o status definitivo e o valor real do fechamento do caixa principal
-        $caixa->update([
-            'valor_fechamento' => $totalFisicoGeral,
-            'status'           => $novoStatusCaixa,
-            'data_fechamento'  => now(),
-            'fechado_por'      => $userId
-        ]);
-
-        return redirect("/fechamento_caixa/confirmacao/{$caixa->id}")
-            ->with('success', 'Conferência física processada e registrada com sucesso.');
-    });
-}
+            return redirect("/fechamento_caixa/confirmacao/{$caixa->id}")
+                ->with('success', 'Conferência física processada e registrada com sucesso.');
+        });
+    }
 
 
-    // private function criarAuditoriaCabecalho(int $caixaId, int $userId, float $sistema, float $fisico, string $obs): int
-    // {
-    //     $diferenca = $fisico - $sistema;
-    //     return DB::table('auditorias_caixa')->insertGetId([
-    //         'caixa_id'         => $caixaId, 
-    //         'user_id'          => $userId, 
-    //         'codigo_auditoria' => 'AUD-' . $caixaId . '-' . now()->format('YmdHis'),
-    //         'total_sistema'    => $sistema, 
-    //         'total_fisico'     => $fisico, 
-    //         'diferenca'        => $diferenca,
-    //         'status'           => (abs($diferenca) <= 0.01 ? 'concluida' : 'inconsistente'), // ENUM auditorias_caixa
-    //         'observacao'       => $obs, 
-    //         'data_auditoria'   => now()
-    //     ]);
-    // }
-
-    // private function salvarAuditoriaDetalhes(int $auditoriaId, array $valoresSistemas, array $valoresFisicos): void
-    // {
-    //     // Lista estática explícita para garantir o pente-fino das 5 formas da sua Blade
-    //     $listaFormas = ['dinheiro', 'pix', 'carteira', 'cartao_debito', 'cartao_credito'];
-
-    //     foreach ($listaFormas as $forma) {
-    //         $sistema = (float)($valoresSistemas[$forma] ?? 0.00);
-    //         $fisico  = (float)($valoresFisicos[$forma] ?? 0.00);
-    //         $diff    = $fisico - $sistema;
-
-    //         DB::table('auditoria_detalhes')->insert([
-    //             'auditoria_id'    => $auditoriaId,
-    //             'forma_pagamento' => $forma,
-    //             'total_sistema'   => $sistema,
-    //             'total_fisico'    => $fisico,
-    //             'diferenca'       => $diff,
-    //             'status'          => (abs($diff) <= 0.01 ? 'correto' : 'divergente'), // ENUM da sua tabela auditoria_detalhes
-    //             'created_at'      => now(),
-    //             'updated_at'      => now()
-    //         ]);
-    //     }
-    // }
 
     private function criarAuditoriaCabecalho(int $caixaId, int $userId, float $sistema, float $fisico, string $obs): int
     {

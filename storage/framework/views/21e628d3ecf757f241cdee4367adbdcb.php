@@ -146,13 +146,13 @@
              <li>
                 <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
                    href="<?php echo e($canAccessAdmin ? route('limites-view') : '#'); ?>">
-                   <i class="bi bi-list-stars me-2"></i>ControleLimite Credito
+                   <i class="bi bi-list-stars me-2"></i>Controle Carteira
                 </a>
             </li>
              <li>
               <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
                   href="<?php echo e($canAccessAdmin ? route('sangria-config.index') : '#'); ?>">
-                  <i class="bi bi-list-stars me-2"></i>Define Sangria
+                  <i class="bi bi-list-stars me-2"></i>Controle Sangria
               </a>
             </li>
         </ul>

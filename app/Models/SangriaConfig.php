@@ -7,18 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class SangriaConfig extends Model
 {
-    use HasFactory; // <-- habilita factory do Laravel
+    use HasFactory;
+
+    protected $table = 'sangria_configs'; // Garanta que aponta para o nome correto da sua tabela
 
     protected $fillable = [
         'empresa_id',
+        'valor_minimo_caixa',
+        'valor_maximo_caixa',
         'valor_limite',
-        'percentual_bloqueio',
-        'bloqueio_ativo'
+        'sangria_automatica',
+        'valor_sangria_automatica',
+        'exigir_autorizacao',
+        'descricao_padrao'
     ];
 
     public function empresa()
     {
         return $this->belongsTo(Empresa::class, 'empresa_id', 'id');
     }
-    
 }

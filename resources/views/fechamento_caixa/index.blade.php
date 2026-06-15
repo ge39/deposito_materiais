@@ -83,7 +83,7 @@
 
 @section('content')
 <div class="container mt-4">
-    <h3>Fechamento / Auditoria de Caixa #{{ $caixa->id }}</h3>
+    <h3>Fechamento / Auditoria de Caixa #{{ $caixa->id }} - Terminal {{ $caixa->terminal_id }}</h3>
 
     {{-- =======================
         CARDS DE RESUMO

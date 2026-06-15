@@ -183,16 +183,37 @@ class ClienteCreditoController extends Controller
             // Altera o retorno da transação para entregar um array com os dois dados essenciais
             $retornoTransacao = DB::transaction(function () use ($request, $id, $usuarioLogado) {
                 
-                // 1. 🔒 Localiza e trava a sessão de caixa ativa do operador logado
-                $caixaAtivo = DB::table('caixas')
-                    ->where('user_id', $usuarioLogado->id) 
-                    ->where('status', 'aberto')            
-                    ->lockForUpdate()
-                    ->first();
+                // 1. 🔒 Localiza e trava a sessão de caixa ativa correta da máquina que fez a operação
+                $caixaAtivo = null;
+
+                // Se a requisição veio atrelada a uma venda do PDV atual, busca o caixa daquela venda
+                if ($request->filled('venda_id')) {
+                    $vendaOrigem = DB::table('vendas')->where('id', $request->input('venda_id'))->first();
+                    if ($vendaOrigem && $vendaOrigem->caixa_id) {
+                        $caixaAtivo = DB::table('caixas')
+                            ->where('id', $vendaOrigem->caixa_id)
+                            ->where('status', 'aberto')
+                            ->lockForUpdate()
+                            ->first();
+                    }
+                }
+
+                // Fallback de Segurança: Se não veio venda_id, busca validando o terminal ativo da sessão
+                if (!$caixaAtivo) {
+                    $caixaAtivo = DB::table('caixas')
+                        ->where('user_id', $usuarioLogado->id)
+                        ->where('status', 'aberto')
+                        // Se o seu sistema salva o terminal logado na sessão ou request, use aqui:
+                        ->where('terminal_id', session('terminal_id') ?? $request->input('terminal_id'))
+                        ->orderByDesc('id') // Prioriza o mais recente aberto em vez do primeiro
+                        ->lockForUpdate()
+                        ->first();
+                }
 
                 if (!$caixaAtivo) {
-                    throw new \Exception('Operação Negada: O operador não possui uma sessão de caixa aberta para este turno.');
+                    throw new \Exception('Operação Negada: O operador não possui uma sessão de caixa aberta para este terminal.');
                 }
+
 
                 // 2. Captura as configurações de crédito do cliente
                 $creditoConfig = DB::table('cliente_creditos')->where('cliente_id', $id)->first();

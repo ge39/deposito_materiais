@@ -172,38 +172,45 @@ class Caixa extends Model
 
 //         return round(max($saldoParaSangria, 0), 2);
 //     }
-    public function saldoDinheiroAtual(): float
+
+   public function saldoDinheiroAtual(): float
     {
-        // 1. Soma absolutamente tudo o que colocou dinheiro na gaveta deste caixa
+        // 1. Soma absolutamente tudo o que colocou DINHEIRO EM ESPÉCIE na gaveta
         $entradas = \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
             ->where('caixa_id', $this->id)
-            ->whereIn('tipo', ['abertura', 'venda', 'entrada', 'aporte', 'entrada_manual'])
-            ->where('forma_pagamento', 'dinheiro')
+            ->where('forma_pagamento', 'dinheiro') // Garante focar apenas em espécie
+            ->whereIn('tipo', [
+                'abertura', 
+                'venda', 
+                'entrada', 
+                'aporte', 
+                'entrada_manual', 
+                'entrada_pagto_carteira' // 🎯 String idêntica à gravada no banco de dados
+            ])
             ->sum('valor');
 
         // 2. Soma as saídas manuais e despesas administrativas registradas em dinheiro
         $saidasManuais = \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
             ->where('caixa_id', $this->id)
-            ->whereIn('tipo', ['saida_manual', 'cancelamento_venda', 'saida', 'despesa'])
             ->where('forma_pagamento', 'dinheiro')
+            ->whereIn('tipo', ['saida_manual', 'cancelamento_venda', 'saida', 'despesa'])
             ->sum('valor');
 
-        // 3. 🔥 DEDUÇÃO COMPLETA DE SANGRIA: Busca pelos dois termos (antigo e novo) na tabela de movimentações
+        // 3. Busca pelas sangrias registradas na fita de auditoria
         $sangriasPelasMovimentacoes = \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
             ->where('caixa_id', $this->id)
-            ->whereIn('tipo', ['sangria', 'Saida_manual']) // Captura o padrão novo e o antigo com "S" maiúsculo
-            ->whereIn('forma_pagamento', ['dinheiro', 'Sangria']) // Captura as duas formas salvas no banco
+            ->whereIn('tipo', ['sangria', 'Saida_manual']) 
             ->sum('valor');
 
-        // 4. 🔥 DUPLA SEGURANÇA: Busca também direto na tabela física de sangrias para garantir o abatimento
+        // 4. Busca também direto na tabela física de sangrias para garantir o abatimento seguro
         $sangriasPelaTabelaFisica = \Illuminate\Support\Facades\DB::table('sangrias')
             ->where('caixa_id', $this->id)
             ->sum('valor');
 
-        // Escolhe o maior valor de sangria encontrado para garantir que a gaveta baixe de qualquer forma
+        // Captura o maior índice de sangria encontrado para evitar furos
         $totalSangrias = max($sangriasPelasMovimentacoes, $sangriasPelaTabelaFisica);
 
-        // 5. MATEMÁTICA DA GAVETA: Entradas (1750) - Saídas (0) - Sangria Realizada (250) = R$ 1.500,00
+        // MATEMÁTICA FINAL DA GAVETA
         $saldoReal = $entradas - ($saidasManuais + $totalSangrias);
 
         return (float) max(0, $saldoReal);

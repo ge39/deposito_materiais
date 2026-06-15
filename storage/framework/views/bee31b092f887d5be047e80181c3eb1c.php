@@ -83,7 +83,7 @@
 
 <?php $__env->startSection('content'); ?>
 <div class="container mt-4">
-    <h3>Fechamento / Auditoria de Caixa #<?php echo e($caixa->id); ?></h3>
+    <h3>Fechamento / Auditoria de Caixa #<?php echo e($caixa->id); ?> - Terminal <?php echo e($caixa->terminal_id); ?></h3>
 
     
     <div class="row mb-3">
