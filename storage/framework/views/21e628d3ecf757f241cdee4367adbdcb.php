@@ -154,6 +154,11 @@
                   href="<?php echo e($canAccessAdmin ? route('sangria-config.index') : '#'); ?>">
                   <i class="bi bi-list-stars me-2"></i>Controle Sangria
               </a>
+            <li>
+              <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
+                href="<?php echo e($canAccessAdmin ? route('gerencia.caixa.painel_saidas') : '#'); ?>">
+                  <i class="bi bi-box-arrow-right me-2 text-danger"></i>Saídas em Lote (Rede)
+              </a>
             </li>
         </ul>
     </li>

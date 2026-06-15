@@ -33,37 +33,88 @@ class AuditoriaCaixaController extends Controller
      * Exibir o Painel de Auditoria de Caixas Encerrados
      * 🎯 VERSÃO CONCILIADA: Calcula os totais em tempo real mitigando dados legados do banco
      */
+    // public function index()
+    // {
+    //     $auditorias = AuditoriaCaixa::with([
+    //         'caixa',
+    //         'usuario',
+    //         'detalhes' // Carrega os detalhes para podermos somar dinamicamente
+    //     ])
+    //     ->withCount([
+    //         'detalhes as divergencias_count' => function ($q) {
+    //             $q->where('status', 'divergente');
+    //         }
+    //     ])
+    //     ->orderByDesc('data_auditoria')
+    //     ->paginate(20);
+
+    //     // 🎯 AJUSTE DINÂMICO DE ESCOPO CONTÁBIL
+    //     // Transforma a coleção paginada para recalcular as colunas com base nas linhas reais da auditoria
+    //     $auditorias->getCollection()->transform(function ($auditoria) {
+    //         // Soma o que veio do sistema e o que o operador informou na tabela de detalhes
+    //         $totalSistemaReal = (float) $auditoria->detalhes->sum('total_sistema');
+    //         $totalFisicoReal  = (float) $auditoria->detalhes->sum('total_fisico');
+
+    //         // Calcula a diferença real (Se tudo na tabela bateu correto, a divergência vai para 0.00)
+    //         $diferencaCalculada = $totalFisicoReal - $totalSistemaReal;
+
+    //         // Sobrescreve temporariamente as propriedades do objeto em memória para exibição na View
+    //         $auditoria->total_sistema = $totalSistemaReal;
+    //         $auditoria->diferenca = $diferencaCalculada;
+            
+    //         if ($diferencaCalculada == 0) {
+    //             $auditoria->status = 'concluida';
+    //         }
+
+    //         return $auditoria;
+    //     });
+
+    //     return view('auditoria_caixa.index', compact('auditorias'));
+    // }
+
+        /**
+     * Exibir o Painel de Auditoria de Caixas Encerrados
+     * 🎯 VERSÃO BLINDADA: Corrige caixas sem movimento (R$ 0,00) injetando o troco de abertura
+     */
     public function index()
     {
         $auditorias = AuditoriaCaixa::with([
             'caixa',
             'usuario',
-            'detalhes' // Carrega os detalhes para podermos somar dinamicamente
-        ])
-        ->withCount([
-            'detalhes as divergencias_count' => function ($q) {
-                $q->where('status', 'divergente');
-            }
+            'detalhes'
         ])
         ->orderByDesc('data_auditoria')
         ->paginate(20);
 
-        // 🎯 AJUSTE DINÂMICO DE ESCOPO CONTÁBIL
-        // Transforma a coleção paginada para recalcular as colunas com base nas linhas reais da auditoria
+        // Transforma a coleção paginada corrigindo os dados em tempo de execução
         $auditorias->getCollection()->transform(function ($auditoria) {
-            // Soma o que veio do sistema e o que o operador informou na tabela de detalhes
+            // 1. Soma os detalhes padrões registrados
             $totalSistemaReal = (float) $auditoria->detalhes->sum('total_sistema');
-            $totalFisicoReal  = (float) $auditoria->detalhes->sum('total_fisico');
+            $totalFisicoReal  = (float) $auditoria->detalhes->sum('total_physical'); // Alinhado com a sua coluna real
 
-            // Calcula a diferença real (Se tudo na tabela bateu correto, a divergência vai para 0.00)
+            if ($totalFisicoReal == 0) {
+                $totalFisicoReal = (float) $auditoria->detalhes->sum('total_fisico');
+            }
+
+            // 2. 🎯 O PONTO DE INFLEXÃO DO BUG: Se o caixa fechou sem nenhuma venda/movimentação,
+            // o sistema espera receber estritamente o valor do Fundo de Troco que iniciou o dia.
+            if ($totalSistemaReal == 0) {
+                $totalSistemaReal = (float) ($auditoria->caixa->fundo_troco ?? $auditoria->caixa->valor_abertura ?? 0.00);
+            }
+
+            // 3. Calcula a real divergência contábil
             $diferencaCalculada = $totalFisicoReal - $totalSistemaReal;
 
-            // Sobrescreve temporariamente as propriedades do objeto em memória para exibição na View
+            // 4. Sobrescreve temporariamente os atributos para a renderização exata do Blade
             $auditoria->total_sistema = $totalSistemaReal;
-            $auditoria->diferenca = $diferencaCalculada;
+            $auditoria->total_fisico  = $totalFisicoReal;
+            $auditoria->diferenca     = $diferencaCalculada;
             
+            // Força o status correto com base na matemática real da gaveta
             if ($diferencaCalculada == 0) {
-                $auditoria->status = 'concluida';
+                $auditoria->status = 'concluida'; // Pintará a linha perfeitamente de verde
+            } else {
+                $auditoria->status = 'inconsistente'; // Pintará a linha de vermelho se faltar dinheiro
             }
 
             return $auditoria;

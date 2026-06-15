@@ -13,28 +13,32 @@ class MovimentacaoCaixa extends Model
 
     protected $fillable = [
         'caixa_id',
-        'auditoria_id', 
+        'auditoria_id', // novo campo para vincular à auditoria
         'user_id',
         'tipo',
         'valor',
-        'valor_auditado',  
-        'forma_pagamento',   
-        'bandeira',          
-        'origem_id',         
+        'valor_auditado',  // novo
+        'forma_pagamento',   // novo
+        'bandeira',          // novo
+        'origem_id',         // novo
         'observacao',
         'data_movimentacao',
     ];
 
     protected $casts = [
         'valor' => 'decimal:2',
-        'valor_auditado' => 'decimal:2', 
+        'valor_auditado' => 'decimal:2', // ✅
         'data_movimentacao' => 'datetime',
     ];
 
-    public $timestamps = true;
+    public function auditoria()
+    {
+        return $this->belongsTo(AuditoriaCaixa::class);
+    }
 
     protected static function booted()
     {
+              
         static::saving(function ($mov) {
 
             if ($mov->tipo === 'fechamento') {
@@ -53,16 +57,20 @@ class MovimentacaoCaixa extends Model
                 }
             }
 
-            // CORREÇÃO: Converte para float e garante que 0 ou 0.00 não bloqueiem lançamentos de despesas/saídas
-            $valorAuditadoFloat = $mov->valor_auditado ? (float) $mov->valor_auditado : 0;
-
-            if (!in_array($mov->tipo, ['fechamento', 'auditoria']) && $valorAuditadoFloat > 0) {
+            if (!in_array($mov->tipo, ['fechamento', 'auditoria']) 
+                && !is_null($mov->valor_auditado)) {
                 throw new \DomainException(
                     'valor_auditado só é permitido em fechamento ou auditoria.'
                 );
             }
         });
+
     }
+
+    //Se quiser que data_movimentacao seja tratada como Carbon
+    // protected $dates = ['created_at','updated_at','data_movimentacao'];
+
+    public $timestamps = true;
 
     /* =========================
        RELACIONAMENTOS
@@ -78,11 +86,6 @@ class MovimentacaoCaixa extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function auditoria()
-    {
-        return $this->belongsTo(AuditoriaCaixa::class, 'auditoria_id');
-    }
-
     /**
      * Venda relacionada (quando tipo = venda ou cancelamento_venda)
      * Usa origem_id
@@ -92,14 +95,10 @@ class MovimentacaoCaixa extends Model
         return $this->belongsTo(Venda::class, 'origem_id');
     }
 
-    /**
-     * Origem genérica dinâmica.
-     * AJUSTE: Se o banco não for polimórfico (falta coluna origem_type), 
-     * use belongsTo apontando para a classe de Ajustes/Movimentos gerais se necessário.
-     */
+    // vincular uma movimentação a uma venda, sangria ou ajuste:
     public function origem()
     {
-        // Se usar polimorfismo real, certifique-se de ter 'origem_type' na migration.
-        return $this->morphTo(); 
+        return $this->morphTo(); // ou belongsTo dependendo do caso
     }   
+
 }

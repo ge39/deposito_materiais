@@ -190,53 +190,98 @@ class FechamentoCaixaController extends Controller
     }
 
 
+    // private function fecharSemMovimento(Request $request, Caixa $caixa)
+    // {
+    //     $request->validate(['motivo_fechamento' => 'required|string|max:255']);
+    //     $userId = auth()->id();
+    //     $motivo = $request->input('motivo_fechamento');
+
+    //     return DB::transaction(function () use ($caixa, $userId, $motivo) {
+    //         $caixa->refresh();
+    //         if ($caixa->status !== 'aberto') { 
+    //             throw new \Exception('Caixa já modificado por outro terminal.'); 
+    //         }
+
+    //         // 1. Gera cabeçalho da auditoria (Troco esperado == Troco recebido)
+    //         $auditoriaId = $this->criarAuditoriaCabecalho(
+    //             $caixa->id, 
+    //             $userId, 
+    //             (float)$caixa->fundo_troco, 
+    //             (float)$caixa->fundo_troco, 
+    //             "Fechamento administrativo sem movimento: {$motivo}"
+    //         );
+
+    //         // 2. Prepara matriz zerada (Apenas dinheiro herda o troco)
+    //         $formas = ['dinheiro', 'pix', 'carteira', 'cartao_debito', 'cartao_credito'];
+    //         $valoresSistemas = array_fill_keys($formas, 0.00);
+    //         $valoresSistemas['dinheiro'] = (float)$caixa->fundo_troco;
+            
+    //         // Executa o método privado compartilhado
+    //         $this->salvarAuditoriaDetalhes($auditoriaId, $formas, $valoresSistemas, $valoresSistemas);
+
+    //         // 3. Grava histórico na fita do caixa aberto
+    //         $this->salvarMovimentacaoHistorica($caixa->id, $auditoriaId, $userId, 'fechamento_sem_movimento', 'fechamento', (float)$caixa->fundo_troco, $motivo);
+
+    //         // 4. Atualiza o cabeçalho principal
+    //         $caixa->update([
+    //             'valor_fechamento' => (float)$caixa->fundo_troco, 
+    //             'status' => 'fechado_sem_movimento', 
+    //             'data_fechamento' => now(), 
+    //             'fechado_por' => $userId, 
+    //             'observacao' => $motivo
+    //         ]);
+
+    //         return redirect("/fechamento_caixa/confirmacao/{$caixa->id}")
+    //             ->with('success', 'Caixa encerrado administrativamente.');
+    //     });
+    // }
+
     private function fecharSemMovimento(Request $request, Caixa $caixa)
     {
-        $request->validate(['motivo_fechamento' => 'required|string|max:255']);
-        $userId = auth()->id();
-        $motivo = $request->input('motivo_fechamento');
+        $userId = Auth::id();
 
-        return DB::transaction(function () use ($caixa, $userId, $motivo) {
-            $caixa->refresh();
-            if ($caixa->status !== 'aberto') { 
-                throw new \Exception('Caixa já modificado por outro terminal.'); 
-            }
+        // 1. 🎯 CAPTURA O VALOR REAL DO FUNDO DE TROCO REGISTRADO NA ABERTURA
+        $fundoTroco = (float) ($caixa->fundo_troco ?? $caixa->valor_abertura ?? 0.00);
 
-            // 1. Gera cabeçalho da auditoria (Troco esperado == Troco recebido)
+        // 2. No fluxo sem movimento, o que o operador informa deve ser exatamente o fundo de troco.
+        // Se o request não trouxer o valor digitado, adotamos o fundo de troco como valor físico também.
+        $valorFisicoInformado = (float) ($request->input('dinheiro') ?? $fundoTroco);
+
+        return DB::transaction(function () use ($caixa, $userId, $fundoTroco, $valorFisicoInformado) {
+            
+            // 3. 🗃️ GRAVAÇÃO COMPLETA: Passamos o fundo de troco nos dois parâmetros (Sistema e Físico).
+            // Isso faz com que a diferença gravada no banco de dados seja de R$ 0,00 exatos.
             $auditoriaId = $this->criarAuditoriaCabecalho(
                 $caixa->id, 
                 $userId, 
-                (float)$caixa->fundo_troco, 
-                (float)$caixa->fundo_troco, 
-                "Fechamento administrativo sem movimento: {$motivo}"
+                $fundoTroco,            // 🟢 grava no 'total_sistema' (ex: R$ 276,00)
+                $valorFisicoInformado,  // 🟢 grava no 'total_fisico' (ex: R$ 276,00)
+                'Caixa fechado automaticamente pelo sistema - Sem movimentações comerciais.'
             );
 
-            // 2. Prepara matriz zerada (Apenas dinheiro herda o troco)
-            $formas = ['dinheiro', 'pix', 'carteira', 'cartao_debito', 'cartao_credito'];
-            $valoresSistemas = array_fill_keys($formas, 0.00);
-            $valoresSistemas['dinheiro'] = (float)$caixa->fundo_troco;
-            
-            // Executa o método privado compartilhado
-            $this->salvarAuditoriaDetalhes($auditoriaId, $formas, $valoresSistemas, $valoresSistemas);
-
-            // 3. Grava histórico na fita do caixa aberto
-            $this->salvarMovimentacaoHistorica($caixa->id, $auditoriaId, $userId, 'fechamento_sem_movimento', 'fechamento', (float)$caixa->fundo_troco, $motivo);
-
-            // 4. Atualiza o cabeçalho principal
-            $caixa->update([
-                'valor_fechamento' => (float)$caixa->fundo_troco, 
-                'status' => 'fechado_sem_movimento', 
-                'data_fechamento' => now(), 
-                'fechado_por' => $userId, 
-                'observacao' => $motivo
+            // 4. Cria a fita de detalhes zerada ou preenchida com o fundo para as formas de pagamento
+            DB::table('auditoria_detalhes')->insert([
+                'auditoria_id'     => $auditoriaId,
+                'forma_pagamento'  => 'dinheiro',
+                'total_sistema'    => $fundoTroco, // Mantém o valor do troco registrado no detalhe
+                'total_fisico'     => $valorFisicoInformado,
+                'status'           => 'correto',
+                'created_at'       => now(),
+                'updated_at'       => now()
             ]);
 
-            return redirect("/fechamento_caixa/confirmacao/{$caixa->id}")
-                ->with('success', 'Caixa encerrado administrativamente.');
+            // 5. Atualiza o status do caixa diretamente para 'fechado' na tabela de caixas
+            $caixa->update([
+                'status' => 'fechado',
+                'data_fechamento' => now()
+            ]);
+
+            return redirect()
+                ->route('fechamento.confirmacao', $caixa->id)
+                ->with('success', 'Caixa sem movimento encerrado e homologado com sucesso.');
         });
     }
 
-  
    public function fecharMovimentoComAuditoria(Request $request, Caixa $caixa)
     {
         // 1️⃣ VALIDAÇÃO: Garante o recebimento dos valores do formulário
@@ -419,8 +464,6 @@ class FechamentoCaixaController extends Controller
         });
     }
 
-
-
     private function criarAuditoriaCabecalho(int $caixaId, int $userId, float $sistema, float $fisico, string $obs): int
     {
         // 🎯 CORREÇÃO DEFINITIVA: O cabeçalho se recusa a gravar valores fantasmas vindo de fora. 
@@ -440,6 +483,36 @@ class FechamentoCaixaController extends Controller
             'data_auditoria'   => now()
         ]);
     }
+
+    // private function criarAuditoriaCabecalho(int $caixaId, int $userId, float $sistema, float $fisico, string $obs): int
+    // {
+    //     // 🎯 CORREÇÃO CRUCIAL PARA CAIXAS SEM MOVIMENTO:
+    //     // Se o sistema vier zerado (0.00), significa que o caixa passou pelo método fecharSemMovimento.
+    //     // Buscamos o fundo de troco original registrado na abertura deste caixa para servir de base.
+    //     if ($sistema == 0.00) {
+    //         $caixa = DB::table('caixas')->where('id', $caixaId)->first();
+    //         $sistema = (float) ($caixa->fundo_troco ?? $caixa->valor_abertura ?? 0.00);
+    //     }
+
+    //     // Agora a conta fechará com perfeição contábil:
+    //     // Físico (276.00) - Sistema Ajustado (276.00) = Diferença: R$ 0,00
+    //     $diferenca = $fisico - $sistema;
+
+    //     return DB::table('auditorias_caixa')->insertGetId([
+    //         'caixa_id'         => $caixaId, 
+    //         'user_id'          => $userId, 
+    //         'codigo_auditoria' => 'AUD-' . $caixaId . '-' . now()->format('YmdHis'),
+    //         'total_sistema'    => $sistema, // Gravará R$ 276.00 e não R$ 0.00
+    //         'total_fisico'     => $fisico,  // Gravará R$ 276.00
+    //         'diferenca'        => $diferenca, // Gravará R$ 0.00
+    //         'status'           => (abs($diferenca) <= 0.01 ? 'concluida' : 'inconsistente'), // Gravará 'concluida'
+    //         'observacao'       => $obs, 
+    //         'data_auditoria'   => now(),
+    //         'created_at'       => now(),
+    //         'updated_at'       => now()
+    //     ]);
+    // }
+
 
     private function salvarAuditoriaDetalhes(int $auditoriaId, array $valoresSistemas, array $valoresFisicos): void
     {

@@ -462,4 +462,38 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
+use App\Http\Controllers\MovimentacaoCaixaController;
+
+// Agrupadas por autenticação para garantir o user_id no PDV e na Gerência
+Route::middleware(['auth'])->group(function () {
+    
+    // -----------------------------------------------------------------
+    // FLUXO DE MOVIMENTAÇÃO DO OPERADOR (PDV INDIVIDUAL)
+    // -----------------------------------------------------------------
+    Route::post('/caixa/movimentacoes', [MovimentacaoCaixaController::class, 'store'])
+        ->name('caixa.movimentacoes.store');
+
+    Route::put('/caixa/movimentacoes/{caixa}', [MovimentacaoCaixaController::class, 'update'])
+        ->name('caixa.movimentacoes.update');
+
+
+    // -----------------------------------------------------------------
+    // FLUXO GERENCIAL MULTI-CAIXAS (SAÍDAS EM REDE / RATEIO)
+    // -----------------------------------------------------------------
+    
+    // ✅ ROTA ADICIONADA: Abre a interface da Blade com a tabela de caixas e o formulário
+    Route::get('/gerencia/caixa/saidas', [MovimentacaoCaixaController::class, 'painelGerencialSaidas'])
+        ->name('gerencia.caixa.painel_saidas');
+
+    // Rota AJAX que processa o salvamento em segundo plano (Disparada pelo JS do botão)
+    Route::post('/gerencia/caixa/registrar-saida-lote', [MovimentacaoCaixaController::class, 'registrarSaidaLote'])
+        ->name('gerencia.caixa.registrar_saida_lote');
+});
+
+// Rota para abrir o histórico de saídas e permitir a reimpressão
+Route::get('/gerencia/caixa/saidas/historico', [MovimentacaoCaixaController::class, 'historicoSaidas'])
+    ->name('gerencia.caixa.saidas.historico');
+
+
+
 
