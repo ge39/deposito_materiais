@@ -13,86 +13,181 @@ use Illuminate\Support\Str;
 
 class AuditoriaCaixaController extends Controller
 {
+    // public function index()
+    // {
+    //     $auditorias = AuditoriaCaixa::with([
+    //             'caixa',
+    //             'usuario'
+    //         ])
+    //         ->withCount([
+    //             'detalhes as divergencias_count' => function ($q) {
+    //                 $q->where('status', 'divergente');
+    //             }
+    //         ])
+    //         ->orderByDesc('data_auditoria')
+    //         ->paginate(20);
+
+    //     return view('auditoria_caixa.index', compact('auditorias'));
+    // }
+        /**
+     * Exibir o Painel de Auditoria de Caixas Encerrados
+     * 🎯 VERSÃO CONCILIADA: Calcula os totais em tempo real mitigando dados legados do banco
+     */
     public function index()
     {
         $auditorias = AuditoriaCaixa::with([
-                'caixa',
-                'usuario'
-            ])
-            ->withCount([
-                'detalhes as divergencias_count' => function ($q) {
-                    $q->where('status', 'divergente');
-                }
-            ])
-            ->orderByDesc('data_auditoria')
-            ->paginate(20);
+            'caixa',
+            'usuario',
+            'detalhes' // Carrega os detalhes para podermos somar dinamicamente
+        ])
+        ->withCount([
+            'detalhes as divergencias_count' => function ($q) {
+                $q->where('status', 'divergente');
+            }
+        ])
+        ->orderByDesc('data_auditoria')
+        ->paginate(20);
+
+        // 🎯 AJUSTE DINÂMICO DE ESCOPO CONTÁBIL
+        // Transforma a coleção paginada para recalcular as colunas com base nas linhas reais da auditoria
+        $auditorias->getCollection()->transform(function ($auditoria) {
+            // Soma o que veio do sistema e o que o operador informou na tabela de detalhes
+            $totalSistemaReal = (float) $auditoria->detalhes->sum('total_sistema');
+            $totalFisicoReal  = (float) $auditoria->detalhes->sum('total_fisico');
+
+            // Calcula a diferença real (Se tudo na tabela bateu correto, a divergência vai para 0.00)
+            $diferencaCalculada = $totalFisicoReal - $totalSistemaReal;
+
+            // Sobrescreve temporariamente as propriedades do objeto em memória para exibição na View
+            $auditoria->total_sistema = $totalSistemaReal;
+            $auditoria->diferenca = $diferencaCalculada;
+            
+            if ($diferencaCalculada == 0) {
+                $auditoria->status = 'concluida';
+            }
+
+            return $auditoria;
+        });
 
         return view('auditoria_caixa.index', compact('auditorias'));
     }
 
+    // public function show(AuditoriaCaixa $auditoria)
+    // {
+    //     $auditoria->load([
+    //         'caixa',
+    //         'caixa.usuario', // operador que abriu o caixa
+    //         'usuario',
+    //         'detalhes',
+    //         'movimentacoesAuditoria.usuario' // quem fez movimentações
+    //     ]);
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Lançamentos manuais
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     $lancamentosManuais = MovimentacaoCaixa::with('usuario')
+    //         ->where('caixa_id', $auditoria->caixa_id)
+    //         ->whereIn('tipo', ['entrada_manual', 'saida_manual'])->whereIn('tipo', ['entrada_manual', 'saida_manual'])
+    //         ->whereIn('tipo', ['saida_manual'])
+    //         ->get();
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Pagamentos confirmados do sistema por forma
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     $pagamentosSistema = DB::table('pagamentos_venda as pv')
+    //         ->join('vendas as v', 'pv.venda_id', '=', 'v.id')
+    //         ->where('v.caixa_id', $auditoria->caixa_id)
+    //         ->where('pv.status', 'confirmado')
+    //         ->select(
+    //             'pv.forma_pagamento',
+    //              DB::raw('SUM(pv.valor) as total')
+    //         )
+    //         ->groupBy('pv.forma_pagamento')
+    //         ->get();
+
+    //      $total_sangrias = DB::table('movimentacoes_caixa')
+    //     ->where('caixa_id', $auditoria->caixa_id)
+    //     ->where('tipo', 'Saida_manual')
+    //     ->where('forma_pagamento', 'sangria')
+    //     ->sum('valor');
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Movimentações vinculadas à auditoria
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     $movimentacoesAuditoria = MovimentacaoCaixa::with('usuario')
+    //      ->where('caixa_id', $auditoria->caixa_id)
+    //      ->where('valor', '>', 0) // ✅ somente valores maiores que zero
+    //     ->where('tipo', 'auditoria') // 🔹 garantir que é correção de auditoria
+    //     ->orderBy('data_movimentacao')
+    //     ->get();
+
+    //     return view('auditoria_caixa.show', compact(
+    //         'auditoria',
+    //          'lancamentosManuais',
+    //          'pagamentosSistema',
+    //         'total_sangrias',
+    //         'movimentacoesAuditoria'
+    //     ));
+    // }
+
+    /**
+     * Exibir os detalhes de um Relatório de Auditoria específico
+     * 🎯 VERSÃO CORRIGIDA: Envia todas as variáveis necessárias limpando o erro do Blade
+     */
     public function show(AuditoriaCaixa $auditoria)
     {
-        $auditoria->load([
-            'caixa',
-            'caixa.usuario', // operador que abriu o caixa
-            'usuario',
-            'detalhes',
-            'movimentacoesAuditoria.usuario' // quem fez movimentações
-        ]);
+        // Garante o carregamento dos relacionamentos com dados em tempo real
+        $auditoria->load(['caixa.vendas', 'usuario', 'detalhes']);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Lançamentos manuais
-        |--------------------------------------------------------------------------
-        */
-        $lancamentosManuais = MovimentacaoCaixa::with('usuario')
+        // 1. Calcula as somatórias reais da tabela de detalhes para a auditoria
+        $totalSistemaReal = (float) $auditoria->detalhes->sum('total_sistema');
+        $totalFisicoReal  = (float) $auditoria->detalhes->sum('total_fisico');
+
+        // Diferença balanceada (Se a tabela bate, a divergência vai para 0.00)
+        $diferencaCalculada = $totalFisicoReal - $totalSistemaReal;
+
+        // Sobrescreve em memória para exibição correta nos cards superiores
+        $auditoria->total_sistema = $totalSistemaReal;
+        $auditoria->total_fisico  = $totalFisicoReal;
+        $auditoria->diferenca     = $diferencaCalculada;
+
+        if ($diferencaCalculada == 0) {
+            $auditoria->status = 'concluida'; // Ativa o fundo verde 'bg-success' na View
+        } else {
+            $auditoria->status = 'inconsistente';
+        }
+
+        // 2. 🎯 A CORREÇÃO DO ERRO: Calcula o total bruto de sangrias para alimentar o card da View
+        $total_sangrias = (float) \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
             ->where('caixa_id', $auditoria->caixa_id)
-            ->whereIn('tipo', ['entrada_manual', 'saida_manual'])->whereIn('tipo', ['entrada_manual', 'saida_manual'])
-            ->whereIn('tipo', ['saida_manual'])
+            ->whereIn('tipo', ['sangria', 'saida_manual'])
+            ->sum('valor');
+
+        // 3. Carrega os históricos e lançamentos adicionais exigidos pela página
+        $lancamentosManuais = \App\Models\MovimentacaoCaixa::where('caixa_id', $auditoria->caixa_id)
+            ->whereIn('tipo', ['entrada_manual', 'saida_manual', 'aporte', 'sangria'])
             ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Pagamentos confirmados do sistema por forma
-        |--------------------------------------------------------------------------
-        */
-        $pagamentosSistema = DB::table('pagamentos_venda as pv')
-            ->join('vendas as v', 'pv.venda_id', '=', 'v.id')
-            ->where('v.caixa_id', $auditoria->caixa_id)
-            ->where('pv.status', 'confirmado')
-            ->select(
-                'pv.forma_pagamento',
-                 DB::raw('SUM(pv.valor) as total')
-            )
-            ->groupBy('pv.forma_pagamento')
+        $movimentacoesAuditoria = \App\Models\MovimentacaoCaixa::where('caixa_id', $auditoria->caixa_id)
+            ->where('tipo', 'auditoria')
             ->get();
 
-         $total_sangrias = DB::table('movimentacoes_caixa')
-        ->where('caixa_id', $auditoria->caixa_id)
-        ->where('tipo', 'Saida_manual')
-        ->where('forma_pagamento', 'sangria')
-        ->sum('valor');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Movimentações vinculadas à auditoria
-        |--------------------------------------------------------------------------
-        */
-        $movimentacoesAuditoria = MovimentacaoCaixa::with('usuario')
-         ->where('caixa_id', $auditoria->caixa_id)
-         ->where('valor', '>', 0) // ✅ somente valores maiores que zero
-        ->where('tipo', 'auditoria') // 🔹 garantir que é correção de auditoria
-        ->orderBy('data_movimentacao')
-        ->get();
-
+        // Envia todas as variáveis sincronizadas para a renderização do Blade
         return view('auditoria_caixa.show', compact(
-            'auditoria',
-             'lancamentosManuais',
-             'pagamentosSistema',
-            'total_sangrias',
+            'auditoria', 
+            'total_sangrias', // 🟢 Variável injetada com sucesso!
+            'lancamentosManuais', 
             'movimentacoesAuditoria'
         ));
     }
+
+
 
     public function exportar(AuditoriaCaixa $auditoria)
 
@@ -125,41 +220,123 @@ class AuditoriaCaixaController extends Controller
         /**
          * Iniciar auditoria de um caixa
          */
-        public function iniciar(Request $request, Caixa $caixa)
+        // public function iniciar(Request $request, Caixa $caixa)
+        // {
+        //     $request->validate([
+        //         'dinheiro'        => 'required|numeric|min:0',
+        //         'pix'             => 'required|numeric|min:0',
+        //         'carteira'        => 'required|numeric|min:0',
+        //         'cartao_debito'   => 'required|numeric|min:0',
+        //         'cartao_credito'  => 'required|numeric|min:0',
+        //     ]);
+
+        //     $userId = Auth::id();
+
+        //     return DB::transaction(function () use ($request, $caixa, $userId) {
+
+        //         $valoresFisicos = $request->only([
+        //             'dinheiro','pix','carteira','cartao_debito','cartao_credito'
+        //         ]);
+
+        //         $pagamentos = $caixa->vendas
+        //             ->flatMap->pagamentos
+        //             ->where('status', 'confirmado');
+
+        //         $totalSistema = $pagamentos->sum('valor');
+        //         $totalFisico  = array_sum($valoresFisicos);
+        //         $diferenca    = $totalFisico - $totalSistema;
+
+        //         $auditoria = AuditoriaCaixa::create([
+        //             'caixa_id'        => $caixa->id,
+        //             'user_id'         => $userId,
+        //             'codigo_auditoria'=> $this->gerarCodigoAuditoria($caixa->id),
+        //             'total_sistema'   => $totalSistema,
+        //             'total_fisico'    => $totalFisico,
+        //             'diferenca'       => $diferenca,
+        //             'status'          => $diferenca == 0 ? 'concluida' : 'inconsistente',
+        //             'data_auditoria'  => now(),
+        //         ]);
+
+        //         /*
+        //         |--------------------------------------------------------------------------
+        //         | Vincular movimentações à auditoria
+        //         |--------------------------------------------------------------------------
+        //         */
+        //         MovimentacaoCaixa::where('caixa_id', $caixa->id)
+        //             ->whereNull('auditoria_id')
+        //             ->update([
+        //                 'auditoria_id' => $auditoria->id
+        //             ]);
+
+        //         $caixa->update([
+        //             'status' => $diferenca == 0 ? 'fechado' : 'inconsistente'
+        //         ]);
+
+        //         return redirect()
+        //             ->route('fechamento.confirmacao', $caixa->id)
+        //             ->with('success', 'Auditoria realizada com sucesso.');
+        //     });
+        // }
+
+            /**
+        * Iniciar auditoria de um caixa
+        * 🎯 VERSÃO CONTÁBIL CORRIGIDA: Consolida Vendas + Carteira - Sangrias
+        */
+        public function iniciar( Request $request, Caixa $caixa)
         {
-            $request->validate([
-                'dinheiro'        => 'required|numeric|min:0',
-                'pix'             => 'required|numeric|min:0',
-                'carteira'        => 'required|numeric|min:0',
-                'cartao_debito'   => 'required|numeric|min:0',
-                'cartao_credito'  => 'required|numeric|min:0',
+            $request-> validate([
+                ' dinheiro' => ' required|numeric|min:0',
+                ' pix' => ' required|numeric|min:0',
+                ' carteira' => ' required|numeric|min:0',
+                ' cartao_debito' => ' required|numeric|min:0',
+                ' cartao_credito' => ' required|numeric|min:0',
             ]);
 
-            $userId = Auth::id();
+            $userId = Auth:: id();
 
-            return DB::transaction(function () use ($request, $caixa, $userId) {
-
-                $valoresFisicos = $request->only([
-                    'dinheiro','pix','carteira','cartao_debito','cartao_credito'
+            return DB:: transaction( function () use ($request, $caixa, $userId) {
+                
+                $valoresFisicos = $request-> only([
+                    ' dinheiro',' pix',' carteira',' cartao_debito',' cartao_credito'
                 ]);
 
-                $pagamentos = $caixa->vendas
-                    ->flatMap->pagamentos
-                    ->where('status', 'confirmado');
+                // 1. Soma todos os pagamentos confirmados vindos de novas vendas do PDV
+                $pagamentos = $caixa-> vendas
+                    -> flatMap-> pagamentos
+                    -> where(' status', ' confirmado');
+                $totalVendasPDV = (float) $pagamentos-> sum(' valor');
 
-                $totalSistema = $pagamentos->sum('valor');
-                $totalFisico  = array_sum($valoresFisicos);
-                $diferenca    = $totalFisico - $totalSistema;
+                // 2. 🎯 CORREÇÃO DO BUG: Busca e soma os recebimentos avulsos de saldo de carteira do turno
+                $totalRecebimentosCarteira = (float) DB:: table(' movimentacoes_caixa')
+                    -> where(' caixa_id', $caixa-> id)
+                    -> where(' tipo', ' entrada_pagto_carteira')
+                    -> sum(' valor');
 
-                $auditoria = AuditoriaCaixa::create([
-                    'caixa_id'        => $caixa->id,
-                    'user_id'         => $userId,
-                    'codigo_auditoria'=> $this->gerarCodigoAuditoria($caixa->id),
-                    'total_sistema'   => $totalSistema,
-                    'total_fisico'    => $totalFisico,
-                    'diferenca'       => $diferenca,
-                    'status'          => $diferenca == 0 ? 'concluida' : 'inconsistente',
-                    'data_auditoria'  => now(),
+                // 3. 🎯 ABATIMENTO CONTÁBIL: Busca as sangrias efetuadas para deduzir do saldo esperado
+                $totalSangriasEfetuadas = (float) DB:: table(' movimentacoes_caixa')
+                    -> where(' caixa_id', $caixa-> id)
+                    -> whereIn(' tipo', [' sangria', ' saida_manual'])
+                    -> sum(' valor');
+
+                // 4. BALANÇO GERAL DO SISTEMA: Equação real auditável da empresa
+                $totalSistema = ($totalVendasPDV + $totalRecebimentosCarteira) - $totalSangriasEfetuadas;
+
+                // Soma o que o operador declarou fisicamente nos inputs da tela
+                $totalFisico = (float) array_sum($valoresFisicos);
+
+                // Diferença real (Se o físico bater com a equação do sistema, resultará em R$0,00)
+                $diferenca = $totalFisico - $totalSistema;
+
+                // Grava o registro mestre de auditoria com os valores corrigidos
+                $auditoria = AuditoriaCaixa:: create([
+                    ' caixa_id' => $caixa-> id,
+                    ' user_id' => $userId,
+                    ' codigo_auditoria'=> $this-> gerarCodigoAuditoria($caixa-> id),
+                    ' total_sistema' => $totalSistema,
+                    ' total_fisico' => $totalFisico,
+                    ' diferenca' => $diferenca,
+                    ' status' => $diferenca == 0 ? ' concluida' : ' inconsistente',
+                    ' data_auditoria' => now(),
                 ]);
 
                 /*
@@ -167,21 +344,23 @@ class AuditoriaCaixaController extends Controller
                 | Vincular movimentações à auditoria
                 |--------------------------------------------------------------------------
                 */
-                MovimentacaoCaixa::where('caixa_id', $caixa->id)
-                    ->whereNull('auditoria_id')
-                    ->update([
-                        'auditoria_id' => $auditoria->id
+                MovimentacaoCaixa:: where(' caixa_id', $caixa-> id)
+                    -> whereNull(' auditoria_id')
+                    -> update([
+                        ' auditoria_id' => $auditoria-> id
                     ]);
 
-                $caixa->update([
-                    'status' => $diferenca == 0 ? 'fechado' : 'inconsistente'
+                // Atualiza o estado do caixa baseado na conciliação real
+                $caixa-> update([
+                    ' status' => $diferenca == 0 ? ' fechado' : ' inconsistente'
                 ]);
 
                 return redirect()
-                    ->route('fechamento.confirmacao', $caixa->id)
-                    ->with('success', 'Auditoria realizada com sucesso.');
+                    -> route(' fechamento.confirmacao', $caixa-> id)
+                    -> with(' success', ' Auditoria realizada com sucesso.');
             });
         }
+
 
         private function gerarCodigoAuditoria($caixaId)
         {

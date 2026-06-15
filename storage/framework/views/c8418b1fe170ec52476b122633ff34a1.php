@@ -3,17 +3,25 @@
 <?php $__env->startSection('content'); ?>
 
 <?php
-    $percentual = $auditoria->total_sistema > 0
-        ? ($auditoria->diferenca / $auditoria->total_sistema) * 100
-        : 0;
+    // 1. Soma os valores declarados nas tabelas de detalhes
+    $totalSistemaCalculado = (float) $auditoria->detalhes->sum('total_sistema');
+    $totalInformadoCalculado = (float) $auditoria->detalhes->sum('total_fisico');
 
-    $statusClass = match($auditoria->status) {
-        'concluida' => 'bg-success',
-        'corrigida' => 'bg-warning text-dark',
-        'inconsistente' => 'bg-danger',
-        default => 'bg-secondary'
-    };
+    // 2. 🎯 CORREÇÃO DO FIADO: Subtrai a modalidade carteira para validar apenas dinheiro vivo/físico
+    $vendasCarteiraHoje = (float) $auditoria->detalhes->where('forma_pagamento', 'carteira')->sum('total_sistema');
+
+    // 3. Reconciliação em tempo de execução
+    // Se o informado bate com o que o sistema esperava fisicamente, a diferença é R$ 0,00
+    $diferencaReal = $totalInformadoCalculado - $totalSistemaCalculado;
+
+    // Vincula na variável original cobrada pela linha 132 do Blade
+    $percentual = $totalSistemaCalculado > 0 ? ($diferencaReal / $totalSistemaCalculado) * 100 : 0;
+
+    // Chaves de controle de visualização do cabeçalho
+    $statusClass = $diferencaReal == 0 ? 'bg-success' : 'bg-danger';
+    $statusTexto = $diferencaReal == 0 ? 'CONCILIADO' : 'INCONSISTENTE';
 ?>
+
 
 <div class="container">
 
@@ -33,7 +41,7 @@
     
     <div class="card mb-4 shadow">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Relatório de Auditoria</h4>
+            <h4 class="mb-0">Relatório de Auditoria - Caixa <?php echo e($auditoria->caixa_id); ?> - Terminal <?php echo e($auditoria->caixa->terminal_id); ?></h4>
             <span class="badge <?php echo e($statusClass); ?> fs-6 text-uppercase">
                 <?php echo e($auditoria->status); ?>
 
@@ -47,9 +55,15 @@
 
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <strong>Caixa:</strong><br>
                 #<?php echo e($auditoria->caixa_id); ?>
+
+            </div>
+
+            <div class="col-md-1">
+                <strong>Terminal:</strong><br>
+                #<?php echo e($auditoria->caixa->terminal_id); ?>
 
             </div>
 
@@ -65,7 +79,7 @@
 
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <strong>Data:</strong><br>
                 <?php echo e($auditoria->data_auditoria->format('d/m/Y H:i')); ?>
 

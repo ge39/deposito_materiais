@@ -362,6 +362,7 @@
                 {{-- 💎 FIX DO TOTALIZADOR: Soma estritamente as Vendas do PDV --}}
                 <div class="mt-2 px-3">
                     <strong>✅ Total Vendas:</strong> R$ {{ number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.') }}<br>
+                
                 </div>
 
                 <div class="p-3 bg-light border rounded mt-3">
@@ -376,25 +377,29 @@
                             {{-- 🎯 RESOLUÇÃO COMPLETA DE VARIÁVEIS DO ESCOPO --}}
                             @php
                                 $valorAberturaFundo = (float) $caixa->fundo_troco;
-                                $vendasBrutasPDV = (float) $vendasReaisDoBloco->sum('valor');
-                                $vendasFiadoHoje = (float) $vendasReaisDoBloco->where('forma_pagamento', 'carteira')->sum('valor');
+                                $vendasBrutasPDV    = (float) $vendasReaisDoBloco->sum('valor');
+                                $vendasFiadoHoje    = (float) $vendasReaisDoBloco->where('forma_pagamento', 'carteira')->sum('valor');
+                                
+                                // Captura o total líquido real recebido das contas de carteira no turno (R$ 1.000,00)
                                 $recebimentoCarteiraReal = (float) ($carteiraMovimentacoes ?? collect())->sum('valor');
                                 
-                                // Cálculo definitivo sem duplicidades
-                                $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV) - (float) $total_sangrias;
+                                // 🎯 FÓRMULA DE AUDITORIA COMPLETA E PERFEITA:
+                                // Fundo Inicial (250) + Vendas Totais (1046) + Contas Recebidas (1000) - Retiradas (0) = R$ 2.296,00
+                                $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV + $recebimentoCarteiraReal) - (float) $total_sangrias;
                             @endphp
 
-                            {{-- 🟢 VISOR GRANDE VERDE --}}
+                            {{-- 🟢 VISOR GRANDE VERDE CORRIGIDO --}}
                             <span class="fs-4 fw-bold text-success">R$ {{ number_format($totalMovimentadoComAbertura, 2, ',', '.') }}</span>
 
-                            {{-- 📊 DETALHAMENTO MIÚDO TOTALMENTE CONFIGURADO --}}
+                            {{-- 📊 DETALHAMENTO MIÚDO SINCROINZADO DE FORMA CLARA --}}
                             <div class="text-muted text-xs" style="font-size: 0.75rem;">
                                 (Abertura: R$ {{ number_format($valorAberturaFundo, 2, ',', '.') }} + 
-                                Vendas Líquidas: R$ {{ number_format($vendasBrutasPDV - $vendasFiadoHoje, 2, ',', '.') }} + 
-                                Recebimentos: R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} - 
-                                Sangrias: R$ {{ number_format($total_sangrias, 2, ',', '.') }})
+                                Vendas Totais: R$ {{ number_format($vendasBrutasPDV, 2, ',', '.') }} + 
+                                Recebimentos Carteira: R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} - 
+                                Sangrias/Saídas: R$ {{ number_format($total_sangrias, 2, ',', '.') }})
                             </div>
                         </div>
+
                     </div>
                 </div>
 

@@ -111,48 +111,48 @@ class Caixa extends Model
         return $this->valor_abertura + $entradas - $saidas;
     }
 
-    // public function totaisPorFormaPagamento(): array
-    // {
-    //     $totais = [];
-
-    //     foreach($this->vendas as $venda) {
-    //         foreach($venda->pagamentos as $pag) {
-    //             if(!isset($totais[$pag->forma_pagamento])) $totais[$pag->forma_pagamento] = 0;
-    //             $totais[$pag->forma_pagamento] += $pag->valor;
-    //         }
-    //     }
-
-    //     return $totais;
-    // }
-
     public function totaisPorFormaPagamento(): array
     {
-        $totais = [
-            'dinheiro'       => 0.00,
-            'pix'            => 0.00,
-            'carteira'       => 0.00,
-            'cartao_debito'  => 0.00,
-            'cartao_credito' => 0.00,
-        ];
+        $totais = [];
 
-        // Percorre todas as vendas e soma os valores nas suas respectivas formas de pagamento
-        foreach ($this->vendas as $venda) {
-            foreach ($venda->pagamentos as $pag) {
-                // Converte a string para minúsculo para evitar problemas de case-sensitive (ex: 'Carteira' vs 'carteira')
-                $forma = strtolower($pag->forma_pagamento);
-                
-                if (!isset($totais[$forma])) {
-                    $totais[$forma] = 0.00;
-                }
-                $totais[$forma] += (float) $pag->valor;
+        foreach($this->vendas as $venda) {
+            foreach($venda->pagamentos as $pag) {
+                if(!isset($totais[$pag->forma_pagamento])) $totais[$pag->forma_pagamento] = 0;
+                $totais[$pag->forma_pagamento] += $pag->valor;
             }
         }
 
-        // 🎯 O TOTAL DO SISTEMA CONTÁBIL: Soma todas as chaves do array de formas de pagamento
-        $totais['total_sistema'] = array_sum($totais);
-
         return $totais;
     }
+
+    // public function totaisPorFormaPagamento(): array
+    // {
+    //     $totais = [
+    //         'dinheiro'       => 0.00,
+    //         'pix'            => 0.00,
+    //         'carteira'       => 0.00,
+    //         'cartao_debito'  => 0.00,
+    //         'cartao_credito' => 0.00,
+    //     ];
+
+    //     // Percorre todas as vendas e soma os valores nas suas respectivas formas de pagamento
+    //     foreach ($this->vendas as $venda) {
+    //         foreach ($venda->pagamentos as $pag) {
+    //             // Converte a string para minúsculo para evitar problemas de case-sensitive (ex: 'Carteira' vs 'carteira')
+    //             $forma = strtolower($pag->forma_pagamento);
+                
+    //             if (!isset($totais[$forma])) {
+    //                 $totais[$forma] = 0.00;
+    //             }
+    //             $totais[$forma] += (float) $pag->valor;
+    //         }
+    //     }
+
+    //     // 🎯 O TOTAL DO SISTEMA CONTÁBIL: Soma todas as chaves do array de formas de pagamento
+    //     $totais['total_sistema'] = array_sum($totais);
+
+    //     return $totais;
+    // }
 
     public function divergencia(float $valorFisico): float
     {
