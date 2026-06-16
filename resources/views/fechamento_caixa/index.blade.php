@@ -128,7 +128,7 @@
                 <ul class="list-unstyled mb-0">
                      ✅ 
                        <strong>Total Sistema:</strong>
-                        R$ {{ number_format($total_entradas - $recebimentoCarteiraReal, 2, ',', '.') }}
+                        R$ {{ number_format($total_entradas, 2, ',', '.') }}
                         <div class="text-muted text-xs" style="font-size: 0.75rem;">
                             Pagamento <strong>Carteira</strong> não é contabilizado no fechamento do caixa
                         </div>
@@ -287,7 +287,7 @@
         {{-- 🏪 TABELA 2: MOVIMENTAÇÕES DO CAIXA (VENDAS GERAIS E SAÍDAS CONSOLIDADAS) --}}
         {{-- ========================================================================= --}}
         <div class="col-12">
-            <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações do Caixa</div>
+            <div class="card-header fs-5 bg-primary p-1 text-white fw-bold"> Movimentações do Caixa - Gaveta</div>
             <div class="movimentacoes-container">
 
                 {{-- Cabeçalho --}}
@@ -361,7 +361,7 @@
                 
                 {{-- 💎 FIX DO TOTALIZADOR: Soma estritamente as Vendas do PDV --}}
                 <div class="mt-2 px-3">
-                    <strong>✅ Total Vendas:</strong> R$ {{ number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.') }}<br>
+                    <strong>✅ Total Movimentações:</strong> R$ {{ number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.') }}<br>
                 
                 </div>
 
@@ -373,33 +373,32 @@
                                 (Abertura + Total Vendas + Total Recebimentos Carteira - Total Saídas/Sangrias)
                             </div>
                         </div>
-                        <div class="text-end">
+                       <div class="text-end">
                             {{-- 🎯 RESOLUÇÃO COMPLETA DE VARIÁVEIS DO ESCOPO --}}
                             @php
                                 $valorAberturaFundo = (float) $caixa->fundo_troco;
                                 $vendasBrutasPDV    = (float) $vendasReaisDoBloco->sum('valor');
                                 $vendasFiadoHoje    = (float) $vendasReaisDoBloco->where('forma_pagamento', 'carteira')->sum('valor');
                                 
-                                // Captura o total líquido real recebido das contas de carteira no turno (R$ 1.000,00)
+                                // Captura o total líquido real recebido das contas de carteira no turno
                                 $recebimentoCarteiraReal = (float) ($carteiraMovimentacoes ?? collect())->sum('valor');
                                 
-                                // 🎯 FÓRMULA DE AUDITORIA COMPLETA E PERFEITA:
-                                // Fundo Inicial (250) + Vendas Totais (1046) + Contas Recebidas (1000) - Retiradas (0) = R$ 2.296,00
-                                $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV + $recebimentoCarteiraReal) - (float) $total_sangrias;
+                                // 🎯 FÓRMULA DE AUDITORIA COMPLETA E PERFEITA (Subtraindo o Fiado do Dia):
+                                $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV + $recebimentoCarteiraReal) - $vendasFiadoHoje - (float) $total_sangrias;
                             @endphp
 
                             {{-- 🟢 VISOR GRANDE VERDE CORRIGIDO --}}
                             <span class="fs-4 fw-bold text-success">R$ {{ number_format($totalMovimentadoComAbertura, 2, ',', '.') }}</span>
 
-                            {{-- 📊 DETALHAMENTO MIÚDO SINCROINZADO DE FORMA CLARA --}}
+                            {{-- 📊 DETALHAMENTO MIÚDO SINCRONIZADO DE FORMA CLARA --}}
                             <div class="text-muted text-xs" style="font-size: 0.75rem;">
                                 (Abertura: R$ {{ number_format($valorAberturaFundo, 2, ',', '.') }} + 
                                 Vendas Totais: R$ {{ number_format($vendasBrutasPDV, 2, ',', '.') }} + 
                                 Recebimentos Carteira: R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} - 
+                                Vendas Carteira (Fiado): R$ {{ number_format($vendasFiadoHoje, 2, ',', '.') }} - 
                                 Sangrias/Saídas: R$ {{ number_format($total_sangrias, 2, ',', '.') }})
                             </div>
                         </div>
-
                     </div>
                 </div>
 
