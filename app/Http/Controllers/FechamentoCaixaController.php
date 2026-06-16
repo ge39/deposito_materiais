@@ -78,7 +78,7 @@ class FechamentoCaixaController extends Controller
         $totaisPorForma = [
             'dinheiro' => (float) $dinheiroVendas,
             'pix' => (float) $pixReal,
-            'carteira' => (float) $carteiraReal,
+             'carteira' => (float) $carteiraReal,
             'cartao_debito' => (float) $debitoReal,
             'cartao_credito' => (float) $creditoReal
         ];

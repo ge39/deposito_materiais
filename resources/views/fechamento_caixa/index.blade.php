@@ -128,7 +128,7 @@
                 <ul class="list-unstyled mb-0">
                      ✅ 
                        <strong>Total Sistema:</strong>
-                        R$ {{ number_format($total_entradas, 2, ',', '.') }}
+                        R$ {{ number_format($total_entradas - $recebimentoCarteiraReal, 2, ',', '.') }}
                         <div class="text-muted text-xs" style="font-size: 0.75rem;">
                             Pagamento <strong>Carteira</strong> não é contabilizado no fechamento do caixa
                         </div>
