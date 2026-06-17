@@ -382,33 +382,31 @@
                             </div>
                         </div>
                        <div class="text-end">
-    
-    <?php
-        $valorAberturaFundo = (float) $caixa->fundo_troco;
-        $vendasBrutasPDV    = (float) $vendasReaisDoBloco->sum('valor');
-        $vendasFiadoHoje    = (float) $vendasReaisDoBloco->where('forma_pagamento', 'carteira')->sum('valor');
-        
-        // Captura o total líquido real recebido das contas de carteira no turno
-        $recebimentoCarteiraReal = (float) ($carteiraMovimentacoes ?? collect())->sum('valor');
-        
-        // 🎯 FÓRMULA DE AUDITORIA COMPLETA E PERFEITA (Subtraindo o Fiado do Dia):
-        $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV + $recebimentoCarteiraReal) - $vendasFiadoHoje - (float) $total_sangrias;
-    ?>
+                            
+                            <?php
+                                $valorAberturaFundo = (float) $caixa->fundo_troco;
+                                $vendasBrutasPDV    = (float) $vendasReaisDoBloco->sum('valor');
+                                $vendasFiadoHoje    = (float) $vendasReaisDoBloco->where('forma_pagamento', 'carteira')->sum('valor');
+                                
+                                // Captura o total líquido real recebido das contas de carteira no turno
+                                $recebimentoCarteiraReal = (float) ($carteiraMovimentacoes ?? collect())->sum('valor');
+                                
+                                // 🎯 FÓRMULA DE AUDITORIA COMPLETA E PERFEITA (Subtraindo o Fiado do Dia):
+                                $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV + $recebimentoCarteiraReal) - $vendasFiadoHoje - (float) $total_sangrias;
+                            ?>
 
-    
-    <span class="fs-4 fw-bold text-success">R$ <?php echo e(number_format($totalMovimentadoComAbertura, 2, ',', '.')); ?></span>
+                            
+                            <span class="fs-4 fw-bold text-success">R$ <?php echo e(number_format($totalMovimentadoComAbertura, 2, ',', '.')); ?></span>
 
-    
-    <div class="text-muted text-xs" style="font-size: 0.75rem;">
-        (Abertura: R$ <?php echo e(number_format($valorAberturaFundo, 2, ',', '.')); ?> + 
-        Vendas Totais: R$ <?php echo e(number_format($vendasBrutasPDV, 2, ',', '.')); ?> + 
-        Recebimentos Carteira: R$ <?php echo e(number_format($recebimentoCarteiraReal, 2, ',', '.')); ?> - 
-        Vendas Carteira (Fiado): R$ <?php echo e(number_format($vendasFiadoHoje, 2, ',', '.')); ?> - 
-        Sangrias/Saídas: R$ <?php echo e(number_format($total_sangrias, 2, ',', '.')); ?>)
-    </div>
-</div>
-
-
+                            
+                            <div class="text-muted text-xs" style="font-size: 0.75rem;">
+                                (Abertura: R$ <?php echo e(number_format($valorAberturaFundo, 2, ',', '.')); ?> + 
+                                Vendas Totais: R$ <?php echo e(number_format($vendasBrutasPDV, 2, ',', '.')); ?> + 
+                                Recebimentos Carteira: R$ <?php echo e(number_format($recebimentoCarteiraReal, 2, ',', '.')); ?> - 
+                                Vendas Carteira (Fiado): R$ <?php echo e(number_format($vendasFiadoHoje, 2, ',', '.')); ?> - 
+                                Sangrias/Saídas: R$ <?php echo e(number_format($total_sangrias + $total_saidas, 2, ',', '.')); ?>)
+                            </div>
+                        </div>
                     </div>
                 </div>
 

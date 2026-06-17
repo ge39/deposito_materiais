@@ -1,211 +1,200 @@
 
 
 <?php $__env->startSection('content'); ?>
+<style>
+/* Container principal */
+.fechamento-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
 
-    <style>
-        /* Container principal */
-        .fechamento-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        /* Título da página */
-        .fechamento-container h4 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #0d6efd;
-            margin-bottom: 30px;
-        }
-        /* Card do caixa */
-        .card-header {
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-        .card-body {
-            font-size: 1rem;
-        }
-        /* Badges de status */
-        .badge-status {
-            font-size: 0.95rem;
-            padding: 0.5em 0.75em;
-        }
-        /* Inputs */
-        .form-control {
-            font-size: 1rem;
-            border-radius: 6px;
-            padding: 10px 12px;
-            transition: all 0.2s ease-in-out;
-        }
-        .form-control:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 8px rgba(13, 110, 253, 0.2);
-            outline: none;
-            transform: scale(1.02);
-        }
-        /* Destaque para valores financeiros */
-        .input-financeiro:focus {
-            border-color: #198754;
-            background-color: #e6f4ea;
-            box-shadow: 0 0 10px rgba(25, 135, 84, 0.2);
-        }
-        /* Cards de entrada e saída */
-        .card.shadow-sm {
-            border-radius: 10px;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-        }
-        /* Headers de cartões coloridos */
-        .card-header.bg-success { background: #198754; }
-        .card-header.bg-danger { background: #dc3545; }
-        .card-header.bg-primary { background: #0d6efd; }
-        .row.align-items-center { margin-bottom: 10px; }
-        .fw-semibold { font-weight: 600; }
-        /* Botões finais */
-        .btn-submit {
-            font-size: 1.05rem;
-            font-weight: 700;
-            padding: 10px 18px;
-            border-radius: 8px;
-            transition: all 0.2s ease-in-out;
-        }
-        .btn-submit:hover { transform: scale(1.03); }
-    </style>
+/* Título da página */
+.fechamento-container h4 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0d6efd;
+    margin-bottom: 30px;
+}
 
-    <div class="fechamento-container">
-        <h4 class="bg-secondary text-center text-white p-2 rounded">Fechamento do Caixa #<?php echo e($caixa->id); ?></h4>
+/* Card do caixa */
+.card-header {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.card-body {
+    font-size: 1rem;
+}
+
+/* Badges de status */
+.badge-status {
+    font-size: 0.95 rem;
+    padding: 0.5em 0.75em;
+}
+
+/* Inputs */
+.form-control {
+    font-size: 1rem;
+    border-radius: 6px;
+    padding: 10px 12px;
+    transition: all 0.2s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 8px rgba(13, 110, 253, 0.2);
+    outline: none;
+    transform: scale(1.02);
+}
+
+/* Destaque para valores financeiros */
+.input-financeiro:focus {
+    border-color: #198754;
+    background-color: #e6f4ea;
+    box-shadow: 0 0 10px rgba(25, 135, 84, 0.2);
+}
+
+/* Cards de entrada e saída */
+.card.shadow-sm {
+    border-radius: 10px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+/* Headers de cartões coloridos */
+.card-header.bg-success { background: #198754; }
+.card-header.bg-primary { background: #0d6efd; }
+
+.row.align-items-center { margin-bottom: 10px; }
+.fw-semibold { font-weight: 600; }
+
+/* Botões finais */
+.btn-submit {
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding: 10px 18px;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-submit:hover { transform: scale(1.03); }
+</style>
+
+<div class="fechamento-container">
+    <h4 class="bg-secondary text-center text-white p-2 rounded">Fechamento do Caixa #<?php echo e($caixa->id); ?></h4>
+
+    <form method="POST" action="<?php echo e(route('fechamento.fechar', $caixa->id)); ?>" id="formFechamento">
+        <?php echo csrf_field(); ?>
+
         
-        <form method="POST" action="<?php echo e(route('fechamento.fechar', $caixa->id)); ?>" id="formFechamento">
-            <?php echo csrf_field(); ?>
+        <div class="card mb-4 border-primary shadow-sm">
+            <div class="card-header bg-primary text-white">
+                ✅ Dados do Caixa - Fechamento #<?php echo e($caixa->id); ?>
 
-            
-            <div class="card mb-4 border-primary shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    ✅ Dados do Caixa - Fechamento #<?php echo e($caixa->id); ?>
-
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4"><strong>ID (Caixa)</strong><br><?php echo e($caixa->id); ?></div>
+                    <div class="col-md-4"><strong>Operador</strong><br><?php echo e($caixa->usuario->name ?? 'Não identificado'); ?></div>
+                    <div class="col-md-4"><strong>Terminal ID</strong><br><?php echo e($caixa->terminal_id); ?></div>
                 </div>
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-4"><strong>ID (Caixa)</strong><br><?php echo e($caixa->id); ?></div>
-                        <div class="col-md-4"><strong>Operador</strong><br><?php echo e($caixa->usuario->name ?? 'Não identificado'); ?></div>
-                        <div class="col-md-4"><strong>Terminal ID</strong><br><?php echo e($caixa->terminal_id); ?></div>
+                <div class="row">
+                    <div class="col-md-4"><strong>Abertura</strong><br><?php echo e($caixa->data_abertura ? \Carbon\Carbon::parse($caixa->data_abertura)->format('d/m/Y H:i') : '-'); ?></div>
+                    <div class="col-md-4">
+                        <strong>Status</strong><br>
+                        <?php
+                            $statusLabel = match($caixa->status) {
+                                'aberto' => 'Aberto',
+                                'pendente' => 'Pendente',
+                                'fechado' => 'Fechado',
+                                'fechado_sem_movimento' => 'Fechado sem movimento',
+                                'inconsistente' => 'Inconsistente',
+                                default => ucfirst($caixa->status),
+                            };
+                        ?>
+                        <span class="badge badge-status bg-success"><?php echo e($statusLabel); ?></span>
                     </div>
-                    <div class="row">
-                        <div class="col-md-4"><strong>Abertura</strong><br><?php echo e($caixa->data_abertura ? \Carbon\Carbon::parse($caixa->data_abertura)->format('d/m/Y H:i') : '-'); ?></div>
-                        <div class="col-md-4">
-                            <strong>Status</strong><br>
-                            <?php
-                                $statusLabel = match($caixa->status) {
-                                    'aberto' => 'Aberto',
-                                    'pendente' => 'Pendente',
-                                    'fechado' => 'Fechado',
-                                    'fechado_sem_movimento' => 'Fechado sem movimento',
-                                    'inconsistente' => 'Inconsistente',
-                                    default => ucfirst($caixa->status),
-                                };
-                            ?>
-                            <span class="badge badge-status bg-success"><?php echo e($statusLabel); ?></span>
-                        </div>
-                        <div class="col-md-4"><strong>Fundo de Troco</strong><br>R$ <?php echo e(number_format($caixa->fundo_troco, 2, ',', '.')); ?></div>
+                    <div class="col-md-4"><strong>Fundo de Troco</strong><br>R$ <?php echo e(number_format($caixa->fundo_troco, 2, ',', '.')); ?></div>
+                </div>
+            </div>
+        </div>
+
+        
+        <?php if(!DB::table('movimentacoes_caixa')->where('caixa_id', $caixa->id)->whereIn('tipo', ['venda', 'entrada_pagto_carteira', 'entrada'])->exists()): ?>
+            <div class="card mb-4 border-success shadow-sm">
+                <div class="card-header bg-success text-white">Fechamento sem Movimentação Comercial</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="motivo_fechamento" class="fw-bold">Motivo do fechamento</label>
+                        <select name="motivo_fechamento" id="motivo_fechamento" class="form-control" required>
+                            <option value="">Selecione o motivo</option>
+                            <option value="Caixa aberto sem movimento">Caixa aberto sem movimento</option>
+                            <option value="Troca de operador do caixa">Troca de operador do caixa</option>
+                            <option value="Sistema indisponível">Sistema indisponível</option>
+                            <option value="Loja não abriu">Loja não abriu</option>
+                            <option value="Erro hardware">Erro hardware</option>
+                            <option value="Erro operacional">Erro operacional</option>
+                        </select>
                     </div>
                 </div>
             </div>
-
-            
-            <?php if(!DB::table('movimentacoes_caixa')->where('caixa_id', $caixa->id)->whereIn('tipo', ['venda', 'entrada_pagto_carteira', 'entrada'])->exists()): ?>
-                <div class="card mb-4 border-success shadow-sm">
-                    <div class="card-header bg-success text-white">Fechamento sem Movimentação Comercial</div>
-                    <div class="card-body">
-                        <div class="form-group">
-                            <label for="motivo_fechamento" class="fw-bold">Motivo do fechamento</label>
-                            <select name="motivo_fechamento" id="motivo_fechamento" class="form-control" required>
-                                <option value="">Selecione o motivo</option>
-                                <option value="Caixa aberto sem movimento">Caixa aberto sem movimento</option>
-                                <option value="Troca de operador do caixa">Troca de operador do caixa</option>
-                                <option value="Sistema indisponível">Sistema indisponível</option>
-                                <option value="Loja não abriu">Loja não abriu</option>
-                                <option value="Erro hardware">Erro hardware</option>
-                                <option value="Erro operacional">Erro operacional</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            <?php else: ?>
-                <div class="row mt-4">
-                    
-                    
-                    <div class="col-md-4">
-                        <div class="card shadow-sm">
-                            <div class="card-header bg-primary text-white fw-bold">Valores por Forma de Pagamento (Vendas)</div>
-                            <div class="card-body">
-                                <?php $__currentLoopData = ['dinheiro'=>'Dinheiro','pix'=>'Pix','carteira'=>'Carteira','cartao_debito'=>'Cartão Débito','cartao_credito'=>'Cartão Crédito']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <?php
-                                        $valorInicial = old('valores_fisicos.'.$name, (isset($totaisPorForma[$name]) ? $totaisPorForma[$name] : 0));
-                                    ?>
-                                    <div class="row align-items-center mb-2">
-                                        <div class="col-5 fw-semibold"><?php echo e($label); ?></div>
-                                        <div class="col-7">
-                                            
-                                            <input type="text" name="valores_fisicos[<?php echo e($name); ?>]" class="form-control input-financeiro text-end currency-field"
-                                                value="R$ <?php echo e(number_format($valorInicial, 2, ',', '.')); ?>" required>
-                                        </div>
-                                    </div>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                            </div>
-                        </div>
-                    </div>
-
-                    
-                    <div class="col-md-4">
-                        <div class="card shadow-sm border-success">
-                            <div class="card-header bg-success text-white fw-bold">Valores de Recebimento em Carteira</div>
-                            <div class="card-body">
-                                <?php $__currentLoopData = ['dinheiro'=>'Dinheiro Carteira','pix'=>'Pix Carteira','cartao_debito'=>'Débito Carteira']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <div class="row align-items-center mb-2">
-                                        <div class="col-5 fw-semibold"><?php echo e($label); ?></div>
-                                        <div class="col-7">
-                                            <input type="text" name="carteira_fisicos[<?php echo e($name); ?>]" class="form-control input-financeiro text-end currency-field"
-                                                value="R$ 0,00" required>
-                                        </div>
-                                    </div>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                <p class="text-muted small mt-4 text-center">Informe o total em espécie e comprovantes recolhidos das contas de clientes.</p>
-                            </div>
-                        </div>
-                    </div>
-
+        <?php else: ?>
+            <div class="row mt-4">
                 
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="card shadow-sm">
-                        <div class="card-header bg-danger text-white fw-bold">Saídas de Caixa</div>
+                        <div class="card-header bg-primary text-white fw-bold">Valores por Forma de Pagamento (Vendas)</div>
                         <div class="card-body">
-                            
-                            <?php $__currentLoopData = ['saida_despesa'=>'Despesas','saida_ajuste'=>'Ajuste Negativo','saida_outros'=>'Outras Saídas']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php $__currentLoopData = ['dinheiro'=>'Dinheiro','pix'=>'Pix','carteira'=>'Carteira','cartao_debito'=>'Cartão Débito','cartao_credito'=>'Cartão Crédito']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php
+                                    $valorInicial = old('valores_fisicos.'.$name, (isset($totaisPorForma[$name]) ? $totaisPorForma[$name] : 0));
+                                ?>
                                 <div class="row align-items-center mb-2">
-                                    <div class="col-5 fw-bold"><?php echo e($label); ?></div>
+                                    <div class="col-5 fw-semibold"><?php echo e($label); ?></div>
                                     <div class="col-7">
-                                        <input type="number" step="0.01" name="<?php echo e($name); ?>" class="form-control input-financeiro text-end" value="0.00">
+                                        <input type="text" name="valores_fisicos[<?php echo e($name); ?>]" class="form-control input-financeiro text-end currency-field"
+                                            value="R$ <?php echo e(number_format($valorInicial, 2, ',', '.')); ?>" required>
                                     </div>
                                 </div>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                            <p class="text-muted small mt-4 text-center">Use este bloco apenas para pequenos gastos locais (ex: frete, marmita).</p>
                         </div>
                     </div>
                 </div>
 
-
+                
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-success" style="height: 100%;">
+                        <div class="card-header bg-success text-white fw-bold">Valores de Recebimento em Carteira</div>
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <div class="row align-items-center mb-2">
+                                <div class="col-5 fw-semibold">Dinheiro Carteira</div>
+                                <div class="col-7">
+                                    <input type="text" name="carteira_fisicos[dinheiro]" class="form-control input-financeiro text-end currency-field" readOnly
+                                        value="R$ 0,00" required>
+                                </div>
+                            </div>
+                            <div class="alert alert-info mt-auto mb-0" role="alert">
+                                <i class="fas fa-info-circle"></i> Informe apenas o total em <strong>espécie (cédulas/moedas)</strong> que foi recebido fisicamente na gaveta para quitação de contas de clientes. Comprovantes de PIX ou Débito já são auditados eletronicamente pelo sistema.
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            <?php endif; ?>
-
-            
-            <div class="d-flex justify-content-end mt-3">
-                <button type="button" class="btn btn-success btn-submit shadow-sm">
-                    Confirmar Fechamento do Caixa
-                </button>
             </div>
+        <?php endif; ?>
+
+        
+        
+        <div class="d-flex justify-content-end mt-4">
+            <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary me-2 d-flex align-items-center shadow-sm">Cancelar</a>
+            <button type="button" class="btn btn-success btn-submit shadow-sm">
+                Confirmar Fechamento do Caixa
+            </button>
+        </div>
+    </form>
+</div>
 
 
-        </form>
-    </div>
 
 
 <script>
@@ -298,5 +287,4 @@
 </script>
 
 <?php $__env->stopSection(); ?>
-
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/fechamento_caixa/fechamento.blade.php ENDPATH**/ ?>

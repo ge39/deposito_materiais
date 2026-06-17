@@ -105,10 +105,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     }, true);
-
-
-   
-
     // ==========================================
     // 🛒 LEITOR DE CÓDIGO DE BARRAS / EVENTO ENTER
     // ==========================================

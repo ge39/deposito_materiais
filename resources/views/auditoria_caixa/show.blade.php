@@ -242,7 +242,12 @@
                         </tr>
                        
                     @empty
-                      <div><tr>Total:  {{ number_format($detalhe->diferenca,2,',','.') }}</tr></div>
+                      <!-- Código Limpo e Corrigido para a sua Tabela/Blade -->
+                        <td>
+                            <strong>Total Diferença:</strong> 
+                            {{ number_format((float)($detalhe->diferenca ?? 0.00), 2, ',', '.') }}
+                        </td>
+
                         <tr>
                             <td colspan="5" class="text-center text-muted">
                                 Nenhum detalhamento encontrado.

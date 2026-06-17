@@ -396,7 +396,7 @@
                                 Vendas Totais: R$ {{ number_format($vendasBrutasPDV, 2, ',', '.') }} + 
                                 Recebimentos Carteira: R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} - 
                                 Vendas Carteira (Fiado): R$ {{ number_format($vendasFiadoHoje, 2, ',', '.') }} - 
-                                Sangrias/Saídas: R$ {{ number_format($total_sangrias, 2, ',', '.') }})
+                                Sangrias/Saídas: R$ {{ number_format($total_sangrias + $total_saidas, 2, ',', '.') }})
                             </div>
                         </div>
                     </div>

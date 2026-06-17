@@ -263,7 +263,13 @@
                         </tr>
                        
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                      <div><tr>Total:  <?php echo e(number_format($detalhe->diferenca,2,',','.')); ?></tr></div>
+                      <!-- Código Limpo e Corrigido para a sua Tabela/Blade -->
+                        <td>
+                            <strong>Total Diferença:</strong> 
+                            <?php echo e(number_format((float)($detalhe->diferenca ?? 0.00), 2, ',', '.')); ?>
+
+                        </td>
+
                         <tr>
                             <td colspan="5" class="text-center text-muted">
                                 Nenhum detalhamento encontrado.
