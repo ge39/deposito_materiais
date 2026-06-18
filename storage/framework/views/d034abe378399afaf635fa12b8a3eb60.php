@@ -459,12 +459,12 @@
                         <p class="text-muted">Oriente a operadora a retirar este valor do caixa.</p>
                     </div>
 
-                    <div class="modal-footer justify-content-between">
+                    <div class="modal-footer justify-content-between ">
                         <div class="d-flex gap-2">
                             <a href="<?php echo e(route('caixa.sangria.form', $caixa->id)); ?>" class="btn btn-success px-4 fw-bold">
                                 ✅ Efetuar Sangria
                             </a>
-                            <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" onclick="window.PDV_BLOQUEADO = false; 
+                            <button type="button" class="btn btn-secondary px-4" padding-2 data-bs-dismiss="modal" onclick="window.PDV_BLOQUEADO = false; 
                                     window.caixaBloqueado = false;">
                                 ❌ Cancelar
                             </button>
@@ -477,22 +477,22 @@
         <!-- Script de Inicialização da Sangria do Bootstrap -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-            var deveAvisar = <?php echo e($avisarSangria ? 'true' : 'false'); ?>;
-            var deveBloquear = <?php echo e($bloquearPDV ? 'true' : 'false'); ?>;
-            
-            if (deveAvisar || deveBloquear) {
-                var modalElement = document.getElementById('modalSangria');
+                var deveAvisar = <?php echo e($avisarSangria ? 'true' : 'false'); ?>;
+                var deveBloquear = <?php echo e($bloquearPDV ? 'true' : 'false'); ?>;
+                
+                if (deveAvisar || deveBloquear) {
+                    var modalElement = document.getElementById('modalSangria');
 
-                if (modalElement) {
-                    var modal = new bootstrap.Modal(modalElement, {
-                        backdrop: 'static',
-                        keyboard: true
-                    });
+                    if (modalElement) {
+                        var modal = new bootstrap.Modal(modalElement, {
+                            backdrop: 'static',
+                            keyboard: true
+                        });
 
-                    modal.show();
+                        modal.show();
+                    }
                 }
-            }
-        });
+            });
         </script>
 
     <?php endif; ?>
@@ -782,7 +782,7 @@
         </div>
     </div>
 
-    <!-- Modal de Quitação de Carteira Atualizado -->
+   <!-- Modal de Quitação de Carteira Atualizado -->
     <div class="modal fade" id="modalQuitarCarteiraPDV" tabindex="-1" data-bs-backdrop="static" aria-hidden="true" style="z-index: 1060;">
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content border-success shadow-lg">
@@ -824,7 +824,8 @@
                             </select>
                         </div>
                     </div>
-                    <div class="modal-footer bg-light py-2">
+                    <!-- AJUSTE AQUI: Adicionado justify-content-center -->
+                    <div class="modal-footer bg-light py-2 px-2 d-flex gap-2 justify-content-center">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-success btn-sm fw-bold px-3" id="btn-confirmar-cc">Confirmar (Enter)</button>
                     </div>

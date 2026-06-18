@@ -189,53 +189,6 @@ class FechamentoCaixaController extends Controller
         return $this->fecharMovimentoComAuditoria($request, $caixa);
     }
 
-
-    // private function fecharSemMovimento(Request $request, Caixa $caixa)
-    // {
-    //     $request->validate(['motivo_fechamento' => 'required|string|max:255']);
-    //     $userId = auth()->id();
-    //     $motivo = $request->input('motivo_fechamento');
-
-    //     return DB::transaction(function () use ($caixa, $userId, $motivo) {
-    //         $caixa->refresh();
-    //         if ($caixa->status !== 'aberto') { 
-    //             throw new \Exception('Caixa já modificado por outro terminal.'); 
-    //         }
-
-    //         // 1. Gera cabeçalho da auditoria (Troco esperado == Troco recebido)
-    //         $auditoriaId = $this->criarAuditoriaCabecalho(
-    //             $caixa->id, 
-    //             $userId, 
-    //             (float)$caixa->fundo_troco, 
-    //             (float)$caixa->fundo_troco, 
-    //             "Fechamento administrativo sem movimento: {$motivo}"
-    //         );
-
-    //         // 2. Prepara matriz zerada (Apenas dinheiro herda o troco)
-    //         $formas = ['dinheiro', 'pix', 'carteira', 'cartao_debito', 'cartao_credito'];
-    //         $valoresSistemas = array_fill_keys($formas, 0.00);
-    //         $valoresSistemas['dinheiro'] = (float)$caixa->fundo_troco;
-            
-    //         // Executa o método privado compartilhado
-    //         $this->salvarAuditoriaDetalhes($auditoriaId, $formas, $valoresSistemas, $valoresSistemas);
-
-    //         // 3. Grava histórico na fita do caixa aberto
-    //         $this->salvarMovimentacaoHistorica($caixa->id, $auditoriaId, $userId, 'fechamento_sem_movimento', 'fechamento', (float)$caixa->fundo_troco, $motivo);
-
-    //         // 4. Atualiza o cabeçalho principal
-    //         $caixa->update([
-    //             'valor_fechamento' => (float)$caixa->fundo_troco, 
-    //             'status' => 'fechado_sem_movimento', 
-    //             'data_fechamento' => now(), 
-    //             'fechado_por' => $userId, 
-    //             'observacao' => $motivo
-    //         ]);
-
-    //         return redirect("/fechamento_caixa/confirmacao/{$caixa->id}")
-    //             ->with('success', 'Caixa encerrado administrativamente.');
-    //     });
-    // }
-
     private function fecharSemMovimento(Request $request, Caixa $caixa)
     {
         $userId = Auth::id();
@@ -282,7 +235,7 @@ class FechamentoCaixaController extends Controller
         });
     }
 
-   public function fecharMovimentoComAuditoria(Request $request, Caixa $caixa)
+    public function fecharMovimentoComAuditoria(Request $request, Caixa $caixa)
     {
         // 1️⃣ VALIDAÇÃO: Garante o recebimento dos valores do formulário (Incluindo as quitações)
         $request->validate([
@@ -522,36 +475,6 @@ class FechamentoCaixaController extends Controller
         ]);
     }
 
-    // private function criarAuditoriaCabecalho(int $caixaId, int $userId, float $sistema, float $fisico, string $obs): int
-    // {
-    //     // 🎯 CORREÇÃO CRUCIAL PARA CAIXAS SEM MOVIMENTO:
-    //     // Se o sistema vier zerado (0.00), significa que o caixa passou pelo método fecharSemMovimento.
-    //     // Buscamos o fundo de troco original registrado na abertura deste caixa para servir de base.
-    //     if ($sistema == 0.00) {
-    //         $caixa = DB::table('caixas')->where('id', $caixaId)->first();
-    //         $sistema = (float) ($caixa->fundo_troco ?? $caixa->valor_abertura ?? 0.00);
-    //     }
-
-    //     // Agora a conta fechará com perfeição contábil:
-    //     // Físico (276.00) - Sistema Ajustado (276.00) = Diferença: R$ 0,00
-    //     $diferenca = $fisico - $sistema;
-
-    //     return DB::table('auditorias_caixa')->insertGetId([
-    //         'caixa_id'         => $caixaId, 
-    //         'user_id'          => $userId, 
-    //         'codigo_auditoria' => 'AUD-' . $caixaId . '-' . now()->format('YmdHis'),
-    //         'total_sistema'    => $sistema, // Gravará R$ 276.00 e não R$ 0.00
-    //         'total_fisico'     => $fisico,  // Gravará R$ 276.00
-    //         'diferenca'        => $diferenca, // Gravará R$ 0.00
-    //         'status'           => (abs($diferenca) <= 0.01 ? 'concluida' : 'inconsistente'), // Gravará 'concluida'
-    //         'observacao'       => $obs, 
-    //         'data_auditoria'   => now(),
-    //         'created_at'       => now(),
-    //         'updated_at'       => now()
-    //     ]);
-    // }
-
-
     private function salvarAuditoriaDetalhes(int $auditoriaId, array $valoresSistemas, array $valoresFisicos): void
     {
         $listaFormas = ['dinheiro', 'pix', 'carteira', 'cartao_debito', 'cartao_credito'];
@@ -709,177 +632,8 @@ class FechamentoCaixaController extends Controller
             }
         }
     }
-    
-//    public function ajustarDivergencias(Request $request, int $caixaId)
-//     {
-//         $request->validate([
-//             'formas'   => 'required|array|min:1',
-//             'formas.*' => 'required',
-//         ]);
-        
-//         DB::transaction(function () use ($request, $caixaId) {
 
-//             $caixa = Caixa::lockForUpdate()->findOrFail($caixaId);
-
-//             if ($caixa->status !== 'inconsistente' && $caixa->status !== 'aberto') {
-//                 throw new \Exception('Este caixa não está disponível para auditoria ou correção.');
-//             }
-
-//             $userId = auth()->id();
-            
-//             // 🎯 AJUSTE 1: Limpa registros antigos de auditoria ou ajustes contábeis prévios
-//             DB::table('movimentacoes_caixa')
-//                 ->where('caixa_id', $caixaId)
-//                 ->where(function($q) {
-//                     $q->where('tipo', 'auditoria')
-//                     ->orWhere('observacao', 'LIKE', '[AJUSTE AUDITORIA FISCAL]%');
-//                 })
-//                 ->delete();
-
-//             // 1️⃣ CÁLCULO DAS VENDAS REAIS DO SISTEMA DIRETO DA FITA OFICIAL (Vendas puras)
-//             $totalVendas = DB::table('movimentacoes_caixa')
-//                 ->where('caixa_id', $caixaId)
-//                 ->where('tipo', 'venda')
-//                 ->sum('valor');
-
-//             $totalAuditado = 0.00; 
-
-//             // 2️⃣ BUSCA O CABEÇALHO DA AUDITORIA GERAL PARA CONEXÃO DE DETALHES
-//             $auditoria = DB::table('auditorias_caixa')
-//                 ->where('caixa_id', $caixaId)
-//                 ->latest('data_auditoria')
-//                 ->first();
-
-//             foreach ($request->formas as $forma => $valorStr) {
-//                 $valorAuditado = $this->parseValorBR($valorStr);
-//                 $totalAuditado += $valorAuditado; 
-
-//                 // 🎯 AJUSTE 2: Filtros estritos por tipo 'venda' para isolar ajustes contábeis do loop
-//                 if ($forma === 'dinheiro') {
-//                     $valorSistema = DB::table('movimentacoes_caixa')
-//                         ->where('caixa_id', $caixaId)
-//                         ->where('forma_pagamento', 'dinheiro')
-//                         ->where('tipo', 'venda')
-//                         ->sum('valor');
-//                     $valorSistema += (float)$caixa->fundo_troco; 
-//                 } elseif ($forma === 'pix') {
-//                     $valorSistema = DB::table('movimentacoes_caixa')
-//                         ->where('caixa_id', $caixaId)
-//                         ->where('forma_pagamento', 'pix')
-//                         ->where('tipo', 'venda')
-//                         ->sum('valor');
-//                 } elseif ($forma === 'carteira') {
-//                     $valorSistema = DB::table('movimentacoes_caixa')
-//                         ->where('caixa_id', $caixaId)
-//                         ->where('forma_pagamento', 'carteira')
-//                         ->where('tipo', 'venda')
-//                         ->sum('valor');
-//                 } elseif ($forma === 'cartao_debito') {
-//                     $valorSistema = DB::table('movimentacoes_caixa')
-//                         ->where('caixa_id', $caixaId)
-//                         ->where('tipo', 'venda')
-//                         ->where(function($q) { 
-//                             $q->whereIn('forma_pagamento', ['cartao_debito', 'debito', 'Debito', 'Cartao debito', 'cartao debito'])
-//                             ->orWhere('forma_pagamento', 'LIKE', '%debito%'); 
-//                         })
-//                         ->sum('valor');
-//                 } elseif ($forma === 'cartao_credito') {
-//                     $valorSistema = DB::table('movimentacoes_caixa')
-//                         ->where('caixa_id', $caixaId)
-//                         ->where('tipo', 'venda')
-//                         ->where(function($q) { 
-//                             $q->whereIn('forma_pagamento', ['cartao_credito', 'credito', 'Credito', 'Cartao credito', 'cartao credito'])
-//                             ->orWhere('forma_pagamento', 'LIKE', '%credito%'); 
-//                         })
-//                         ->sum('valor');
-//                 } else {
-//                     $valorSistema = 0.00;
-//                 }
-
-//                 // 3️⃣ ATUALIZAÇÃO DA TABELA HISTÓRICA DO CAIXA
-//                 MovimentacaoCaixa::create([
-//                     'caixa_id'          => $caixa->id,
-//                     'user_id'           => $userId,
-//                     'tipo'              => 'auditoria', 
-//                     'forma_pagamento'   => $forma,
-//                     'valor'             => $valorSistema,     
-//                     'valor_auditado'    => $valorAuditado, // Preserva exatamente o digitado (Ex: R$ 50,00)
-//                     'observacao'        => 'Auditoria por forma de pagamento realizada com sucesso',
-//                     'data_movimentacao' => now(),
-//                 ]);
-
-//                 // 4️⃣ SINCRO COM A TABELA auditoria_detalhes
-//                 if ($auditoria) {
-//                     $novaDiferencaForma = $valorAuditado - $valorSistema;
-                    
-//                     DB::table('auditoria_detalhes')
-//                         ->where('auditoria_id', $auditoria->id)
-//                         ->where('forma_pagamento', $forma)
-//                         ->update([
-//                             'total_fisico' => $valorAuditado, 
-//                             'diferenca'    => $novaDiferencaForma,
-//                             'status'       => abs($novaDiferencaForma) <= 0.01 ? 'correto' : 'divergente',
-//                             'updated_at'   => now()
-//                         ]);
-//                 }
-
-//                 // 5️⃣ GERAÇÃO DE AJUSTES CONTÁBEIS SE HOUVER DIFERENÇA
-//                 $diferenca = $valorAuditado - $valorSistema;
-
-//                 if (abs($diferenca) > 0.01) {
-//                     DB::table('movimentacoes_caixa')->insert([
-//                         'caixa_id'          => $caixa->id,
-//                         'auditoria_id'      => $auditoria ? $auditoria->id : null,
-//                         'user_id'           => $userId,
-//                         'tipo'              => $diferenca > 0 ? 'entrada_manual' : 'saida_manual',
-//                         'forma_pagamento'   => $forma,
-//                         'valor'             => abs($diferenca),
-//                         'valor_auditado'    => 0.00,
-//                         'bandeira'          => null,
-//                         'origem_id'         => null,
-//                         'observacao'        => "[AJUSTE AUDITORIA FISCAL] Forma: " . ucfirst($forma),
-//                         'data_movimentacao' => now(),
-//                         'created_at'        => now(),
-//                         'updated_at'        => now()
-//                     ]);
-//                 }
-//             }
-
-//             // 6️⃣ ATUALIZAÇÃO DO MODEL DE CONFERÊNCIA ADMINISTRATIVA
-//             MovimentacaoCaixa::where('caixa_id', $caixa->id)
-//                 ->where('tipo', 'fechamento')
-//                 ->latest('id')
-//                 ->update([
-//                     'valor_auditado' => $totalVendas,               
-//                     'observacao'     => 'Auditoria concluída e homologada por forma de pagamento',
-//                     'user_id'        => $userId,
-//                     'updated_at'     => now(),
-//                 ]);
-
-//             // 7️⃣ ATUALIZAÇÃO DEFINITIVA DO CABEÇALHO DO CAIXA
-//             $caixa->update([
-//                 'valor_fechamento' => $totalAuditado, 
-//                 'status'           => 'fechado',       
-//                 'data_fechamento'  => now(),          
-//                 'fechado_por'      => $userId,
-//             ]);
-
-//             if ($auditoria) {
-//                 $novaDiferencaGeral = $totalAuditado - (float)$auditoria->total_sistema;
-//                 DB::table('auditorias_caixa')
-//                     ->where('id', $auditoria->id)
-//                     ->update([
-//                         'total_fisico' => $totalAuditado,
-//                         'diferenca'    => $novaDiferencaGeral,
-//                         'status'       => abs($novaDiferencaGeral) <= 0.01 ? 'concluida' : 'corrigida',
-//                     ]);
-//             }
-//         });
-
-//         return redirect("/fechamento_caixa/confirmacao/{$caixaId}")
-//             ->with('auditoria_sucesso', 'A divergência do Caixa #' . $caixaId . ' foi corrigida pela auditoria.');
-//     }
-     public function ajustarDivergencias(Request $request, int $caixaId)
+    public function ajustarDivergencias(Request $request, int $caixaId)
     {
         $request->validate([
             'formas'   => 'required|array|min:1',
@@ -1177,19 +931,6 @@ class FechamentoCaixaController extends Controller
 
         return view('fechamento_caixa.confirmacao', compact('caixa'));
     }
-
-    //CORRIGE AS DIVERGÊNCIAS APÓS A AUDITORIA FISCAL e imprime mensagem na tela
-//    public function auditoria($caixa)
-//     {
-//         $caixa = Caixa::findOrFail($caixa);
-
-//         $movimentacoes = MovimentacaoCaixa::where('caixa_id', $caixa->id)
-//                             ->where('tipo', 'fechamento')
-//                             ->get();
-
-//         return view('fechamento_caixa.confirmacao_auditoria', compact('caixa', 'movimentacoes'));
-
-//     }
 
     // 📊 CORRIGE AS DIVERGÊNCIAS APÓS A AUDITORIA FISCAL e alimenta a view de homologação de forma segura
     public function auditoria($caixaId)
