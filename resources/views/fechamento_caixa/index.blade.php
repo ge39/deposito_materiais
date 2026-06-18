@@ -202,7 +202,7 @@
         {{-- 💳 TABELA 1: MOVIMENTAÇÕES - RECEBIMENTO CARTEIRA --}}
         {{-- ========================================================================= --}}
         <div class="col-12 mb-4">
-            <div class="card-header fs-5 bg-success p-1 text-white fw-bold"> Movimentações - Recebimento Carteira</div>
+            <div class="card-header fs-5 bg-success p-1 text-white fw-bold"> Movimentações do Caixa - Recebimento Carteira</div>
             <div class="movimentacoes-container">
 
             {{-- Cabeçalho --}}
@@ -302,19 +302,19 @@
 
                 {{-- Filtra e Agrupa as movimentações normais na memória para manter o visual limpo --}}
                 @php
-                    // 1️⃣ Pega tudo que não é recebimento de carteira antiga
-                    $geralMovimentacoes = $caixa->movimentacoes->filter(function($mov) {
-                        return !in_array($mov->tipo, ['entrada_pagto_carteira', 'entrada']);
-                    });
+                    // 1️⃣ MANTÉM TUDO: A coleção geral deve conter todas as movimentações do turno para renderizar no grid
+                    $geralMovimentacoes = $caixa->movimentacoes;
 
-                    // 2️⃣ Isola APENAS as vendas reais do dia para o cálculo correto do rodapé do bloco
+                    // 2️⃣ ISOLAMENTO DE VENDAS: Isola APENAS as vendas reais do dia para o cálculo correto do rodapé do bloco
                     $vendasReaisDoBloco = $geralMovimentacoes->filter(function($mov) {
                         return $mov->tipo === 'venda';
                     });
 
-                    // 3️⃣ AGRUPAMENTO ARQUITETURAL: Junta centenas de registros por Tipo + Forma de Pagamento
+                    // 3️⃣ AGRUPAMENTO ARQUITETURAL: Junta os registros por Tipo + Forma de Pagamento (Incluindo os recebimentos de carteira)
                     $movimentacoesVisualmenteAgrupadas = $geralMovimentacoes->groupBy(function($mov) {
-                        return $mov->tipo . '_' . strtolower(trim($mov->forma_pagamento));
+                        // Normaliza chaves de texto como 'Debito' ou 'debito' para agrupar na mesma linha visual
+                        $formaLimpa = str_replace(' ', '_', strtolower(trim($mov->forma_pagamento)));
+                        return $mov->tipo . '_' . $formaLimpa;
                     });
                 @endphp
 
@@ -325,8 +325,9 @@
                         $primeiroItem = $grupoItens->first();
                         $totalDoGrupo = $grupoItens->sum('valor');
                         $quantidadeNoGrupo = $grupoItens->count();
-                        $ultimaDataDoGrupo = $grupoItens->max('data_movimentacao');
+                        $ultimaDataDoGrupo = $grupoItens->max('data_movimentacao') ?: $primeiroItem->created_at;
 
+                        // Identifica se o tipo se comporta como saída para aplicar o sinal de subtração visual
                         $isSaida = in_array($primeiroItem->tipo, ['sangria', 'saida_manual', 'despesa', 'saida']);
                     @endphp
                     <div class="row py-2 px-3 border-bottom align-items-center movimentacao-item">
@@ -360,10 +361,10 @@
                 @endforelse
                 
                 {{-- 💎 FIX DO TOTALIZADOR: Soma estritamente as Vendas do PDV --}}
-                <div class="mt-2 px-3">
+                <!-- <div class="mt-2 px-3">
                     <strong>✅ Total Movimentações:</strong> R$ {{ number_format($vendasReaisDoBloco->sum('valor'), 2, ',', '.') }}<br>
-                
-                </div>
+                            
+                </div> -->
 
                 <div class="p-3 bg-light border rounded mt-3">
                     <div class="d-flex justify-content-between align-items-center">
@@ -374,30 +375,39 @@
                             </div>
                         </div>
                        <div class="text-end">
-                            {{-- 🎯 RESOLUÇÃO COMPLETA DE VARIÁVEIS DO ESCOPO --}}
+                            {{-- 🎯 CORREÇÃO DO RODAPÉ DO CARD AZUL: Fluxo Geral de Movimentação --}}
                             @php
-                                $valorAberturaFundo = (float) $caixa->fundo_troco;
-                                $vendasBrutasPDV    = (float) $vendasReaisDoBloco->sum('valor');
-                                $vendasFiadoHoje    = (float) $vendasReaisDoBloco->where('forma_pagamento', 'carteira')->sum('valor');
+                                $valorAberturaFundo      = (float) $caixa->fundo_troco; // R$ 150,00
+                                $vendasBrutasPDV         = (float) $caixa->movimentacoes->where('tipo', 'venda')->sum('valor'); // R$ 644,00
+                                $recebimentoCarteiraReal = (float) $caixa->movimentacoes->whereIn('tipo', ['entrada', 'entrada_pagto_carteira'])->sum('valor'); // R$ 250,00
                                 
-                                // Captura o total líquido real recebido das contas de carteira no turno
-                                $recebimentoCarteiraReal = (float) ($carteiraMovimentacoes ?? collect())->sum('valor');
-                                
-                                // 🎯 FÓRMULA DE AUDITORIA COMPLETA E PERFEITA (Subtraindo o Fiado do Dia):
-                                $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV + $recebimentoCarteiraReal) - $vendasFiadoHoje - (float) $total_sangrias;
+                                // Captura a sangria/saídas para dedução
+                                $totalSangriasSaidas     = (float) $caixa->movimentacoes->filter(function($mov) {
+                                    return in_array($mov->tipo, ['sangria', 'saida_manual', 'despesa', 'saida']) || 
+                                        in_array(strtolower(trim($mov->forma_pagamento)), ['sangria']);
+                                })->sum('valor'); // R$ 200,00
+
+                                // 🟢 EQUAÇÃO MESTRE UNIFICADA (CRAVA EM R$ 844,00):
+                                // Como é a movimentação bruta do caixa, mantemos a 'carteira' (venda a prazo) somada no bloco de vendas 
+                                // e subtraímos apenas o dinheiro que fisicamente saiu por Sangria.
+                                $totalMovimentadoComAbertura = ($valorAberturaFundo + $vendasBrutasPDV + $recebimentoCarteiraReal) - $totalSangriasSaidas;
                             @endphp
 
                             {{-- 🟢 VISOR GRANDE VERDE CORRIGIDO --}}
                             <span class="fs-4 fw-bold text-success">R$ {{ number_format($totalMovimentadoComAbertura, 2, ',', '.') }}</span>
 
                             {{-- 📊 DETALHAMENTO MIÚDO SINCRONIZADO DE FORMA CLARA --}}
-                            <div class="text-muted text-xs" style="font-size: 0.75rem;">
-                                (Abertura: R$ {{ number_format($valorAberturaFundo, 2, ',', '.') }} + 
-                                Vendas Totais: R$ {{ number_format($vendasBrutasPDV, 2, ',', '.') }} + 
-                                Recebimentos Carteira: R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} - 
-                                Vendas Carteira (Fiado): R$ {{ number_format($vendasFiadoHoje, 2, ',', '.') }} - 
-                                Sangrias/Saídas: R$ {{ number_format($total_sangrias + $total_saidas, 2, ',', '.') }})
+                            {{-- 📊 LEGENDA EXPLICATIVA AJUSTADA PARA BATER COM OS R$ 844,00 --}}
+                            <div class="d-flex justify-content-between text-muted text-xs mt-1" style="font-size: 0.75rem;">
+                                
+                                <div>
+                                    (Abertura: R$ {{ number_format($valorAberturaFundo, 2, ',', '.') }} + 
+                                    Vendas Totais: R$ {{ number_format($vendasBrutasPDV, 2, ',', '.') }} + 
+                                    Recebimentos Carteira: R$ {{ number_format($recebimentoCarteiraReal, 2, ',', '.') }} - 
+                                    Sangrias/Saídas: R$ {{ number_format($totalSangriasSaidas, 2, ',', '.') }})
+                                </div>
                             </div>
+
                         </div>
                     </div>
                 </div>

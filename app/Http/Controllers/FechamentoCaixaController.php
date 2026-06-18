@@ -370,88 +370,112 @@ class FechamentoCaixaController extends Controller
                 $formaLimpa = str_replace(' ', '_', strtolower(trim($recebimento->forma_pagamento)));
                 $recebimentosCarteira->put($formaLimpa, $recebimento);
             }
-
-            /*
             /*
             |--------------------------------------------------------------------------
-            | 5️⃣ COMPOSIÇÃO DOS VALORES DO SISTEMA (UNIFICAÇÃO ELETRÔNICA E ISOLAMENTO EM DINHEIRO)
+            | 5️⃣ COMPOSIÇÃO DO SISTEMA POR MATRIZ DE ABORDAGEM (TIPO + FORMA)
             |--------------------------------------------------------------------------
             */
             $valoresSistemas = [];
-            foreach ($formas as $forma) {
-                // Captura o total bruto de vendas (tipo = venda)
-                $vendaForma = $vendasDoCaixa->get($forma) ? (float)$vendasDoCaixa->get($forma)->total : 0.00;
-                
-                if ($forma === 'dinheiro') {
-                    // 🎯 CORREÇÃO: Captura o dinheiro recebido da carteira
-                    $dinheiroCarteira = $recebimentosCarteira->get('dinheiro') ? (float)$recebimentosCarteira->get('dinheiro')->total : 0.00;
 
-                    // Gaveta física total: Vendas em dinheiro do balcão + Dinheiro da Carteira + Fundo de Troco - Sangrias/Saídas
-                    $valoresSistemas[$forma] = $vendaForma + $dinheiroCarteira + (float)$caixa->fundo_troco - (float)$totalSaidasDinheiro;
+            // 1. Mapeamento explícito das linhas do banco coletadas no Passo 4 (Fita Comercial)
+            // Evitamos buscas por chaves dinâmicas para não vazar ou duplicar dados.
+            
+            // 🛒 Vendas Brutas (tipo = venda)
+            $vendaDinheiro = (float)($vendasDoCaixa->get('dinheiro')->total ?? 0.00);      // ID 38453: R$ 200,00
+            $vendaPix      = (float)($vendasDoCaixa->get('pix')->total ?? 0.00);           // ID 38454: R$ 44,00
+            $vendaCredito  = (float)($vendasDoCaixa->get('cartao_credito')->total ?? 0.00); // ID 38455: R$ 100,00
+            $vendaDebito   = (float)($vendasDoCaixa->get('cartao_debito')->total ?? 0.00);  // ID 38456: R$ 50,00
+            $vendaFiado    = (float)($vendasDoCaixa->get('carteira')->total ?? 0.00);       // ID 38457: R$ 250,00
 
-                } elseif ($forma === 'carteira_dinheiro') {
-                    // 🟢 MANTIDO ISOLADO: O sistema espera estritamente o dinheiro que entrou via quitação de fiado (R$ 100,00 da fita)
-                    $valoresSistemas[$forma] = $recebimentosCarteira->get('dinheiro') ? (float)$recebimentosCarteira->get('dinheiro')->total : 0.00;
+            // 🟢 Recebimentos de Carteira (tipo = entrada_pagto_carteira ou entrada)
+            // Mapeamos aceitando tanto 'cartao_debito' quanto a variação simplificada 'debito' do banco
+            $carteiraDinheiro = (float)($recebimentosCarteira->get('dinheiro')->total ?? 0.00); // ID 38459: R$ 250,00
+            $carteiraPix      = (float)($recebimentosCarteira->get('pix')->total ?? 0.00);
+            $carteiraDebito   = (float)($recebimentosCarteira->get('cartao_debito')->total ?? $recebimentosCarteira->get('debito')->total ?? 0.00);
 
-                } elseif ($forma === 'pix') {
+            // 🚨 Saídas Físicas / Sangrias (tipo = saida_manual ou sangria, ou forma_pagamento = Sangria)
+            // Buscamos diretamente na coleção em memória do caixa para capturar com 100% de lastro o ID 38458
+            $valorSaidaReal = (float) $caixa->movimentacoes->filter(function($mov) {
+                return in_array($mov->tipo, ['sangria', 'saida_manual', 'saida', 'despesa']) || 
+                       in_array(strtolower(trim($mov->forma_pagamento)), ['sangria']);
+            })->sum('valor'); // ID 38458: R$ 200,00
 
-                    // 🎯 SOMA DOS DOIS TIPOS: Unifica o PIX de venda com o PIX de recebimento de carteira (R$ 0 + R$ 100 = R$ 100)
-                    $pixRecebimento = $recebimentosCarteira->get('pix') ? (float)$recebimentosCarteira->get('pix')->total : 0.00;
-                    $valoresSistemas[$forma] = $vendaForma + $pixRecebimento;
-
-                } elseif ($forma === 'cartao_debito') {
-                    // 🎯 SOMA DOS DOIS TIPOS: Unifica o Débito de venda com o Débito de recebimento de carteira (R$ 0 + R$ 50 = R$ 50)
-                    $debitoRecebimento = $recebimentosCarteira->get('debito') ? (float)$recebimentosCarteira->get('debito')->total : 0.00;
-                    $valoresSistemas[$forma] = $vendaForma + $debitoRecebimento;
-
-                } else {
-                    // Mantém a regra nativa para Cartão de Crédito e novas concessões de Carteira (Fiado gerado no dia)
-                    $valoresSistemas[$forma] = $vendaForma;
-                }
-            }
-
+            // 2. Montagem da Matriz do Sistema de 8 Posições (Garante o preenchimento controlado do banco)
+            $valoresSistemas['dinheiro']          = $vendaDinheiro + $carteiraDinheiro + (float)$caixa->fundo_troco - $valorSaidaReal; // 200 + 250 + 150 - 200 = R$ 400,00
+            $valoresSistemas['pix']               = $vendaPix + $carteiraPix;          // R$ 44,00
+            $valoresSistemas['cartao_debito']     = $vendaDebito + $carteiraDebito;    // R$ 50,00
+            $valoresSistemas['cartao_credito']    = $vendaCredito;                     // R$ 100,00
+            $valoresSistemas['carteira']          = $vendaFiado;                       // R$ 250,00
+            
+            // Chaves Virtuais isoladas estritamente para o log detalhado
+            $valoresSistemas['carteira_dinheiro'] = $carteiraDinheiro;
+            $valoresSistemas['carteira_pix']      = $carteiraPix;
+            $valoresSistemas['carteira_debito']   = $carteiraDebito;
 
             /*
             |--------------------------------------------------------------------------
-            | 6️⃣ CONCILIAÇÃO DOS VALORES INFORMADOS PELO OPERADOR - CORRIGIDO
+            | 6️⃣ CONCILIAÇÃO DOS VALORES E FECHAMENTO - ABORDAGEM MATRIZ FIXA
             |--------------------------------------------------------------------------
             */
             $valoresFisicosUnificados = [];
             foreach ($formas as $forma) {
-                if (str_starts_with($forma, 'carteira_')) {
-                    // Mapeia o valor físico direto para a linha da quitação
-                    $valoresFisicosUnificados[$forma] = (float)($valoresFisicos[$forma] ?? 0.00);
-                } else {
-                    // Mantém a leitura limpa do que o operador digitou para as vendas normais
-                    $valoresFisicosUnificados[$forma] = (float)($valoresFisicos[$forma] ?? 0.00);
-                }
+                $valoresFisicosUnificados[$forma] = (float)($valoresFisicos[$forma] ?? 0.00);
             }
 
-            // 🎯 TOTAL SISTEMA MESTRE RECALCULADO: 
-            // Soma o fluxo de balcão (dinheiro, pix, cartões) + as quitações físicas da carteira
-            $totalSistemaGeral = 0.00;
-            foreach ($formas as $forma) {
-                if ($forma !== 'carteira') {
-                    $totalSistemaGeral += $valoresSistemas[$forma];
-                }
-            }
+            // Sincroniza o array físico com os espelhos virtuais para não quebrar tabelas filhas
+            $valoresFisicosUnificados['carteira_dinheiro'] = $carteiraDinheiro;
+            $valoresFisicosUnificados['carteira_pix']      = $carteiraPix;
+            $valoresFisicosUnificados['carteira_debito']   = $carteiraDebito;
 
+                      // 🎯 RECONCILIAÇÃO DO TOTAL GERAL MESTRE - CORREÇÃO DE SINAL (FIX: DE 594.0 PARA 844.0)
+            // Para bater com o visor de R$ 844,00 do seu grid de movimentações, somamos o faturamento 
+            // bruto acumulado com a abertura e subtraímos estritamente a sangria realizada.
+            $totalVendasMatriz    = $vendaDinheiro + $vendaPix + $vendaDebito + $vendaCredito + $vendaFiado; // R$ 644,00
+            $totalRecebidosMatriz = $carteiraDinheiro + $carteiraPix + $carteiraDebito; // R$ 250,00
+            
+            // 🟢 EQUAÇÃO EQUALIZADA DO TURNO: (150 + 644 + 250) - 200 = R$ 844,00
+            $totalSistemaGeral = ((float)$caixa->fundo_troco + $totalVendasMatriz + $totalRecebidosMatriz) - $valorSaidaReal;
 
-            // O total físico geral deve ser o que o operador realmente contou nas 5 formas de pagamento unificadas
-            $totalFisicoGeral = array_sum($valoresFisicosUnificados);
+            // Total informado pelo operador na tela (Soma das 5 gavetas comerciais reais)
+            $totalFisicoGeral = (
+                $valoresFisicosUnificados['dinheiro'] + 
+                $valoresFisicosUnificados['pix'] + 
+                $valoresFisicosUnificados['cartao_debito'] + 
+                $valoresFisicosUnificados['cartao_credito'] + 
+                $valoresFisicosUnificados['carteira']
+            ); // R$ 844,00
 
-            // 🧠 VALIDAÇÃO INDIVIDUAL DAS LINHAS DA TABELA (Pente-fino)
+            // 🧠 VALIDAÇÃO PENTE-FINO (Apenas nas 5 chaves reais que o operador controla)
+            $formasOriginais = ['dinheiro', 'pix', 'cartao_debito', 'cartao_credito', 'carteira'];
             $caixaInconsistente = false;
-            foreach ($formas as $forma) {
-                $sistemaForma  = $valoresSistemas[$forma] ?? 0.00;
+            foreach ($formasOriginais as $forma) {
+                $sistemaForma   = $valoresSistemas[$forma] ?? 0.00;
                 $unificadoForma = $valoresFisicosUnificados[$forma] ?? 0.00;
-                
+
                 if (abs($unificadoForma - $sistemaForma) > 0.01) {
                     $caixaInconsistente = true;
                 }
             }
 
+            // Trava macro global de consistência do cabeçalho
+            if (abs($totalFisicoGeral - $totalSistemaGeral) > 0.01) {
+                $caixaInconsistente = true;
+            }
+
             $novoStatusCaixa = ($caixaInconsistente) ? 'inconsistente' : 'fechado';
+
+            // --- 💡 SEU DD DE VALIDAÇÃO FINAL COM ABORDAGEM DE LASTRO ---
+            // dd([
+            //     'caixa_id'            => $caixa->id,
+            //     'user_id'             => $userId,
+            //     'total_sistema_geral' => $totalSistemaGeral, // 🟢 Cravado em 844.0
+            //     'total_fisico_geral'  => $totalFisicoGeral,  // 🟢 Cravado em 844.0
+            //     'diferenca_calculada' => $totalFisicoGeral - $totalSistemaGeral, // 0.0
+            //     'status_previsto'     => $novoStatusCaixa,   // "fechado"
+            //     'valores_sistemas'    => $valoresSistemas,
+            //     'valores_fisicos'     => $valoresFisicosUnificados
+            // ]);
+
 
             // Grava o cabeçalho mestre da auditoria (AUDITORIAS_CAIXA) com R$ 1.442,00
             $auditoriaId = $this->criarAuditoriaCabecalho(
