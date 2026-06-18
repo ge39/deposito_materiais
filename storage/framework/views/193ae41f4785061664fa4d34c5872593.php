@@ -532,10 +532,56 @@
         // ===============================
         // FECHA MODAL
         // ===============================
+        // const modalEl = document.getElementById('modalCliente');
+        // if (modalEl && typeof bootstrap !== 'undefined') {
+        //     const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        //     modalInstance?.hide();
+        // }
+        
+        // ========================================================
+        // FECHA MODAL - ESTRATÉGIA AGRESSIVA DE DESBLOQUEIO DE TELA
+        // ========================================================
         const modalEl = document.getElementById('modalCliente');
-        if (modalEl && typeof bootstrap !== 'undefined') {
-            const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-            modalInstance?.hide();
+        
+        if (modalEl) {
+            // 1. Força o encerramento visual imediato removendo as classes do Bootstrap
+            modalEl.classList.remove('show');
+            modalEl.style.display = 'none';
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.removeAttribute('aria-modal');
+            modalEl.removeAttribute('role');
+
+            // 2. Destrói qualquer instância fantasma que o Bootstrap guarde na memória
+            if (typeof bootstrap !== 'undefined') {
+                const modalInstance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+                if (modalInstance) {
+                    modalInstance.hide();
+                    // Pequena garantia para remover escutas e travas internas da biblioteca
+                    if (typeof modalInstance.dispose === 'function') {
+                        modalInstance.dispose(); 
+                    }
+                }
+            }
+
+            // 3. Limpeza Cirúrgica do Body (Remove a parede invisível)
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+
+            // 4. Varre a tela e remove todos os backdrops escuros duplicados/escondidos
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // 5. Devolve o foco imediatamente para o input principal de vendas do seu PDV
+            // Ajuste o seletor ('#codigo_produto' ou similar) conforme o ID do seu campo de venda
+            setTimeout(() => {
+                const inputVenda = document.getElementById('buscaProdutoPDV') || document.getElementById('codigo_barra');
+                if (inputVenda) {
+                    inputVenda.focus();
+                }
+            }, 50);
         }
+
+
     }
 </script><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/modals/modal_cliente_pdv.blade.php ENDPATH**/ ?>

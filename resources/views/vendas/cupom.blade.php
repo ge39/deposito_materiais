@@ -169,7 +169,7 @@
     DO HISTÓRICO EM SEGUNDO PLANO --}}
 
 {{-- DISPARO COM LEITURA DO HISTÓRICO EM SEGUNDO PLANO --}}
-<script>
+<!-- <script>
     document.addEventListener("DOMContentLoaded", function() {
         // Captura o objeto de pagamento preenchido no caixa antes de fechar o modal
         let dadosOrigem = window.opener?.pagamentoDataFinal || window.parent?.pagamentoDataFinal;
@@ -226,7 +226,84 @@
         window.focus();
         window.print();
     });
+</script> -->
+
+{{-- DISPARO COM LEITURA DO HISTÓRICO EM SEGUNDO PLANO COM ABERTURA DA VALIDAÇÃO DE SANGRIA--}}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Captura o objeto de pagamento preenchido no caixa antes de fechar o modal
+        let dadosOrigem = window.opener?.pagamentoDataFinal || window.parent?.pagamentoDataFinal;
+        let totalLiquido = parseFloat("{{ $totalLiquidoCalculado }}") || 0;
+
+        if (dadosOrigem) {
+            let htmlFormas = '';
+            let valorDinheiro = parseFloat(dadosOrigem.dinheiro) || 0;
+            let valorCredito = parseFloat(dadosOrigem.cartao_credito) || 0;
+            let valorDebito = parseFloat(dadosOrigem.cartao_debito) || 0;
+            let valorPix = parseFloat(dadosOrigem.pix) || 0;
+            let valorCarteira = parseFloat(dadosOrigem.carteira) || 0;
+
+            // Gera as linhas correspondentes a cada pagamento utilizado
+            if (valorDinheiro > 0)  htmlFormas += `<div class="d-flex justify-content-between"><span class="text-uppercase">DINHEIRO</span><span>R$ ${valorDinheiro.toFixed(2).replace('.', ',')}</span></div>`;
+            if (valorCredito > 0)   htmlFormas += `<div class="d-flex justify-content-between"><span class="text-uppercase">CARTÃO CRÉDITO</span><span>R$ ${valorCredito.toFixed(2).replace('.', ',')}</span></div>`;
+            if (valorDebito > 0)    htmlFormas += `<div class="d-flex justify-content-between"><span class="text-uppercase">CARTÃO DÉBITO</span><span>R$ ${valorDebito.toFixed(2).replace('.', ',')}</span></div>`;
+            if (valorPix > 0)       htmlFormas += `<div class="d-flex justify-content-between"><span class="text-uppercase">PIX</span><span>R$ ${valorPix.toFixed(2).replace('.', ',')}</span></div>`;
+            if (valorCarteira > 0)  htmlFormas += `<div class="d-flex justify-content-between"><span class="text-uppercase">CARTEIRA</span><span>R$ ${valorCarteira.toFixed(2).replace('.', ',')}</span></div>`;
+
+            if (htmlFormas !== '') {
+                document.getElementById('formas-pagamento-render').innerHTML = htmlFormas;
+            }
+
+            // Se houve dinheiro, calcula e injeta o troco e o valor pago em tempo de execução
+            if (valorDinheiro > 0) {
+                let somaOutros = valorCredito + valorDebito + valorPix + valorCarteira;
+                let tetoNecessarioDinheiro = totalLiquido - somaOutros;
+                if (tetoNecessarioDinheiro < 0) tetoNecessarioDinheiro = 0;
+
+                let trocoCalculado = valorDinheiro - tetoNecessarioDinheiro;
+                if (trocoCalculado < 0) trocoCalculado = 0;
+
+                let htmlTroco = `
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>PAGO EM DINHEIRO:</span>
+                        <span>R$ ${valorDinheiro.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                `;
+
+                if (trocoCalculado > 0) {
+                    htmlTroco += `
+                        <div style="display: flex; justify-content: space-between; font-weight:normal;">
+                            <span>TROCO:</span>
+                            <!-- 🎯 CORREÇÃO: Alterado de troco para trocoCalculado -->
+                            <span>R$ ${trocoCalculado.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                    `;
+                }
+                document.getElementById('bloco-calculo-troco-real').innerHTML = htmlTroco;
+            }
+        }
+
+        // Executa o foco e o comando de impressão do navegador de forma silenciosa
+        window.focus();
+        window.print();
+
+        // =========================================================================
+        // 🖨️ GATILHO PÓS-IMPRESSÃO: ACIONA O MODAL DE SANGRIA NA TELA MÃE DO PDV
+        // =========================================================================
+        window.addEventListener('afterprint', function() {
+            // Se o cupom abriu a partir da tela principal do PDV, envia o sinal de checagem
+            if (window.opener && !window.opener.closed) {
+                window.opener.postMessage('venda_concluida_checar_sangria', '*');
+            }
+            
+            // Fecha a janela/aba do cupom imediatamente de forma limpa
+            setTimeout(function() {
+                window.close();
+            }, 100);
+        });
+    });
 </script>
+
 @endsection
 
 @push('styles')

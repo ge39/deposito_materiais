@@ -312,66 +312,119 @@ class ClienteCreditoController extends Controller
             }
     }
 
+    // public function exibirComprovante($id)
+    // {
+    //     // 🧠 CONSULTA DIRETA NO BANCO DE DADOS: Busca os dados reais gravados na linha informada
+    //     $pagamento = \Illuminate\Support\Facades\DB::table('cliente_conta_correntes')
+    //         ->join('clientes', 'clientes.id', '=', 'cliente_conta_correntes.cliente_id')
+    //         ->where('cliente_conta_correntes.id', (int) $id)
+    //         ->select(
+    //             'cliente_conta_correntes.valor',
+    //             'cliente_conta_correntes.saldo_apos',
+    //             'cliente_conta_correntes.origem',
+    //             'cliente_conta_correntes.tipo',
+    //             'cliente_conta_correntes.created_at',
+    //             'clientes.nome as cliente_nome'
+    //         )
+    //         ->first();
 
-      /**
-     * Busca os dados de um pagamento específico de carteira no banco.
-     */
-//    public function obterPagamento(\Illuminate\Http\Request $request)
-// {
-//     // 1. Lê e valida o ID recebido do JavaScript
-//     $pagamentoId = (int) $request->input('pagamento_id');
+    //     // Se por acaso o ID não existir no banco, exibe um aviso 404 seguro
+    //     if (!$pagamento) {
+    //         abort(404, 'Comprovante não localizado no sistema.');
+    //     }
 
-//     if ($pagamentoId <= 0) {
-//         return response()->json([
-//             'success' => false, 
-//             'erro'    => 'Código do pagamento inválido para a busca.'
-//         ], 422);
-//     }
+    //     // Formata os dados para exibição limpa no papel A4 da sua Epson L3150
+    //     $cliente   = $pagamento->cliente_nome;
+    //     $valor     = number_format($pagamento->valor, 2, ',', '.');
+    //     $meio      = strtoupper($pagamento->origem ?: 'DINHEIRO');
+    //     $tipo      = $pagamento->tipo;
+    //     $saldo     = number_format($pagamento->saldo_apos, 2, ',', '.');
+    //     $dataHora  = date('d/m/Y H:i:s', strtotime($pagamento->created_at));
 
-//     // 🧠 CONSULTA DIRETA NO BANCO DE DADOS (Unificando a movimentação com os dados do cliente)
-//     // Ajuste o nome da tabela 'clientes' caso no seu banco ela tenha outro nome (ex: users)
-//     $pagamento = \Illuminate\Support\Facades\DB::table('cliente_conta_correntes')
-//         ->join('clientes', 'clientes.id', '=', 'cliente_conta_correntes.cliente_id')
-//         ->where('cliente_comment_correntes.id', $pagamentoId) // Garante a busca pela chave primária correta
-//         ->select(
-//             'cliente_conta_correntes.id',
-//             'cliente_conta_correntes.valor',
-//             'cliente_conta_correntes.saldo_apos',
-//             'cliente_conta_correntes.origem',
-//             'cliente_conta_correntes.created_at',
-//             'clientes.nome as cliente_nome' // Já traz o nome do cliente mastigado pro JS
-//         )
-//         ->first();
+    //     // Retorna o HTML estruturado em duas vias para folha A4 comum
+    //     return "
+    //     <!DOCTYPE html>
+    //     <html lang='pt-BR'>
+    //     <head>
+    //         <meta charset='UTF-8'>
+    //         <title>Comprovante de Pagamento - Carteira</title>
+    //         <style>
+    //             body { font-family: Arial, sans-serif; margin: 40px; font-size: 14px; color: #000; background: #fff; }
+    //             .via { border: 2px dashed #000; padding: 30px; margin-bottom: 50px; background: #fff; }
+    //             .txt-center { text-align: center; }
+    //             .titulo { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
+    //             hr { border: 0; border-top: 1px solid #000; margin: 15px 0; }
+    //             .linha-dados { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    //             .valor-destaque { font-size: 20px; font-weight: bold; margin: 15px 0; }
+    //             .bloco-assinatura { margin-top: 50px; text-align: center; }
+    //             @media print { .quebra-pagina { page-break-after: always; break-after: page; height: 0; } }
+    //         </style>
+    //     </head>
+    //     <body>
 
-//     // 2. Se o registro sumiu ou não foi gerado a tempo, aborta com segurança
-//     if (!$pagamento) {
-//         return response()->json([
-//             'success' => false, 
-//             'erro'    => 'Pagamento não localizado no banco de dados.'
-//         ], 404);
-//     }
+    //         <!-- ================= VIA 1: CLIENTE ================= -->
+    //         <div class='via'>
+    //             <div class='txt-center titulo'>DEPÓSITO DE MATERIAIS</div>
+    //             <div class='txt-center'><b>COMPROVANTE DE PAGAMENTO DE CARTEIRA</b></div>
+    //             <div class='txt-center'>--- VIA DO CLIENTE ---</div>
+    //             <hr>
+    //             <div class='linha-dados'><span><b>Data/Hora:</b> $dataHora</span> <span><b>Meio de Pgto:</b> $meio</span></div>
+    //             <div><b>Cliente:</b> $cliente</div>
+    //             <hr>
+    //             <div class='valor-destaque'>VALOR PAGO: R$ $valor</div>
+    //              <div><b>Forma de Pagamento:</b> $tipo</div>
+    //             <div><b>Saldo Restante na Carteira:</b> R$ $saldo</div>
+    //             <hr>
+    //             <div class='bloco-assinatura'>______________________________________________________<br>Assinatura do Cliente</div>
+    //         </div>
 
-//     // 3. RETORNO ESTRUTURADO (Entrega exatamente o objeto que o JavaScript precisa mapear)
-//     return response()->json([
-//         'success' => true,
-//         'dados'   => [
-    //             'valor'            => (float) $pagamento->valor,
-//             'id'               => $pagamento->id,
-//             'cliente'          => $pagamento->cliente_nome,
-//             'saldo_disponivel' => (float) $pagamento->saldo_apos,
-//             'meio'             => $pagamento->origem, // Entrega o tipo de captura original
-//             'data_hora'        => date('d/m/Y H:i:s', strtotime($pagamento->created_at))
-// }
-//         ]
-//     ]);
+    //         <div class='quebra-pagina'></div>
+
+    //         <!-- ================= VIA 2: CAIXA ================= -->
+    //         <div class='via'>
+    //             <div class='txt-center titulo'>DEPÓSITO DE MATERIAIS</div>
+    //             <div class='txt-center'><b>COMPROVANTE DE PAGAMENTO DE CARTEIRA</b></div>
+    //             <div class='txt-center'>--- VIA DO CAIXA ---</div>
+    //             <hr>
+    //             <div class='linha-dados'><span><b>Data/Hora:</b> $dataHora</span> <span><b>Meio de Pgto:</b> $meio</span></div>
+    //             <div><b>Cliente:</b> $cliente</div>
+    //             <hr>
+    //             <div class='valor-destaque'>VALOR PAGO: R$ $valor</div>
+    //              <div><b>Forma de Pagamento:</b> $tipo</div>
+    //             <div><b>Saldo Restante na Carteira:</b> R$ $saldo</div>
+    //             <hr>
+    //             <div class='bloco-assinatura'>______________________________________________________<br>Controle Interno do Caixa</div>
+    //         </div>
+
+    //             <!-- Final do seu HTML das duas vias -->
+    //         <script>
+    //             window.onload = function() { 
+    //                 // 1. Dispara o painel de impressão da Epson normalmente
+    //                 window.print(); 
+                    
+    //                 // 2. 🛡️ REGRA DE OURO DO PDV: Escuta quando o operador FECHA o painel da impressora
+    //                 // Não importa se ele clicou em IMPRIMIR ou em CANCELAR.
+    //                 window.addEventListener('afterprint', function() {
+    //                     // Dá um pequeno respiro visual e fecha a aba de forma segura
+    //                     // setTimeout(function() { 
+    //                     //     window.close(); 
+    //                     // }, 20000);
+    //                 });
+    //             };
+    //         </script>
+    //     </body>
+    //     </html>
+    //     ";
+    // }
 
     public function exibirComprovante($id)
     {
-        // 🧠 CONSULTA DIRETA NO BANCO DE DADOS: Busca os dados reais gravados na linha informada
+        // 🧠 CONSULTA DIRETA NO BANCO DE DADOS
         $pagamento = \Illuminate\Support\Facades\DB::table('cliente_conta_correntes')
             ->join('clientes', 'clientes.id', '=', 'cliente_conta_correntes.cliente_id')
             ->where('cliente_conta_correntes.id', (int) $id)
             ->select(
+                'cliente_conta_correntes.id as codigo_mov',
                 'cliente_conta_correntes.valor',
                 'cliente_conta_correntes.saldo_apos',
                 'cliente_conta_correntes.origem',
@@ -381,94 +434,14 @@ class ClienteCreditoController extends Controller
             )
             ->first();
 
-        // Se por acaso o ID não existir no banco, exibe um aviso 404 seguro
         if (!$pagamento) {
             abort(404, 'Comprovante não localizado no sistema.');
         }
 
-        // Formata os dados para exibição limpa no papel A4 da sua Epson L3150
-        $cliente   = $pagamento->cliente_nome;
-        $valor     = number_format($pagamento->valor, 2, ',', '.');
-        $meio      = strtoupper($pagamento->origem ?: 'DINHEIRO');
-        $tipo      = $pagamento->tipo;
-        $saldo     = number_format($pagamento->saldo_apos, 2, ',', '.');
-        $dataHora  = date('d/m/Y H:i:s', strtotime($pagamento->created_at));
-
-        // Retorna o HTML estruturado em duas vias para folha A4 comum
-        return "
-        <!DOCTYPE html>
-        <html lang='pt-BR'>
-        <head>
-            <meta charset='UTF-8'>
-            <title>Comprovante de Pagamento - Carteira</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 40px; font-size: 14px; color: #000; background: #fff; }
-                .via { border: 2px dashed #000; padding: 30px; margin-bottom: 50px; background: #fff; }
-                .txt-center { text-align: center; }
-                .titulo { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
-                hr { border: 0; border-top: 1px solid #000; margin: 15px 0; }
-                .linha-dados { display: flex; justify-content: space-between; margin-bottom: 8px; }
-                .valor-destaque { font-size: 20px; font-weight: bold; margin: 15px 0; }
-                .bloco-assinatura { margin-top: 50px; text-align: center; }
-                @media print { .quebra-pagina { page-break-after: always; break-after: page; height: 0; } }
-            </style>
-        </head>
-        <body>
-
-            <!-- ================= VIA 1: CLIENTE ================= -->
-            <div class='via'>
-                <div class='txt-center titulo'>DEPÓSITO DE MATERIAIS</div>
-                <div class='txt-center'><b>COMPROVANTE DE PAGAMENTO DE CARTEIRA</b></div>
-                <div class='txt-center'>--- VIA DO CLIENTE ---</div>
-                <hr>
-                <div class='linha-dados'><span><b>Data/Hora:</b> $dataHora</span> <span><b>Meio de Pgto:</b> $meio</span></div>
-                <div><b>Cliente:</b> $cliente</div>
-                <hr>
-                <div class='valor-destaque'>VALOR PAGO: R$ $valor</div>
-                 <div><b>Forma de Pagamento:</b> $tipo</div>
-                <div><b>Saldo Restante na Carteira:</b> R$ $saldo</div>
-                <hr>
-                <div class='bloco-assinatura'>______________________________________________________<br>Assinatura do Cliente</div>
-            </div>
-
-            <div class='quebra-pagina'></div>
-
-            <!-- ================= VIA 2: CAIXA ================= -->
-            <div class='via'>
-                <div class='txt-center titulo'>DEPÓSITO DE MATERIAIS</div>
-                <div class='txt-center'><b>COMPROVANTE DE PAGAMENTO DE CARTEIRA</b></div>
-                <div class='txt-center'>--- VIA DO CAIXA ---</div>
-                <hr>
-                <div class='linha-dados'><span><b>Data/Hora:</b> $dataHora</span> <span><b>Meio de Pgto:</b> $meio</span></div>
-                <div><b>Cliente:</b> $cliente</div>
-                <hr>
-                <div class='valor-destaque'>VALOR PAGO: R$ $valor</div>
-                 <div><b>Forma de Pagamento:</b> $tipo</div>
-                <div><b>Saldo Restante na Carteira:</b> R$ $saldo</div>
-                <hr>
-                <div class='bloco-assinatura'>______________________________________________________<br>Controle Interno do Caixa</div>
-            </div>
-
-                <!-- Final do seu HTML das duas vias -->
-            <script>
-                window.onload = function() { 
-                    // 1. Dispara o painel de impressão da Epson normalmente
-                    window.print(); 
-                    
-                    // 2. 🛡️ REGRA DE OURO DO PDV: Escuta quando o operador FECHA o painel da impressora
-                    // Não importa se ele clicou em IMPRIMIR ou em CANCELAR.
-                    window.addEventListener('afterprint', function() {
-                        // Dá um pequeno respiro visual e fecha a aba de forma segura
-                        // setTimeout(function() { 
-                        //     window.close(); 
-                        // }, 20000);
-                    });
-                };
-            </script>
-        </body>
-        </html>
-        ";
+        // Passa o objeto bruto para a View tratar as formatações
+        return view('comprovantes.carteira', compact('pagamento'));
     }
+
 
 
 

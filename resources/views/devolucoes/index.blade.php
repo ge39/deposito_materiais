@@ -65,7 +65,7 @@
                                         </div>
                                         <div class="col-md-4">
                                             <p class="card-text mb-1"><strong>Documento (CPF/CNPJ):</strong> {{ $item->cliente_cpf_cnpj }}</p>
-                                            <p class="card-text mb-1"><strong>Valor Total da Venda:</strong> R$ {{ number_format($item->valor_total, 2, ',', '.') }}</p>
+                                            <p class="card-text mb-1"><strong>Valor Total Venda:</strong> R$ {{ number_format($item->valor_total, 2, ',', '.') }}</p>
                                         </div>
                                         <div class="col-md-4 text-md-end">
                                             <p class="card-text mb-1"><strong>Total Estornado:</strong> <span class="text-danger fw-bold">R$ {{ number_format($item->valor_extornado, 2, ',', '.') }}</span></p>

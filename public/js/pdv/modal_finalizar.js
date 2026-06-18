@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // =====================================================
     // EVENTOS FINALIZAÇÃO
     // =====================================================
-       btnFinalizar.addEventListener('keydown', function (e) {
+    btnFinalizar.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
             // 🎯 GATILHO CHAVE: Garante que os dados finais da memória estejam gravados 
             // no LocalStorage no milissegundo anterior ao disparo do fetch
@@ -803,6 +803,7 @@ document.addEventListener('DOMContentLoaded', function () {
             finalizarVenda(e);
         }
     });
+   
 
 });
 

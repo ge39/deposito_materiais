@@ -358,105 +358,7 @@ class DevolucaoController extends Controller
             return back()->with('error', 'Erro ao registrar devolução: ' . $e->getMessage());
         }
     }
-
-    // funcionando bem, mas sem bloqueios, o que pode causar problemas em casos de cliques simultâneos
-    // public function aprovar(Devolucao $devolucao)
-    // {
-
-    //     try {
-    //         DB::beginTransaction();
-
-    //         $devolucao->refresh();
-
-    //         // =========================================================
-    //         // 1) Buscar item da venda
-    //         // =========================================================
-    //         $itemVenda = ItemVenda::find($devolucao->venda_item_id);
-
-    //         if (!$itemVenda) {
-    //             DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
-    //             return back()->with('error', 'Item da venda não encontrado.');
-    //         }
-
-    //         // =========================================================
-    //         // 2) Validar quantidade disponível para devolução
-    //         // =========================================================
-    //         $quantidadeSolicitada = $devolucao->quantidade;
-    //         $quantidadeVendida = $itemVenda->quantidade;
-
-    //         $jaDevolvido = Devolucao::where('venda_item_id', $itemVenda->id)
-    //             ->where('status', 'aprovada')
-    //             ->sum('quantidade');
-
-    //         $saldoParaDevolver = $quantidadeVendida - $jaDevolvido;
-
-    //         if ($quantidadeSolicitada > $saldoParaDevolver) {
-    //             DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
-    //             return back()->with('error', 'Quantidade solicitada excede o permitido.');
-    //         }
-
-    //         // =========================================================
-    //         // 3) Buscar LOTE REAL usado na venda
-    //         // =========================================================
-    //         $lote = Lote::find($itemVenda->lote_id);
-
-    //         if (!$lote) {
-    //             DB::rollBack(); // 🔥 CORREÇÃO: Cancela a transação antes de voltar
-    //             return back()->with('error', 'Lote da venda não encontrado.');
-    //         }
-
-    //         // =========================================================
-    //         // 4) Registrar devolução no pivot devolucao_lotes
-    //         // =========================================================
-    //         DB::table('devolucao_lotes')->insert([
-    //             'devolucao_id'  => $devolucao->id,
-    //             'produto_id'    => $itemVenda->produto_id,
-    //             'lote_id'       => $lote->id,
-    //             'quantidade'    => $quantidadeSolicitada,
-    //             'venda_id'      => $itemVenda->venda_id,
-    //             'item_venda_id' => $itemVenda->id,
-    //             'devolvido_por' => auth()->id(),
-    //             'created_at'    => now(),
-    //             'updated_at'    => now(),
-    //         ]);
-
-    //         // =========================================================
-    //         // 5) Repor estoque EXATAMENTE no lote da venda
-    //         // =========================================================
-    //         $lote->quantidade_disponivel += $quantidadeSolicitada;
-    //         $lote->save();
-
-    //        // =========================================================
-    //         // 6) Atualizar devolução principal (Query Direta Forçada no Banco)
-    //         // =========================================================
-    //         DB::table('devolucoes')
-    //             ->where('id', $devolucao->id)
-    //             ->update([
-    //                 'status' => 'aprovada',
-    //                 'criado_por' => auth()->id(),
-    //                 'updated_at' => now()
-    //             ]);
-
-    //         // =========================================================
-    //         // 7) Log opcional
-    //         // =========================================================
-    //         DevolucaoLog::create([
-    //             'devolucao_id' => $devolucao->id,
-    //             'acao'         => 'aprovada',
-    //             'descricao'    => "Devolução aprovada. Quantidade: {$quantidadeSolicitada}.",
-    //             'usuario'      => auth()->user()->name ?? 'Sistema',
-    //         ]);
-
-    //         DB::commit(); // ✅ Salva todas as alterações fisicamente no banco de dados
-
-    //         return back()->with('success', 'Devolução aprovada com sucesso!');
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack(); // ⚠️ Em caso de falha mecânica, cancela tudo
-    //         return back()->with('error', 'Erro ao aprovar devolução: '.$e->getMessage());
-    //     }
-    // }
-
+   
     // função refinada com padrao das normas ACID, bloqueios para garantir a integridade dos dados mesmo em casos de cliques simultâneos
     public function aprovar(Devolucao $devolucao)
     {
@@ -547,23 +449,136 @@ class DevolucaoController extends Controller
         }
     }
 
-    // public function rejeitar(Devolucao $devolucao)
+    // public function aprovar(Devolucao $devolucao)
     // {
-    //     DB::transaction(function () use ($devolucao) {
-    //         $devolucao->status = 'rejeitada';
-    //         $devolucao->save();
+    //     try {
+    //         DB::beginTransaction();
 
+    //         // 🛡️ TRAVA ACID: Bloqueia a linha da devolução contra cliques duplos no botão do card
+    //         $devolucaoLock = Devolucao::where('id', $devolucao->id)->lockForUpdate()->first();
+
+    //         if ($devolucaoLock->status !== 'pendente') {
+    //             DB::rollBack();
+    //             return back()->with('error', 'Esta devolução já foi processada por outro clique ou usuário.');
+    //         }
+
+    //         // 1) Localiza o item específico da venda aplicando LOCK de escrita
+    //         $itemVenda = ItemVenda::where('id', $devolucao->venda_item_id)->lockForUpdate()->first();
+    //         if (!$itemVenda) {
+    //             DB::rollBack();
+    //             return back()->with('error', 'Item da venda não localizado no sistema.');
+    //         }
+
+    //         // 2) Localiza a Venda Mãe (#841) aplicando LOCK
+    //         $venda = DB::table('vendas')->where('id', $itemVenda->venda_id)->lockForUpdate()->first();
+    //         if (!$venda) {
+    //             DB::rollBack();
+    //             return back()->with('error', 'A venda original vinculada a este item não foi localizada.');
+    //         }
+
+    //         // 3) Localiza o Lote correspondente (Lote: 20260610139) para repor o estoque
+    //         $lote = Lote::where('id', $itemVenda->lote_id)->lockForUpdate()->first();
+    //         if (!$lote) {
+    //             DB::rollBack();
+    //             return back()->with('error', 'O lote original da mercadoria não foi encontrado.');
+    //         }
+
+    //         // -------------------------------------------------------------------------
+    //         // MATEMÁTICA DA OPERAÇÃO (Baseada em 1 unidade devolvida do print)
+    //         // -------------------------------------------------------------------------
+    //         $quantidadeDevolvidaAgora = (float) $devolucao->quantidade; // No caso do print: 1
+    //         $quantidadeOriginalComprada = (float) $itemVenda->quantidade; // No caso do print: 6
+
+    //         // Calcula o preço líquido cobrado por unidade (deduzindo descontos se houver)
+    //         $descontoTotalDoItem = (float) ($itemVenda->desconto ?? 0);
+    //         $descontoUnitario    = $descontoTotalDoItem > 0 ? ($descontoTotalDoItem / $quantidadeOriginalComprada) : 0;
+    //         $precoUnitarioLiquido = (float) $itemVenda->preco_unitario - $descontoUnitario; // R$ 48,00
+            
+    //         // Valor exato em Reais a ser estornado/abatido nesta linha: (1 * R$ 48,00) = R$ 48,00
+    //         $valorTotalEstorno = round($quantidadeDevolvidaAgora * $precoUnitarioLiquido, 2);
+
+    //         // -------------------------------------------------------------------------
+    //         // PERSISTÊNCIA DAS ALTERAÇÕES NO BANCO DE DADOS
+    //         // -------------------------------------------------------------------------
+
+    //         // Ação 1: Repõe o estoque física e imediatamente no lote correto (20260610139)
+    //         $lote->quantidade_disponivel += $quantidadeDevolvidaAgora;
+    //         $lote->save();
+
+    //         // Ação 2: Registra o vínculo do lote na tabela pivot de histórico
+    //         DB::table('devolucao_lotes')->insert([
+    //             'devolucao_id'  => $devolucao->id,
+    //             'produto_id'    => $itemVenda->produto_id,
+    //             'lote_id'       => $lote->id,
+    //             'quantidade'    => $quantidadeDevolvidaAgora,
+    //             'venda_id'      => $itemVenda->venda_id,
+    //             'item_venda_id' => $itemVenda->id,
+    //             'devolvido_por' => auth()->id(),
+    //             'created_at'    => now(),
+    //             'updated_at'    => now(),
+    //         ]);
+
+    //         // =========================================================================
+    //         // 🔥 NOVO/CORREÇÃO: ATUALIZA O ESTOQUE GLOBAL NA FICHA DE PRODUTOS E PDV (F3)
+    //         // =========================================================================
+    //         DB::table('produtos')
+    //             ->where('id', $itemVenda->produto_id)
+    //             ->increment('quantidade_estoque', $quantidadeDevolvidaAgora);
+
+    //         // Ação 3: Calcula se TODOS os produtos comprados na venda inteira foram devolvidos
+    //         $totalItensVendidosOriginalmente = DB::table('item_vendas')->where('venda_id', $venda->id)->sum('quantidade');
+            
+    //         $totalItensDevolvidosAcumulado = DB::table('devolucoes')
+    //             ->where('venda_id', $venda->id)
+    //             ->where('status', 'aprovada')
+    //             ->sum('quantidade');
+            
+    //         // Soma o item atual que está sendo aprovado neste milissegundo
+    //         $totalItensDevolvidosAcumulado += $quantidadeDevolvidaAgora;
+
+    //         // Determina se a venda foi integralmente devolvida ou apenas parcialmente
+    //         $novoStatusVenda = $venda->status;
+    //         if ((float)$totalItensDevolvidosAcumulado >= (float)$totalItensVendidosOriginalmente) {
+    //             $novoStatusVenda = 'cancelada';
+    //         }
+
+    //         // Ação 4: Atualiza o faturamento líquido da venda mãe e o status se for o caso
+    //         $novoTotalFinanceiroVenda = max(0, (float) $venda->total - $valorTotalEstorno);
+    //         DB::table('vendas')
+    //             ->where('id', $venda->id)
+    //             ->update([
+    //                 'total'      => $novoTotalFinanceiroVenda,
+    //                 'status'     => $novoStatusVenda,
+    //                 'updated_at' => now()
+    //             ]);
+
+    //         // Ação 5: Como o cliente do print é VENDA BALCAO, a conta corrente é ignorada automaticamente 🛡️
+    //         // Se no futuro for um cliente comum com carteira ativa, o estorno de limite rodará aqui.
+
+    //         // Ação 6: Efetiva a linha de devolução mudando o status de Pendente para Aprovada
+    //         DB::table('devolucoes')
+    //             ->where('id', $devolucao->id)
+    //             ->update([
+    //                 'status'     => 'aprovada',
+    //                 'criado_por' => auth()->id(),
+    //                 'updated_at' => now()
+    //             ]);
+
+    //         // Ação 7: Grava a trilha de auditoria no log do sistema
     //         DevolucaoLog::create([
     //             'devolucao_id' => $devolucao->id,
-    //             'acao' => 'rejeitada',
-    //             'descricao' => 'Devolução rejeitada pelo setor responsável.',
-    //             'usuario' => auth()->user()->name ?? 'Administrador',
-    //             'observacao' => old('observacao'),
-    //             'motivo_rejeicao' => old('motivo_rejeicao') ?? 'Rejeição manual sem motivo específico' // Você pode adaptar para receber um motivo do request se desejar,
+    //             'acao'         => 'aprovada',
+    //             'descricao'    => "Devolução de Balcão Aprovada. Item: {$quantidadeDevolvidaAgora} un. Estoque reposto no lote e saldo global atualizado. Faturamento deduzido: R$ " . number_format($valorTotalEstorno, 2, ',', '.'),
+    //             'usuario'      => auth()->user()->name ?? 'Gerente',
     //         ]);
-    //     });
 
-    //     return redirect()->route('devolucoes.index')->with('success', 'Devolução rejeitada com sucesso!');
+    //         DB::commit();
+    //         return back()->with('success', 'Mercadoria integrada ao estoque do lote e global com sucesso! O faturamento da venda foi atualizado.');
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return back()->with('error', 'Falha crítica ao aprovar devolução de balcão: ' . $e->getMessage());
+    //     }
     // }
 
     public function rejeitar(Request $request, Devolucao $devolucao)
@@ -601,6 +616,54 @@ class DevolucaoController extends Controller
         return redirect()->route('devolucoes.index')->with('success', 'Devolução rejeitada com sucesso!');
     }
 
+    // public function rejeitar(Request $request, Devolucao $devolucao)
+    // {
+    //     // 1. Validação obrigatória dos campos vindos da tela do auditor
+    //     $request->validate([
+    //         'motivo_rejeicao' => 'required|string|max:255',
+    //         'observacao'      => 'required|string',
+    //     ], [
+    //         'motivo_rejeicao.required' => 'O motivo da rejeição é obrigatório.',
+    //         'observacao.required'      => 'A observação da rejeição é obrigatória.',
+    //     ]);
+
+    //     try {
+    //         DB::beginTransaction();
+
+    //         // 🔥 PROTEÇÃO ACID: Lock de escrita na linha para impedir que outro operador aprove enquanto você rejeita
+    //         $devolucaoLock = Devolucao::where('id', $devolucao->id)->lockForUpdate()->first();
+
+    //         // Validação crucial de estado (Se não for pendente, cancela imediatamente)
+    //         if (!$devolucaoLock || $devolucaoLock->status !== 'pendente') {
+    //             DB::rollBack();
+    //             return back()->with('error', 'Esta devolução já foi processada ou não está mais pendente.');
+    //         }
+
+    //         // 2. Atualiza os dados de rejeição diretamente na tabela usando o modelo protegido
+    //         $devolucaoLock->status          = 'rejeitada';
+    //         $devolucaoLock->motivo_rejeicao = $request->input('motivo_rejeicao');
+    //         $devolucaoLock->observacao      = $request->input('observacao');
+    //         $devolucaoLock->criado_por      = auth()->id(); // Vínculo do auditor logado
+    //         $devolucaoLock->save();
+
+    //         // 3. Grava o log detalhado no histórico de auditoria
+    //         DevolucaoLog::create([
+    //             'devolucao_id'    => $devolucaoLock->id,
+    //             'acao'            => 'rejeitada',
+    //             'descricao'       => 'Devolução rejeitada pelo setor responsável.',
+    //             'usuario'         => auth()->user()->name ?? 'Administrador',
+    //             'observacao'      => $request->input('observacao'),
+    //             'motivo_rejeicao' => $request->input('motivo_rejeicao'),
+    //         ]);
+
+    //         DB::commit();
+    //         return redirect()->route('devolucoes.index')->with('success', 'Devolução rejeitada com sucesso!');
+
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return back()->with('error', 'Erro ao rejeitar devolução: ' . $e->getMessage());
+    //     }
+    // }
 
     public function pendentes()
     {
@@ -612,6 +675,21 @@ class DevolucaoController extends Controller
 
         return view('devolucoes.pendentes', compact('devolucoes'));
     }
+
+    // public function pendentes()
+    // {
+    //     // Carrega todos os relacionamentos em uma única consulta (Evita o problema de query N+1)
+    //     $devolucoes = Devolucao::with([
+    //         'itemVenda',          // Certifique-se de que a Model Devolucao possui: public function itemVenda()
+    //         'itemVenda.venda', 
+    //         'itemVenda.venda.cliente',
+    //         'itemVenda.produto',
+    //         'itemVenda.lote'
+    //     ])->where('status', 'pendente')->get();
+
+    //     return view('devolucoes.pendentes', compact('devolucoes'));
+    // }
+
 
     private function carregarDadosCupom($vendaId)
     {
@@ -659,15 +737,72 @@ class DevolucaoController extends Controller
             'terminalId'
         );
     }
+
+    // public function gerarCupom($id)
+    // {
+    //     $devolucao = Devolucao::findOrFail($id);
+    //     $venda = Venda::with('itens.produto')->find($devolucao->venda_id);
+    //     $cliente = Cliente::find($venda->cliente_id ?? $devolucao->cliente_id);
+    //     $itens = $venda ? $venda->itens : [];
+
+    //     $pdf = Pdf::loadView('devolucoes.cupom', compact('devolucao', 'venda', 'cliente', 'itens'));
+    //     return $pdf->stream('cupom_devolucao_'.$devolucao->id.'.pdf');
+    // }
+
     public function gerarCupom($id)
     {
-        $devolucao = Devolucao::findOrFail($id);
-        $venda = Venda::with('itens.produto')->find($devolucao->venda_id);
-        $cliente = Cliente::find($venda->cliente_id ?? $devolucao->cliente_id);
-        $itens = $venda ? $venda->itens : [];
+        // 1) Busca a devolução trazendo o item específico que foi devolvido e seu produto
+        $devolucao = Devolucao::with(['itemVenda.produto', 'usuario'])->findOrFail($id);
 
-        $pdf = Pdf::loadView('devolucoes.cupom', compact('devolucao', 'venda', 'cliente', 'itens'));
+        // 2) Busca a venda original trazendo os dados do funcionário do caixa e os itens completos
+        $venda = Venda::with([
+            'funcionario', 
+            'itens.produto.unidadeMedida', 
+            'itens.lote'
+        ])->find($devolucao->venda_id);
+
+        // 3) Tratamento estrito do cliente para evitar falhas de nós nulos (Padrão VENDABALCAO)
+        $clienteId = $venda->cliente_id ?? $devolucao->cliente_id;
+        $cliente = null;
+        
+        if ($clienteId) {
+            $cliente = Cliente::find($clienteId);
+        }
+
+        // 4) Busca os dados cadastrais ativos da empresa para o cabeçalho do cupom
+        $empresa = \App\Models\Empresa::where('ativo', 1)->first();
+
+        // 5) Calcula a matemática financeira específica desta linha de devolução
+        // (Seguindo a mesma regra de dedução de desconto proporcional que colocamos no aprovar)
+        $itemOriginal = $venda ? $venda->itens->where('id', $devolucao->venda_item_id)->first() : null;
+        $valorUnitarioPago = 0;
+        $valorTotalEstornado = 0;
+
+        if ($itemOriginal) {
+            $quantidadeVendida = (float) $itemOriginal->quantidade;
+            $descontoTotalDoItem = (float) ($itemOriginal->desconto ?? 0);
+            $descontoUnitario = $descontoTotalDoItem > 0 ? ($descontoTotalDoItem / $quantidadeVendida) : 0;
+            
+            $valorUnitarioPago = (float) $itemOriginal->preco_unitario - $descontoUnitario;
+            $valorTotalEstornado = round((float) $devolucao->quantidade * $valorUnitarioPago, 2);
+        }
+
+        // 6) Renderiza o PDF passando o escopo completo e limpo de dados
+        $pdf = Pdf::loadView('devolucoes.cupom', compact(
+            'devolucao', 
+            'venda', 
+            'cliente', 
+            'empresa',
+            'valorUnitarioPago',
+            'valorTotalEstornado'
+        ));
+
+        // Define o papel para o formato contínuo de bobina térmica de 80mm (Ajustado no DomPDF)
+        // 226pt equivale a aproximadamente 80mm de largura útil.
+        $pdf->setPaper([0, 0, 226, 500], 'portrait'); 
+
         return $pdf->stream('cupom_devolucao_'.$devolucao->id.'.pdf');
     }
+
     
 }

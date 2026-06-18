@@ -112,234 +112,279 @@
 </style>
 
 <script>
+        let produtoIndex = -1;
+        let produtos = [];
 
-    let produtoIndex = -1;
-    let produtos = [];
+        /* F3 abre modal */
 
-    /* F3 abre modal */
+        document.addEventListener('keydown',function(e){
 
-    document.addEventListener('keydown',function(e){
-
-        if(e.key==="F3"){
-        e.preventDefault();
-        const modal=new bootstrap.Modal(document.getElementById('modalProduto'));
-        modal.show();
-        }
-
-    });
-
-    /* FOCO AUTOMÁTICO */
-
-      /* FOCO AUTOMÁTICO E RESET DA TELA */
-    document.getElementById('modalProduto')
-    .addEventListener('shown.bs.modal', function(){
-        
-        // 🎯 Aguarda 100 milissegundos para a animação do Bootstrap estabilizar no navegador
-        setTimeout(() => {
-            const inputBusca = document.getElementById('buscaProdutoPDV');
-            const divResultados = document.getElementById('resultadoProdutoPDV');
-
-            // 1. Limpa o texto antigo e puxa o cursor do teclado de volta
-            if (inputBusca) {
-                inputBusca.value = ''; 
-                inputBusca.focus();    // 🚀 Força o cursor a piscar dentro da caixa limpa
+            if(e.key==="F3"){
+            e.preventDefault();
+            const modal=new bootstrap.Modal(document.getElementById('modalProduto'));
+            modal.show();
             }
-
-            // 2. Limpa os blocos de produtos da pesquisa anterior
-            if (divResultados) {
-                divResultados.innerHTML = '';
-            }
-        }, 100);
-
-    });
-
-
-
-    /* LIMPAR BACKDROP */
-
-    document.getElementById('modalProduto')
-        .addEventListener('hidden.bs.modal',function(){
-
-        document.body.classList.remove('modal-open');
-        document.querySelectorAll('.modal-backdrop')
-        .forEach(el=>el.remove());
-
-        // produtoIndex=-1;
-
-    });
-
-    /* BUSCA PRODUTO */
-    document.getElementById('buscaProdutoPDV')
-            .addEventListener('keyup',function(e){
-
-            if(e.key==="ArrowDown"||e.key==="ArrowUp"||e.key==="Enter")
-                return;
-
-                let query=this.value;
-
-                if(query.length<2){
-                document.getElementById('resultadoProdutoPDV').innerHTML='';
-                return;
-            }
-
-            fetch(`{{ route('pdv.buscarProduto') }}?query=`+encodeURIComponent(query))
-            .then(res=>res.json())
-            .then(data=>{
-
-            produtos = Array.isArray(data) ? data : (data.produtos ?? data);
-
-            produtoIndex=-1;
-
-            let html='';
-
-            produtos.forEach((p,i)=>{
-
-            const qtdDisp = p.quantidade_total_disponivel ?? 0;
-            const unidade = p.unidade ?? 'UN';
-
-            html+=`
-
-            <div class="produto-row" data-index="${i}"
-
-                onclick="selecionarProdutoPDV(
-                ${p.id},
-                '${encodeURIComponent(p.nome)}',
-                ${Number(p.preco_venda||0)},
-                '${p.codigo_barras ?? ''}',
-                '${p.sku ?? ''}',
-                '${(p.marca?.nome ?? '').replace(/'/g,"\\'")}',
-                '${unidade}',
-                '${qtdDisp}',
-                '${(p.imagem ?? '').replace(/'/g,"\\'")}'
-                )">
-
-                <div>${p.nome}</div>
-                <div>${p.marca?.nome ?? ''}</div>
-                <div>${unidade}</div>
-                <div>${qtdDisp}</div>
-                <div>${p.codigo_barras ?? ''}</div>
-                <div>${p.sku ?? ''}</div>
-                <div>R$ ${parseFloat(p.preco_venda||0).toFixed(2)}</div>
-
-           
-            </div>
-
-            `;
 
         });
 
-        document.getElementById('resultadoProdutoPDV').innerHTML=html;
+        /* FOCO AUTOMÁTICO */
+
+        /* FOCO AUTOMÁTICO E RESET DA TELA */
+        document.getElementById('modalProduto')
+        .addEventListener('shown.bs.modal', function(){
+            
+            // 🎯 Aguarda 100 milissegundos para a animação do Bootstrap estabilizar no navegador
+            setTimeout(() => {
+                const inputBusca = document.getElementById('buscaProdutoPDV');
+                const divResultados = document.getElementById('resultadoProdutoPDV');
+
+                // 1. Limpa o texto antigo e puxa o cursor do teclado de volta
+                if (inputBusca) {
+                    inputBusca.value = ''; 
+                    inputBusca.focus();    // 🚀 Força o cursor a piscar dentro da caixa limpa
+                }
+
+                // 2. Limpa os blocos de produtos da pesquisa anterior
+                if (divResultados) {
+                    divResultados.innerHTML = '';
+                }
+            }, 100);
 
         });
 
-    });
 
-    /* NAVEGAÇÃO TECLADO */
 
-    document.addEventListener('keydown',function(e){
+        /* LIMPAR BACKDROP */
 
-        const rows=document.querySelectorAll(".produto-row");
+        document.getElementById('modalProduto')
+            .addEventListener('hidden.bs.modal',function(){
 
-        if(rows.length===0) return;
+            document.body.classList.remove('modal-open');
+            document.querySelectorAll('.modal-backdrop')
+            .forEach(el=>el.remove());
 
-        if(e.key==="ArrowDown"){
-            e.preventDefault();
-            produtoIndex++;
-        if(produtoIndex>=rows.length) produtoIndex=rows.length-1;
+            // produtoIndex=-1;
+
+        });
+
+        /* BUSCA PRODUTO */
+        document.getElementById('buscaProdutoPDV')
+                .addEventListener('keyup',function(e){
+
+                if(e.key==="ArrowDown"||e.key==="ArrowUp"||e.key==="Enter")
+                    return;
+
+                    let query=this.value;
+
+                    if(query.length<2){
+                    document.getElementById('resultadoProdutoPDV').innerHTML='';
+                    return;
+                }
+
+                fetch(`{{ route('pdv.buscarProduto') }}?query=`+encodeURIComponent(query))
+                .then(res=>res.json())
+                .then(data=>{
+
+                produtos = Array.isArray(data) ? data : (data.produtos ?? data);
+
+                produtoIndex=-1;
+
+                let html='';
+
+                produtos.forEach((p,i)=>{
+
+                const qtdDisp = p.quantidade_total_disponivel ?? 0;
+                const unidade = p.unidade ?? 'UN';
+
+                html+=`
+
+                <div class="produto-row" data-index="${i}"
+
+                    onclick="selecionarProdutoPDV(
+                    ${p.id},
+                    '${encodeURIComponent(p.nome)}',
+                    ${Number(p.preco_venda||0)},
+                    '${p.codigo_barras ?? ''}',
+                    '${p.sku ?? ''}',
+                    '${(p.marca?.nome ?? '').replace(/'/g,"\\'")}',
+                    '${unidade}',
+                    '${qtdDisp}',
+                    '${(p.imagem ?? '').replace(/'/g,"\\'")}'
+                    )">
+
+                    <div>${p.nome}</div>
+                    <div>${p.marca?.nome ?? ''}</div>
+                    <div>${unidade}</div>
+                    <div>${qtdDisp}</div>
+                    <div>${p.codigo_barras ?? ''}</div>
+                    <div>${p.sku ?? ''}</div>
+                    <div>R$ ${parseFloat(p.preco_venda||0).toFixed(2)}</div>
+
+            
+                </div>
+
+                `;
+
+            });
+
+            document.getElementById('resultadoProdutoPDV').innerHTML=html;
+
+            });
+
+        });
+
+        /* NAVEGAÇÃO TECLADO */
+
+        document.addEventListener('keydown',function(e){
+
+            const rows=document.querySelectorAll(".produto-row");
+
+            if(rows.length===0) return;
+
+            if(e.key==="ArrowDown"){
+                e.preventDefault();
+                produtoIndex++;
+            if(produtoIndex>=rows.length) produtoIndex=rows.length-1;
+            }
+
+            if(e.key==="ArrowUp"){
+                e.preventDefault();
+                produtoIndex--;
+            if(produtoIndex<0) produtoIndex=0;
+            }
+
+            if(e.key==="Enter"){
+                e.preventDefault();
+                if(produtoIndex>=0){
+                    
+                    const p=produtos[produtoIndex];
+                    selecionarProdutoPDV(
+                        p.id,
+                        encodeURIComponent(p.nome),
+                        Number(p.preco_venda || 0),
+                        p.codigo_barras ?? '',
+                        p.sku ?? '',
+                        p.marca?.nome ?? '',
+                        p.unidade ?? 'UN',
+                        p.quantidade_total_disponivel ?? 0,
+                        p.imagem ?? ''
+                    );
+                }
+            }
+
+            rows.forEach(r=>r.classList.remove("active"));
+
+            if(rows[produtoIndex])
+            rows[produtoIndex].classList.add("active");
+
+        });
+
+        /* FUNÇÃO SELECIONAR PRODUTO */
+
+        function selecionarProdutoPDV(id,nomeEncoded,preco,barras,sku,marca,unidade,qtdDisponivel,imagem){
+
+        const nome=decodeURIComponent(nomeEncoded);
+
+        const elId=document.getElementById('produtoId');
+        if(elId) elId.value=id;
+
+        const elDesc=document.getElementById('descricao');
+        if(elDesc) elDesc.value=nome;
+
+        const elPreco=document.getElementById('preco_venda');
+        if(elPreco) elPreco.value=parseFloat(preco).toFixed(2);
+
+        const elQtd=document.getElementById('qtd_disponivel');
+        if(elQtd) elQtd.value=qtdDisponivel;
+
+        const elQuantidade=document.getElementById('quantidade');
+        if(elQuantidade){
+        elQuantidade.value=1;
+        elQuantidade.max=qtdDisponivel;
         }
 
-        if(e.key==="ArrowUp"){
-            e.preventDefault();
-            produtoIndex--;
-        if(produtoIndex<0) produtoIndex=0;
-        }
+        const elUn=document.getElementById('unidade');
+        if(elUn) elUn.value=unidade;
 
-        if(e.key==="Enter"){
-            e.preventDefault();
-            if(produtoIndex>=0){
-                
-                const p=produtos[produtoIndex];
-                selecionarProdutoPDV(
-                    p.id,
-                    encodeURIComponent(p.nome),
-                    Number(p.preco_venda || 0),
-                    p.codigo_barras ?? '',
-                    p.sku ?? '',
-                    p.marca?.nome ?? '',
-                    p.unidade ?? 'UN',
-                    p.quantidade_total_disponivel ?? 0,
-                    p.imagem ?? ''
-                );
+        const elTotal=document.getElementById('total_geral');
+        if(elTotal) elTotal.value=parseFloat(preco).toFixed(2);
+
+        const elBarras=document.getElementById('codigo_barras');
+        if(elBarras) elBarras.value=barras;
+
+        const elSku=document.getElementById('sku');
+        if(elSku) elSku.value=sku;
+
+        const elMarca=document.getElementById('marca');
+        if(elMarca) elMarca.value=marca;
+
+        const elImg=document.getElementById('produto-imagem');
+        if(elImg){
+            if(imagem && imagem!==''){
+                elImg.src=imagem;
+            }else{
+                elImg.src="/images/produto-sem-imagem.png";
             }
         }
 
-        rows.forEach(r=>r.classList.remove("active"));
+        // const modalEl=document.getElementById('modalProduto');
+        // const modalInstance=bootstrap.Modal.getInstance(modalEl);
 
-        if(rows[produtoIndex])
-        rows[produtoIndex].classList.add("active");
+        // if(modalInstance) modalInstance.hide();
+        //     const foco = document.getElementById('codigo_barras');
+        //     if (foco) {
+        //         foco.focus();
+        //         // O setTimeout garante que o cursor mude de posição APÓS o foco padrão do navegador
+        //         setTimeout(() => {
+        //             foco.setSelectionRange(0, 0);
+        //         }, 0);
+        //     }
+        // }
 
-    });
+            // ========================================================
+    // FECHA MODAL - ESTRATÉGIA AGRESSIVA DE DESBLOQUEIO DE TELA
+    // ========================================================
+    const modalEl = document.getElementById('modalProduto');
+        if (modalEl) {
+            // 1. Força o encerramento visual imediato escondendo as classes de estilo
+            modalEl.classList.remove('show');
+            modalEl.style.display = 'none';
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.removeAttribute('aria-modal');
+            modalEl.removeAttribute('role');
 
-    /* FUNÇÃO SELECIONAR PRODUTO */
+            // 2. Encerra e limpa a instância na memória do Bootstrap
+            if (typeof bootstrap !== 'undefined') {
+                const modalInstance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+                if (modalInstance) {
+                    modalInstance.hide();
+                    if (typeof modalInstance.dispose === 'function') {
+                        modalInstance.dispose(); 
+                    }
+                }
+            }
 
-    function selecionarProdutoPDV(id,nomeEncoded,preco,barras,sku,marca,unidade,qtdDisponivel,imagem){
+            // 3. Destrava fisicamente a rolagem e cliques do Body do site
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
 
-    const nome=decodeURIComponent(nomeEncoded);
-
-    const elId=document.getElementById('produtoId');
-    if(elId) elId.value=id;
-
-    const elDesc=document.getElementById('descricao');
-    if(elDesc) elDesc.value=nome;
-
-    const elPreco=document.getElementById('preco_venda');
-    if(elPreco) elPreco.value=parseFloat(preco).toFixed(2);
-
-    const elQtd=document.getElementById('qtd_disponivel');
-    if(elQtd) elQtd.value=qtdDisponivel;
-
-    const elQuantidade=document.getElementById('quantidade');
-    if(elQuantidade){
-    elQuantidade.value=1;
-    elQuantidade.max=qtdDisponivel;
-    }
-
-    const elUn=document.getElementById('unidade');
-    if(elUn) elUn.value=unidade;
-
-    const elTotal=document.getElementById('total_geral');
-    if(elTotal) elTotal.value=parseFloat(preco).toFixed(2);
-
-    const elBarras=document.getElementById('codigo_barras');
-    if(elBarras) elBarras.value=barras;
-
-    const elSku=document.getElementById('sku');
-    if(elSku) elSku.value=sku;
-
-    const elMarca=document.getElementById('marca');
-    if(elMarca) elMarca.value=marca;
-
-    const elImg=document.getElementById('produto-imagem');
-    if(elImg){
-        if(imagem && imagem!==''){
-            elImg.src=imagem;
-        }else{
-            elImg.src="/images/produto-sem-imagem.png";
+            // 4. Varre a tela e remove todas as cortinas escuras (backdrops) duplicadas
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
         }
-    }
 
-    const modalEl=document.getElementById('modalProduto');
-    const modalInstance=bootstrap.Modal.getInstance(modalEl);
-    if(modalInstance) modalInstance.hide();
-
-   const foco = document.getElementById('codigo_barras');
-    if (foco) {
-        foco.focus();
-        // O setTimeout garante que o cursor mude de posição APÓS o foco padrão do navegador
+        // ========================================================
+        // CONTROLE DE FOCO SEGURO NO INPUT DO PDV
+        // ========================================================
         setTimeout(() => {
-            foco.setSelectionRange(0, 0);
-        }, 0);
+            const foco = document.getElementById('codigo_barras');
+            if (foco) {
+                foco.focus();
+                foco.setSelectionRange(0, 0);
+            }
+        }, 50); // Delay curto para garantir que o DOM foi totalmente liberado
     }
-}
+
 
 </script>

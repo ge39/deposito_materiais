@@ -473,7 +473,7 @@
                 </div>
             </div>
         </div>
-
+    
         <!-- Script de Inicialização da Sangria do Bootstrap -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
@@ -837,138 +837,6 @@
 
 </div>
 
-
- <!-- // Função global chamada pelo atalho F9 -->
-<!-- <script>
-    window.solicitarPagamentoAvulso = function() {
-        // 1. Validação de segurança padrão
-        if (!window.cliente || !window.cliente.id) {
-            alert('⚠️ Operação Inválida: Identifique o cliente no PDV antes de receber o pagamento da carteira!');
-            return;
-        }
-
-        // 2. CAPTURA DIRETA DAS PROPRIEDADES QUE JÁ EXISTEM EM MEMÓRIA NO SEU PDV
-        // window.cliente.limite representa o 'cliente_creditos.limite_credito'
-        // window.cliente.saldo representa o último 'cliente_conta_correntes.saldo_apos'
-        let limite = parseFloat(window.cliente.limite ?? 0);
-        let saldoApos = parseFloat(window.cliente.saldo ?? 0);
-        
-        // Força o valor de teste de R$ 100 se o seu banco por acaso enviou zerado
-        if (limite === 0) {
-            limite = 100.00;
-        }
-
-        // 3. A MATEMÁTICA CORRETA: Limite (100.00) - Saldo Disponível (52.00) = Dívida (48.00)
-        let dividaCalculada = parseFloat((limite - saldoApos).toFixed(2));
-
-        // 4. INJETA OS VALORES REAIS NOS COMPONENTES DO SEU NOVO LAYOUT
-        document.getElementById('txt-modal-limite').innerText = 'R$ ' + limite.toFixed(2).replace('.', ',');
-        document.getElementById('txt-modal-saldo-apos').innerText = 'R$ ' + saldoApos.toFixed(2).replace('.', ',');
-        document.getElementById('txt-divida-total-pdv').innerText = 'R$ ' + dividaCalculada.toFixed(2).replace('.', ',');
-        
-        // Configura o input de digitação com o valor sugerido e injeta as travas de segurança
-        let inputValor = document.getElementById('valor_recebimento_pdv');
-        inputValor.value = dividaCalculada.toFixed(2);
-        inputValor.dataset.clienteId = window.cliente.id;
-        inputValor.dataset.dividaMaxima = dividaCalculada; // Alimenta a trava contra valores maiores
-
-        // 5. Abre o modal gráfico que você montou
-        let modalQuitar = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuitarCarteiraPDV'));
-            modalQuitar.show();
-
-            // Coloca o cursor piscando focado de forma imediata
-            document.getElementById('modalQuitarCarteiraPDV').addEventListener('shown.bs.modal', function () {
-                inputValor.focus();
-                inputValor.select();
-            }, { once: true });
-    }
-    // 🔥 ESSA É A FUNÇÃO QUE ESTAVA FALTANDO PARA GRAVAR NO BANCO!
-    function processarPagamentoAvulsoPDV(event) {
-        event.preventDefault(); 
-
-        let inputValor = document.getElementById('valor_recebimento_pdv');
-        let clienteId = inputValor.dataset.clienteId;
-        let valorPago = inputValor.value;
-        let meio = document.getElementById('meio_recebimento_pdv').value;
-        
-        // 🔥 CAPTURA O ID DA VENDA ATUAL DA MEMÓRIA DO SEU PDV (Ex: 766 como na sua tabela)
-        // Ajuste o termo abaixo para a variável real que o seu produto.js usa para o ID da venda
-        let vendaIdAtual = window.venda_id || window.venda?.id || null; 
-
-        let btn = document.getElementById('btn-confirmar-cc');
-        if (btn) {
-            btn.disabled = true;
-            btn.innerText = 'Processando...';
-        }
-
-        let urlPost = `/clientes/${clienteId}/credito/pagar`;
-
-        fetch(urlPost, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-            },
-            body: JSON.stringify({
-                valor: valorPago,
-                meio_captura: meio,
-                venda_id: vendaIdAtual // 🔥 PASSA O VENDA_ID NO CORPO DO ENVIO PARA O LARAVEL
-            })
-        })
-        .then(async response => {
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Erro interno no servidor.');
-            }
-
-            let novoSaldoDisponivel = parseFloat(data.dados.saldo_disponivel);
-            
-            alert('Pagamento processado com sucesso! Saldo e Venda atualizados no banco.');
-            
-            let modalEl = document.getElementById('modalQuitarCarteiraPDV');
-            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-
-            window.cliente.saldo = novoSaldoDisponivel;
-            window.cliente.status = 'ativo';
-
-            const badgeStatus = document.querySelector('.badge');
-            if (badgeStatus) {
-                badgeStatus.textContent = 'Ativo';
-                badgeStatus.className = 'badge bg-success';
-            }
-
-            const textoSaldo = document.getElementById('saldo-cliente-finalizar');
-            if (textoSaldo) {
-                textoSaldo.textContent = `Saldo: R$ ${novoSaldoDisponivel.toFixed(2).replace('.', ',')}`;
-            }
-
-            const containerCarteira = document.querySelector('input[placeholder="Não Permitido"]')?.parentElement;
-            if (containerCarteira) {
-                containerCarteira.innerHTML = `<input type="number" step="0.01" class="form-control text-end input-pagamento" id="input_ca_carteira" name="pagamento_carteira" placeholder="0,00">`;
-                
-                // 🔥 PREENCHIMENTO AUTOMÁTICO: Coloca os R$ 96,00 da compra direto no campo que acabou de liberar!
-                // Busque o valor total da venda atual que está em memória no seu PDV
-                let totalCompraAtual = parseFloat(document.getElementById('total-venda')?.textContent || 96.00);
-                document.getElementById('input_ca_carteira').value = totalCompraAtual.toFixed(2);
-                document.getElementById('input_ca_carteira').focus();
-            }
-        })
-        .catch(error => {
-            alert('Erro operacional do banco: ' + error.message);
-        })
-        .finally(() => {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerText = 'Confirmar (Enter)';
-            }
-        });
-    }
-
-</script> -->
-
-<!-- // Gerenciamento Completo do Pagamento Avulso da Carteira -->
 <!-- // Gerenciamento do Pagamento Avulso da Carteira Corrigido -->
 <script>
     // =========================================================================
@@ -1033,6 +901,7 @@
     // =========================================================================
     // 2. PROCESSO DE GRAVAÇÃO (CHAMADO NO SUBMIT DO FORMULÁRIO DO MODAL)
     // =========================================================================
+
     function processarPagamentoAvulsoPDV(event) {
         event.preventDefault(); 
 

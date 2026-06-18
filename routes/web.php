@@ -38,6 +38,7 @@ use App\Http\Controllers\{
     RelatorioReposicaoController,
     MovimentacaoOrcamentoController,
     MovimentacaoOrcamentoDashboardController,
+    MovimentacaoCaixaController,
     LimiteClienteController,
 };
 
@@ -462,7 +463,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
-use App\Http\Controllers\MovimentacaoCaixaController;
+
 
 // Agrupadas por autenticação para garantir o user_id no PDV e na Gerência
 Route::middleware(['auth'])->group(function () {

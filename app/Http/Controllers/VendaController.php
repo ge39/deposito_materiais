@@ -111,6 +111,7 @@ class VendaController extends Controller
         } 
     }
     
+    
      /**
      * Define ou localiza o cliente correto para a venda.
      */
