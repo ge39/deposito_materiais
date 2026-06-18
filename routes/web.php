@@ -495,6 +495,9 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/gerencia/caixa/saidas/historico', [MovimentacaoCaixaController::class, 'historicoSaidas'])
     ->name('gerencia.caixa.saidas.historico');
 
-
-
+// <!-- verificarSangriaPeriodicamente -->
+Route::get(
+    '/pdv/verificar-sangria/{caixa}',
+    [PDVController::class, 'verificarSangriaAjax']
+)->name('pdv.verificar.sangria');
 

@@ -170,6 +170,15 @@ class PdvController extends Controller
         ];
     }
 
+    public function verificarSangriaAjax($caixaId)
+    {
+        $caixa = \App\Models\Caixa::findOrFail($caixaId);
+
+        return response()->json(
+            $caixa->verificarSangria()
+        );
+    }
+
 
    /**
      * F2 – Buscar Cliente (Modal de cliente) */

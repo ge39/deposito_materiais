@@ -392,6 +392,7 @@
             }, 100);
         </script>
     @else
+
         <!-- 💰 2️⃣ MÓDULO EXCLUSIVO: OPERAÇÃO NORMAL OU ALERTA DE SANGRIA -->
         <!-- Modal Alerta Carrinho Vazio (Bootstrap) -->
         <div class="modal fade" id="modalCarrinhoVazio" tabindex="-1" aria-hidden="true">
@@ -419,6 +420,7 @@
         <!-- Modal verificar sangria (Bootstrap) -->
         <div class="modal fade" id="modalSangria" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="true">
             <div class="modal-dialog modal-dialog-centered">
+
                 <div class="modal-content shadow-lg border-0">
                     <div class="modal-header @if($bloquearPDV) bg-danger text-white @else bg-warning text-dark @endif">
                         <h5 class="modal-title fw-bold">
@@ -433,11 +435,11 @@
                     <div class="modal-body text-center py-4">
                         <h4 class="fw-bold mb-3">
                             Saldo Atual:
-                            <span class="text-dark">R$ {{ number_format($saldoAtual, 2, ',', '.') }}</span>
+                            <span id="saldoAtualModal" class="text-dark">R$ {{ number_format($saldoAtual, 2, ',', '.') }}</span>
                         </h4>
 
                         <p class="fs-5 mb-2">
-                            Limite configurado: <strong>R$ {{ number_format($limiteSangria, 2, ',', '.') }}</strong>
+                            Limite configurado: <strong  id="limiteSangriaModal">R$ {{ number_format($limiteSangria, 2, ',', '.') }}</strong>
                         </p>
 
                         @if($bloquearPDV)
@@ -452,7 +454,9 @@
 
                         <hr>
                         <h3 class="fw-bold text-primary">💰 Valor sugerido para sangria:</h3>
-                        <h2 class="display-6 fw-bold text-success">R$ {{ number_format($saldoAtual ?? 0, 2, ',', '.') }}</h2>
+                        <h2 id="valorSugeridoModal" class="display-6 fw-bold text-success">
+                            R$ {{ number_format($valorSugeridoSangria ?? 0, 2, ',', '.') }}
+                        </h2>
                         <p class="text-muted">Oriente a operadora a retirar este valor do caixa.</p>
                     </div>
 
@@ -1275,6 +1279,51 @@
         });
 
         setTimeout(verificarRestanteSimples, 500);
+    });
+</script>
+
+ <!-- verificarSangriaPeriodicamente -->
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        async function verificarSangria() {
+
+            try {
+
+                const response = await fetch(
+                    "{{ route('pdv.verificar.sangria', $caixa->id) }}"
+                );
+
+                const data = await response.json();
+
+                console.log('Verificação de sangria:', data);
+
+                if (data.avisarSangria === true) {
+
+                    bootstrap.Modal
+                        .getOrCreateInstance(
+                            document.getElementById('modalSangria')
+                        )
+                        .show();
+                }
+
+            } catch (error) {
+
+                console.error(
+                    'Erro ao verificar sangria:',
+                    error
+                );
+
+            }
+        }
+
+        // Primeira verificação ao abrir o PDV
+        verificarSangria();
+
+        // Verificação automática a cada 5 minutos
+        setInterval(verificarSangria, 10000);
+
     });
 </script>
 
