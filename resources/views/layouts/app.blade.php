@@ -60,20 +60,32 @@
           </a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="{{ route('produtos.index') }}"><i class="bi bi-box me-2"></i>Estoque</a></li>
-            <li><a class="dropdown-item" href="{{ route('pedidos.index') }}"><i class="bi bi-cart-check me-2"></i>Pedido de Compra/Lotes</a></li>
-            <li><a class="dropdown-item" href="{{ route('orcamentos.index') }}"><i class="bi bi-clipboard-data me-2"></i>Pedido/Orçamento/Clientes</a></li>
+            <!-- <li><a class="dropdown-item" href="{{ route('pedidos.index') }}"><i class="bi bi-cart-check me-2"></i>Pedido de Compra</a></li>
+            <li><a class="dropdown-item" href="{{ route('orcamentos.index') }}"><i class="bi bi-clipboard-data me-2"></i>Emissão Orçamento</a></li> -->
+          </ul>
+        </li>
+
+        <!-- Comercial -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+            <i class="bi bi-box-seam me-1"></i>Comercial
+          </a>
+          <ul class="dropdown-menu">
+            <!-- <li><a class="dropdown-item" href="{{ route('produtos.index') }}"><i class="bi bi-box me-2"></i>Estoque</a></li> -->
+            <li><a class="dropdown-item" href="{{ route('pedidos.index') }}"><i class="bi bi-cart-check me-2"></i>Pedido de Compra</a></li>
+            <li><a class="dropdown-item" href="{{ route('orcamentos.index') }}"><i class="bi bi-clipboard-data me-2"></i>Emissão Orçamento</a></li>
           </ul>
         </li>
 
         <!-- Vendas -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-            <i class="bi bi-cash-stack me-1"></i>Vendas
+            <i class="bi bi-cash-stack me-1"></i>PDV
           </a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="{{ route('pdv.index') }}"><i class="bi bi-receipt-cutoff me-2"></i>Vendas</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-list-ul me-2"></i>Itens Venda</a></li>
-            <li><a class="dropdown-item" href="{{ route('devolucoes.index') }}"><i class="bi bi-list-ul me-2"></i>Troca/Devoluções</a></li>
+            <!-- <li><a class="dropdown-item" href="#"><i class="bi bi-list-ul me-2"></i>Itens Venda</a></li> -->
+            <!-- <li><a class="dropdown-item" href="{{ route('devolucoes.index') }}"><i class="bi bi-list-ul me-2"></i>Troca/Devoluções</a></li> -->
           </ul>
         </li>
 
@@ -90,11 +102,26 @@
         <!-- Logística -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-            <i class="bi bi-truck me-1"></i>Logística
+            <i class="bi bi-truck me-1"></i>Logística & Entregas
           </a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-truck-front me-2"></i>Frotas</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-geo-alt me-2"></i>Entregas</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-geo-alt me-2"></i>Agendamento de Entregas</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-geo-alt me-2"></i>Roteirização de Cargas</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-truck-front me-2"></i>Controle de Frota</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-truck-front me-2"></i>Romaneio de Carga</a></li>
+          </ul>
+        </li>
+
+         <!-- Logística -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+            <i class="bi bi-truck me-1"></i>Estoque & Patio
+          </a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#"><i class="bi bi-geo-alt me-2"></i>Localização Física</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-box me-2"></i>Controle de Perdas</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-truck-front me-2"></i>Check-Out Cargas</a></li>
+            <!-- <li><a class="dropdown-item" href="#"><i class="bi bi-truck-front me-2"></i>Romaneio de Carga</a></li> -->
           </ul>
         </li>
 
@@ -154,20 +181,19 @@
                   href="{{ $canAccessAdmin ? route('sangria-config.index') : '#'}}">
                   <i class="bi bi-list-stars me-2"></i>Controle Sangria
               </a>
-            </li>
-          <li>
-            <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
-              href="{{ $canAccessAdmin ? route('gerencia.caixa.painel_saidas') : '#'}}">
-                <i class="bi bi-box-arrow-right me-2 text-danger"></i>Saídas em Lote (Rede)
-            </a>
-            </li>
-              <li>
-                  <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
-                      href="{{ $canAccessAdmin ? route('gerencia.caixa.saidas.historico') : '#'}}">
-                      <i class="bi bi-printer me-2 text-primary"></i>Reimprimir Cupons de Saída
-                  </a>
+            <li>
+              <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                href="{{ $canAccessAdmin ? route('gerencia.caixa.painel_saidas') : '#'}}">
+                  <i class="bi bi-box-arrow-right me-2 text-danger"></i>Saídas em Lote (Rede)
+              </a>
             </li>
 
+             <li>
+                <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" 
+                    href="{{ $canAccessAdmin ? route('gerencia.caixa.saidas.historico') : '#'}}">
+                    <i class="bi bi-printer me-2 text-primary"></i>Reimprimir Cupons de Saída
+                </a>
+            </li>
         </ul>
     </li>
       <li><hr class="dropdown-divider"></li>
@@ -196,7 +222,7 @@
             </li>
         </ul>
     </li>
-     <!-- <li class="dropdown-submenu">
+     <li class="dropdown-submenu">
         <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
             <i class="bi bi-tag me-2"></i>Relatórios
         </a>
@@ -220,49 +246,7 @@
                 </a>
             </li>
         </ul>
-    </li> -->
-
-    <!-- ======================================================================================= -->
-<!-- SUBMENU: DASHBOARDS (Menu Pai) -->
-<!-- ======================================================================================= -->
-<li><hr class="dropdown-divider"></li>
-<li class="dropdown-submenu">
-    <a class="dropdown-item dropdown-toggle py-2 fw-bold text-primary" href="#">
-        <i class="fas fa-chart-pie me-2" style="width: 20px;"></i> Dashboards
-    </a>
-    <!-- Submenus (Filhos) -->
-    <ul class="dropdown-menu">
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-shopping-cart text-muted me-2" style="width: 20px;"></i> Comercial e Vendas</a></li>
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-dollar-sign text-muted me-2" style="width: 20px;"></i> Financeiro Estratégico</a></li>
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-boxes text-muted me-2" style="width: 20px;"></i> Estoque & Logística</a></li>
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-users text-muted me-2" style="width: 20px;"></i> Clientes & Crédito</a></li>
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-desktop text-muted me-2" style="width: 20px;"></i> Frente de Caixa (PDV)</a></li>
-    </ul>
-</li>
-
-<!-- ======================================================================================= -->
-<!-- SUBMENU: RELATÓRIOS (Menu Pai) -->
-<!-- ======================================================================================= -->
-<li class="dropdown-submenu">
-    <a class="dropdown-item dropdown-toggle py-2 fw-bold text-primary" href="#">
-        <i class="fas fa-file-alt me-2" style="width: 20px;"></i> Relatórios
-    </a>
-    <!-- Submenus (Filhos + Novos Relatórios) -->
-    <ul class="dropdown-menu">
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-list text-muted me-2" style="width: 20px;"></i> Listagem de Vendas</a></li>
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-user-tag text-muted me-2" style="width: 20px;"></i> Comissões de Vendedores</a></li>
-        <!-- <li><a class="dropdown-item py-2" href="#"><i class="fas fa-cash-register text-muted me-2" style="width: 20px;"></i> Fechamentos de Caixa</a></li> -->
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-exclamation-triangle text-muted me-2" style="width: 20px;"></i> Produtos Sem Giro</a></li>
-        
-        <!-- 🎯 NOVOS RELATÓRIOS ADICIONADOS -->
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-truck text-muted me-2" style="width: 20px;"></i> Relatório de Entregas</a></li>
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-file-invoice-dollar text-muted me-2" style="width: 20px;"></i> Relatório de Orçamentos</a></li>
-        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-hand-holding-usd text-muted me-2" style="width: 20px;"></i> Relatório de Recebíveis</a></li>
-    </ul>
-</li>
-
-
-
+    </li>
   </ul>
 </li>
       </ul>

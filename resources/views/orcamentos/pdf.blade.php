@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Orçamento #{{ $orcamento->id }}</title>
+    <title>Emissao de Orçamento #{{ $orcamento->id }}</title>
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;

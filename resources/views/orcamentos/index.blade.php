@@ -3,7 +3,7 @@
 @section('content')
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Pedido/Orçamentos</h2>
+        <h2>Emissão de Orçamentos</h2>
         <a href="{{ route('orcamentos.create') }}" class="btn btn-primary">
             Novo Orçamento
         </a>
@@ -20,7 +20,8 @@
                     <option value="Aguardando Estoque" {{ request('status') == 'Aguardando Estoque' ? 'selected' : '' }}>Aguardando Estoque</option>
                     <option value="Aprovado" {{ request('status') == 'Aprovado' ? 'selected' : '' }}>Aprovado</option>
                     <option value="Expirado" {{ request('status') == 'Expirado' ? 'selected' : '' }}>Expirado</option>
-                     <option value="Cancelado" {{ request('status') == 'Cancelado' ? 'selected' : '' }}>Cancelado</option>
+                    <option value="Cancelado" {{ request('status') == 'Cancelado' ? 'selected' : '' }}>Cancelado</option>
+                    <option value="Faturado" {{ request('status') == 'Faturado' ? 'selected' : '' }}>Faturado</option>
                 </select>
             </div>
 
@@ -93,6 +94,10 @@
                     <span class="badge bg-secondary" style="font-size: 14px;">
                         Aguardando Estoque
                     </span>
+                 @elseif ($orcamento->status === 'Faturado')
+                    <span class="badge bg-success" style="font-size: 14px;">
+                       Faturado
+                    </span>
                 @endif
                
             </td>
@@ -138,7 +143,7 @@
                             </button>
                     </form>
                 </a>
-                    
+                  
                 @endif
                 <a href="{{ route('orcamentos.gerarPdf', $orcamento->id) }}" class="btn btn-sm btn-primary" target="_blank">Gerar PDF</a>
                 <a href="{{ route('orcamentos.whatsapp', $orcamento->id) }}" 
@@ -146,8 +151,23 @@
                     target="_blank">
                     WhatsApp
                 </a>
-                                <!-- cancelar orcamento -->
+
+                <!-- cancelar orcamento -->
                 @if ($orcamento->status !== 'Cancelado')
+                    <form method="POST" action="{{ route('orcamentos.cancelar', $orcamento->id) }}" style="display:inline;">
+                        @csrf
+                        <!-- <button class="btn btn-sm btn-danger"
+                            onclick="return confirm('Deseja realmente cancelar este orçamento?')">
+                            Cancelar
+                        </button> -->
+                    </form>
+                @else
+                    <!-- <button class="btn btn-sm btn-secondary" disabled style="opacity: 0.6; cursor: not-allowed;">
+                        Cancelar
+                    </button> -->
+                @endif
+
+                 @if ($orcamento->status !== 'Faturado' & $orcamento->status !== 'Cancelado')
                     <form method="POST" action="{{ route('orcamentos.cancelar', $orcamento->id) }}" style="display:inline;">
                         @csrf
                         <button class="btn btn-sm btn-danger"

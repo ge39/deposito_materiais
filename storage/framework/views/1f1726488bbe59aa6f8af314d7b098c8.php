@@ -3,7 +3,7 @@
 <?php $__env->startSection('content'); ?>
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Pedido/Orçamentos</h2>
+        <h2>Emissão de Orçamentos</h2>
         <a href="<?php echo e(route('orcamentos.create')); ?>" class="btn btn-primary">
             Novo Orçamento
         </a>
@@ -20,7 +20,8 @@
                     <option value="Aguardando Estoque" <?php echo e(request('status') == 'Aguardando Estoque' ? 'selected' : ''); ?>>Aguardando Estoque</option>
                     <option value="Aprovado" <?php echo e(request('status') == 'Aprovado' ? 'selected' : ''); ?>>Aprovado</option>
                     <option value="Expirado" <?php echo e(request('status') == 'Expirado' ? 'selected' : ''); ?>>Expirado</option>
-                     <option value="Cancelado" <?php echo e(request('status') == 'Cancelado' ? 'selected' : ''); ?>>Cancelado</option>
+                    <option value="Cancelado" <?php echo e(request('status') == 'Cancelado' ? 'selected' : ''); ?>>Cancelado</option>
+                    <option value="Faturado" <?php echo e(request('status') == 'Faturado' ? 'selected' : ''); ?>>Faturado</option>
                 </select>
             </div>
 
@@ -94,6 +95,10 @@
                     <span class="badge bg-secondary" style="font-size: 14px;">
                         Aguardando Estoque
                     </span>
+                 <?php elseif($orcamento->status === 'Faturado'): ?>
+                    <span class="badge bg-success" style="font-size: 14px;">
+                       Faturado
+                    </span>
                 <?php endif; ?>
                
             </td>
@@ -139,7 +144,7 @@
                             </button>
                     </form>
                 </a>
-                    
+                  
                 <?php endif; ?>
                 <a href="<?php echo e(route('orcamentos.gerarPdf', $orcamento->id)); ?>" class="btn btn-sm btn-primary" target="_blank">Gerar PDF</a>
                 <a href="<?php echo e(route('orcamentos.whatsapp', $orcamento->id)); ?>" 
@@ -147,8 +152,23 @@
                     target="_blank">
                     WhatsApp
                 </a>
-                                <!-- cancelar orcamento -->
+
+                <!-- cancelar orcamento -->
                 <?php if($orcamento->status !== 'Cancelado'): ?>
+                    <form method="POST" action="<?php echo e(route('orcamentos.cancelar', $orcamento->id)); ?>" style="display:inline;">
+                        <?php echo csrf_field(); ?>
+                        <!-- <button class="btn btn-sm btn-danger"
+                            onclick="return confirm('Deseja realmente cancelar este orçamento?')">
+                            Cancelar
+                        </button> -->
+                    </form>
+                <?php else: ?>
+                    <!-- <button class="btn btn-sm btn-secondary" disabled style="opacity: 0.6; cursor: not-allowed;">
+                        Cancelar
+                    </button> -->
+                <?php endif; ?>
+
+                 <?php if($orcamento->status !== 'Faturado' & $orcamento->status !== 'Cancelado'): ?>
                     <form method="POST" action="<?php echo e(route('orcamentos.cancelar', $orcamento->id)); ?>" style="display:inline;">
                         <?php echo csrf_field(); ?>
                         <button class="btn btn-sm btn-danger"

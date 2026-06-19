@@ -60,20 +60,32 @@
           </a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="<?php echo e(route('produtos.index')); ?>"><i class="bi bi-box me-2"></i>Estoque</a></li>
-            <li><a class="dropdown-item" href="<?php echo e(route('pedidos.index')); ?>"><i class="bi bi-cart-check me-2"></i>Pedido de Compra/Lotes</a></li>
-            <li><a class="dropdown-item" href="<?php echo e(route('orcamentos.index')); ?>"><i class="bi bi-clipboard-data me-2"></i>Pedido/Orçamento/Clientes</a></li>
+            <li><a class="dropdown-item" href="<?php echo e(route('pedidos.index')); ?>"><i class="bi bi-cart-check me-2"></i>Pedido de Compra</a></li>
+            <li><a class="dropdown-item" href="<?php echo e(route('orcamentos.index')); ?>"><i class="bi bi-clipboard-data me-2"></i>Emissão Orçamento</a></li>
+          </ul>
+        </li>
+
+        <!-- Comercial -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+            <i class="bi bi-box-seam me-1"></i>Comercial
+          </a>
+          <ul class="dropdown-menu">
+            <!-- <li><a class="dropdown-item" href="<?php echo e(route('produtos.index')); ?>"><i class="bi bi-box me-2"></i>Estoque</a></li> -->
+            <li><a class="dropdown-item" href="<?php echo e(route('pedidos.index')); ?>"><i class="bi bi-cart-check me-2"></i>Pedido de Compra</a></li>
+            <li><a class="dropdown-item" href="<?php echo e(route('orcamentos.index')); ?>"><i class="bi bi-clipboard-data me-2"></i>Emissão Orçamento</a></li>
           </ul>
         </li>
 
         <!-- Vendas -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-            <i class="bi bi-cash-stack me-1"></i>Vendas
+            <i class="bi bi-cash-stack me-1"></i>PDV
           </a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="<?php echo e(route('pdv.index')); ?>"><i class="bi bi-receipt-cutoff me-2"></i>Vendas</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-list-ul me-2"></i>Itens Venda</a></li>
-            <li><a class="dropdown-item" href="<?php echo e(route('devolucoes.index')); ?>"><i class="bi bi-list-ul me-2"></i>Troca/Devoluções</a></li>
+            <!-- <li><a class="dropdown-item" href="#"><i class="bi bi-list-ul me-2"></i>Itens Venda</a></li> -->
+            <!-- <li><a class="dropdown-item" href="<?php echo e(route('devolucoes.index')); ?>"><i class="bi bi-list-ul me-2"></i>Troca/Devoluções</a></li> -->
           </ul>
         </li>
 

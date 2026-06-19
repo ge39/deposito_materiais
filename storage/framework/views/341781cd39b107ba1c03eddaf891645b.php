@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Orçamento #<?php echo e($orcamento->id); ?></title>
+    <title>Emissao de Orçamento #<?php echo e($orcamento->id); ?></title>
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;

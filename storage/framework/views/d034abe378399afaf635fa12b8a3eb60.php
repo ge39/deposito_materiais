@@ -437,7 +437,7 @@
 
                     <div class="modal-body text-center py-4">
                         <h4 class="fw-bold mb-3">
-                            Saldo Atual:
+                            Saldo Gaveta:
                             <span id="saldoAtualModal" class="text-dark">R$ <?php echo e(number_format($saldoAtual, 2, ',', '.')); ?></span>
                         </h4>
 
@@ -458,7 +458,7 @@
                         <hr>
                         <h3 class="fw-bold text-primary">💰 Valor sugerido para sangria:</h3>
                         <h2 id="valorSugeridoModal" class="display-6 fw-bold text-success">
-                            R$ <?php echo e(number_format($valorSugeridoSangria ?? 0, 2, ',', '.')); ?>
+                            R$ <?php echo e(number_format($saldoAtual ?? 0, 2, ',', '.')); ?>
 
                         </h2>
                         <p class="text-muted">Oriente a operadora a retirar este valor do caixa.</p>
@@ -1331,7 +1331,7 @@
         verificarSangria();
 
         // Verificação automática a cada 5 minutos
-        setInterval(verificarSangria, 10000);
+        setInterval(verificarSangria, 300000);
 
     });
 </script>
@@ -1451,4 +1451,4 @@
 
 
 <?php $__env->stopSection(); ?>
-<?php echo $__env->make('layouts.app2', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>

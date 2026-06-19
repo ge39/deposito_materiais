@@ -1,4 +1,4 @@
-@extends('layouts.app2')
+@extends('layouts.app')
  <!-- window.CLIENTE_BALCAO = @json($clienteBalcao); -->
 @section('content')
 
@@ -434,7 +434,7 @@
 
                     <div class="modal-body text-center py-4">
                         <h4 class="fw-bold mb-3">
-                            Saldo Atual:
+                            Saldo Gaveta:
                             <span id="saldoAtualModal" class="text-dark">R$ {{ number_format($saldoAtual, 2, ',', '.') }}</span>
                         </h4>
 
@@ -455,7 +455,7 @@
                         <hr>
                         <h3 class="fw-bold text-primary">💰 Valor sugerido para sangria:</h3>
                         <h2 id="valorSugeridoModal" class="display-6 fw-bold text-success">
-                            R$ {{ number_format($valorSugeridoSangria ?? 0, 2, ',', '.') }}
+                            R$ {{ number_format($saldoAtual ?? 0, 2, ',', '.') }}
                         </h2>
                         <p class="text-muted">Oriente a operadora a retirar este valor do caixa.</p>
                     </div>
@@ -1321,7 +1321,7 @@
         verificarSangria();
 
         // Verificação automática a cada 5 minutos
-        setInterval(verificarSangria, 10000);
+        setInterval(verificarSangria, 300000);
 
     });
 </script>
