@@ -157,19 +157,16 @@
                             @endif
                             
                             <!-- Imagem -->
-                            <div class="d-flex flex-wrap gap-1 mt-3">
-                                <div>
-                                   @if(!empty($produto->imagem))
-                                        <label class="form-label">Imagem do Produto</label><br>
-
-                                        <img
-                                            src="{{ asset($produto->imagem) }}"
-                                            alt="{{ $produto->nome }}"
-                                            style="max-width:200px; max-height:200px; border:1px solid #ddd; padding:5px;">
-                                    @endif
-                                </div>
+                          <!-- Bloco de Imagem Corrigido para Listagens/Grid -->
+                            <div class="text-center mt-2">
+                                <label class="form-label d-block font-weight-bold">Imagem</label>
+                                
+                                <img id="imagemPreview_{{ $produto->id }}"
+                                    src="{{ (!empty($produto->imagem) && file_exists(public_path($produto->imagem))) ? asset($produto->imagem) : asset('image/produtos/produto-sem-imagem.PNG') }}"
+                                    onerror="this.onerror=null; this.src='{{ asset('image/produtos/produto-sem-imagem.PNG') }}';"
+                                    alt="{{ $produto->nome }}"
+                                    style="max-width:150px; max-height:150px; border:1px solid #ccc; padding:3px;">
                             </div>
-
                             <!-- Botões -->
                             <div class="d-flex flex-wrap gap-1 mt-3">
 

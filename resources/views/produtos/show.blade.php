@@ -37,16 +37,21 @@
            
             <div class="mt-3">
                 @if($produto->imagem)
-                    <img src="{{ asset('storage/' . $produto->imagem) }}" alt="Imagem do Produto"
-                        class="img-fluid" style="max-width: 300px; max-height: 300px; border:1px solid #ddd; padding:5px;">
+                    <img id="imagemPreview_{{ $produto->id }}"
+                                    src="{{ (!empty($produto->imagem) && file_exists(public_path($produto->imagem))) ? asset($produto->imagem) : asset('image/produtos/produto-sem-imagem.PNG') }}"
+                                    onerror="this.onerror=null; this.src='{{ asset('image/produtos/produto-sem-imagem.PNG') }}';"
+                                    alt="{{ $produto->nome }}"
+                                    style="max-width:550px; border:1px solid #ccc; padding:3px;">
                 @else
-                    <div style="width: 300px; height: 300px; border:1px solid #ddd; display:flex; align-items:center; justify-content:center;">
+                    <div style="width: 550px; border:1px solid #ddd; display:flex; align-items:center; justify-content:center;">
                         Sem Imagem
                     </div>
                 @endif
             </div>
-             <strong>Imagem:</strong>
+             <strong><span> Descrição: {{ $produto->nome }}</span></strong>
         </div>
+
+        
 
     </div>
 

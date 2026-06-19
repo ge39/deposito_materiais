@@ -142,9 +142,7 @@ class ProdutoController extends Controller
             if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
 
                 $arquivo = $request->file('imagem');
-
                 $nomeArquivo = time() . '.' . $arquivo->getClientOriginalExtension();
-
                 $destino = public_path('image/produtos');
 
                 if (!file_exists($destino)) {
@@ -152,10 +150,8 @@ class ProdutoController extends Controller
                 }
 
                 $arquivo->move($destino, $nomeArquivo);
-
                 // Salve apenas o nome do arquivo
                 $produto->imagem = $nomeArquivo;
-
                 $produto->save();
             }
             // 🔹 LOTE
@@ -184,7 +180,14 @@ class ProdutoController extends Controller
                 mkdir($destino, 0755, true);
             }
 
-            $arquivo = $request->file('imagem');
+           $arquivo = $request->file('imagem');
+
+            // Substitui caracteres inválidos por '_', e depois reduz múltiplos '_' para apenas um
+            $nomeLimpo = preg_replace('/[^A-Za-z0-9._-]/', '_', $arquivo->getClientOriginalName());
+            $nomeLimpo = preg_replace('/_+/', '_', $nomeLimpo); // 🌟 Evita duplicar underscores
+
+            $nomeArquivo = time() . '_' . $nomeLimpo;
+
 
             $nomeArquivo = time() . '_' . preg_replace(
                 '/[^A-Za-z0-9._-]/',
@@ -237,7 +240,6 @@ class ProdutoController extends Controller
             'marcas' => Marca::all(),
         ]);
     }
-
 
     public function update(Request $request, Produto $produto)
     {
