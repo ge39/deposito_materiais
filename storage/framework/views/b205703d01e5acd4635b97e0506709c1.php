@@ -7,22 +7,58 @@
 <title>🏗️ Depósito de Materiais</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-<style>
-/* Submenu flyout */
-.dropdown-submenu {
-    position: relative;
-}
-.dropdown-submenu > .dropdown-menu {
-    top: 0;
-    left: 100%;
-    margin-left: 0.1rem;
-}
-@media (max-width: 991px) {
-    .dropdown-submenu > .dropdown-menu {
-        left: 0;
-    }
-}
-</style>
+<!-- <style>
+  /* Submenu flyout */
+  .dropdown-submenu {
+      position: relative;
+  }
+  .dropdown-submenu > .dropdown-menu {
+      top: 0;
+      left: auto;
+      right: 100%;
+      margin-left: 0.1rem;
+  }
+  @media (max-width: 991px) {
+      .dropdown-submenu > .dropdown-menu {
+          left: 0;
+      }
+  }
+</style> -->
+
+<!-- <style>
+  html,
+  body {
+      height: 100%;
+  }
+
+  body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+  }
+
+  main {
+      flex: 1;
+  }
+
+  /* Submenu flyout */
+  .dropdown-submenu {
+      position: relative;
+  }
+
+  .dropdown-submenu > .dropdown-menu {
+      top: 0;
+      left: 100%;
+      margin-left: 0.1rem;
+  }
+
+  @media (max-width: 991px) {
+      .dropdown-submenu > .dropdown-menu {
+          left: 0;
+      }
+  }
+</style> -->
+
 </head>
 <body>
 
@@ -60,32 +96,20 @@
           </a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="<?php echo e(route('produtos.index')); ?>"><i class="bi bi-box me-2"></i>Estoque</a></li>
-            <!-- <li><a class="dropdown-item" href="<?php echo e(route('pedidos.index')); ?>"><i class="bi bi-cart-check me-2"></i>Pedido de Compra</a></li>
-            <li><a class="dropdown-item" href="<?php echo e(route('orcamentos.index')); ?>"><i class="bi bi-clipboard-data me-2"></i>Emissão Orçamento</a></li> -->
-          </ul>
-        </li>
-
-        <!-- Comercial -->
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-            <i class="bi bi-box-seam me-1"></i>Comercial
-          </a>
-          <ul class="dropdown-menu">
-            <!-- <li><a class="dropdown-item" href="<?php echo e(route('produtos.index')); ?>"><i class="bi bi-box me-2"></i>Estoque</a></li> -->
-            <li><a class="dropdown-item" href="<?php echo e(route('pedidos.index')); ?>"><i class="bi bi-cart-check me-2"></i>Pedido de Compra</a></li>
-            <li><a class="dropdown-item" href="<?php echo e(route('orcamentos.index')); ?>"><i class="bi bi-clipboard-data me-2"></i>Emissão Orçamento</a></li>
+            <li><a class="dropdown-item" href="<?php echo e(route('pedidos.index')); ?>"><i class="bi bi-cart-check me-2"></i>Pedido de Compra/Lotes</a></li>
+            <li><a class="dropdown-item" href="<?php echo e(route('orcamentos.index')); ?>"><i class="bi bi-clipboard-data me-2"></i>Pedido/Orçamento</a></li>
           </ul>
         </li>
 
         <!-- Vendas -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-            <i class="bi bi-cash-stack me-1"></i>PDV
+            <i class="bi bi-cash-stack me-1"></i>Vendas
           </a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="<?php echo e(route('pdv.index')); ?>"><i class="bi bi-receipt-cutoff me-2"></i>Vendas</a></li>
-            <!-- <li><a class="dropdown-item" href="#"><i class="bi bi-list-ul me-2"></i>Itens Venda</a></li> -->
-            <!-- <li><a class="dropdown-item" href="<?php echo e(route('devolucoes.index')); ?>"><i class="bi bi-list-ul me-2"></i>Troca/Devoluções</a></li> -->
+            <li><a class="dropdown-item" href="#"><i class="bi bi-list-ul me-2"></i>Itens Venda</a></li>
+            <li><a class="dropdown-item" href="<?php echo e(route('devolucoes.index')); ?>"><i class="bi bi-list-ul me-2"></i>Troca/Devoluções</a></li>
           </ul>
         </li>
 
@@ -102,26 +126,11 @@
         <!-- Logística -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-            <i class="bi bi-truck me-1"></i>Logística & Entregas
+            <i class="bi bi-truck me-1"></i>Logística
           </a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-geo-alt me-2"></i>Agendamento de Entregas</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-geo-alt me-2"></i>Roteirização de Cargas</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-truck-front me-2"></i>Controle de Frota</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-truck-front me-2"></i>Romaneio de Carga</a></li>
-          </ul>
-        </li>
-
-         <!-- Logística -->
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-            <i class="bi bi-truck me-1"></i>Estoque & Patio
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-geo-alt me-2"></i>Localização Física</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-box me-2"></i>Controle de Perdas</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-truck-front me-2"></i>Check-Out Cargas</a></li>
-            <!-- <li><a class="dropdown-item" href="#"><i class="bi bi-truck-front me-2"></i>Romaneio de Carga</a></li> -->
+            <li><a class="dropdown-item" href="#"><i class="bi bi-truck-front me-2"></i>Frotas</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-geo-alt me-2"></i>Entregas</a></li>
           </ul>
         </li>
 
@@ -157,7 +166,12 @@
             <i class="bi bi-tag me-2"></i>Financeiro
         </a>
         <ul class="dropdown-menu">
-           
+              <li>
+                <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
+                   href="<?php echo e($canAccessAdmin ? route('sangria-config.index') : '#'); ?>">
+                   <i class="bi bi-list-stars me-2"></i>Define Sangria
+                </a>
+            </li>
              <li>
                 <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
                    href="<?php echo e($canAccessAdmin ? route('fechamento.lista') : '#'); ?>">
@@ -165,35 +179,18 @@
                 </a>
             </li>
              <li>
-                <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                  href="<?php echo e($canAccessAdmin ? route('auditoria_caixa.index') : '#'); ?>">
-                  <i class="bi bi-list-stars me-2"></i>Auditoria de Caixa
-                </a>
-            </li>
-             <li>
                 <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
                    href="<?php echo e($canAccessAdmin ? route('limites-view') : '#'); ?>">
-                   <i class="bi bi-list-stars me-2"></i>Controle Carteira
+                   <i class="bi bi-list-stars me-2"></i>ControleLimite Credito
                 </a>
             </li>
-             <li>
-              <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
-                  href="<?php echo e($canAccessAdmin ? route('sangria-config.index') : '#'); ?>">
-                  <i class="bi bi-list-stars me-2"></i>Controle Sangria
-              </a>
             <li>
-              <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
-                href="<?php echo e($canAccessAdmin ? route('gerencia.caixa.painel_saidas') : '#'); ?>">
-                  <i class="bi bi-box-arrow-right me-2 text-danger"></i>Saídas em Lote (Rede)
-              </a>
-            </li>
-
-             <li>
-                <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" 
-                    href="<?php echo e($canAccessAdmin ? route('gerencia.caixa.saidas.historico') : '#'); ?>">
-                    <i class="bi bi-printer me-2 text-primary"></i>Reimprimir Cupons de Saída
+                <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
+                  href="<?php echo e($canAccessAdmin ? route('auditoria_caixa.index') : '#'); ?>">
+                  <i class="bi bi-list-stars me-2"></i>Relatório Auditoria de Caixa
                 </a>
             </li>
+           
         </ul>
     </li>
       <li><hr class="dropdown-divider"></li>
@@ -253,18 +250,18 @@
 
       <!-- Usuário logado -->
       <?php if(auth()->guard()->check()): ?>
-        <div class="d-flex align-items-center text-white">
-          <span class="me-3">
-            <i class="bi bi-person-circle me-1"></i><?php echo e(Auth::user()->name); ?>
+      <div class="d-flex align-items-center text-white">
+        <span class="me-3">
+          <i class="bi bi-person-circle me-1"></i><?php echo e(Auth::user()->name); ?>
 
-          </span>
-          <form method="POST" action="<?php echo e(route('logout')); ?>" class="d-inline">
-              <?php echo csrf_field(); ?>
-              <button type="submit" class="btn btn-outline-light btn-sm">
-                  Sair
-              </button>
-          </form>
-        </div>
+        </span>
+        <form method="POST" action="<?php echo e(route('logout')); ?>" class="d-inline">
+            <?php echo csrf_field(); ?>
+            <button type="submit" class="btn btn-outline-light btn-sm">
+                Sair
+            </button>
+        </form>
+      </div>
       <?php endif; ?>
     </div>
 </nav>
@@ -272,8 +269,8 @@
 <div class="container mt-4">
     <?php echo $__env->yieldContent('content'); ?>
 </div>
-
-<!-- <footer class="mt-5 py-3 border-top bg-light text-center text-muted">
+<!-- 
+<footer class="mt-5 py-3 border-top bg-light text-center text-muted">
     <small>
         © <?php echo e(date('Y')); ?> <?php echo e(config('app.name') .' -  JMFSoftware2017'); ?> — Todos os direitos reservados.
     </small>
@@ -309,4 +306,7 @@
     <?php echo $__env->yieldPushContent('scripts'); ?>
     
 </body>
-</html><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/layouts/app.blade.php ENDPATH**/ ?>
+
+
+</html>
+<?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/layouts/app.blade.php ENDPATH**/ ?>

@@ -7,22 +7,58 @@
 <title>🏗️ Depósito de Materiais</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-<style>
-/* Submenu flyout */
-.dropdown-submenu {
-    position: relative;
-}
-.dropdown-submenu > .dropdown-menu {
-    top: 0;
-    left: 100%;
-    margin-left: 0.1rem;
-}
-@media (max-width: 991px) {
-    .dropdown-submenu > .dropdown-menu {
-        left: 0;
-    }
-}
-</style>
+<!-- <style>
+  /* Submenu flyout */
+  .dropdown-submenu {
+      position: relative;
+  }
+  .dropdown-submenu > .dropdown-menu {
+      top: 0;
+      left: auto;
+      right: 100%;
+      margin-left: 0.1rem;
+  }
+  @media (max-width: 991px) {
+      .dropdown-submenu > .dropdown-menu {
+          left: 0;
+      }
+  }
+</style> -->
+
+<!-- <style>
+  html,
+  body {
+      height: 100%;
+  }
+
+  body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+  }
+
+  main {
+      flex: 1;
+  }
+
+  /* Submenu flyout */
+  .dropdown-submenu {
+      position: relative;
+  }
+
+  .dropdown-submenu > .dropdown-menu {
+      top: 0;
+      left: 100%;
+      margin-left: 0.1rem;
+  }
+
+  @media (max-width: 991px) {
+      .dropdown-submenu > .dropdown-menu {
+          left: 0;
+      }
+  }
+</style> -->
+
 </head>
 <body>
 
@@ -232,12 +268,12 @@
 <div class="container mt-4">
     @yield('content')
 </div>
-
+<!-- 
 <footer class="mt-5 py-3 border-top bg-light text-center text-muted">
     <small>
         © {{ date('Y') }} {{ config('app.name') .' -  JMFSoftware2017' }} — Todos os direitos reservados.
     </small>
-</footer>
+</footer> -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>

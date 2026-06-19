@@ -312,7 +312,7 @@
     }
 </style>
 
-<div class="container-fluid p-0">   
+<div class="container-fluid p-0 " style="margin-top:10px">   
      
     <!-- =======================================================================
      🎯 CONTROLADOR HIERÁRQUICO DE OVERLAYS DO PDV
@@ -501,7 +501,7 @@
     <!-- FIM OVERLAY -->
      <!-- Informações do status do Caixa -->
     <div class="container-fluid p-0" 
-         style="background:#e6e6e6; margin-top:-40px; overflow-x:hidden">
+         style="background:#e6e6e6; margin-top:-25px;height:40px; overflow-x:hidden overflow-y:hidden">
        
         <div class="caixa-info mb-3 px-3 py-2 border rounded shadow-sm bg-light d-flex align-items-center">
              <span class="me-3">
@@ -723,7 +723,7 @@
         </div>
 
         <div class="col">
-            <button class="btn btn-danger fs-6  w-100 md-1 p-2">F10 Fecham. Caixa</button>
+            <button class="btn btn-danger fs-6  w-100 md-1 p-2">F10 Fecha Caixa</button>
         </div> 
 
          <div class="col">
@@ -734,7 +734,7 @@
          <!-- class="btn btn-outline-primary fw-bold w-100 mb-2 py-2" -->
          <div class="col">
             <button type="button" class="btn btn-outline-primary fw-bold w-100 mb-2 py-2" onclick="solicitarPagamentoAvulso()">
-                💳 F8 - Receber
+                F8 - Receber
             </button>
         </div>
 

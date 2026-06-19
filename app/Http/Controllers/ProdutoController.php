@@ -250,17 +250,13 @@ class ProdutoController extends Controller
             'em_promocao'       => 'nullable|boolean',
             'controla_validade' => 'nullable|boolean',
             'validade_produto'  => 'nullable|date',
-            // Adicione isto dentro do array $request->validate([...])
             'markup_1'      => 'nullable|numeric|min:0',
             'markup_2'      => 'nullable|numeric|min:0',
             'markup_3'      => 'nullable|numeric|min:0',
             'preco_venda_2' => 'nullable|numeric|min:0',
             'preco_venda_3' => 'nullable|numeric|min:0',
-            // No seu array $request->validate([...])
             'estoque_minimo'     => 'nullable|integer|min:0',
             'quantidade_estoque' => 'nullable|integer', // Remova ou deixe apenas como informativo
-
-
             'imagem'            => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
