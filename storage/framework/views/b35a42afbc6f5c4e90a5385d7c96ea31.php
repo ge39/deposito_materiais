@@ -142,7 +142,7 @@
         <?php else: ?>
             <div class="row mt-4">
                 
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <div class="card shadow-sm">
                         <div class="card-header bg-primary text-white fw-bold">Valores por Forma de Pagamento (Vendas)</div>
                         <div class="card-body">
@@ -163,7 +163,7 @@
                 </div>
 
                 
-                <div class="col-md-6">
+                <!-- <div class="col-md-6">
                     <div class="card shadow-sm border-success" style="height: 100%;">
                         <div class="card-header bg-success text-white fw-bold">Valores de Recebimento em Carteira</div>
                         <div class="card-body d-flex flex-column justify-content-between">
@@ -179,7 +179,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> -->
             </div>
         <?php endif; ?>
 

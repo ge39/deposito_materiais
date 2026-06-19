@@ -259,6 +259,66 @@
         </div>
     </div>
 
+        {{-- 🎯 NOVO CARD: PAGAMENTO CLIENTE CARTEIRA --}}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white fw-normal">
+            Pagamento Cliente Carteira - 
+            @if($detalhesRecebimentoCarteira->isNotEmpty())
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td class="text-end">Total Recebido:</td>
+                            <td class="text-success">
+                                R$ {{ number_format($detalhesRecebimentoCarteira->sum('valor'), 2, ',', '.') }}
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                @endif
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                        <th>Forma</th>
+                        <th>Observação</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($detalhesRecebimentoCarteira as $rec)
+                        <tr class="table-info">
+                            <td class="text-uppercase fw-normal text-dark" style="font-size: 0.9rem;">
+                                {{ str_replace('_', ' ', $rec->tipo) }}
+                            </td>
+                            <td class="fw-normal text-dark">
+                                R$ {{ number_format($rec->valor, 2, ',', '.') }}
+                            </td>
+                            <td class="fw-normal text-dark text-left">
+                                 {{ str_replace('_', ' ', $rec->forma_pagamento) }}
+                            </td>
+                             <td class="fw-normal text-dark text-left">
+                                 {{ str_replace('_', ' ', $rec->observacao) }}
+                            </td>
+                            <td>
+                                {{ \Carbon\Carbon::parse($rec->data_movimentacao)->format('d/m/Y H:i') }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-3">
+                                Nenhum registro de pagamento de carteira encontrado.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+
 
     {{-- ================= LANÇAMENTOS MANUAIS ================= --}}
     <div class="card mb-4 shadow-sm">

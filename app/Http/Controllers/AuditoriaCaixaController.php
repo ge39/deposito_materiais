@@ -193,14 +193,29 @@ class AuditoriaCaixaController extends Controller
      */
     public function show(AuditoriaCaixa $auditoria)
     {
-        // Garante o carregamento dos relacionamentos com dados em tempo real
+       // Carrega relacionamentos e calcula totais
+        $auditoria->load(['caixa.vendas', 'usuario', 'detalhes']);
+        $auditoria->total_sistema = (float) $auditoria->detalhes->sum('total_sistema');
+        $auditoria->total_fisico  = (float) $auditoria->detalhes->sum('total_fisico');
+        $auditoria->diferenca     = $auditoria->total_fisico - $auditoria->total_sistema;
+
+        // Busca detalhes de pagto carteira para a View
+        $detalhesRecebimentoCarteira = \App\Models\MovimentacaoCaixa::where('caixa_id', $auditoria->caixa_id)
+            ->where('tipo', 'entrada_pagto_carteira')
+            ->orderBy('data_movimentacao', 'desc')
+            ->get();
+
+        // 🎯 Calcula os recebimentos de carteira de forma isolada
+        // $total_recebido_carteira = (float) $movs->where('tipo', 'entrada_pagto_carteira')->sum('total');
+
+        // 2. Garante o recarregamento dos relacionamentos com dados em tempo real
         $auditoria->load(['caixa.vendas', 'usuario', 'detalhes']);
 
-        // 1. Calcula as somatórias reais da tabela de detalhes para a auditoria
+        // 3. Calcula as somatórias reais da tabela de detalhes para os cards superiores
         $totalSistemaReal = (float) $auditoria->detalhes->sum('total_sistema');
         $totalFisicoReal  = (float) $auditoria->detalhes->sum('total_fisico');
 
-        // Diferença balanceada (Se a tabela bate, a divergência vai para 0.00)
+        // Diferença balanceada 
         $diferencaCalculada = $totalFisicoReal - $totalSistemaReal;
 
         // Sobrescreve em memória para exibição correta nos cards superiores
@@ -209,18 +224,18 @@ class AuditoriaCaixaController extends Controller
         $auditoria->diferenca     = $diferencaCalculada;
 
         if ($diferencaCalculada == 0) {
-            $auditoria->status = 'concluida'; // Ativa o fundo verde 'bg-success' na View
+            $auditoria->status = 'concluida'; 
         } else {
             $auditoria->status = 'inconsistente';
         }
 
-        // 2. 🎯 A CORREÇÃO DO ERRO: Calcula o total bruto de sangrias para alimentar o card da View
+        // 4. Calcula o total bruto de sangrias para alimentar o card da View
         $total_sangrias = (float) \Illuminate\Support\Facades\DB::table('movimentacoes_caixa')
             ->where('caixa_id', $auditoria->caixa_id)
             ->whereIn('tipo', ['sangria', 'saida_manual'])
             ->sum('valor');
 
-        // 3. Carrega os históricos e lançamentos adicionais exigidos pela página
+        // 5. Carrega os históricos e lançamentos adicionais exigidos pela página
         $lancamentosManuais = \App\Models\MovimentacaoCaixa::where('caixa_id', $auditoria->caixa_id)
             ->whereIn('tipo', ['entrada_manual', 'saida_manual', 'aporte', 'sangria'])
             ->get();
@@ -229,14 +244,17 @@ class AuditoriaCaixaController extends Controller
             ->where('tipo', 'auditoria')
             ->get();
 
-        // Envia todas as variáveis sincronizadas para a renderização do Blade
+        // Envia todas as variáveis sincronizadas sem o erro de variável indefinida
         return view('auditoria_caixa.show', compact(
             'auditoria', 
-            'total_sangrias', // 🟢 Variável injetada com sucesso!
+            'total_sangrias', 
+            // 'total_recebido_carteira', // 🟢 Agora funcionando perfeitamente!
             'lancamentosManuais', 
+            'detalhesRecebimentoCarteira',
             'movimentacoesAuditoria'
         ));
     }
+
 
 
 

@@ -174,6 +174,7 @@ class PdvController extends Controller
     {
         $caixa = \App\Models\Caixa::findOrFail($caixaId);
 
+        
         return response()->json(
             $caixa->verificarSangria()
         );

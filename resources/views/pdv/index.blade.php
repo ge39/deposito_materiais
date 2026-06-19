@@ -1283,7 +1283,6 @@
 </script>
 
  <!-- verificarSangriaPeriodicamente -->
-
 <script>
     document.addEventListener('DOMContentLoaded', function () {
 
@@ -1297,7 +1296,7 @@
 
                 const data = await response.json();
 
-                console.log('Verificação de sangria:', data);
+                // console.log('Verificação de sangria:', data);
 
                 if (data.avisarSangria === true) {
 
