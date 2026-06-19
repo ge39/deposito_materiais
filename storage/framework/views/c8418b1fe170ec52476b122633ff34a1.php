@@ -39,7 +39,7 @@
     
     <div class="card mb-4 shadow">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Relatório de Auditoria - Caixa <?php echo e($auditoria->caixa_id); ?> - Terminal <?php echo e($auditoria->caixa->terminal_id); ?></h4>
+            <h6 class="mb-0">Relatório de Auditoria - Caixa <?php echo e($auditoria->caixa_id); ?> - Terminal <?php echo e($auditoria->caixa->terminal_id); ?></h6>
             <span class="badge <?php echo e($statusClass); ?> fs-6 text-uppercase">
                 <?php echo e($auditoria->status); ?>
 
@@ -59,7 +59,7 @@
 
             </div>
 
-            <div class="col-md-1">
+            <div class="col-md-2">
                 <strong>Terminal:</strong><br>
                 #<?php echo e($auditoria->caixa->terminal_id); ?>
 
@@ -85,88 +85,108 @@
         </div>
     </div>
 
-
     
-    <div class="row mb-4">
+    <div class="row g-2 mb-2 row-cols-1 row-cols-sm-2 row-cols-md-4 row-cols-lg-7">
 
-        <div class="col-md-2">
-            <div class="card text-center border-primary shadow-sm">
-                <div class="card-body">
-                    <h6>Total Vendas</h6>
-                <h4 class="text-primary">
-                    <?php
-                        $totalVendas = $auditoria->caixa->vendas
-                            ->flatMap->pagamentos
-                            ->where('status', 'confirmado')
-                            ->sum('valor');
-                    ?>
-                    R$ <?php echo e(number_format($totalVendas, 2, ',', '.')); ?>
+        
+        <div class="col">
+            <div class="card text-center border-primary shadow-sm h-100">
+                <div class="card-body p-2 d-flex flex-column justify-content-center">
+                    <h6 class="card-title text-muted mb-1" style="font-size: 0.85rem;">Total Vendas</h6>
+                    <h6 class="text-primary fw-bold mb-0">
+                        <?php
+                            $totalVendas = $auditoria->caixa->vendas
+                                ->flatMap->pagamentos
+                                ->where('status', 'confirmado')
+                                ->sum('valor');
+                        ?>
+                        R$ <?php echo e(number_format($totalVendas, 2, ',', '.')); ?>
 
-                </h4>
+                    </h6>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-2">
-            <div class="card text-center border-primary shadow-sm">
-                <div class="card-body">
-                    <h6>Troco Caixa</h6>
-                    <h4 class="text-primary">
-                        R$ <?php echo e(number_format($auditoria->caixa->fundo_troco,2,',','.')); ?>
+        
+        <div class="col">
+            <div class="card text-center border-primary shadow-sm h-100">
+                <div class="card-body p-2 d-flex flex-column justify-content-center">
+                    <h6 class="card-title text-muted mb-1" style="font-size: 0.85rem;">Troco Caixa</h6>
+                    <h6 class="text-primary fw-bold mb-0">
+                        R$ <?php echo e(number_format($auditoria->caixa->fundo_troco, 2, ',', '.')); ?>
 
-                    </h4>
-                </div>
-            </div>
-        </div>
-         <div class="col-md-2">
-            <div class="card text-center border-primary shadow-sm">
-                <div class="card-body">
-                    <h6>Sangrias</h6>
-                    <h4 class="text-primary">
-                        R$ <?php echo e(number_format($total_sangrias,2,',','.')); ?>
-
-                    </h4>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card text-center border-dark shadow-sm">
-                <div class="card-body">
-                    <h6>Total Informado</h6>
-                    <h4 class="text-primary">
-                        R$ <?php echo e(number_format($auditoria->total_fisico,2,',','.')); ?>
-
-                    </h4>
+                    </h6>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-2">
-            <div class="card text-center shadow-sm <?php echo e($auditoria->diferenca != 0 ? 'border-danger' : 'border-success'); ?>">
-                <div class="card-body">
-                    <h6>Quebra em R$</h6>
-                    <h4 class="<?php echo e($auditoria->diferenca != 0 ? 'text-danger' : 'text-success'); ?>">
-                        R$ <?php echo e(number_format($auditoria->diferenca,2,',','.')); ?>
+        
+        <div class="col">
+            <div class="card text-center border-primary shadow-sm h-100">
+                <div class="card-body p-2 d-flex flex-column justify-content-center">
+                    <h6 class="card-title text-muted mb-1" style="font-size: 0.85rem;">Pagto Carteira</h6>
+                    <h6 class="text-primary fw-bold mb-0">
+                       R$ <?php echo e(number_format($detalhesRecebimentoCarteira->sum('valor') ?? 0, 2, ',', '.')); ?>
 
-                    </h4>
-                   
+
+                
+                    </h6>
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="card text-center shadow-sm <?php echo e($auditoria->diferenca != 0 ? 'border-danger' : 'border-success'); ?>">
-                <div class="card-body">
-                    <h6>Quebra em %</h6>
-                    
-                    <h4 class="<?php echo e($auditoria->diferenca != 0 ? 'text-danger' : 'text-success'); ?>">
-                        <?php echo e(number_format($percentual,2,',','.')); ?>%
-                    </h4>
+
+        
+        <div class="col">
+            <div class="card text-center border-primary shadow-sm h-100">
+                <div class="card-body p-2 d-flex flex-column justify-content-center">
+                    <h6 class="card-title text-muted mb-1" style="font-size: 0.85rem;">Sangrias</h6>
+                    <h6 class="text-primary fw-bold mb-0">
+                        R$ <?php echo e(number_format($total_sangrias, 2, ',', '.')); ?>
+
+                    </h6>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="col">
+            <div class="card text-center border-primary shadow-sm h-100">
+                <div class="card-body p-2 d-flex flex-column justify-content-center">
+                    <h6 class="card-title text-muted mb-1" style="font-size: 0.85rem;">Total Informado Operador</h6>
+                    <h6 class="text-primary fw-bold mb-0">
+                        R$ <?php echo e(number_format($auditoria->total_fisico, 2, ',', '.')); ?>
+
+                    </h6>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="col">
+            <div class="card text-center shadow-sm h-100 <?php echo e($auditoria->diferenca != 0 ? 'border-danger' : 'border-success'); ?>">
+                <div class="card-body p-2 d-flex flex-column justify-content-center">
+                    <h6 class="card-title text-muted mb-1" style="font-size: 0.85rem;">Quebra em R$</h6>
+                    <h6 class="fw-bold mb-0 <?php echo e($auditoria->diferenca != 0 ? 'text-danger' : 'text-success'); ?>">
+                        R$ <?php echo e(number_format($auditoria->diferenca, 2, ',', '.')); ?>
+
+                    </h6>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="col">
+            <div class="card text-center shadow-sm h-100 <?php echo e($auditoria->diferenca != 0 ? 'border-danger' : 'border-success'); ?>">
+                <div class="card-body p-2 d-flex flex-column justify-content-center">
+                    <h6 class="card-title text-muted mb-1" style="font-size: 0.85rem;">Quebra em %</h6>
+                    <h6 class="fw-bold mb-0 <?php echo e($auditoria->diferenca != 0 ? 'text-danger' : 'text-success'); ?>">
+                        <?php echo e(number_format($percentual, 2, ',', '.')); ?>%
+                    </h6>
                 </div>
             </div>
         </div>
 
     </div>
-
 
     
     <div class="card shadow-sm mb-4">
