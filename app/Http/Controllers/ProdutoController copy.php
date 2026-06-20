@@ -378,92 +378,20 @@ class ProdutoController extends Controller
         ]);
     }
 
-    // public function update(Request $request, Produto $produto)
-    // {
-    //     $this->validateProduto($request, false);
-    //     $data = $request->except(['imagem']);
-    //     $data['controla_validade'] = $request->has('controla_validade');
-    //     $data['ativo'] = $request->has('ativo');
-
-    //       $data = $request->except(['imagem']);
-    //         dd($data);
-
-    //     // Validação condicional da validade
-    //     if ($request->controla_validade) {
-    //         $request->validate([
-    //             'validade_produto' => 'required|date|after_or_equal:today',
-    //         ]);
-
-          
-    //     } else {
-    //         $request->merge(['validade_produto' => null]);
-    //     }
-
-    //     // --- Verifica bloqueio ANTES da transação ---
-    //     if ($produto->editando_por && $produto->editando_por != auth()->id()) {
-    //         $usuario = $produto->usuarioEditando;
-    //         $nomeUsuario = $usuario->name ?? 'Outro usuário';
-
-    //         return redirect()
-    //             ->route('produtos.index')
-    //             ->with('error', "Este produto está sendo editado por: {$nomeUsuario}");
-    //     }
-
-    //     DB::transaction(function () use ($request, $produto) {
-
-    //         $produto->fill($request->except('imagem'));
-
-    //         // Atualiza validade e controla_validade
-    //         $produto->controla_validade = $request->controla_validade;
-    //         $produto->validade_produto  = $request->validade_produto;
-
-    //        if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
-
-    //         // Remove a imagem antiga
-    //         if ($produto->imagem) {
-    //                 $imagemAntiga = public_path($produto->imagem);
-
-    //                 if (file_exists($imagemAntiga)) {
-    //                     unlink($imagemAntiga);
-    //                 }
-    //             }
-
-    //             // Gera nome único
-    //             $arquivo = $request->file('imagem');
-    //             $nomeArquivo = time() . '_' . preg_replace('/[^A-Za-z0-9\.\-_]/', '_', $arquivo->getClientOriginalName());
-
-    //             // Garante que a pasta exista
-    //             $destino = public_path('image/produtos');
-
-    //             if (!file_exists($destino)) {
-    //                 mkdir($destino, 0755, true);
-    //             }
-
-    //             // Move o arquivo
-    //             $arquivo->move($destino, $nomeArquivo);
-
-    //             // Salva o caminho no banco
-    //             $produto->imagem = 'image/produtos/' . $nomeArquivo;
-    //         }
-
-    //         // --- Libera o bloqueio de edição ---
-    //         if ($produto->editando_por == auth()->id()) {
-    //             $produto->editando_por = null;
-    //             $produto->editando_em  = null;
-    //         }
-
-    //         $produto->save();
-    //     });
-
-    //     return redirect()->route('produtos.index')
-    //         ->with('success', 'Produto atualizado com sucesso!');
-    // }
-
     public function update(Request $request, Produto $produto)
     {
         $this->validateProduto($request, false);
 
-        // 🔒 Bloqueio de edição
+        // Validação condicional da validade
+        if ($request->controla_validade) {
+            $request->validate([
+                'validade_produto' => 'required|date|after_or_equal:today',
+            ]);
+        } else {
+            $request->merge(['validade_produto' => null]);
+        }
+
+        // --- Verifica bloqueio ANTES da transação ---
         if ($produto->editando_por && $produto->editando_por != auth()->id()) {
             $usuario = $produto->usuarioEditando;
             $nomeUsuario = $usuario->name ?? 'Outro usuário';
@@ -473,32 +401,18 @@ class ProdutoController extends Controller
                 ->with('error', "Este produto está sendo editado por: {$nomeUsuario}");
         }
 
-        // 📌 Dados base do request
-        $data = $request->except(['imagem']);
+        DB::transaction(function () use ($request, $produto) {
 
-        // ✅ Checkboxes (OBRIGATÓRIO usar has)
-        $data['ativo'] = $request->has('ativo');
-        $data['controla_validade'] = $request->has('controla_validade');
+            $produto->fill($request->except('imagem'));
 
-        // 📅 Validade condicional
-        if ($data['controla_validade']) {
-            $request->validate([
-                'validade_produto' => 'required|date|after_or_equal:today',
-            ]);
-        } else {
-            $data['validade_produto'] = null;
-        }
+            // Atualiza validade e controla_validade
+            $produto->controla_validade = $request->controla_validade;
+            $produto->validade_produto  = $request->validade_produto;
 
-        DB::transaction(function () use ($request, $produto, $data) {
+           if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
 
-            // 🧠 Preenche tudo de uma vez
-            $produto->fill($data);
-
-            // 🖼️ Upload de imagem
-            if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
-
-                // Remove imagem antiga
-                if ($produto->imagem) {
+            // Remove a imagem antiga
+            if ($produto->imagem) {
                     $imagemAntiga = public_path($produto->imagem);
 
                     if (file_exists($imagemAntiga)) {
@@ -508,37 +422,32 @@ class ProdutoController extends Controller
 
                 // Gera nome único
                 $arquivo = $request->file('imagem');
-                $nomeArquivo = time() . '_' . preg_replace(
-                    '/[^A-Za-z0-9\.\-_]/',
-                    '_',
-                    $arquivo->getClientOriginalName()
-                );
+                $nomeArquivo = time() . '_' . preg_replace('/[^A-Za-z0-9\.\-_]/', '_', $arquivo->getClientOriginalName());
 
-                // Pasta destino
+                // Garante que a pasta exista
                 $destino = public_path('image/produtos');
 
                 if (!file_exists($destino)) {
                     mkdir($destino, 0755, true);
                 }
 
-                // Move arquivo
+                // Move o arquivo
                 $arquivo->move($destino, $nomeArquivo);
 
+                // Salva o caminho no banco
                 $produto->imagem = 'image/produtos/' . $nomeArquivo;
             }
 
-            // 🔓 Libera bloqueio de edição
+            // --- Libera o bloqueio de edição ---
             if ($produto->editando_por == auth()->id()) {
                 $produto->editando_por = null;
-                $produto->editando_em = null;
+                $produto->editando_em  = null;
             }
 
-            // 💾 Persistência única
             $produto->save();
         });
 
-        return redirect()
-            ->route('produtos.index')
+        return redirect()->route('produtos.index')
             ->with('success', 'Produto atualizado com sucesso!');
     }
 

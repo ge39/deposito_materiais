@@ -87,32 +87,32 @@
                 <div class="row g-3 mb-4 p-3 bg-light rounded border">
                     <div class="col-md-3">
                         <label for="preco_compra_atual" class="form-label">Preço de Compra (Nota) (R$)</label>
-                        <input type="number" step="0.01" class="form-control calc-trigger" id="preco_compra_atual" name="preco_compra_atual" value="{{ old('preco_compra_atual', '0.00') }}">
+                        <input type="number" min="0"  step="0.01"  class="form-control calc-trigger" id="preco_compra_atual" name="preco_compra_atual" value="{{ old('preco_compra_atual', '0.00') }}">
                     </div>
                     <div class="col-md-3">
                         <label for="custo_frete_unidade" class="form-label">Frete Rateado/Unid. (R$)</label>
-                        <input type="number" step="0.01" class="form-control calc-trigger" id="custo_frete_unidade" name="custo_frete_unidade" value="{{ old('custo_frete_unidade', '0.00') }}">
+                        <input type="number" min="0"  step="0.01" class="form-control calc-trigger" id="custo_frete_unidade" name="custo_frete_unidade" value="{{ old('custo_frete_unidade', '0.00') }}">
                     </div>
                     <div class="col-md-3">
                         <label for="custo_imposto_entrada" class="form-label">Imposto Entrada/ST (R$)</label>
-                        <input type="number" step="0.01" class="form-control calc-trigger" id="custo_imposto_entrada" name="custo_imposto_entrada" value="{{ old('custo_imposto_entrada', '0.00') }}">
+                        <input type="number" min="0" min="0"  step="0.01" class="form-control calc-trigger" id="custo_imposto_entrada" name="custo_imposto_entrada" value="{{ old('custo_imposto_entrada', '0.00') }}">
                     </div>
                     <div class="col-md-3">
                         <label for="custo_real_entrada" class="form-label text-danger font-weight-bold">＝ Custo Real de Entrada (R$)</label>
-                        <input type="number" step="0.01" class="form-control bg-white text-danger fw-bold" id="custo_real_entrada" name="custo_real_entrada" readonly value="0.00">
+                        <input type="number" min="0"  step="0.01" class="form-control bg-white text-danger fw-bold" id="custo_real_entrada" name="custo_real_entrada" readonly value="0.00">
                     </div>
                     
                     <div class="col-md-4 mt-3">
                         <label for="percentual_imposto_saida" class="form-label">Imposto sobre Venda (%)</label>
-                        <input type="number" step="0.01" class="form-control calc-trigger" id="percentual_imposto_saida" name="percentual_imposto_saida" value="{{ old('percentual_imposto_saida', '0.00') }}">
+                        <input type="number" min="0"  step="0.01" class="form-control calc-trigger" id="percentual_imposto_saida" name="percentual_imposto_saida" value="{{ old('percentual_imposto_saida', '0.00') }}">
                     </div>
                     <div class="col-md-4 mt-3">
                         <label for="percentual_comissao" class="form-label">Comissão do Vendedor (%)</label>
-                        <input type="number" step="0.01" class="form-control calc-trigger" id="percentual_comissao" name="percentual_comissao" value="{{ old('percentual_comissao', '0.00') }}">
+                        <input type="number" min="0"  step="0.01" class="form-control calc-trigger" id="percentual_comissao" name="percentual_comissao" value="{{ old('percentual_comissao', '0.00') }}">
                     </div>
                     <div class="col-md-4 mt-3">
                         <label for="percentual_taxa_cartao" class="form-label">Taxa Administrativa Cartão (%)</label>
-                        <input type="number" step="0.01" class="form-control calc-trigger" id="percentual_taxa_cartao" name="percentual_taxa_cartao" value="{{ old('percentual_taxa_cartao', '0.00') }}">
+                        <input type="number" min="0"  step="0.01" class="form-control calc-trigger" id="percentual_taxa_cartao" name="percentual_taxa_cartao" value="{{ old('percentual_taxa_cartao', '0.00') }}">
                     </div>
                 </div>
 
@@ -127,15 +127,15 @@
                             <div class="card-body p-3">
                                 <div class="mb-2">
                                     <label for="markup_1" class="form-label mb-1">Lucro Desejado (%)</label>
-                                    <input type="number" step="0.01" class="form-control calc-trigger" id="markup_1" name="markup_1" value="{{ old('markup_1', '0.00') }}">
+                                    <input type="number" min="0"  step="0.01" class="form-control calc-trigger" id="markup_1" name="markup_1" value="{{ old('markup_1', '0.00') }}">
                                 </div>
                                 <div class="mb-2">
                                     <label for="desconto_max_1" class="form-label mb-1">Limite Desconto (%)</label>
-                                    <input type="number" step="0.01" class="form-control calc-trigger" id="desconto_max_1" name="desconto_max_1" value="{{ old('desconto_max_1', '0.00') }}">
+                                    <input type="number" min="0"  step="0.01" class="form-control calc-trigger" id="desconto_max_1" name="desconto_max_1" value="{{ old('desconto_max_1', '0.00') }}">
                                 </div>
                                 <div>
                                     <label for="preco_venda" class="form-label mb-1 fw-bold text-primary">Preço de Venda (R$)</label>
-                                    <input type="number" step="0.01" class="form-control fw-bold border-primary text-primary" id="preco_venda" name="preco_venda" value="{{ old('preco_venda', '0.00') }}">
+                                    <input type="number" min="0"  step="0.01" class="form-control fw-bold border-primary text-primary" id="preco_venda" name="preco_venda" value="{{ old('preco_venda', '0.00') }}">
                                 </div>
                             </div>
                         </div>
@@ -148,15 +148,15 @@
                             <div class="card-body p-3">
                                 <div class="mb-2">
                                     <label for="markup_2" class="form-label mb-1">Lucro Desejado (%)</label>
-                                    <input type="number" step="0.01" class="form-control calc-trigger" id="markup_2" name="markup_2" value="{{ old('markup_2', '0.00') }}">
+                                    <input type="number" min="0"  step="0.01" class="form-control calc-trigger" id="markup_2" name="markup_2" value="{{ old('markup_2', '0.00') }}">
                                 </div>
                                 <div class="mb-2">
                                     <label for="desconto_max_2" class="form-label mb-1">Limite Desconto (%)</label>
-                                    <input type="number" step="0.01" class="form-control calc-trigger" id="desconto_max_2" name="desconto_max_2" value="{{ old('desconto_max_2', '0.00') }}">
+                                    <input type="number" min="0"  step="0.01" class="form-control calc-trigger" id="desconto_max_2" name="desconto_max_2" value="{{ old('desconto_max_2', '0.00') }}">
                                 </div>
                                 <div>
                                     <label for="preco_venda_2" class="form-label mb-1 fw-bold text-info">Preço de Venda 2 (R$)</label>
-                                    <input type="number" step="0.01" class="form-control fw-bold border-info text-info" id="preco_venda_2" name="preco_venda_2" value="{{ old('preco_venda_2', '0.00') }}">
+                                    <input type="number" min="0"  step="0.01" class="form-control fw-bold border-info text-info" id="preco_venda_2" name="preco_venda_2" value="{{ old('preco_venda_2', '0.00') }}">
                                 </div>
                             </div>
                         </div>
@@ -169,15 +169,15 @@
                             <div class="card-body p-3">
                                 <div class="mb-2">
                                     <label for="markup_3" class="form-label mb-1">Lucro Desejado (%)</label>
-                                    <input type="number" step="0.01" class="form-control calc-trigger" id="markup_3" name="markup_3" value="{{ old('markup_3', '0.00') }}">
+                                    <input type="number" min="0"  step="0.01" class="form-control calc-trigger" id="markup_3" name="markup_3" value="{{ old('markup_3', '0.00') }}">
                                 </div>
                                 <div class="mb-2">
                                     <label for="desconto_max_3" class="form-label mb-1">Limite Desconto (%)</label>
-                                    <input type="number" step="0.01" class="form-control calc-trigger" id="desconto_max_3" name="desconto_max_3" value="{{ old('desconto_max_3', '0.00') }}">
+                                    <input type="number" min="0"  step="0.01" class="form-control calc-trigger" id="desconto_max_3" name="desconto_max_3" value="{{ old('desconto_max_3', '0.00') }}">
                                 </div>
                                 <div>
                                     <label for="preco_venda_3" class="form-label mb-1 fw-bold text-success">Preço de Venda 3 (R$)</label>
-                                    <input type="number" step="0.01" class="form-control fw-bold border-success text-success" id="preco_venda_3" name="preco_venda_3" value="{{ old('preco_venda_3', '0.00') }}">
+                                    <input type="number" min="0"  step="0.01" class="form-control fw-bold border-success text-success" id="preco_venda_3" name="preco_venda_3" value="{{ old('preco_venda_3', '0.00') }}">
                                 </div>
                             </div>
                         </div>
@@ -190,11 +190,11 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-3">
                         <label for="quantidade_estoque" class="form-label">Qtd. em Estoque</label>
-                        <input type="number" class="form-control" id="quantidade_estoque" name="quantidade_estoque" value="{{ old('quantidade_estoque', 0) }}">
+                        <input type="number" min="0" class="form-control" id="quantidade_estoque" name="quantidade_estoque" value="{{ old('quantidade_estoque', 0) }}">
                     </div>
                     <div class="col-md-3">
                         <label for="estoque_minimo" class="form-label">Estoque Mínimo</label>
-                        <input type="number" class="form-control" id="estoque_minimo" name="estoque_minimo" value="{{ old('estoque_minimo', 0) }}">
+                        <input type="number"  min="0" class="form-control" id="estoque_minimo" name="estoque_minimo" value="{{ old('estoque_minimo', 0) }}">
                     </div>
                     <div class="col-md-3">
                         <label for="localizacao_estoque" class="form-label">Localização no Depósito</label>
@@ -202,20 +202,20 @@
                     </div>
                     <div class="col-md-3">
                         <label for="peso" class="form-label">Peso (kg)</label>
-                        <input type="number" step="0.01" class="form-control" id="peso" name="peso" value="{{ old('peso', '0.00') }}">
+                        <input type="number" min="0"  step="0.01" class="form-control" id="peso" name="peso" value="{{ old('peso', '0.00') }}">
                     </div>
 
                     <div class="col-md-2">
                         <label for="largura" class="form-label">Largura (cm)</label>
-                        <input type="number" step="0.01" class="form-control" id="largura" name="largura" value="{{ old('largura', '0.00') }}">
+                        <input type="number" min="0"  step="0.01" class="form-control" id="largura" name="largura" value="{{ old('largura', '0.00') }}">
                     </div>
                     <div class="col-md-2">
                         <label for="altura" class="form-label">Altura (cm)</label>
-                        <input type="number" step="0.01" class="form-control" id="altura" name="altura" value="{{ old('altura', '0.00') }}">
+                        <input type="number" min="0"  step="0.01" class="form-control" id="altura" name="altura" value="{{ old('altura', '0.00') }}">
                     </div>
                     <div class="col-md-2">
                         <label for="profundidade" class="form-label">Profundidade (cm)</label>
-                        <input type="number" step="0.01" class="form-control" id="profundidade" name="profundidade" value="{{ old('profundidade', '0.00') }}">
+                        <input type="number" min="0"  step="0.01" class="form-control" id="profundidade" name="profundidade" value="{{ old('profundidade', '0.00') }}">
                     </div>
                     <div class="col-md-6">
                         <label for="imagem" class="form-label">Imagem do Produto</label>
@@ -297,73 +297,73 @@
 
 <!-- SCRIPTS JAVASCRIPT DE ENGENHARIA DE PREÇOS -->
 <script>
-function calcularTabelasMarkup() {
-    // 1. Captura as variáveis de custo de entrada
-    const compra = parseFloat(document.getElementById('preco_compra_atual').value) || 0;
-    const frete = parseFloat(document.getElementById('custo_frete_unidade').value) || 0;
-    const impEntrada = parseFloat(document.getElementById('custo_imposto_entrada').value) || 0;
+    function calcularTabelasMarkup() {
+        // 1. Captura as variáveis de custo de entrada
+        const compra = parseFloat(document.getElementById('preco_compra_atual').value) || 0;
+        const frete = parseFloat(document.getElementById('custo_frete_unidade').value) || 0;
+        const impEntrada = parseFloat(document.getElementById('custo_imposto_entrada').value) || 0;
 
-    // Soma as despesas e atualiza o campo Custo Real na tela
-    const custoReal = compra + frete + impEntrada;
-    document.getElementById('custo_real_entrada').value = custoReal.toFixed(2);
+        // Soma as despesas e atualiza o campo Custo Real na tela
+        const custoReal = compra + frete + impEntrada;
+        document.getElementById('custo_real_entrada').value = custoReal.toFixed(2);
 
-    if (custoReal === 0) return;
+        if (custoReal === 0) return;
 
-    // 2. Captura as taxas incidentes sobre a venda (saída)
-    const impSaida = parseFloat(document.getElementById('percentual_imposto_saida').value) || 0;
-    const comissao = parseFloat(document.getElementById('percentual_comissao').value) || 0;
-    const cartao = parseFloat(document.getElementById('percentual_taxa_cartao').value) || 0;
-    const totalCustosSaida = impSaida + comissao + cartao;
+        // 2. Captura as taxas incidentes sobre a venda (saída)
+        const impSaida = parseFloat(document.getElementById('percentual_imposto_saida').value) || 0;
+        const comissao = parseFloat(document.getElementById('percentual_comissao').value) || 0;
+        const cartao = parseFloat(document.getElementById('percentual_taxa_cartao').value) || 0;
+        const totalCustosSaida = impSaida + comissao + cartao;
 
-    // 3. Loop inteligente para compor os preços por dentro das 3 tabelas
-    for (let i = 1; i <= 3; i++) {
-        const markup = parseFloat(document.getElementById('markup_' + i).value) || 0;
-        const desconto = parseFloat(document.getElementById('desconto_max_' + i).value) || 0;
+        // 3. Loop inteligente para compor os preços por dentro das 3 tabelas
+        for (let i = 1; i <= 3; i++) {
+            const markup = parseFloat(document.getElementById('markup_' + i).value) || 0;
+            const desconto = parseFloat(document.getElementById('desconto_max_' + i).value) || 0;
 
-        // Formula por dentro: Custo / (1 - Soma das deduções)
-        const totalDeducoes = totalCustosSaida + markup + desconto;
-        const divisor = 1 - (totalDeducoes / 100);
+            // Formula por dentro: Custo / (1 - Soma das deduções)
+            const totalDeducoes = totalCustosSaida + markup + desconto;
+            const divisor = 1 - (totalDeducoes / 100);
 
-        let precoFinal = 0;
-        if (divisor > 0) {
-            precoFinal = custoReal / divisor;
-        } else {
-            // Margem de segurança caso a somatória chegue ou passe de 100%
-            precoFinal = custoReal * (1 + (markup / 100));
+            let precoFinal = 0;
+            if (divisor > 0) {
+                precoFinal = custoReal / divisor;
+            } else {
+                // Margem de segurança caso a somatória chegue ou passe de 100%
+                precoFinal = custoReal * (1 + (markup / 100));
+            }
+
+            // Distribui os resultados nos inputs de preço correspondentes
+            const inputId = i === 1 ? 'preco_venda' : 'preco_venda_' + i;
+            document.getElementById(inputId).value = precoFinal.toFixed(2);
         }
-
-        // Distribui os resultados nos inputs de preço correspondentes
-        const inputId = i === 1 ? 'preco_venda' : 'preco_venda_' + i;
-        document.getElementById(inputId).value = precoFinal.toFixed(2);
     }
-}
 
-// Vincula o recálculo dinâmico em lote em todos os inputs de valor/porcentagem
-document.querySelectorAll('.calc-trigger').forEach(input => {
-    input.addEventListener('input', calcularTabelasMarkup);
-});
+    // Vincula o recálculo dinâmico em lote em todos os inputs de valor/porcentagem
+    document.querySelectorAll('.calc-trigger').forEach(input => {
+        input.addEventListener('input', calcularTabelasMarkup);
+    });
 
-// Controla a exibição em tempo real da prévia da imagem selecionada
-function previewImage(event) {
-    const reader = new FileReader();
-    reader.onload = function(){
-        const output = document.getElementById('imagemPreview');
-        output.src = reader.result;
-    };
-    if(event.target.files && event.target.files[0]) {
-        reader.readAsDataURL(event.target.files[0]);
+    // Controla a exibição em tempo real da prévia da imagem selecionada
+    function previewImage(event) {
+        const reader = new FileReader();
+        reader.onload = function(){
+            const output = document.getElementById('imagemPreview');
+            output.src = reader.result;
+        };
+        if(event.target.files && event.target.files[0]) {
+            reader.readAsDataURL(event.target.files[0]);
+        }
     }
-}
 
-// Esconde ou exibe a caixa de data de validade com base no switch
-function toggleValidade(checkbox) {
-    const container = document.getElementById('validade_container');
-    container.style.display = checkbox.checked ? 'block' : 'none';
-}
+    // Esconde ou exibe a caixa de data de validade com base no switch
+    function toggleValidade(checkbox) {
+        const container = document.getElementById('validade_container');
+        container.style.display = checkbox.checked ? 'block' : 'none';
+    }
 
-// Executa o gatilho na primeira inicialização para alinhar os campos ocultos
-document.addEventListener('DOMContentLoaded', function() {
-    toggleValidade(document.getElementById('controla_validade'));
-});
+    // Executa o gatilho na primeira inicialização para alinhar os campos ocultos
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleValidade(document.getElementById('controla_validade'));
+    });
 </script>
 @endsection

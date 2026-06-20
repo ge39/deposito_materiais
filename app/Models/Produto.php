@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,22 +12,103 @@ class Produto extends Model
 {
     use HasFactory;
 
+    /**
+     * Os atributos que podem ser atribuídos em massa.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
-        'nome', 'descricao', 'categoria_id', 'fornecedor_id', 'unidade_medida_id',
-        'marca_id', 'estoque_minimo', 'preco_compra_atual', 'preco_venda', 'peso',
-        'largura', 'altura', 'profundidade', 'localizacao_estoque', 'imagem',
-        'ativo', 'codigo_barras', 'sku', 'em_promocao', 'validade_produto',
-        'editando_por', 'editando_em','controla_validade'
+        'nome', 
+        'descricao', 
+        'categoria_id', 
+        'fornecedor_id', 
+        'unidade_medida_id',
+        'marca_id', 
+        'estoque_minimo', 
+        'preco_compra_atual', 
+        'custo_frete_unidade',
+        'custo_imposto_entrada',
+        'custo_real_entrada',
+        'percentual_imposto_saida',
+        'percentual_comissao',
+        'percentual_taxa_cartao',
+        'markup_1',
+        'markup_2',
+        'markup_3',
+        'quantidade_estoque',
+        'preco_venda', 
+        'desconto_max_1',
+        'preco_venda_2',
+        'desconto_max_2',
+        'preco_venda_3',
+        'desconto_max_3',
+        'peso',
+        'largura', 
+        'altura', 
+        'profundidade', 
+        'localizacao_estoque', 
+        'imagem',
+        'ativo', 
+        'codigo_barras', 
+        'sku', 
+        'ncm',
+        'cest',
+        'origem',
+        'cfop',
+        'icms_csosn',
+        'em_promocao', 
+        'controla_validade',
+        'validade_produto',
+        'editando_por', 
+        'editando_em'
     ];
     
-    protected $dates = ['created_at','updated_at','validade_produto','editando_em'];
-
+    /**
+     * As conversões de tipo dos atributos (substitui o antigo $dates).
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
-        'preco_venda' => 'decimal:2',
-        'promocao_inicio' => 'date',
-        'validade_produto'=> 'date',
-        'promocao_fim' => 'date',
+        // Booleanos
+        'ativo' => 'boolean',
         'em_promocao' => 'boolean',
+        'controla_validade' => 'boolean',
+        
+        // Datas
+        'validade_produto' => 'date',
+        'editando_em' => 'datetime',
+        'promocao_inicio' => 'date',
+        'promocao_fim' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+
+        // Inteiros
+        'estoque_minimo' => 'integer',
+        'quantidade_estoque' => 'integer',
+        'origem' => 'integer',
+        'editando_por' => 'integer',
+
+        // Decimais
+        'preco_compra_atual' => 'decimal:2',
+        'custo_frete_unidade' => 'decimal:2',
+        'custo_imposto_entrada' => 'decimal:2',
+        'custo_real_entrada' => 'decimal:2',
+        'percentual_imposto_saida' => 'decimal:2',
+        'percentual_comissao' => 'decimal:2',
+        'percentual_taxa_cartao' => 'decimal:2',
+        'markup_1' => 'decimal:2',
+        'markup_2' => 'decimal:2',
+        'markup_3' => 'decimal:2',
+        'preco_venda' => 'decimal:2',
+        'desconto_max_1' => 'decimal:2',
+        'preco_venda_2' => 'decimal:2',
+        'desconto_max_2' => 'decimal:2',
+        'preco_venda_3' => 'decimal:2',
+        'desconto_max_3' => 'decimal:2',
+        'peso' => 'decimal:2',
+        'largura' => 'decimal:2',
+        'altura' => 'decimal:2',
+        'profundidade' => 'decimal:2',
     ];
 
     // -------------------------------
@@ -43,7 +125,7 @@ class Produto extends Model
 
     public function lotes()
     {
-        return $this->hasMany(Lote::class,'produto_id');
+        return $this->hasMany(Lote::class, 'produto_id');
     }
 
     public function itemVendas()
@@ -73,6 +155,11 @@ class Produto extends Model
     public function marca()
     {
         return $this->belongsTo(Marca::class);
+    }
+
+    public function editor()
+    {
+        return $this->belongsTo(User::class, 'editando_por');
     }
 
     // -------------------------------
@@ -169,6 +256,7 @@ class Produto extends Model
 
         return round($preco, 2);
     }
+
     // =========================
     // ESTOQUE TOTAL (TODOS LOTES)
     // =========================
