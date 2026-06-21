@@ -222,7 +222,7 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-3">
                         <label for="quantidade_estoque" class="form-label">Qtd. em Estoque</label>
-                        <input type="number" min="0" class="form-control" id="quantidade_estoque" name="quantidade_estoque" value="{{ old('quantidade_estoque',$produto->quantidade_estoque ?? 0) }}">
+                        <input type="number" min="0" class="form-control" id="quantidade_estoque" name="quantidade_estoque" value="{{ old('quantidade_estoque',$produto->estoque ?? 0) }}">
                     </div>
                     <div class="col-md-3">
                         <label for="estoque_minimo" class="form-label">Estoque Mínimo</label>

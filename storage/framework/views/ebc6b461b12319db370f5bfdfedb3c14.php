@@ -118,7 +118,7 @@
 
                             <p class="card-text mb-1">
                                 <strong>Disponível:</strong> 
-                                <span style="font-size:20px; color:grafite; font-weight:bold"><?php echo e($produto->disponivel ?? 0); ?></span>
+                                <span style="font-size:20px; color:grafite; font-weight:bold"><?php echo e($produto->estoque ?? 0); ?></span>
                             </p>
 
                             <p class="card-text mb-1"><strong>Mínimo:</strong> <?php echo e($produto->estoque_minimo); ?></p>

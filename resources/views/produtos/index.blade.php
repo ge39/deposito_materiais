@@ -111,7 +111,7 @@
 
                             <p class="card-text mb-1">
                                 <strong>Disponível:</strong> 
-                                <span style="font-size:20px; color:grafite; font-weight:bold">{{ $produto->disponivel ?? 0 }}</span>
+                                <span style="font-size:20px; color:grafite; font-weight:bold">{{ $produto->estoque ?? 0 }}</span>
                             </p>
 
                             <p class="card-text mb-1"><strong>Mínimo:</strong> {{ $produto->estoque_minimo }}</p>

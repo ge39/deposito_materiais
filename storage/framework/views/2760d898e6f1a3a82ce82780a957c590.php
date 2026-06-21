@@ -1,29 +1,29 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 <div class="container mt-4">
     <div class="card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Nova Promoção</h4>
-            <a href="{{ url()->previous() }}" class="btn btn-secondary">Voltar</a>
+            <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary">Voltar</a>
         </div>
 
         <div class="card-body">
-            @if ($errors->any())
+            <?php if($errors->any()): ?>
                 <div class="alert alert-danger">
                     <strong>Ops!</strong> Verifique os erros abaixo:<br><br>
                     <ul class="mb-0">
-                        @foreach ($errors->all() as $erro)
-                            <li>{{ $erro }}</li>
-                        @endforeach
+                        <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $erro): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <li><?php echo e($erro); ?></li>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </ul>
                 </div>
-            @endif
+            <?php endif; ?>
 
-            <form id="formPromocao" action="{{ route('promocoes.store') }}" method="POST">
-                @csrf
+            <form id="formPromocao" action="<?php echo e(route('promocoes.store')); ?>" method="POST">
+                <?php echo csrf_field(); ?>
 
-                {{-- Tipo de Abrangência --}}
+                
                 <div class="mb-3">
                     <label for="tipo_abrangencia" class="form-label">Tipo de Abrangência</label>
                     <select name="tipo_abrangencia" id="tipo_abrangencia" class="form-select" required onchange="toggleCampos(this.value)">
@@ -33,45 +33,46 @@
                     </select>
                 </div>
 
-                {{-- Produto --}}
+                
                 <div class="mb-3 d-none" id="campo_produto">
                     <label for="produto_id" class="form-label">Produto</label>
                     <select name="produto_id" id="produto_id" class="form-select" onchange="atualizarPreco()">
                         <option value="">Selecione um produto...</option>
-                        @foreach($produtos as $produto)
+                        <?php $__currentLoopData = $produtos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $produto): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <option 
-                                value="{{ $produto->id }}"
-                                data-preco="{{ $produto->preco_venda }}"
-                                data-nome="{{ $produto->nome }}"
-                                data-marca="{{ $produto->marca->nome }}"
-                                data-unidade="{{ $produto->unidadeMedida->nome}}"
-                                data-estoque="{{ $produto->estoque }}"
-                                data-fornecedor="{{ $produto->fornecedor->nome ?? '' }}"
-                                data-descricao="{{ $produto->descricao }}"
+                                value="<?php echo e($produto->id); ?>"
+                                data-preco="<?php echo e($produto->preco_venda); ?>"
+                                data-nome="<?php echo e($produto->nome); ?>"
+                                data-marca="<?php echo e($produto->marca->nome); ?>"
+                                data-unidade="<?php echo e($produto->unidadeMedida->nome); ?>"
+                                data-estoque="<?php echo e($produto->estoque); ?>"
+                                data-fornecedor="<?php echo e($produto->fornecedor->nome ?? ''); ?>"
+                                data-descricao="<?php echo e($produto->descricao); ?>"
                             >
-                                {{ $produto->nome }}
+                                <?php echo e($produto->nome); ?>
+
                             </option>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
                 </div>
 
-                {{-- Categoria --}}
+                
                 <div class="mb-3 d-none" id="campo_categoria">
                     <label for="categoria_id" class="form-label">Categoria</label>
                     <select name="categoria_id" id="categoria_id" class="form-select" onchange="atualizarPreco()">
                         <option value="">Selecione uma categoria...</option>
-                        @foreach($categorias as $categoria)
-                            <option value="{{ $categoria->id }}">{{ $categoria->nome }}</option>
-                        @endforeach
+                        <?php $__currentLoopData = $categorias; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $categoria): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($categoria->id); ?>"><?php echo e($categoria->nome); ?></option>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
                 </div>
 
                 <hr>
 
-                {{-- Campos de valores --}}
+                
                 <div class="row">
 
-                    {{-- DADOS DO PRODUTO (VISUALIZAÇÃO) --}}
+                    
                     <div class="row g-2 align-items-end mb-3">
 
                         <div class="col-auto">
@@ -136,25 +137,25 @@
 
                 <hr>
 
-                {{-- Datas --}}
+                
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="promocao_inicio" class="form-label">Data de Início</label>
-                        <input type="date" name="promocao_inicio" id="promocao_inicio" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        <input type="date" name="promocao_inicio" id="promocao_inicio" class="form-control" value="<?php echo e(date('Y-m-d')); ?>" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="promocao_fim" class="form-label">Data de Fim</label>
-                        <input type="date" name="promocao_fim" id="promocao_fim" class="form-control" value="{{ date('Y-m-d', strtotime('+2 days')) }}" required>
+                        <input type="date" name="promocao_fim" id="promocao_fim" class="form-control" value="<?php echo e(date('Y-m-d', strtotime('+2 days'))); ?>" required>
                     </div>
                 </div>
 
-                {{-- Status --}}
+                
                 <!-- <div class="form-check form-switch mb-4">
                     <input class="form-check-input" type="checkbox" name="status" id="status" value="1" checked>
                     <label class="form-check-label" for="status">Ativar promoção imediatamente</label>
                 </div> -->
 
-                {{-- Botões --}}
+                
                 <div class="d-flex justify-content-end">
                     <button type="submit" class="btn btn-success">
                         <i class="bi bi-check-circle"></i> Salvar Promoção
@@ -254,4 +255,5 @@
 
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/promocoes/create.blade.php ENDPATH**/ ?>

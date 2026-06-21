@@ -123,7 +123,10 @@ Route::middleware('auth')->group(function () {
         Route::get('{promocao}/edit', [PromocaoController::class, 'edit'])->name('edit');
         Route::put('{promocao}', [PromocaoController::class, 'update'])->name('update');
         Route::delete('{promocao}', [PromocaoController::class, 'destroy'])->name('destroy');
-        Route::put('{promocao}/toggle-status', [PromocaoController::class, 'toggleStatus'])->name('toggleStatus');
+        // Route::put('{promocao}/toggle-status', [PromocaoController::class, 'toggleStatus'])->name('toggleStatus');
+        // Altere o ->name('toggleStatus') para ->name('promocoes.toggle')
+        Route::put('{promocao}/toggle-status', [PromocaoController::class, 'toggleStatus'])->name('promocoes.toggle');
+
         Route::patch('{promocao}/encerrar', [PromocaoController::class, 'encerrar'])->name('encerrar');
     });
 

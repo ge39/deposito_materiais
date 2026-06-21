@@ -98,13 +98,27 @@ class PromocaoController extends Controller
     }
 
     // FORMULÁRIO DE EDIÇÃO
+    // public function edit(Promocao $promocao)
+    // {
+    //     $produtos = Produto::orderBy('nome')->get();
+    //     $categorias = Categoria::orderBy('nome')->get();
+
+    //     return view('promocoes.edit', compact('promocao', 'produtos', 'categorias'));
+    // }
+
+    // FORMULÁRIO DE EDIÇÃO
     public function edit(Promocao $promocao)
     {
-        $produtos = Produto::orderBy('nome')->get();
+        // 🚀 Carrega os lotes e relacionamentos necessários para os atributos "data-" do HTML
+        $produtos = Produto::with(['lotes', 'marca', 'unidadeMedida', 'fornecedor'])
+            ->orderBy('nome')
+            ->get();
+            
         $categorias = Categoria::orderBy('nome')->get();
 
         return view('promocoes.edit', compact('promocao', 'produtos', 'categorias'));
     }
+
 
     // ATUALIZAR PROMOÇÃO
     public function update(Request $request, Promocao $promocao)
