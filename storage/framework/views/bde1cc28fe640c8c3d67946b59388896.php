@@ -24,11 +24,11 @@
 
         <!-- Coluna 2: Estoque, preços e datas -->
         <div class="col-md-4">
-            <div class="mb-3"><strong>Quantidade em Estoque:</strong> <?php echo e($produto->quantidade_estoque); ?></div>
+            <div class="mb-3"><strong>Quantidade em Estoque:</strong> <?php echo e($produto->estoque); ?></div>
             <div class="mb-3"><strong>Estoque Mínimo:</strong> <?php echo e($produto->estoque_minimo); ?></div>
             <div class="mb-3 text-primary" ><strong>Preço de Venda:</strong> R$ <?php echo e(number_format($produto->preco_venda, 2, ',', '.')); ?></div>
-            <div class="mb-3"><strong>Data da Compra:</strong> <?php echo e($produto->data_compra ? $produto->data_compra->format('d/m/Y') : '-'); ?></div>
-            <div class="mb-3 text-primary" ><strong>Validade:</strong> <?php echo e($produto->validade_produto ? $produto->validade_produto->format('d/m/Y') : '-'); ?></div>
+            <!-- <div class="mb-3"><strong>Data da Compra:</strong> <?php echo e($produto->data_compra ? $produto->data_compra->format('d/m/Y') : '-'); ?></div> -->
+            <!-- <div class="mb-3 text-primary" ><strong>Validade:</strong> <?php echo e($produto->validade_produto ? $produto->validade_produto->format('d/m/Y') : '-'); ?></div> -->
             <div class="mb-3"><strong>Peso:</strong> <?php echo e($produto->peso); ?> kg</div>
         </div>
 

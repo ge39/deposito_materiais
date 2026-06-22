@@ -5,7 +5,7 @@
     <h2 class="mb-4">Lotes do Produto: 000{{ $produto->id }} </h2>
 
     <div class="justify-content-end gap-2 text-primary">
-         Produto: <strong> {{ $produto->nome }} </strong>
+         Produto: <strong> {{ $produto->nome }}  - Estoque: {{ $produto->estoque ?? '0'}}  {{ $produto->unidadeMedida->nome }}(s)</strong>
     </div>
 
     @if($produto->lotes->isEmpty())

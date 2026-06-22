@@ -5,7 +5,7 @@
     <h2 class="mb-4">Lotes do Produto: 000<?php echo e($produto->id); ?> </h2>
 
     <div class="justify-content-end gap-2 text-primary">
-         Produto: <strong> <?php echo e($produto->nome); ?> </strong>
+         Produto: <strong> <?php echo e($produto->nome); ?>  - Estoque: <?php echo e($produto->estoque ?? '0'); ?>  <?php echo e($produto->unidadeMedida->nome); ?>(s)</strong>
     </div>
 
     <?php if($produto->lotes->isEmpty()): ?>

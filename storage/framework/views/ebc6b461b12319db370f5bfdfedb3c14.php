@@ -1,3 +1,28 @@
+<style>
+    /* Alvo: A div pai que está envelopando o conteúdo nesta tela */
+    body > div.container.mt-4 {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+        
+    }
+    .imagem-produto {
+    max-width: 100px;
+    max-height: 100px;
+    border: 1px solid #ccc;
+    padding: 3px;
+    cursor: zoom-in;
+    transition: transform 0.3s ease;
+}
+
+.imagem-produto:hover {
+    transform: scale(5); /* aumenta 100% */
+    z-index: 9999;
+    position: relative;
+}
+</style>
+
 
 
 <?php $__env->startSection('content'); ?>
@@ -173,13 +198,22 @@
                             <!-- Imagem -->
                           <!-- Bloco de Imagem Corrigido para Listagens/Grid -->
                             <div class="text-center mt-2">
-                                <label class="form-label d-block font-weight-bold">Imagem</label>
+                                <!-- <label class="form-label d-block font-weight-bold">Imagem</label> -->
                                 
-                                <img id="imagemPreview_<?php echo e($produto->id); ?>"
-                                    src="<?php echo e((!empty($produto->imagem) && file_exists(public_path($produto->imagem))) ? asset($produto->imagem) : asset('image/produtos/produto-sem-imagem.PNG')); ?>"
-                                    onerror="this.onerror=null; this.src='<?php echo e(asset('image/produtos/produto-sem-imagem.PNG')); ?>';"
-                                    alt="<?php echo e($produto->nome); ?>"
-                                    style="max-width:150px; max-height:150px; border:1px solid #ccc; padding:3px;">
+                               <input type="file"
+                                class="form-control mb-1"
+                                id="imagem"
+                                name="imagem"
+                                accept="image/*"
+                                onchange="previewImage(event)">
+
+                            <img id="imagemPreview"
+                                class="imagem-produto mt-1"
+                                src="<?php echo e(asset($produto->imagem ?? 'image/produtos/produto-sem-imagem.PNG')); ?>"
+                                onerror="this.onerror=null;this.src='<?php echo e(asset('image/produtos/produto-sem-imagem.PNG')); ?>';"
+                                alt="Prévia"
+                                style="max-width:100px; max-height:100px; border:1px solid #ccc; padding:3px;"
+                                class="mt-1">
                             </div>
                             <!-- Botões -->
                             <div class="d-flex flex-wrap gap-1 mt-3">

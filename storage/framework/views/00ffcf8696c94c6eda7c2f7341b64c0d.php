@@ -136,7 +136,7 @@ unset($__errorArgs, $__bag); ?>
                             class="form-control calc-trigger"
                             id="preco_compra_atual"
                             name="preco_compra_atual"
-                            value="<?php echo e(old('preco_compra_atual', $produto->preco_compra_atual ?? '0')); ?>"
+                           value="<?php echo e(old('preco_compra_atual', $produto->preco_compra_lote ?? '0')); ?>"
                         >
                     </div>
                     <div class="col-md-3">
@@ -227,7 +227,7 @@ unset($__errorArgs, $__bag); ?>
                                 </div>
                                 <div>
                                     <label for="preco_venda_3" class="form-label mb-1 fw-bold text-success">Preço de Venda 3 (R$)</label>
-                                    <input type="number" min="0"  step="0.01" class="form-control fw-bold border-success text-success" id="preco_venda_3" name="preco_venda_3" value="<?php echo e(old('preco_venda_3', $produto->preco_venda ?? '0.00')); ?>">
+                                    <input type="number" min="0"  step="0.01" class="form-control fw-bold border-success text-success" id="preco_venda_3" name="preco_venda_3" value="<?php echo e(old('preco_venda_3', $produto->preco_venda_3 ?? '0.00')); ?>">
                                 </div>
                             </div>
                         </div>
@@ -240,7 +240,7 @@ unset($__errorArgs, $__bag); ?>
                 <div class="row g-3 mb-4">
                     <div class="col-md-3">
                         <label for="quantidade_estoque" class="form-label">Qtd. em Estoque</label>
-                        <input type="number" min="0" class="form-control" id="quantidade_estoque" name="quantidade_estoque" value="<?php echo e(old('quantidade_estoque',$produto->estoque ?? 0)); ?>">
+                        <input type="number" min="0" class="form-control" id="quantidade_estoque" name="quantidade_disponivel" value="<?php echo e(old('quantidade_disponivel',$produto->estoque ?? 0)); ?>">
                     </div>
                     <div class="col-md-3">
                         <label for="estoque_minimo" class="form-label">Estoque Mínimo</label>
@@ -304,7 +304,7 @@ unset($__errorArgs, $__bag); ?>
                     </div>
                     <div class="col-md-3">
                         <label for="icms_csosn" class="form-label">ICMS / CSOSN</label>
-                        <input type="text" class="form-control" id="icms_csosn" name="icms_csosn" maxlength="4" value="<?php echo e(old('icms_csosn', $produto->icms_cson ?? '0')); ?>">
+                        <input type="text" class="form-control" id="icms_csosn" name="icms_csosn" maxlength="4" value="<?php echo e(old('icms_csosn', $produto->icms_csosn ?? '0')); ?>">
                     </div>
                     <div class="col-md-3">
                         <label for="origem" class="form-label">Origem da Mercadoria</label>
@@ -334,28 +334,31 @@ unset($__errorArgs, $__bag); ?>
                     <div class="row mb-4">
                         <div class="col-md-3">
                             <div class="form-check form-switch">
+                            <!-- 🚀 GARANTE O ENVIO DO VALOR 0 SE O USUÁRIO DESMARCAR -->
+                                <input type="hidden" name="ativo" value="0">
+
                                 <input class="form-check-input"
                                     type="checkbox"
                                     id="ativo"
                                     name="ativo"
                                     value="1"
-                                    <?php echo e(old('ativo', $produto->ativo ?? 1) ? 'checked' : ''); ?>>
-
+                                    <?php echo e(old('ativo', $produto->ativo ?? 0) == 1 ? 'checked' : ''); ?>>
+                                
                                 <label class="form-check-label" for="ativo">
                                     Produto Ativo para Vendas
                                 </label>
                             </div>
+                       
                     </div>
                     <div class="col-md-3">
                         <div class="form-check form-switch">
                             <div class="form-check form-switch">
-                                <input class="form-check-input"
-                                    type="checkbox"
-                                    id="em_promocao"
-                                    name="em_promocao"
-                                    value="1"
-                                    <?php echo e(old('em_promocao', $produto->em_promocao ?? 1) ? 'checked' : ''); ?>>
-
+                               <input class="form-check-input"
+                                type="checkbox"
+                                id="em_promocao"
+                                name="em_promocao"
+                                value="1"
+                                <?php echo e(old('em_promocao', $produto->em_promocao ?? 0) == 1 ? 'checked' : ''); ?>>
                                 <label class="form-check-label" for="em_promocao">Destacar em Promoção</label>
                             </div>
                             
@@ -475,6 +478,43 @@ unset($__errorArgs, $__bag); ?>
         toggleValidade(document.getElementById('controla_validade'));
     });
 </script>
+
+<!-- carrega o calculo do valor ＝ Custo Real de Entrada (R$)-->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Seleciona os elementos necessários do DOM
+        const precoCompra      = document.getElementById('preco_compra_atual');
+        const custoFrete       = document.getElementById('custo_frete_unidade');
+        const custoImposto     = document.getElementById('custo_imposto_entrada');
+        const custoRealEntrada = document.getElementById('custo_real_entrada');
+
+        /**
+         * Função que realiza a soma matemática dos componentes do custo
+         */
+        function calcularCustoReal() {
+            // Converte os valores dos inputs para Float, tratando campos vazios como zero
+            const valorPreco   = parseFloat(precoCompra.value) || 0;
+            const valorFrete   = parseFloat(custoFrete.value) || 0;
+            const valorImposto = parseFloat(custoImposto.value) || 0;
+
+            // Soma os valores
+            const custoTotal   = valorPreco + valorFrete + valorImposto;
+
+            // Atualiza o input de exibição formatando com duas casas decimais
+            custoRealEntrada.value = custoTotal.toFixed(2);
+        }
+
+        // 🚀 EXECUÇÃO IMEDIATA: Calcula o custo real assim que o item carrega na tela
+        calcularCustoReal();
+
+        // Ouvinte de eventos: Recalcula se o usuário alterar qualquer um dos campos determinantes
+        document.querySelectorAll('.calc-trigger').forEach(input => {
+            input.addEventListener('input', calcularCustoReal);
+        });
+    });
+</script>
+
+
 <?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/produtos/edit.blade.php ENDPATH**/ ?>

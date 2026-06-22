@@ -4,6 +4,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\ClienteContaCorrente;
+use App\Models\ClienteCredito;
 
 class Cliente extends Model
 {
@@ -48,6 +49,11 @@ class Cliente extends Model
     // }
 
     public function creditoAtivo()
+    {
+        return $this->hasOne(ClienteCredito::class, 'cliente_id');
+    }
+
+    public function credito()
     {
         return $this->hasOne(ClienteCredito::class, 'cliente_id');
     }

@@ -24,11 +24,11 @@
 
         <!-- Coluna 2: Estoque, preços e datas -->
         <div class="col-md-4">
-            <div class="mb-3"><strong>Quantidade em Estoque:</strong> {{ $produto->quantidade_estoque }}</div>
+            <div class="mb-3"><strong>Quantidade em Estoque:</strong> {{ $produto->estoque }}</div>
             <div class="mb-3"><strong>Estoque Mínimo:</strong> {{ $produto->estoque_minimo }}</div>
             <div class="mb-3 text-primary" ><strong>Preço de Venda:</strong> R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}</div>
-            <div class="mb-3"><strong>Data da Compra:</strong> {{ $produto->data_compra ? $produto->data_compra->format('d/m/Y') : '-' }}</div>
-            <div class="mb-3 text-primary" ><strong>Validade:</strong> {{ $produto->validade_produto ? $produto->validade_produto->format('d/m/Y') : '-' }}</div>
+            <!-- <div class="mb-3"><strong>Data da Compra:</strong> {{ $produto->data_compra ? $produto->data_compra->format('d/m/Y') : '-' }}</div> -->
+            <!-- <div class="mb-3 text-primary" ><strong>Validade:</strong> {{ $produto->validade_produto ? $produto->validade_produto->format('d/m/Y') : '-' }}</div> -->
             <div class="mb-3"><strong>Peso:</strong> {{ $produto->peso }} kg</div>
         </div>
 

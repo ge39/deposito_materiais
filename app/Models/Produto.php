@@ -18,7 +18,9 @@ class Produto extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'nome', 
+        'nome',
+        'custo_frete_unidade',
+        'custo_imposto_entrada',
         'descricao', 
         'categoria_id', 
         'fornecedor_id', 
@@ -48,7 +50,7 @@ class Produto extends Model
         'profundidade', 
         'localizacao_estoque', 
         'imagem',
-        'ativo', 
+        'ativo',
         'codigo_barras', 
         'sku', 
         'ncm',
@@ -280,4 +282,16 @@ class Produto extends Model
     {
         return $this->lotes()->sum(DB::raw('quantidade - quantidade_reservada'));
     }
+    /**
+     * Busca o preço de compra do lote mais recente
+     * Acessível via $produto->preco_compra_lote
+     */
+    public function getPrecoCompraLoteAttribute()
+    {
+        // Busca o último lote criado para este produto
+        $ultimoLote = $this->lotes()->latest()->first();
+
+        return $ultimoLote ? $ultimoLote->preco_compra : 0;
+    }
+
 }

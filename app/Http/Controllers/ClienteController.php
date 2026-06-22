@@ -22,14 +22,31 @@ class ClienteController extends Controller
     }
     
     // Listar clientes ativos com busca inteligente
+    // public function index(Request $request)
+    // {
+       
+    //     $clientes = Cliente::orderBy('nome')->paginate(15);
+
+    //     return view('clientes.index', compact('clientes'));
+       
+    // }
+
     public function index(Request $request)
     {
-       
-        $clientes = Cliente::orderBy('nome')->paginate(15);
+        $clientes = Cliente::with('credito')
+            ->orderBy('nome')
+            ->paginate(15);
 
         return view('clientes.index', compact('clientes'));
-       
-        $clientes = Cliente::query()
+    }
+
+
+    public function buscar (Request $request){
+         $credito = \App\Models\ClienteCredito::where('cliente_id', $cliente->id)
+            ->latest('id')
+            ->first();
+            
+         $clientes = Cliente::query()
             ->where('ativo', 1)
             ->when($request->busca, function($query, $busca) {
                 $query->where('nome', 'like', "%{$busca}%")
@@ -77,7 +94,7 @@ class ClienteController extends Controller
             'bairro' => 'nullable|string|max:255',
             'cidade' => 'nullable|string|max:255',
             'estado' => 'nullable|string|max:2',
-            'limite_credito' => 'nullable|numeric',
+            // 'limite_credito' => 'nullable|numeric',
             'observacoes' => 'nullable|string',
             'ativo' => 'nullable|boolean',
         ]);
@@ -115,7 +132,7 @@ class ClienteController extends Controller
             'bairro' => 'nullable|string|max:255',
             'cidade' => 'nullable|string|max:255',
             'estado' => 'nullable|string|max:2',
-            'limite_credito' => 'nullable|numeric',
+            // 'limite_credito' => 'nullable|numeric',
             'observacoes' => 'nullable|string',
             'ativo' => 'nullable|boolean',
         ]);
@@ -127,13 +144,16 @@ class ClienteController extends Controller
         return redirect()->route('clientes.index')->with('success', 'Cliente atualizado com sucesso.');
     }
 
-    // Visualizar cliente
-   public function show(Cliente $cliente)
+ 
+    public function show(Cliente $cliente)
     {
-        // Saldo atual via ContaCorrenteService
-        $saldo = app(\App\Services\ContaCorrenteService::class)->saldoAtual($cliente->id);
+        $saldo = app(\App\Services\ContaCorrenteService::class)
+            ->saldoAtual($cliente->id);
 
-        // Movimentações paginadas (extrato)
+        $credito = \App\Models\ClienteCredito::where('cliente_id', $cliente->id)
+            ->latest('id')
+            ->first();
+
         $movimentacoes = \App\Models\ClienteContaCorrente::where('cliente_id', $cliente->id)
             ->orderBy('id', 'desc')
             ->paginate(20);
@@ -141,6 +161,7 @@ class ClienteController extends Controller
         return view('clientes.show', compact(
             'cliente',
             'saldo',
+            'credito',
             'movimentacoes'
         ));
     }
@@ -162,32 +183,6 @@ class ClienteController extends Controller
         return redirect()->route('clientes.index')->with('success', 'Cliente desativado.');
     }
    
-    // public function saldo($id)
-    // {
-    //     $cliente = \App\Models\Cliente::findOrFail($id);
-
-    //     $creditoService = app(\App\Services\CreditoService::class);
-
-    //     // quanto ele já usou (pendente)
-    //    // $saldoDevedor = $creditoService->saldoDevedor($cliente);
-    //     $saldoDevedor = $creditoService->saldoDevedor($cliente);
-
-    //     // quanto ainda pode usar
-    //     //$disponivel = max(0, $cliente->limite_credito - $saldoDevedor);
-    //     $disponivel = max(0, $cliente->limite_credito - $saldoDevedor);
-    //     return response()->json([
-    //         'cliente' => [
-    //             'id' => $cliente->id,
-    //             'nome' => $cliente->nome,
-    //         ],
-    //         'credito' => [
-    //             'utilizado' => $saldoDevedor,
-    //             'disponivel' => $disponivel,
-    //             'limite' => $cliente->limite_credito,
-    //         ]
-    //     ]);
-    // }
-
     public function saldo($id)
     {
         $cliente = \App\Models\Cliente::findOrFail($id);

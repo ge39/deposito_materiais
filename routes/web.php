@@ -111,7 +111,6 @@ Route::middleware('auth')->group(function () {
             ->where('status', 1)
             ->get();
     });
-
     // ===============================
     // PROMOÇÕES
     // ===============================
@@ -123,12 +122,13 @@ Route::middleware('auth')->group(function () {
         Route::get('{promocao}/edit', [PromocaoController::class, 'edit'])->name('edit');
         Route::put('{promocao}', [PromocaoController::class, 'update'])->name('update');
         Route::delete('{promocao}', [PromocaoController::class, 'destroy'])->name('destroy');
-        // Route::put('{promocao}/toggle-status', [PromocaoController::class, 'toggleStatus'])->name('toggleStatus');
-        // Altere o ->name('toggleStatus') para ->name('promocoes.toggle')
-        Route::put('{promocao}/toggle-status', [PromocaoController::class, 'toggleStatus'])->name('promocoes.toggle');
+        
+        // 🚀 CORRIGIDO: Deixe apenas 'toggle', o grupo adicionará o prefixo 'promocoes.' automaticamente
+        Route::put('{promocao}/toggle-status', [PromocaoController::class, 'toggleStatus'])->name('toggle');
 
         Route::patch('{promocao}/encerrar', [PromocaoController::class, 'encerrar'])->name('encerrar');
     });
+
 
     // ===============================
     // EMPRESAS
@@ -143,12 +143,14 @@ Route::middleware('auth')->group(function () {
     // ===============================
     // CLIENTES
     // ===============================
-    Route::resource('clientes', ClienteController::class);
-    Route::prefix('clientes')->name('clientes.')->group(function () {
+   Route::prefix('clientes')->name('clientes.')->group(function () {
+        Route::get('buscar', [ClienteController::class, 'buscar'])->name('buscar');
         Route::get('inativos', [ClienteController::class, 'inativos'])->name('inativos');
         Route::patch('{cliente}/ativar', [ClienteController::class, 'ativar'])->name('ativar');
         Route::patch('{cliente}/desativar', [ClienteController::class, 'desativar'])->name('desativar');
     });
+
+    Route::resource('clientes', ClienteController::class);
 
     // ===============================
     // DEVOLUÇÕES

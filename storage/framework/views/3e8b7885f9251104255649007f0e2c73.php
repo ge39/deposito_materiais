@@ -1,41 +1,43 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 <div class="container py-4">
 
-    {{-- Cabeçalho --}}
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Cliente: {{ $cliente->nome }}</h2>
-        <a href="{{ url()->previous() }}" class="btn btn-outline-secondary">&laquo; Voltar</a>
+        <h2>Cliente: <?php echo e($cliente->nome); ?></h2>
+        <a href="<?php echo e(url()->previous()); ?>" class="btn btn-outline-secondary">&laquo; Voltar</a>
     </div>
 
-    {{-- Cards resumo --}}
+    
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card border-primary shadow-sm h-100">
                 <div class="card-body">
                     <h5 class="card-title text-primary fw-bold">💰 Limite de Crédito</h5>
-                    <p class="display-6">R$ {{ number_format($credito->limite_credito,2,',','.') }}</p>
+                    <p class="display-6">R$ <?php echo e(number_format($credito->limite_credito,2,',','.')); ?></p>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            @php
+            <?php
                 $saldoPerc = $cliente->limite_credito > 0 ? ($saldo / $cliente->limite_credito) * 100 : 0;
                 $saldoClass = $saldoPerc >= 80 ? 'bg-danger text-white animate__animated animate__pulse' : '';
-            @endphp
-            <div class="card shadow-sm h-100 {{ $saldoClass }}">
+            ?>
+            <div class="card shadow-sm h-100 <?php echo e($saldoClass); ?>">
                 <div class="card-body">
-                    <h5 class="card-title {{ $saldoPerc >= 80 ? 'text-white' : 'text-danger' }}">
-                        {{ $saldoPerc >= 80 ? '⚠️ Saldo Crítico' : '🔴 Gastos Atual' }}
+                    <h5 class="card-title <?php echo e($saldoPerc >= 80 ? 'text-white' : 'text-danger'); ?>">
+                        <?php echo e($saldoPerc >= 80 ? '⚠️ Saldo Crítico' : '🔴 Gastos Atual'); ?>
+
                     </h5>
-                    <p class="display-6 {{ $saldoPerc >= 80 ? 'text-white' : ($saldo > 0 ? 'text-danger' : 'text-success') }}">
-                         R$ {{ number_format(max($credito->limite_credito - $saldo, 0),2,',','.') }}
+                    <p class="display-6 <?php echo e($saldoPerc >= 80 ? 'text-white' : ($saldo > 0 ? 'text-danger' : 'text-success')); ?>">
+                         R$ <?php echo e(number_format(max($credito->limite_credito - $saldo, 0),2,',','.')); ?>
+
                        
                     </p>
-                    @if($saldoPerc >= 80)
+                    <?php if($saldoPerc >= 80): ?>
                         <small>Atenção: saldo próximo do limite!</small>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -44,14 +46,15 @@
                 <div class="card-body">
                     <h5 class="card-title text-success">🟢 Saldo Disponível</h5>
                     <p class="display-6">
-                        R$ {{ number_format($saldo,2,',','.') }}
+                        R$ <?php echo e(number_format($saldo,2,',','.')); ?>
+
                     </p>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Abas --}}
+    
     <ul class="nav nav-tabs mb-3" id="clienteTabs" role="tablist">
         <li class="nav-item">
             <a class="nav-link active" id="dados-tab" data-bs-toggle="tab" href="#dados" role="tab">Dados do Cliente</a>
@@ -63,29 +66,28 @@
 
     <div class="tab-content" id="clienteTabsContent">
 
-        {{-- Aba Dados --}}
+        
         <div class="tab-pane fade show active" id="dados" role="tabpanel">
             <div class="row g-3">
                 <div class="col-md-6">
                     <div class="card shadow-sm">
                         <div class="card-header bg-primary text-white">Informações Básicas</div>
                         <div class="card-body">
-                            <p><strong>Nome:</strong> {{ $cliente->nome }}</p>
-                            <p><strong>Tipo:</strong> <span class="badge bg-info">👤 {{ ucfirst($cliente->tipo) }}</span></p>
+                            <p><strong>Nome:</strong> <?php echo e($cliente->nome); ?></p>
+                            <p><strong>Tipo:</strong> <span class="badge bg-info">👤 <?php echo e(ucfirst($cliente->tipo)); ?></span></p>
                            <p>
                                 <strong>Plano:</strong>
-                                {{
-                                    match($cliente->tipo_cliente) {
+                                <?php echo e(match($cliente->tipo_cliente) {
                                         'markup_1' => 'Varejo',
                                         'markup_2' => 'Empresa / Empreiteiro:',
                                         'markup_3' => 'Atacado',
                                         default => $cliente->tipo_cliente
-                                    }
-                                }}
+                                    }); ?>
+
                             </p>
-                            <p><strong>CPF/CNPJ:</strong> {{ $cliente->cpf_cnpj }}</p>
-                            <p><strong>Telefone:</strong> {{ $cliente->telefone }}</p>
-                            <p><strong>Email:</strong> {{ $cliente->email }}</p>
+                            <p><strong>CPF/CNPJ:</strong> <?php echo e($cliente->cpf_cnpj); ?></p>
+                            <p><strong>Telefone:</strong> <?php echo e($cliente->telefone); ?></p>
+                            <p><strong>Email:</strong> <?php echo e($cliente->email); ?></p>
                         </div>
                     </div>
                 </div>
@@ -93,26 +95,27 @@
                     <div class="card shadow-sm">
                         <div class="card-header bg-success text-white">Crédito e Observações</div>
                         <div class="card-body">
-                            <p><strong>Limite de Crédito:</strong> 💰 R$ {{ number_format($credito->limite_credito,2,',','.') }}</p>
+                            <p><strong>Limite de Crédito:</strong> 💰 R$ <?php echo e(number_format($credito->limite_credito,2,',','.')); ?></p>
                             <p><strong>Gastos Atual:</strong> 
-                                <span class="{{ $saldo > 0 ? 'text-danger fw-bold' : 'text-success fw-bold' }}">
-                                     R$ {{ number_format(max($credito->limite_credito - $saldo, 0),2,',','.') }}
+                                <span class="<?php echo e($saldo > 0 ? 'text-danger fw-bold' : 'text-success fw-bold'); ?>">
+                                     R$ <?php echo e(number_format(max($credito->limite_credito - $saldo, 0),2,',','.')); ?>
+
                                 </span>
                             </p>
-                            <p><strong>Disponível:</strong> 🟢 R$ {{ number_format(max($saldo,0),2,',','.') }}</p>
-                            <p><strong>Observações:</strong> {{ $cliente->observacoes ?? '—' }}</p>
-                            <p><strong>Criado em:</strong> {{ $cliente->created_at->format('d/m/Y H:i') ?? '' }}</p>
+                            <p><strong>Disponível:</strong> 🟢 R$ <?php echo e(number_format(max($saldo,0),2,',','.')); ?></p>
+                            <p><strong>Observações:</strong> <?php echo e($cliente->observacoes ?? '—'); ?></p>
+                            <p><strong>Criado em:</strong> <?php echo e($cliente->created_at->format('d/m/Y H:i') ?? ''); ?></p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        {{-- Aba Conta Corrente --}}
+        
         <div class="tab-pane fade" id="conta" role="tabpanel">
             <div class="row g-3 mb-3">
 
-                {{-- Gráfico --}}
+                
                 <div class="col-12">
                     <div class="card shadow-sm">
                         <div class="card-header bg-info text-white">Evolução do Saldo</div>
@@ -122,12 +125,12 @@
                     </div>
                 </div>
 
-                {{-- Tabela Extrato --}}
+                
                 <div class="col-12">
                     <div class="card shadow-sm">
                         <div class="card-body bg-light">
                             <h5 class="card-title">Extrato da Conta Corrente</h5>
-                            @if($movimentacoes->count())
+                            <?php if($movimentacoes->count()): ?>
                                 <table class="table table-hover table-striped align-middle">
                                     <thead class="table-dark">
                                         <tr>
@@ -140,26 +143,28 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach($movimentacoes as $mov)
-                                            <tr class="{{ $mov->tipo === 'debito' ? 'table-danger' : 'table-success' }}">
-                                                <td>{{ $mov->created_at->format('d/m/Y H:i') }}</td>
+                                        <?php $__currentLoopData = $movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <tr class="<?php echo e($mov->tipo === 'debito' ? 'table-danger' : 'table-success'); ?>">
+                                                <td><?php echo e($mov->created_at->format('d/m/Y H:i')); ?></td>
                                                 <td>
-                                                    <span class="badge {{ $mov->tipo === 'debito' ? 'bg-danger' : 'bg-success' }}">
-                                                        {{ $mov->tipo === 'debito' ? '🔴 Débito' : '🟢 Crédito' }}
+                                                    <span class="badge <?php echo e($mov->tipo === 'debito' ? 'bg-danger' : 'bg-success'); ?>">
+                                                        <?php echo e($mov->tipo === 'debito' ? '🔴 Débito' : '🟢 Crédito'); ?>
+
                                                     </span>
                                                 </td>
-                                                <td>{{ ucfirst($mov->origem) }}</td>
-                                                <td>R$ {{ number_format($mov->valor,2,',','.') }}</td>
-                                                <td>R$ {{ number_format($mov->saldo_apos,2,',','.') }}</td>
-                                                <td>{{ $mov->descricao }}</td>
+                                                <td><?php echo e(ucfirst($mov->origem)); ?></td>
+                                                <td>R$ <?php echo e(number_format($mov->valor,2,',','.')); ?></td>
+                                                <td>R$ <?php echo e(number_format($mov->saldo_apos,2,',','.')); ?></td>
+                                                <td><?php echo e($mov->descricao); ?></td>
                                             </tr>
-                                        @endforeach
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                     </tbody>
                                 </table>
-                                {{ $movimentacoes->links() }}
-                            @else
+                                <?php echo e($movimentacoes->links()); ?>
+
+                            <?php else: ?>
                                 <p class="text-muted">Nenhuma movimentação encontrada.</p>
-                            @endif
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -169,9 +174,9 @@
 
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('scripts')
+<?php $__env->startSection('scripts'); ?>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -180,16 +185,16 @@
 
     const saldoData = {
         labels: [
-            @foreach($movimentacoes as $mov)
-                '{{ $mov->created_at->format("d/m H:i") }}',
-            @endforeach
+            <?php $__currentLoopData = $movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                '<?php echo e($mov->created_at->format("d/m H:i")); ?>',
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         ],
         datasets: [{
             label: 'Saldo',
             data: [
-                @foreach($movimentacoes as $mov)
-                    {{ $mov->saldo_apos }},
-                @endforeach
+                <?php $__currentLoopData = $movimentacoes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <?php echo e($mov->saldo_apos); ?>,
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             ],
             fill: true,
             borderColor: 'rgba(40, 167, 69, 1)',
@@ -216,4 +221,5 @@
         }
     });
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/clientes/show.blade.php ENDPATH**/ ?>

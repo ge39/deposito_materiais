@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Cliente;
 
 class ClienteCredito extends Model
 {
@@ -26,5 +27,10 @@ class ClienteCredito extends Model
     public function contaCorrente()
     {
         return $this->hasOne(ClienteContaCorrente::class, 'cliente_id');
+    }
+
+    public function creditos()
+    {
+        return $this->hasMany(ClienteCredito::class, 'cliente_id');
     }
 }

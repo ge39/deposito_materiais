@@ -354,6 +354,31 @@ class ProdutoController extends Controller
     }
     
     /** FORMULÁRIO DE EDIÇÃO */
+    // public function edit(Produto $produto)
+    // {
+    //     // Verifica se outro usuário está editando
+    //     if ($produto->editando_por && $produto->editando_por != auth()->id()) {
+    //         $usuario = \App\Models\User::find($produto->editando_por);
+    //         $nome = $usuario ? $usuario->name : 'Outro usuário';
+    //         return redirect()->route('produtos.index')
+    //                         ->with('error', "Este produto já está sendo editado por $nome.");
+    //     }
+
+    //     // Marca como sendo editado pelo usuário atual
+    //     $produto->editando_por = auth()->id();
+    //     $produto->editando_em = now();
+    //     $produto->save();
+
+    //     return view('produtos.edit', [
+    //         'produto' => $produto,
+    //         'categorias' => Categoria::all(),
+    //         'fornecedores' => Fornecedor::all(),
+    //         'unidades' => UnidadeMedida::all(),
+    //         'marcas' => Marca::all(),
+    //     ]);
+    // }
+
+    /** FORMULÁRIO DE EDIÇÃO */
     public function edit(Produto $produto)
     {
         // Verifica se outro usuário está editando
@@ -369,6 +394,11 @@ class ProdutoController extends Controller
         $produto->editando_em = now();
         $produto->save();
 
+        // 🚀 INJETADO AQUI: Carrega os lotes trazendo o mais recente primeiro por performance
+        $produto->load(['lotes' => function($query) {
+            $query->latest();
+        }]);
+
         return view('produtos.edit', [
             'produto' => $produto,
             'categorias' => Categoria::all(),
@@ -377,6 +407,7 @@ class ProdutoController extends Controller
             'marcas' => Marca::all(),
         ]);
     }
+
 
     // public function update(Request $request, Produto $produto)
     // {
@@ -473,15 +504,17 @@ class ProdutoController extends Controller
                 ->with('error', "Este produto está sendo editado por: {$nomeUsuario}");
         }
 
-        // 📌 Dados base do request
+       // 📌 Dados base do request
         $data = $request->except(['imagem']);
 
-        // ✅ Checkboxes (OBRIGATÓRIO usar has)
-        $data['ativo'] = $request->has('ativo');
-        $data['controla_validade'] = $request->has('controla_validade');
+        // ✅ Checkboxes Tratados Corretamente (Forçando BOOLEANOS puros para o Cast do Model)
+        $data['ativo']             = $request->has('ativo') ? true : false;
+        $data['em_promocao']       = $request->has('em_promocao') ? true : false;
+        // Se o checkbox na view de produtos se chamar 'controla_validade', o tratamento abaixo está correto:
+        $data['controla_validade'] = $request->has('controla_validade') ? true : false;
 
-        // 📅 Validade condicional
-        if ($data['controla_validade']) {
+        // 📅 Validade condicional baseada no booleano puro
+        if ($data['controla_validade'] === true) {
             $request->validate([
                 'validade_produto' => 'required|date|after_or_equal:today',
             ]);
@@ -489,9 +522,10 @@ class ProdutoController extends Controller
             $data['validade_produto'] = null;
         }
 
+        // 💾 Executa a transação isolando a persistência com segurança
         DB::transaction(function () use ($request, $produto, $data) {
 
-            // 🧠 Preenche tudo de uma vez
+            // 🧠 Preenche todos os campos tratados de uma vez no modelo
             $produto->fill($data);
 
             // 🖼️ Upload de imagem
@@ -533,7 +567,7 @@ class ProdutoController extends Controller
                 $produto->editando_em = null;
             }
 
-            // 💾 Persistência única
+            // 💾 Persistência definitiva no banco de dados
             $produto->save();
         });
 
@@ -541,6 +575,7 @@ class ProdutoController extends Controller
             ->route('produtos.index')
             ->with('success', 'Produto atualizado com sucesso!');
     }
+
 
      /** PESQUISAR COM VIEW e CARDS */
     public function search(Request $request)
