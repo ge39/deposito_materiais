@@ -24,23 +24,15 @@ class ItemOrcamento extends Model
         'status',
         'preco_unitario',
         'subtotal',
-        'previsao_entrega',
-        // 🚀 INCLUSÃO CIRÚRGICA: Libera a gravação dos novos campos de desconto no banco
-        'preco_liquido',
-        'desconto_percentual',
-        'valor_desconto'
+        'previsao_entrega'
     ];
     
     protected $casts = [
-        'quantidade_solicitada' => 'decimal:2',
-        'quantidade_atendida'   => 'decimal:2',
-        'preco_unitario'        => 'decimal:2',
-        'subtotal'              => 'decimal:2',
-        'previsao_entrega'      => 'date',
-        // 🚀 INCLUSÃO CIRÚRGICA: Conversão estrita de tipos para casar com o MariaDB
-        'preco_liquido'         => 'decimal:2',
-        'desconto_percentual'   => 'integer',
-        'valor_desconto'        => 'decimal:2'
+    'quantidade_solicitada' => 'decimal:2',
+    'quantidade_atendida'   => 'decimal:2',
+    'preco_unitario'        => 'decimal:2',
+    'subtotal'              => 'decimal:2',
+    'previsao_entrega'      => 'date',
     ];
 
     // 🔴 ADICIONE ESTA LINHA AQUI NO SEU MODEL:

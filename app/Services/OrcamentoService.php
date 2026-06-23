@@ -124,100 +124,218 @@ class OrcamentoService
     }
 
    
-    public function criarCompleto(array $request)
-    {
-        return DB::transaction(function () use ($request) {
+    // public function criarCompleto(array $request)
+    // {
+    //     return DB::transaction(function () use ($request) {
 
-            $empresa = Empresa::where('ativo', 1)->firstOrFail();
+    //         $empresa = Empresa::where('ativo', 1)->firstOrFail();
 
-            $orcamento = Orcamento::create([
-                'cliente_id' => $request['cliente_id'],
-                'empresa_id' => $empresa->id,
-                'data_orcamento' => now(),
-                'validade' => $request['validade'],
-                'codigo_orcamento' => now()->format('YmdHis'),
-                'status' => 'Aguardando Aprovacao',
-                'observacoes' => $request['observacoes'] ?? null,
-                'total' => 0,
-                'ativo' => 1,
-                'editando_por' => Auth::id(),
-                'editando_em' => now(),
-            ]);
+    //         $orcamento = Orcamento::create([
+    //             'cliente_id' => $request['cliente_id'],
+    //             'empresa_id' => $empresa->id,
+    //             'data_orcamento' => now(),
+    //             'validade' => $request['validade'],
+    //             'codigo_orcamento' => now()->format('YmdHis'),
+    //             'status' => 'Aguardando Aprovacao',
+    //             'observacoes' => $request['observacoes'] ?? null,
+    //             'total' => 0,
+    //             'ativo' => 1,
+    //             'editando_por' => Auth::id(),
+    //             'editando_em' => now(),
+    //         ]);
 
-            // 🔥 garante código único
-            $orcamento->update([
-                'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
-            ]);
+    //         // 🔥 garante código único
+    //         $orcamento->update([
+    //             'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
+    //         ]);
 
-            if (empty($request['produtos']) || !is_array($request['produtos'])) {
-                throw new \Exception('Produtos inválidos no orçamento');
-            }
+    //         if (empty($request['produtos']) || !is_array($request['produtos'])) {
+    //             throw new \Exception('Produtos inválidos no orçamento');
+    //         }
 
-            foreach ($request['produtos'] as $itemReq) {
+    //         foreach ($request['produtos'] as $itemReq) {
 
-                $produtoId = $itemReq['id'] ?? null;
-                if (!$produtoId) continue;
+    //             $produtoId = $itemReq['id'] ?? null;
+    //             if (!$produtoId) continue;
 
-                $qtd = $itemReq['quantidade_solicitada']
-                    ?? $itemReq['quantidade']
-                    ?? 0;
+    //             $qtd = $itemReq['quantidade_solicitada']
+    //                 ?? $itemReq['quantidade']
+    //                 ?? 0;
 
-                $preco = $itemReq['preco_unitario']
-                    ?? $itemReq['preco']
-                    ?? 0;
+    //             $preco = $itemReq['preco_unitario']
+    //                 ?? $itemReq['preco']
+    //                 ?? 0;
 
-                if ($qtd <= 0) continue;
+    //             if ($qtd <= 0) continue;
 
-                $item = ItemOrcamento::create([
-                    'orcamento_id' => $orcamento->id,
-                    'produto_id' => $produtoId,
-                    'quantidade_solicitada' => $qtd,
-                    'quantidade_atendida' => 0,
-                    'quantidade_pendente' => $qtd,
-                    'preco_unitario' => $preco,
-                    'subtotal' => $qtd * $preco,
-                    'status' => 'indisponivel',
-                    'previsao_entrega' => now()->addDays(7),
+    //             $item = ItemOrcamento::create([
+    //                 'orcamento_id' => $orcamento->id,
+    //                 'produto_id' => $produtoId,
+    //                 'quantidade_solicitada' => $qtd,
+    //                 'quantidade_atendida' => 0,
+    //                 'quantidade_pendente' => $qtd,
+    //                 'preco_unitario' => $preco,
+    //                 'subtotal' => $qtd * $preco,
+    //                 'status' => 'indisponivel',
+    //                 'previsao_entrega' => now()->addDays(7),
+    //             ]);
+
+    //             // 🔥 1. processa estoque (FIFO)
+    //             $this->estoqueService->recalcularReservar(
+    //                 $item->id,
+    //                 $produtoId,
+    //                 $qtd
+    //             );
+
+    //             // 🔥 2. garante consistência do item
+    //             $this->recalcularItemCompleto($item);
+
+    //             // 🔥 3. atualiza estado em memória
+    //             $item->refresh();
+    //         }
+
+    //         // 🔥 4. recarrega TODOS os itens já atualizados
+    //         $orcamento->load('itens');
+
+    //         // 🔥 5. calcula total CORRETAMENTE (baseado no atendido)
+    //         $total = $orcamento->itens->sum(function ($item) {
+    //             return $item->quantidade_atendida * $item->preco_unitario;
+    //         });
+
+    //         // 🔥 6. verifica pendências reais
+    //         $temPendente = $orcamento->itens
+    //             ->where('quantidade_pendente', '>', 0)
+    //             ->isNotEmpty();
+
+    //         // 🔥 7. atualiza orçamento FINAL
+    //         $orcamento->update([
+    //             'total' => $total,
+    //             'status' => $temPendente
+    //                 ? 'Aguardando Estoque'
+    //                 : 'Aguardando Aprovacao'
+    //         ]);
+
+    //         return $orcamento;
+    //     });
+    // }
+
+        public function criarCompleto(array $request)
+        {
+            return DB::transaction(function () use ($request) {
+
+                $empresa = Empresa::where('ativo', 1)->firstOrFail();
+
+                $orcamento = Orcamento::create([
+                    'cliente_id' => $request['cliente_id'],
+                    'empresa_id' => $empresa->id,
+                    'data_orcamento' => now(),
+                    'validade' => $request['validade'],
+                    'codigo_orcamento' => now()->format('YmdHis'),
+                    'status' => 'Aguardando Aprovacao',
+                    'observacoes' => $request['observacoes'] ?? null,
+                    'total' => 0,
+                    'ativo' => 1,
+                    'editando_por' => Auth::id(),
+                    'editando_em' => now(),
                 ]);
 
-                // 🔥 1. processa estoque (FIFO)
-                $this->estoqueService->recalcularReservar(
-                    $item->id,
-                    $produtoId,
-                    $qtd
-                );
+                // 🔥 garante código único
+                $orcamento->update([
+                    'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
+                ]);
 
-                // 🔥 2. garante consistência do item
-                $this->recalcularItemCompleto($item);
+                if (empty($request['produtos']) || !is_array($request['produtos'])) {
+                    throw new \Exception('Produtos inválidos no orçamento');
+                }
 
-                // 🔥 3. atualiza estado em memória
-                $item->refresh();
-            }
+                foreach ($request['produtos'] as $itemReq) {
 
-            // 🔥 4. recarrega TODOS os itens já atualizados
-            $orcamento->load('itens');
+                    $produtoId = $itemReq['id'] ?? null;
+                    if (!$produtoId) continue;
 
-            // 🔥 5. calcula total CORRETAMENTE (baseado no atendido)
-            $total = $orcamento->itens->sum(function ($item) {
-                return $item->quantidade_atendida * $item->preco_unitario;
+                    $qtd = $itemReq['quantidade_solicitada']
+                        ?? $itemReq['quantidade']
+                        ?? 0;
+
+                    $preco = $itemReq['preco_unitario']
+                        ?? $itemReq['preco']
+                        ?? 0;
+
+                    if ($qtd <= 0) continue;
+
+                    // 🚀 CAPTURA CIRÚRGICA DO DESCONTO (%) CONFORME AS NOVAS REGRAS DO FRONT-END
+                    $descPercent = (int) ($itemReq['desconto'] ?? $itemReq['desconto_percentual'] ?? 0);
+
+                    // 🧠 MATEMÁTICA ALINHADA COM A GRADE DA TELA
+                    // 1. Valor em Reais do desconto em cima de UMA unidade do produto
+                    $valorDescontoUnitario = $preco * ($descPercent / 100);
+                    
+                    // 2. Preço unitário líquido após o abatimento
+                    $precoUnitarioLiquido = $preco - $valorDescontoUnitario;
+                    
+                    // 3. Montante total em Reais que o cliente economizou nesta linha
+                    $valorDescontoTotalItem = $qtd * $valorDescontoUnitario;
+
+                    // 4. Subtotal líquido do item com os descontos aplicados
+                    $subtotalItem = $qtd * $precoUnitarioLiquido;
+                    if ($subtotalItem < 0) $subtotalItem = 0;
+
+                    // 🚀 GRAVAÇÃO COM INJEÇÃO DOS NOVOS CAMPOS DO MARIADB NO MODEL
+                    $item = ItemOrcamento::create([
+                        'orcamento_id'          => $orcamento->id,
+                        'produto_id'            => $produtoId,
+                        'quantidade_solicitada' => $qtd,
+                        'quantidade_atendida'   => 0,
+                        'quantidade_pendente'   => $qtd,
+                        'preco_unitario'        => $preco,                // Mantém o preço base original
+                        'preco_liquido'         => $precoUnitarioLiquido, // 🎯 Novo campo: Preço com o desconto unitário
+                        'desconto_percentual'   => $descPercent,          // 🎯 Novo campo: Porcentagem inteira (ex: 15)
+                        'valor_desconto'        => $valorDescontoTotalItem, // 🎯 Novo campo: Total economizado na linha em R$
+                        'subtotal'              => $subtotalItem,         // 🎯 Subtotal agora armazena o valor líquido
+                        'status'                => 'indisponivel',
+                        'previsao_entrega'      => now()->addDays(7),
+                    ]);
+
+                    // 🔥 1. processa estoque (FIFO)
+                    $this->estoqueService->recalcularReservar(
+                        $item->id,
+                        $produtoId,
+                        $qtd
+                    );
+
+                    // 🔥 2. garante consistência do item
+                    $this->recalcularItemCompleto($item);
+
+                    // 🔥 3. atualiza estado em memória
+                    $item->refresh();
+                }
+
+                // 🔥 4. recarrega TODOS os itens já atualizados
+                $orcamento->load('itens');
+
+                // 🔥 5. calcula total CORRETAMENTE (baseado no atendido e aplicando o preço líquido)
+                // 🚀 ALTERADO: Agora multiplica pelo preco_liquido para o caixa receber o valor com desconto!
+                $total = $orcamento->itens->sum(function ($item) {
+                    return $item->quantidade_atendida * ($item->preco_liquido ?? $item->preco_unitario);
+                });
+
+                // 🔥 6. verifica pendências reais
+                $temPendente = $orcamento->itens
+                    ->where('quantidade_pendente', '>', 0)
+                    ->isNotEmpty();
+
+                // 🔥 7. atualiza orçamento FINAL
+                $orcamento->update([
+                    'total' => $total,
+                    'status' => $temPendente
+                        ? 'Aguardando Estoque'
+                        : 'Aguardando Aprovacao'
+                ]);
+
+                return $orcamento;
             });
+        }
 
-            // 🔥 6. verifica pendências reais
-            $temPendente = $orcamento->itens
-                ->where('quantidade_pendente', '>', 0)
-                ->isNotEmpty();
-
-            // 🔥 7. atualiza orçamento FINAL
-            $orcamento->update([
-                'total' => $total,
-                'status' => $temPendente
-                    ? 'Aguardando Estoque'
-                    : 'Aguardando Aprovacao'
-            ]);
-
-            return $orcamento;
-        });
-    }
     
 
      /* =========================================
@@ -481,6 +599,41 @@ class OrcamentoService
         });
     }
 
+    // public function recalcularItemCompleto(ItemOrcamento $item, ?float $quantidadeSolicitada = null): void
+    // {
+    //     DB::transaction(function () use ($item, $quantidadeSolicitada) {
+
+    //         $item = ItemOrcamento::lockForUpdate()->find($item->id);
+
+    //         // 🔹 Atualiza quantidade solicitada (se vier do request)
+    //         if (!is_null($quantidadeSolicitada)) {
+    //             $item->quantidade_solicitada = $quantidadeSolicitada;
+    //         }
+
+    //         // 🔹 Recalcula atendido (fonte da verdade = lotes)
+    //         $quantidadeAtendida = DB::table('item_orcamento_lotes')
+    //             ->where('item_orcamento_id', $item->id)
+    //             ->sum('quantidade_reservada');
+
+    //         $item->quantidade_atendida = $quantidadeAtendida;
+
+    //         // 🔹 Calcula pendente
+    //         $item->quantidade_pendente =
+    //             max(0, $item->quantidade_solicitada - $quantidadeAtendida);
+
+    //         // 🔹 Status correto
+    //         if ($quantidadeAtendida <= 0) {
+    //             $item->status = 'indisponivel';
+    //         } elseif ($item->quantidade_pendente > 0) {
+    //             $item->status = 'parcial';
+    //         } else {
+    //             $item->status = 'disponivel';
+    //         }
+
+    //         $item->save();
+    //     });
+    // }
+    
     public function recalcularItemCompleto(ItemOrcamento $item, ?float $quantidadeSolicitada = null): void
     {
         DB::transaction(function () use ($item, $quantidadeSolicitada) {
@@ -512,10 +665,43 @@ class OrcamentoService
                 $item->status = 'disponivel';
             }
 
+            // =======================================================================
+            // 🚀 SEGUNDA OPÇÃO DE REGRA FINANCEIRA: CÁLCULO ATÔMICO DO DESCONTO E SUB-TOTAL
+            // =======================================================================
+            $qtd = (float) $item->quantidade_solicitada;
+            $precoUnitario = (float) $item->preco_unitario;
+            
+            // Recupera a porcentagem inteira que salvamos no create através do model mapeado
+            $descPercent = (int) ($item->desconto_percentual ?? 0);
+
+            // 1. Calcula o montante bruto total sem os abatimentos
+            $totalBrutoItem = $qtd * $precoUnitario;
+
+            // 2. Calcula o valor em reais do desconto unitário
+            $valorDescontoUnitario = $precoUnitario * ($descPercent / 100);
+
+            // 3. Calcula o total em reais economizado na linha inteira (Quantidade x Desconto Unitário)
+            $valorDescontoTotalItem = $qtd * $valorDescontoUnitario;
+
+            // 4. Subtotal líquido: Subtrai o desconto total do bruto acumulado
+            $subtotalLiquido = $totalBrutoItem - $valorDescontoTotalItem;
+            if ($subtotalLiquido < 0) $subtotalLiquido = 0;
+
+            // 5. Preço unitário líquido que será usado pelo PDV no faturamento posterior
+            $precoUnitarioLiquido = $precoUnitario - $valorDescontoUnitario;
+
+            // Alimenta as propriedades do objeto na memória antes do disparo do SQL
+            $item->preco_liquido = $precoUnitarioLiquido;
+            $item->desconto_percentual = $descPercent;
+            $item->valor_desconto = $valorDescontoTotalItem;
+            $item->subtotal = $subtotalLiquido; // 🎯 Sobrescreve o subtotal com o valor líquido exato com descontos!
+            // =======================================================================
+
             $item->save();
         });
     }
-    
+
+
     public function atualizarCompleto(Request $request, $id)
     {
         return DB::transaction(function () use ($request, $id) {
