@@ -49,63 +49,63 @@
                     <div class="card h-100 shadow-sm">
                         <div class="card-body">
 
-    <h5 class="card-title fw-bold">
-        {{ $cliente->nome }}
-    </h5>
+                    <h5 class="card-title fw-bold">
+                        {{ $cliente->nome }}
+                    </h5>
 
-    <p class="card-text mb-1">
-        <strong>Tipo:</strong>
-        {{ ucfirst($cliente->tipo) }}
-    </p>
+                    <p class="card-text mb-1">
+                        <strong>Tipo:</strong>
+                        {{ ucfirst($cliente->tipo) }}
+                    </p>
 
-    <p class="card-text mb-1">
-        <strong>Plano:</strong>
-        {{
-            match($cliente->tipo_cliente) {
-                'markup_1' => 'Varejo',
-                'markup_2' => 'Empresa / Empreiteiro',
-                'markup_3' => 'Atacado',
-                default => $cliente->tipo_cliente ?? 'Não definido'
-            }
-        }}
-    </p>
+                    <p class="card-text mb-1">
+                        <strong>Plano:</strong>
+                        {{
+                            match($cliente->tipo_cliente) {
+                                'markup_1' => 'Varejo',
+                                'markup_2' => 'Empresa / Empreiteiro',
+                                'markup_3' => 'Atacado',
+                                default => $cliente->tipo_cliente ?? 'Não definido'
+                            }
+                        }}
+                    </p>
 
-    <p class="card-text mb-1">
-        <strong>CPF/CNPJ:</strong>
-        {{ $cliente->cpf_cnpj ?? '-' }}
-    </p>
+                    <p class="card-text mb-1">
+                        <strong>CPF/CNPJ:</strong>
+                        {{ $cliente->cpf_cnpj ?? '-' }}
+                    </p>
 
-    <p class="card-text mb-1">
-        <strong>Telefone:</strong>
-        {{ $cliente->telefone ?? '-' }}
-    </p>
+                    <p class="card-text mb-1">
+                        <strong>Telefone:</strong>
+                        {{ $cliente->telefone ?? '-' }}
+                    </p>
 
-    <p class="card-text mb-1">
-        <strong>Email:</strong>
-        {{ $cliente->email ?? '-' }}
-    </p>
+                    <p class="card-text mb-1">
+                        <strong>Email:</strong>
+                        {{ $cliente->email ?? '-' }}
+                    </p>
 
-    <p class="card-text mb-1">
-        <strong>Limite de Crédito:</strong>
-        R$
-        {{
-            number_format(
-                $cliente->credito->limite_credito ?? 0,
-                2,
-                ',',
-                '.'
-            )
-        }}
-    </p>
+                    <p class="card-text mb-1">
+                        <strong>Limite de Crédito:</strong>
+                        R$
+                        {{
+                            number_format(
+                                $cliente->credito->limite_credito ?? 0,
+                                2,
+                                ',',
+                                '.'
+                            )
+                        }}
+                    </p>
 
-    <p class="card-text">
-        <strong>Observações:</strong>
-        {{ $cliente->observacoes ?? '-' }}
-    </p>
+                    <p class="card-text">
+                        <strong>Observações:</strong>
+                        {{ $cliente->observacoes ?? '-' }}
+                    </p>
 
-</div>
+                </div>
                         <div class="card-footer text-center">
-                            <a href="{{ route('clientes.show', $cliente->id) }}" class="btn btn-sm btn-info">Ver</a>
+                            <a href="{{ route('clientes.show', $cliente->id) }}" class="btn btn-sm btn-info">Conta Corrente---------------------------------------</a>
                             <a href="{{ route('clientes.edit', $cliente->id) }}" class="btn btn-sm btn-warning">Editar</a>
                             <form action="{{ route('clientes.desativar', $cliente->id) }}" method="POST" style="display:inline-block;">
                                 @csrf

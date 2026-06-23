@@ -193,26 +193,17 @@
         const inputBusca = document.getElementById('buscaClientePDV');
         const resultadoClientePDV = document.getElementById('resultadoClientePDV');
 
-        // ===============================
-        // MODAL FOCO
-        // ===============================
+        // ========================================================
+        // RESET TOTAL DA BUSCA E DOS RESULTADOS NA ABERTURA (F2)
+        // ========================================================
         if (modalCliente) {
-
-           // ========================================================
-            // RESET DA BUSCA E DOS RESULTADOS NA ABERTURA DO MODAL (F2)
-            // ========================================================
-           // ========================================================
-            // RESET TOTAL DA BUSCA E DOS RESULTADOS NA ABERTURA (F2)
-            // ========================================================
             document.getElementById('modalCliente')?.addEventListener('shown.bs.modal', function () {
-                
                 // 1. Limpa e foca o campo de texto de busca
                 const inputBusca = this.querySelector('input[type="text"], input[type="search"]');
                 if (inputBusca) {
                     inputBusca.value = ''; 
                     inputBusca.focus();    
                 }
-
                 // 2. 🎯 ALVO EXATO: Caça o elemento que você localizou pelo ID ou pela Classe
                 const tabelaResultados = document.getElementById('resultadoClientePDV') || document.querySelector('.resultadoClientePDV');
                 
@@ -230,6 +221,7 @@
                 clienteIndex = -1;
             });
         }
+
 
         // ===============================
         // BLOQUEIO CARTEIRA
@@ -460,6 +452,7 @@
             nome: nome,
             tipo: tipo,
             telefone: telefone,
+            tipo_cliente: clienteData?.tipo_cliente ?? 'markup_1',
             saldo: Number(clienteData?.saldo ?? 0),
             limite: Number(clienteData?.limite ?? 0),
             credito_usado: Number(clienteData?.credito_usado ?? 0),
@@ -467,23 +460,22 @@
             formas: clienteData?.formas ?? []
         };
 
-        // ========================================================
-        // VALIDAÇÃO CIRÚRGICA: TRAVA EXCLUSIVA DA FORMA CARTEIRA
-        // ========================================================
-        // const inputCarteira = document.querySelector('.pagamento-modal[data-forma="carteira"]');
-        // if (inputCarteira) {
-        //     if (window.cliente.status === 'bloqueado') {
-        //         inputCarteira.value = '';             // Limpa dízimas, R$ 150,00 ou resíduos
-        //         inputCarteira.disabled = true;        // Tranca cliques do mouse e setas do número
-        //         inputCarteira.tabIndex = -1;          // 🚀 REMOVE DO TAB: O teclado pula este campo direto
-        //         inputCarteira.placeholder = 'Bloqueado';
-        //     } else {
-        //         // Cliente ativo: libera a modalidade e restaura o comportamento padrão
-        //         inputCarteira.disabled = false;
-        //         inputCarteira.tabIndex = 0;           // Restaura a sequência natural do TAB
-        //         inputCarteira.placeholder = '0,00';
-        //     }
-        // }
+        // 🎯 LOG: Exibe o tipo_cliente no console
+        // console.log("=== CLIENTE SELECIONADO ===");
+        // console.log("Nome:", window.cliente.nome);
+        // console.log("Tipo/Markup:", window.cliente.tipo_cliente);
+
+                // 🚀 INJEÇÃO FIXA: Grava o markup em um input oculto para o modal de produtos ler com segurança
+        let inputControleMarkup = document.getElementById('tipo_cliente_pdv');
+        if (!inputControleMarkup) {
+            inputControleMarkup = document.createElement('input');
+            inputControleMarkup.type = 'hidden';
+            inputControleMarkup.id = 'tipo_cliente_pdv';
+            document.body.appendChild(inputControleMarkup);
+        }
+        inputControleMarkup.value = clienteData?.tipo_cliente ?? 'markup_1';
+        
+        console.log("Input oculto (#tipo_cliente_pdv) atualizado para:", inputControleMarkup.value);
 
         // ========================================================
         // VALIDAÇÃO CIRÚRGICA: TRAVA EXCLUSIVA DA FORMA CARTEIRA
@@ -516,71 +508,114 @@
 
         if (nomeEl) { nomeEl.textContent = nome; }
         
-        if (saldoEl) {
+        // if (saldoEl) {
+        //     // Validação visual de segurança baseada no status trazido do banco
+        //     const statusBadge = window.cliente.status === 'ativo' 
+        //         ? '<span class="badge bg-success">Ativo</span>' 
+        //         : '<span class="badge bg-danger">Bloqueado</span>';
+
+        //     saldoEl.innerHTML = `
+        //         Status: ${statusBadge}<br>
+        //         Saldo: R$ ${window.cliente.saldo.toFixed(2).replace('.', ',')}<br>
+        //         Limite: R$ ${window.cliente.limite.toFixed(2).replace('.', ',')}
+        //     `;
+        // }
+
+                if (saldoEl) {
             // Validação visual de segurança baseada no status trazido do banco
             const statusBadge = window.cliente.status === 'ativo' 
                 ? '<span class="badge bg-success">Ativo</span>' 
                 : '<span class="badge bg-danger">Bloqueado</span>';
 
+            // Traduz o nome do Enum interno para um texto amigável na tela
+            let markupNome = 'Tabela Padrão (Markup 1)';
+            if (window.cliente.tipo_cliente === 'markup_2') markupNome = 'Tabela Atacado (Markup 2)';
+            if (window.cliente.tipo_cliente === 'markup_3') markupNome = 'Tabela Especial (Markup 3)';
+
             saldoEl.innerHTML = `
                 Status: ${statusBadge}<br>
                 Saldo: R$ ${window.cliente.saldo.toFixed(2).replace('.', ',')}<br>
-                Limite: R$ ${window.cliente.limite.toFixed(2).replace('.', ',')}
+                Limite: R$ ${window.cliente.limite.toFixed(2).replace('.', ',')}<br>
+                <strong class="text-primary">Perfil de Preço: ${markupNome}</strong> <!-- 🎯 TESTE VISUAL AQUI -->
             `;
         }
 
-        // ===============================
-        // FECHA MODAL
-        // ===============================
-        // const modalEl = document.getElementById('modalCliente');
-        // if (modalEl && typeof bootstrap !== 'undefined') {
-        //     const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-        //     modalInstance?.hide();
-        // }
         
         // ========================================================
         // FECHA MODAL - ESTRATÉGIA AGRESSIVA DE DESBLOQUEIO DE TELA
         // ========================================================
+        // const modalEl = document.getElementById('modalCliente');
+        // if (modalEl) {
+        //     // 1. Força o encerramento visual imediato removendo as classes do Bootstrap
+        //     modalEl.classList.remove('show');
+        //     modalEl.style.display = 'none';
+        //     modalEl.setAttribute('aria-hidden', 'true');
+        //     modalEl.removeAttribute('aria-modal');
+        //     modalEl.removeAttribute('role');
+
+        //     // 2. Destrói qualquer instância fantasma que o Bootstrap guarde na memória
+        //     if (typeof bootstrap !== 'undefined') {
+        //         const modalInstance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+        //         if (modalInstance) {
+        //             modalInstance.hide();
+        //             // Pequena garantia para remover escutas e travas internas da biblioteca
+        //             if (typeof modalInstance.dispose === 'function') {
+        //                 modalInstance.dispose(); 
+        //             }
+        //         }
+        //     }
+
+        //     // 3. Limpeza Cirúrgica do Body (Remove a parede invisível)
+        //     document.body.classList.remove('modal-open');
+        //     document.body.style.overflow = '';
+        //     document.body.style.paddingRight = '';
+
+        //     // 4. Varre a tela e remove todos os backdrops escuros duplicados/escondidos
+        //     const backdrops = document.querySelectorAll('.modal-backdrop');
+        //     backdrops.forEach(backdrop => backdrop.remove());
+            
+        //     // 5. Devolve o foco imediatamente para o input principal de vendas do seu PDV
+        //     // Ajuste o seletor ('#codigo_produto' ou similar) conforme o ID do seu campo de venda
+        //     setTimeout(() => {
+        //         const inputVenda = document.getElementById('buscaProdutoPDV') || document.getElementById('codigo_barra');
+        //         if (inputVenda) {
+        //             inputVenda.focus();
+        //         }
+        //     }, 50);
+        // }
+
+                // ========================================================
+        // FECHA MODAL - FLUXO ASSÍNCRONO SEGURO DO BOOTSTRAP 5
+        // ========================================================
         const modalEl = document.getElementById('modalCliente');
         
         if (modalEl) {
-            // 1. Força o encerramento visual imediato removendo as classes do Bootstrap
-            modalEl.classList.remove('show');
-            modalEl.style.display = 'none';
-            modalEl.setAttribute('aria-hidden', 'true');
-            modalEl.removeAttribute('aria-modal');
-            modalEl.removeAttribute('role');
-
-            // 2. Destrói qualquer instância fantasma que o Bootstrap guarde na memória
             if (typeof bootstrap !== 'undefined') {
                 const modalInstance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
                 if (modalInstance) {
+                    // 1. Deixa o Bootstrap fechar nativamente com as animações corretas
                     modalInstance.hide();
-                    // Pequena garantia para remover escutas e travas internas da biblioteca
-                    if (typeof modalInstance.dispose === 'function') {
-                        modalInstance.dispose(); 
-                    }
                 }
+            } else {
+                // Fallback manual seguro se a classe do bootstrap sumir da página
+                modalEl.classList.remove('show');
+                modalEl.style.display = 'none';
             }
+        }
 
-            // 3. Limpeza Cirúrgica do Body (Remove a parede invisível)
+        // 2. Executa a limpeza pesada dos backdrops cinzas sem interromper o fluxo da animação
+        setTimeout(() => {
             document.body.classList.remove('modal-open');
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
 
-            // 4. Varre a tela e remove todos os backdrops escuros duplicados/escondidos
-            const backdrops = document.querySelectorAll('.modal-backdrop');
-            backdrops.forEach(backdrop => backdrop.remove());
-            
-            // 5. Devolve o foco imediatamente para o input principal de vendas do seu PDV
-            // Ajuste o seletor ('#codigo_produto' ou similar) conforme o ID do seu campo de venda
-            setTimeout(() => {
-                const inputVenda = document.getElementById('buscaProdutoPDV') || document.getElementById('codigo_barra');
-                if (inputVenda) {
-                    inputVenda.focus();
-                }
-            }, 50);
-        }
+            // 3. Devolve o cursor do teclado para o campo principal de buscas
+            const inputVenda = document.getElementById('buscaProdutoPDV') || document.getElementById('codigo_barra');
+            if (inputVenda) {
+                inputVenda.focus();
+            }
+        }, 150); // Aguarda os 150ms padrão da animação de transição do Bootstrap
 
 
     }

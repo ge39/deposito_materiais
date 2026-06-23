@@ -112,131 +112,321 @@
 </style>
 
 <script>
-        let produtoIndex = -1;
-        let produtos = [];
+    function getTipoMarkupCliente() {
+        // 1. Tenta ver se a linha do cliente selecionado no HTML tem o atributo de markup
+        const linhaSelecionada = document.querySelector('.cliente-row.active') || document.querySelector('.cliente-row');
+        if (linhaSelecionada && linhaSelecionada.getAttribute('data-markup')) {
+            return linhaSelecionada.getAttribute('data-markup');
+        }
 
-        /* F3 abre modal */
+        // 2. Se não achar, verifica se o objeto global window.cliente existe e tem a propriedade
+        if (window.cliente && window.cliente.tipo_cliente) {
+            return window.cliente.tipo_cliente;
+        }
 
-        document.addEventListener('keydown',function(e){
+        // 3. Retorno seguro padrão
+        return 'markup_1';
+    }
 
-            if(e.key==="F3"){
-            e.preventDefault();
-            const modal=new bootstrap.Modal(document.getElementById('modalProduto'));
-            modal.show();
+
+
+    let produtoIndex = -1;
+    let produtos = [];
+
+    /* F3 abre modal */
+
+    document.addEventListener('keydown',function(e){
+
+        if(e.key==="F3"){
+        e.preventDefault();
+        const modal=new bootstrap.Modal(document.getElementById('modalProduto'));
+        modal.show();
+        }
+
+    });
+
+    /* FOCO AUTOMÁTICO */
+
+    /* FOCO AUTOMÁTICO E RESET DA TELA */
+    document.getElementById('modalProduto')
+    .addEventListener('shown.bs.modal', function(){
+        
+        // 🎯 Aguarda 100 milissegundos para a animação do Bootstrap estabilizar no navegador
+        setTimeout(() => {
+            const inputBusca = document.getElementById('buscaProdutoPDV');
+            const divResultados = document.getElementById('resultadoProdutoPDV');
+
+            // 1. Limpa o texto antigo e puxa o cursor do teclado de volta
+            if (inputBusca) {
+                inputBusca.value = ''; 
+                inputBusca.focus();    // 🚀 Força o cursor a piscar dentro da caixa limpa
             }
 
+            // 2. Limpa os blocos de produtos da pesquisa anterior
+            if (divResultados) {
+                divResultados.innerHTML = '';
+            }
+        }, 100);
+
+    });
+
+
+
+    /* LIMPAR BACKDROP */
+
+    document.getElementById('modalProduto')
+        .addEventListener('hidden.bs.modal',function(){
+
+        document.body.classList.remove('modal-open');
+        document.querySelectorAll('.modal-backdrop')
+        .forEach(el=>el.remove());
+
+        // produtoIndex=-1;
+
+    });
+
+    /* BUSCA PRODUTO */
+    // document.getElementById('buscaProdutoPDV')
+    //         .addEventListener('keyup',function(e){
+
+    //         if(e.key==="ArrowDown"||e.key==="ArrowUp"||e.key==="Enter")
+    //             return;
+
+    //             let query=this.value;
+
+    //             if(query.length<2){
+    //             document.getElementById('resultadoProdutoPDV').innerHTML='';
+    //             return;
+    //         }
+
+    //         fetch(`{{ route('pdv.buscarProduto') }}?query=`+encodeURIComponent(query))
+    //         .then(res=>res.json())
+    //         .then(data=>{
+
+    //         produtos = Array.isArray(data) ? data : (data.produtos ?? data);
+
+    //         produtoIndex=-1;
+
+    //         let html='';
+
+    //         produtos.forEach((p,i)=>{
+
+    //         const qtdDisp = p.quantidade_total_disponivel ?? 0;
+    //         const unidade = p.unidade ?? 'UN';
+
+    //         html+=`
+
+    //         <div class="produto-row" data-index="${i}"
+
+    //     //         onclick="selecionarProdutoPDV(
+    //     //         ${p.id},
+    //     //         '${encodeURIComponent(p.nome)}',
+    //     //         ${Number(p.preco_venda||0)},
+    //     //         '${p.codigo_barras ?? ''}',
+    //     //         '${p.sku ?? ''}',
+    //     //         '${(p.marca?.nome ?? '').replace(/'/g,"\\'")}',
+    //     //         '${unidade}',
+    //     //         '${qtdDisp}',
+    //     //         '${(p.imagem ?? '').replace(/'/g,"\\'")}'
+    //     //         )">
+
+    //     //         <div>${p.nome}</div>
+    //     //         <div>${p.marca?.nome ?? ''}</div>
+    //     //         <div>${unidade}</div>
+    //     //         <div>${qtdDisp}</div>
+    //     //         <div>${p.codigo_barras ?? ''}</div>
+    //     //         <div>${p.sku ?? ''}</div>
+    //     //         <div>R$ ${parseFloat(p.preco_venda||0).toFixed(2)}</div>
+
+        
+    //     //     </div>
+
+    //     //     `;
+
+    //     // });
+    //     // 1. Descobre o markup ativo antes de desenhar as linhas na tela
+    //     const tipoMarkup = getTipoMarkupCliente();
+
+    //     produtos.forEach((p, i) => {
+    //         const qtdDisp = p.quantidade_total_disponivel ?? 0;
+    //         const unidade = p.unidade ?? 'UN';
+
+    //         // 2. Define o preço certo de forma pontual
+    //         let precoExibicao = Number(p.preco_venda || 0);
+    //         if (tipoMarkup === 'markup_2' && Number(p.preco_venda_2) > 0) {
+    //             precoExibicao = Number(p.preco_venda_2);
+    //         } else if (tipoMarkup === 'markup_3' && Number(p.preco_venda_3) > 0) {
+    //             precoExibicao = Number(p.preco_venda_3);
+    //         }
+
+    //         // 3. Renderiza o HTML com a variável precoExibicao injetada
+    //         html += `
+    //         <div class="produto-row" data-index="${i}"
+    //             onclick="selecionarProdutoPDV(
+    //             ${p.id},
+    //             '${encodeURIComponent(p.nome)}',
+    //             ${precoExibicao},
+    //             '${p.codigo_barras ?? ''}',
+    //             '${p.sku ?? ''}',
+    //             '${(p.marca?.nome ?? '').replace(/'/g, "\\'")}',
+    //             '${unidade}',
+    //             '${qtdDisp}',
+    //             '${(p.imagem ?? '').replace(/'/g, "\\'")}'
+    //             )">
+
+    //             <div>${p.nome}</div>
+    //             <div>${p.marca?.nome ?? ''}</div>
+    //             <div>${unidade}</div>
+    //             <div>${qtdDisp}</div>
+    //             <div>${p.codigo_barras ?? ''}</div>
+    //             <div>${p.sku ?? ''}</div>
+    //             <div>R$ ${precoExibicao.toFixed(2)}</div>
+    //         </div>
+    //         `;
+    //     });
+
+
+    //     document.getElementById('resultadoProdutoPDV').innerHTML=html;
+
+    //     });
+
+    // });
+
+    /* BUSCA PRODUTO CORRIGIDA E PROTEGIDA */
+    document.getElementById('buscaProdutoPDV')
+        .addEventListener('keyup', function(e) {
+
+            if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter")
+                return;
+
+            let query = this.value;
+
+            if (query.length < 2) {
+                document.getElementById('resultadoProdutoPDV').innerHTML = '';
+                return;
+            }
+
+            fetch(`{{ route('pdv.buscarProduto') }}?query=` + encodeURIComponent(query))
+                .then(res => res.json())
+                .then(data => {
+
+                    produtos = Array.isArray(data) ? data : (data.produtos ?? data);
+                    produtoIndex = -1;
+                    let html = '';
+
+                    // produtos.forEach((p, i) => {
+                    //     const qtdDisp = p.quantidade_total_disponivel ?? 0;
+                    //     const unidade = p.unidade ?? 'UN';
+
+                    //     // Resolve o preço correto do produto fora da concatenação da string HTML
+                    //     let precoExibicao = Number(p.preco_venda || 0);
+                    //     if (tipoMarkup === 'markup_2' && Number(p.preco_venda_2) > 0) {
+                    //         precoExibicao = Number(p.preco_venda_2);
+                    //     } else if (tipoMarkup === 'markup_3' && Number(p.preco_venda_3) > 0) {
+                    //         precoExibicao = Number(p.preco_venda_3);
+                    //     }
+
+                    //     html += `
+                    //     <div class="produto-row" data-index="${i}"
+                    //         onclick="selecionarProdutoPDV(
+                    //         ${p.id},
+                    //         '${encodeURIComponent(p.nome)}',
+                    //         ${precoExibicao},
+                    //         '${p.codigo_barras ?? ''}',
+                    //         '${p.sku ?? ''}',
+                    //         '${(p.marca?.nome ?? '').replace(/'/g, "\\'")}',
+                    //         '${unidade}',
+                    //         '${qtdDisp}',
+                    //         '${(p.imagem ?? '').replace(/'/g, "\\'")}'
+                    //         )">
+
+                    //         <div>${p.nome}</div>
+                    //         <div>${p.marca?.nome ?? ''}</div>
+                    //         <div>${unidade}</div>
+                    //         <div>${qtdDisp}</div>
+                    //         <div>${p.codigo_barras ?? ''}</div>
+                    //         <div>${p.sku ?? ''}</div>
+                    //         <div>R$ ${precoExibicao.toFixed(2)}</div>
+                    //     </div>
+                    //     `;
+                    // });
+                    // ====================================================================
+                    // MATEMÁTICA REAL: CÁLCULO BASEADO NOS MARKUPS DA TABELA PRODUTOS
+                    // ====================================================================
+                    const tipoMarkupAtivo = document.getElementById('tipo_cliente_pdv')?.value || 'markup_1';
+                    produtos.forEach((p, i) => {
+                        const qtdDisp = p.quantidade_total_disponivel ?? 0;
+                        const unidade = p.unidade ?? 'UN';
+
+                        // 1. Captura os valores numéricos da sua tabela
+                        const precoBaseGeral = Number(p.preco_venda || 0);
+                        const precoEstatico2 = Number(p.preco_venda_2 || 0);
+                        const precoEstatico3 = Number(p.preco_venda_3 || 0);
+                        const custoReal = Number(p.custo_real_entrada || 0);
+
+                        // 2. Captura os percentuais de markup reais da tabela produtos
+                        const m1 = Number(p.markup_1 || 0);
+                        const m2 = Number(p.markup_2 || 0);
+                        const m3 = Number(p.markup_3 || 0);
+
+                        let precoExibicao = precoBaseGeral;
+
+                        // 3. Aplica a regra dinâmica baseada no tipo de markup selecionado do cliente
+                        if (tipoMarkupAtivo === 'markup_2') {
+                            // Se houver preço estático preenchido, usa ele. Se não, calcula com base no custo + markup_2
+                            if (precoEstatico2 > 0) {
+                                precoExibicao = precoEstatico2;
+                            } else if (custoReal > 0 && m2 > 0) {
+                                precoExibicao = custoReal * (1 + (m2 / 100));
+                            }
+                        } else if (tipoMarkupAtivo === 'markup_3') {
+                            // Se houver preço estático preenchido, usa ele. Se não, calcula com base no custo + markup_3
+                            if (precoEstatico3 > 0) {
+                                precoExibicao = precoEstatico3;
+                            } else if (custoReal > 0 && m3 > 0) {
+                                precoExibicao = custoReal * (1 + (m3 / 100));
+                            }
+                        } else {
+                            // Padrão markup_1
+                            if (precoBaseGeral <= 0 && custoReal > 0 && m1 > 0) {
+                                precoExibicao = custoReal * (1 + (m1 / 100));
+                            }
+                        }
+
+                        // Garante que o valor final seja arredondado para duas casas decimais
+                        precoExibicao = Number(precoExibicao.toFixed(2));
+
+                        // 4. Monta o seu HTML original com a variável precoExibicao calculada
+                        html += `
+                        <div class="produto-row" data-index="${i}"
+                            onclick="selecionarProdutoPDV(
+                            ${p.id},
+                            '${encodeURIComponent(p.nome)}',
+                            ${precoExibicao},
+                            '${p.codigo_barras ?? ''}',
+                            '${p.sku ?? ''}',
+                            '${(p.marca?.nome ?? '').replace(/'/g, "\\'")}',
+                            '${unidade}',
+                            '${qtdDisp}',
+                            '${(p.imagem ?? '').replace(/'/g, "\\'")}'
+                            )">
+
+                            <div>${p.nome}</div>
+                            <div>${p.marca?.nome ?? ''}</div>
+                            <div>${unidade}</div>
+                            <div>${qtdDisp}</div>
+                            <div>${p.codigo_barras ?? ''}</div>
+                            <div>${p.sku ?? ''}</div>
+                            <div>R$ ${precoExibicao.toFixed(2)}</div>
+                        </div>
+                        `;
+                    });
+                    document.getElementById('resultadoProdutoPDV').innerHTML = html;
+                })
+                .catch(err => console.error("Erro na busca de produtos:", err)); // Exibe no console caso a rota falhe
         });
-
-        /* FOCO AUTOMÁTICO */
-
-        /* FOCO AUTOMÁTICO E RESET DA TELA */
-        document.getElementById('modalProduto')
-        .addEventListener('shown.bs.modal', function(){
-            
-            // 🎯 Aguarda 100 milissegundos para a animação do Bootstrap estabilizar no navegador
-            setTimeout(() => {
-                const inputBusca = document.getElementById('buscaProdutoPDV');
-                const divResultados = document.getElementById('resultadoProdutoPDV');
-
-                // 1. Limpa o texto antigo e puxa o cursor do teclado de volta
-                if (inputBusca) {
-                    inputBusca.value = ''; 
-                    inputBusca.focus();    // 🚀 Força o cursor a piscar dentro da caixa limpa
-                }
-
-                // 2. Limpa os blocos de produtos da pesquisa anterior
-                if (divResultados) {
-                    divResultados.innerHTML = '';
-                }
-            }, 100);
-
-        });
-
-
-
-        /* LIMPAR BACKDROP */
-
-        document.getElementById('modalProduto')
-            .addEventListener('hidden.bs.modal',function(){
-
-            document.body.classList.remove('modal-open');
-            document.querySelectorAll('.modal-backdrop')
-            .forEach(el=>el.remove());
-
-            // produtoIndex=-1;
-
-        });
-
-        /* BUSCA PRODUTO */
-        document.getElementById('buscaProdutoPDV')
-                .addEventListener('keyup',function(e){
-
-                if(e.key==="ArrowDown"||e.key==="ArrowUp"||e.key==="Enter")
-                    return;
-
-                    let query=this.value;
-
-                    if(query.length<2){
-                    document.getElementById('resultadoProdutoPDV').innerHTML='';
-                    return;
-                }
-
-                fetch(`{{ route('pdv.buscarProduto') }}?query=`+encodeURIComponent(query))
-                .then(res=>res.json())
-                .then(data=>{
-
-                produtos = Array.isArray(data) ? data : (data.produtos ?? data);
-
-                produtoIndex=-1;
-
-                let html='';
-
-                produtos.forEach((p,i)=>{
-
-                const qtdDisp = p.quantidade_total_disponivel ?? 0;
-                const unidade = p.unidade ?? 'UN';
-
-                html+=`
-
-                <div class="produto-row" data-index="${i}"
-
-                    onclick="selecionarProdutoPDV(
-                    ${p.id},
-                    '${encodeURIComponent(p.nome)}',
-                    ${Number(p.preco_venda||0)},
-                    '${p.codigo_barras ?? ''}',
-                    '${p.sku ?? ''}',
-                    '${(p.marca?.nome ?? '').replace(/'/g,"\\'")}',
-                    '${unidade}',
-                    '${qtdDisp}',
-                    '${(p.imagem ?? '').replace(/'/g,"\\'")}'
-                    )">
-
-                    <div>${p.nome}</div>
-                    <div>${p.marca?.nome ?? ''}</div>
-                    <div>${unidade}</div>
-                    <div>${qtdDisp}</div>
-                    <div>${p.codigo_barras ?? ''}</div>
-                    <div>${p.sku ?? ''}</div>
-                    <div>R$ ${parseFloat(p.preco_venda||0).toFixed(2)}</div>
-
-            
-                </div>
-
-                `;
-
-            });
-
-            document.getElementById('resultadoProdutoPDV').innerHTML=html;
-
-            });
-
-        });
-
         /* NAVEGAÇÃO TECLADO */
-
         document.addEventListener('keydown',function(e){
-
             const rows=document.querySelectorAll(".produto-row");
 
             if(rows.length===0) return;
@@ -327,21 +517,7 @@
             }
         }
 
-        // const modalEl=document.getElementById('modalProduto');
-        // const modalInstance=bootstrap.Modal.getInstance(modalEl);
-
-        // if(modalInstance) modalInstance.hide();
-        //     const foco = document.getElementById('codigo_barras');
-        //     if (foco) {
-        //         foco.focus();
-        //         // O setTimeout garante que o cursor mude de posição APÓS o foco padrão do navegador
-        //         setTimeout(() => {
-        //             foco.setSelectionRange(0, 0);
-        //         }, 0);
-        //     }
-        // }
-
-            // ========================================================
+    // ========================================================
     // FECHA MODAL - ESTRATÉGIA AGRESSIVA DE DESBLOQUEIO DE TELA
     // ========================================================
     const modalEl = document.getElementById('modalProduto');
@@ -385,6 +561,4 @@
             }
         }, 50); // Delay curto para garantir que o DOM foi totalmente liberado
     }
-
-
 </script>

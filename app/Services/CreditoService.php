@@ -98,17 +98,51 @@ class CreditoService
     /**
      * Atualiza status do cliente baseado no risco financeiro
      */
+    // public function atualizarStatusCliente(Cliente $cliente): void
+    // {
+    //     // 🔒 MANTIDO DB::transaction apenas aqui, pois envolve uma operação de ESCRITA (save)
+    //     DB::transaction(function () use ($cliente) {
+    //         $credito = $cliente->creditoAtivo;
+    //         if (!$credito) return;
+
+    //         $limiteCredito = (float)($credito->limite_credito ?? 0);
+    //         $devedor = $this->saldoDevedor($cliente);
+
+    //         if ($devedor >= $limiteCredito && $limiteCredito > 0) {
+    //             $credito->status = 'bloqueado';
+    //             $credito->save();
+    //         }
+    //     });
+    // }
+
     public function atualizarStatusCliente(Cliente $cliente): void
     {
-        // 🔒 MANTIDO DB::transaction apenas aqui, pois envolve uma operação de ESCRITA (save)
         DB::transaction(function () use ($cliente) {
+
             $credito = $cliente->creditoAtivo;
             if (!$credito) return;
 
-            $limiteCredito = (float)($credito->limite_credito ?? 0);
-            $devedor = $this->saldoDevedor($cliente);
+            $limiteCredito = (float) ($credito->limite_credito ?? 0);
 
-            if ($devedor >= $limiteCredito && $limiteCredito > 0) {
+            // 🔎 saldo da conta corrente (ajuste o relacionamento conforme seu model)
+            $saldoConta = (float) (
+                $cliente->contaCorrente?->saldo_apos ?? 0
+            );
+
+            // 🔎 saldo devedor atual
+            $devedor = (float) $this->saldoDevedor($cliente);
+
+            /**
+             * REGRA FINAL:
+             * bloqueia apenas se:
+             * saldo da conta corrente >= limite de crédito
+             * E ainda houver risco devedor
+             */
+            if (
+                $limiteCredito > 0 &&
+                $saldoConta >= $limiteCredito &&
+                $devedor >= $limiteCredito
+            ) {
                 $credito->status = 'bloqueado';
                 $credito->save();
             }

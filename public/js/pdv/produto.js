@@ -113,11 +113,148 @@ if (window.__pdvProdutoJsCarregado) {
                 totalVenda.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             }
         }
-
-        // ========================================================== //
-        // 🛒 OPERAÇÃO DE INSERÇÃO NO CARRINHO (VERSÃO ULTRA PRO)     //
         // ========================================================== //
         // 🚀 AJUSTE DE PARÂMETRO: Adicionado 'qtdManual' para receber o multiplicador síncrono do Enter
+        // window.adicionarItemCarrinho = function(produto, qtdManual) {
+        //     // 1️⃣ CAPTURA A QUANTIDADE REAL DIGITADA NO INPUT ANTES DO RESET
+        //     const inputQtdElement = document.getElementById("quantidade");
+            
+        //     // Se o parâmetro 'qtdManual' vier preenchido (venda multiplicada), usa ele na hora. 
+        //     // Se não, lê o input HTML da tela normalmente.
+        //     const quantidade = qtdManual ? Number(qtdManual) : (inputQtdElement ? Number(inputQtdElement.value) : 1);
+        //     const preco = Number(produto.preco_venda) || 0;
+
+        //     // Validação de segurança primária
+        //     if (quantidade <= 0 || preco <= 0) {
+        //         alert("Quantidade ou preço inválidos para inserção.");
+        //         return;
+        //     }
+
+        //     // ... TODO O RESTANTE DO SEU CÓDIGO DA SEÇÃO 2️⃣ ATÉ O FINAL CONTINUA EXATAMENTE IGUAL ...
+
+
+        //     // 2️⃣ SELEÇÃO DO LOTE DISPONÍVEL (Regra nativa mantida)
+        //     let loteSelecionado = null;
+        //     if (Array.isArray(produto.lotes)) {
+        //         loteSelecionado = produto.lotes.find(lote => {
+        //             const qtd = Number(lote.quantidade_disponivel || 0);
+        //             const vencimento = lote.data_vencimento ? new Date(lote.data_vencimento) : null;
+        //             const hoje = new Date();
+        //             return qtd > 0 && (!vencimento || vencimento >= hoje);
+        //         });
+        //     }
+
+        //     if (!loteSelecionado) {
+        //         alert("Nenhum lote disponível ou dentro da validade para este produto.");
+        //         return;
+        //     }
+
+        //     const loteId = loteSelecionado.id;
+        //     const qtdDisponivelLote = Number(loteSelecionado.quantidade_disponivel);
+
+        //     // Validação de teto do estoque físico do lote
+        //     if (quantidade > qtdDisponivelLote) {
+        //         alert(`Quantidade excede o lote disponível em estoque (${qtdDisponivelLote}).`);
+        //         return;
+        //     }
+
+        //     // Inicializa a memória do carrinho global se necessário
+        //     if (!window.carrinho) { window.carrinho = []; }
+
+        //     // 3️⃣ BUSCA SE O ITEM JÁ EXISTE NO CARRINHO (Mesmo Produto + Mesmo Lote)
+        //     const itemExistente = window.carrinho.find(i => i.produto_id == produto.id && i.lote_id == loteId);
+
+        //     if (itemExistente) {
+        //         const novaQtd = itemExistente.quantidade + quantidade;
+                
+        //         if (novaQtd > qtdDisponivelLote) {
+        //             alert(`Estoque insuficiente neste lote para somar esta quantidade.`);
+        //             return;
+        //         }
+                
+        //         // Atualiza a memória global
+        //         itemExistente.quantidade = novaQtd;
+
+        //         // Atualiza a interface visual localizando a linha por atributos e alterando via classe CSS
+        //         const linhaVisual = tabelaItens.querySelector(`tr[data-produto="${produto.id}"][data-lote="${loteId}"]`);
+        //         if (linhaVisual) {
+        //             const campoQtd = linhaVisual.querySelector('.item-quantidade');
+        //             const campoSubtotal = linhaVisual.querySelector('.subtotal');
+
+        //             if (campoQtd) campoQtd.textContent = novaQtd;
+        //             if (campoSubtotal) {
+        //                 campoSubtotal.textContent = (novaQtd * preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        //             }
+        //         }
+        //     } else {
+        //         // 4️⃣ INSERÇÃO DE NOVO ITEM NO CARRINHO
+        //         window.carrinho.push({
+        //             produto_id: produto.id,
+        //             lote_id: loteId,
+        //             descricao: produto.nome, // 🌟 Correção: Salvando a descrição/nome do produto
+        //             quantidade: quantidade,
+        //             preco_unitario: preco,
+        //             desconto: 0
+        //         });
+
+        //         const numeroItem = tabelaItens.querySelectorAll("tr").length + 1;
+        //         const novaLinha = document.createElement("tr");
+        //         novaLinha.dataset.produto = produto.id;
+        //         novaLinha.dataset.lote = loteId;
+        //         novaLinha.style.cursor = "pointer";
+
+        //         // Renderiza seu HTML nativo funcional perfeitamente alinhado
+        //         novaLinha.innerHTML = `
+        //             <td>${numeroItem}</td>
+        //             <td>${produto.id}</td>
+        //             <td class="text-start">${produto.nome}</td>
+        //             <td>R$ ${preco.toFixed(2).replace('.', ',')}</td>
+        //             <td class="item-quantidade">${quantidade}</td>
+        //             <td>${produto.unidade_sigla || 'UN'}</td>
+        //             <td class="subtotal fw-bold">${(quantidade * preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+        //             <td class="text-muted d-none">Lote: ${loteSelecionado.numero_lote || 'S/L'}</td>
+        //         `;
+        //         tabelaItens.appendChild(novaLinha);
+        //     }
+
+        //     // 5️⃣ ATUALIZAÇÃO DOS INDICADORES FINANCEIROS E FEEDBACK VISUAL/SONORO
+        //     atualizarNumeroItens();
+        //     atualizarTotalCarrinho();
+            
+        //     if (typeof window.emitirBipPDV === "function") {
+        //         window.emitirBipPDV();
+        //     }
+
+        //     // 6⃣ LIMPA O FORMULÁRIO DO TOPO E DEVOLVE O FOCO PARA A PRÓXIMA COMPRA
+        //     resetarProdutoAtual();
+
+        //     // 🎯 GATILHO ESPELHO DIRETO E CIRÚRGICO INTEGRADO AO PDV_STORAGE
+        //     try {
+        //         if (window.carrinho && window.carrinho.length > 0) {
+        //             // 🔄 Utiliza o método de salvar do seu PdvStorage centralizado
+        //             if (typeof PdvStorage !== 'undefined') {
+        //                 PdvStorage.salvarCarrinho(window.carrinho);
+        //             } else {
+        //                 localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
+        //             }
+                    
+        //             // 📊 EXIBIÇÃO NO F12
+        //             // console.log("➡️ MOVIMENTAÇÃO DETECTADA NO INPUT!");
+        //             console.log("💾 LOCALSTORAGE ESPELHADO COM SUCESSO:", window.carrinho);
+        //         } else {
+        //             // 🧹 Limpa os dados de forma inteligente se o carrinho ficar vazio
+        //             if (typeof PdvStorage !== 'undefined') {
+        //                 PdvStorage.limparPdv();
+        //             } else {
+        //                 localStorage.removeItem('pdv_carrinho_atual');
+        //             }
+        //         }
+        //     } catch (errStorage) {
+        //         console.error("Falha ao espelhar LocalStorage:", errStorage);
+        //     }
+
+        // };
+
         window.adicionarItemCarrinho = function(produto, qtdManual) {
             // 1️⃣ CAPTURA A QUANTIDADE REAL DIGITADA NO INPUT ANTES DO RESET
             const inputQtdElement = document.getElementById("quantidade");
@@ -125,16 +262,29 @@ if (window.__pdvProdutoJsCarregado) {
             // Se o parâmetro 'qtdManual' vier preenchido (venda multiplicada), usa ele na hora. 
             // Se não, lê o input HTML da tela normalmente.
             const quantidade = qtdManual ? Number(qtdManual) : (inputQtdElement ? Number(inputQtdElement.value) : 1);
-            const preco = Number(produto.preco_venda) || 0;
+            
+            // ====================================================================
+            // INTERCEPTAÇÃO CIRÚRGICA: PREÇO BASEADO NO PERFIL DO CLIENTE NO CARRINHO
+            // ====================================================================
+            const tipoMarkupAtivo = document.getElementById('tipo_cliente_pdv')?.value || 'markup_1';
+
+            const precoVenda1 = Number(produto.preco_venda || 0);
+            const precoVenda2 = Number(produto.preco_venda_2 || 0);
+            const precoVenda3 = Number(produto.preco_venda_3 || 0);
+
+            let preco = precoVenda1;
+
+            if (tipoMarkupAtivo === 'markup_2' && precoVenda2 > 0) {
+                preco = precoVenda2;
+            } else if (tipoMarkupAtivo === 'markup_3' && precoVenda3 > 0) {
+                preco = precoVenda3;
+            }
 
             // Validação de segurança primária
             if (quantidade <= 0 || preco <= 0) {
                 alert("Quantidade ou preço inválidos para inserção.");
                 return;
             }
-
-            // ... TODO O RESTANTE DO SEU CÓDIGO DA SEÇÃO 2️⃣ ATÉ O FINAL CONTINUA EXATAMENTE IGUAL ...
-
 
             // 2️⃣ SELEÇÃO DO LOTE DISPONÍVEL (Regra nativa mantida)
             let loteSelecionado = null;
@@ -242,7 +392,6 @@ if (window.__pdvProdutoJsCarregado) {
                     }
                     
                     // 📊 EXIBIÇÃO NO F12
-                    // console.log("➡️ MOVIMENTAÇÃO DETECTADA NO INPUT!");
                     console.log("💾 LOCALSTORAGE ESPELHADO COM SUCESSO:", window.carrinho);
                 } else {
                     // 🧹 Limpa os dados de forma inteligente se o carrinho ficar vazio
@@ -255,94 +404,7 @@ if (window.__pdvProdutoJsCarregado) {
             } catch (errStorage) {
                 console.error("Falha ao espelhar LocalStorage:", errStorage);
             }
-
         };
-
-
-        // ========================================================== //
-        // 📡 GATILHO: LEITOR DE CÓDIGO DE BARRAS / BARRA PRINCIPAL   //
-        // ========================================================== //
-        // inputCodigo?.addEventListener("keydown", function (e) {
-        //     if (e.key === "Enter") {
-        //         e.preventDefault();
-        //         e.stopPropagation(); // Trava barreira no DOM
-
-        //         let valorInput = inputCodigo.value.trim();
-        //         if (!valorInput) return;
-
-        //         let quantidadeDefinida = 1;
-        //         let codigoFinal = valorInput;
-
-        //         // Regra de negócio do multiplicador (Qtd * Código)
-        //         if (valorInput.includes("*")) {
-        //             const partes = valorInput.split("*");
-        //             const qtdInformada = Number(partes[0]);
-                    
-        //             if (!isNaN(qtdInformada) && qtdInformada > 0) {
-        //                 quantidadeDefinida = qtdInformada;
-        //                 codigoFinal = partes[1] ? partes[1].trim() : "";
-        //             }
-        //         }
-
-        //         if (!codigoFinal) {
-        //             alert("Código de barras ou formato multiplicador inválido.");
-        //             inputCodigo.value = "";
-        //             return;
-        //         }
-
-        //         if (inputQuantidade) {
-        //             inputQuantidade.value = quantidadeDefinida;
-        //         }
-
-        //         // Executa a requisição direta isolada de escopo usando o código higienizado
-        //         fetch(`/pdv/produto/${encodeURIComponent(codigoFinal)}`, { headers: { "Accept": "application/json" } })
-        //             .then(res => res.json())
-        //            .then(dataRes => {
-        //                 if (dataRes.status === "ok" && dataRes.produto) {
-
-        //                     const produto = dataRes.produto;
-        //                     window.produtoAtual = produto;
-
-        //                     // Imagem do produto
-        //                     const imgProduto = document.getElementById("produto-imagem");
-
-        //                     if (imgProduto) {
-        //                         if (produto.imagem && produto.imagem.trim() !== "") {
-        //                             imgProduto.src = "/" + produto.imagem;
-        //                             imgProduto.style.display = "block";
-        //                         } else {
-        //                             imgProduto.src = "/image/produto-sem-imagem.png";
-        //                             imgProduto.style.display = "block";
-        //                         }
-        //                     }
-
-        //                     if (inputId_produto) inputId_produto.value = produto.id;
-        //                     if (inputDescricao) inputDescricao.value = produto.nome;
-        //                     if (inputPrecoVenda) inputPrecoVenda.value = Number(produto.preco_venda).toFixed(2);
-
-        //                     const qtdDisp = produto.quantidade_total_disponivel || 1;
-        //                     if (qtdDisponivelInput) qtdDisponivelInput.value = qtdDisp;
-
-        //                     const inputUnidade = document.getElementById("unidade");
-        //                     if (inputUnidade) {
-        //                         inputUnidade.value = produto.unidade || produto.unidade_medida || "UN";
-        //                     }
-
-        //                     calcularTotalProduto();
-        //                     window.adicionarItemCarrinho(produto);
-
-        //                 } else {
-        //                     alert(dataRes.mensagem || "Produto não encontrado.");
-        //                     if (inputCodigo) inputCodigo.value = "";
-        //                 }
-        //             })  
-                    
-        //             .catch(err => {
-        //                 console.error(err);
-        //                 if (inputCodigo) inputCodigo.value = "";
-        //             });
-        //     }
-        // }); // 🌟 O EVENTO DO ENTER FECHA EXATAMENTE AQUI!
 
          // ========================================================== //
         // 📡 GATILHO: LEITOR DE CÓDIGO DE BARRAS / BARRA PRINCIPAL   //
@@ -481,16 +543,10 @@ if (window.__pdvProdutoJsCarregado) {
             }
         });
 
-
-
         // ========================================================== //
         // ❌ MODAL DINÂMICO COM NOME DO PRODUTO PARA REMOÇÃO        //
         // ========================================================== //
         btnRemover?.replaceWith(btnRemover.cloneNode(true));
-
-        // ========================================================== //
-        // ❌ MODAL CORRIGIDO: SEM ERROS DE SELEÇÃO NO CONSOLE       //
-        // ========================================================== //
         
         if (!window.btnRemoverConfigurado) {
             document.getElementById("btnRemover")?.addEventListener("click", function(e) {
@@ -598,36 +654,6 @@ if (window.__pdvProdutoJsCarregado) {
             atualizarNumeroItens();
             atualizarTotalCarrinho();
         }
-
-        // 📦 FUNÇÃO ISOLADA QUE FAZ A LIMPEZA REAL NO LOCALSTORAGE E NA TELA
-        // function executarRemocaoPdv(produtoId, loteId) {
-        //     // 1. Remove do array de memória
-        //     window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
-
-        //     // 2. Remove a linha física do HTML
-        //     linhaSelecionada.remove();
-        //     linhaSelecionada = null;
-
-        //     // 3. Oculta a barra lateral do Bootstrap
-        //     if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
-
-        //     // 4. 💾 Sincroniza o LocalStorage
-        //     try {
-        //         if (window.carrinho && window.carrinho.length > 0) {
-        //             if (typeof PdvStorage !== 'undefined') PdvStorage.salvarCarrinho(window.carrinho);
-        //             else localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
-        //         } else {
-        //             if (typeof PdvStorage !== 'undefined') PdvStorage.limparPdv();
-        //             else localStorage.removeItem('pdv_carrinho_atual');
-        //         }
-        //     } catch (errStorage) {
-        //         console.error("Erro ao salvar LocalStorage:", errStorage);
-        //     }
-
-        //     // 5. Atualiza os totais da tela de venda
-        //     atualizarNumeroItens();
-        //     atualizarTotalCarrinho();
-        // }
 
         // 📦 FUNÇÃO ISOLADA PARA NÃO REPETIR CÓDIGO
         function ejecutarRemocaoLogica(produtoId, loteId) {

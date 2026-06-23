@@ -269,7 +269,7 @@ class ProdutoController extends Controller
     {
         // 1. VALIDAÇÃO RIGOROSA DOS DADOS (Alinhada com o DESCRIBE do Banco)
         $validated = $request->validate([
-            'nome'              => 'required|string|max;255',
+            'nome'              => 'required|string|max:255',
             'sku'               => 'nullable|string|max:50|unique:produtos,sku', // Evita colisões
             'codigo_barras'     => 'nullable|string|max:50|unique:produtos,codigo_barras',
             'categoria_id'      => 'required|exists:categorias,id',

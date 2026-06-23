@@ -50,67 +50,67 @@
                     <div class="card h-100 shadow-sm">
                         <div class="card-body">
 
-    <h5 class="card-title fw-bold">
-        <?php echo e($cliente->nome); ?>
+                    <h5 class="card-title fw-bold">
+                        <?php echo e($cliente->nome); ?>
 
-    </h5>
+                    </h5>
 
-    <p class="card-text mb-1">
-        <strong>Tipo:</strong>
-        <?php echo e(ucfirst($cliente->tipo)); ?>
+                    <p class="card-text mb-1">
+                        <strong>Tipo:</strong>
+                        <?php echo e(ucfirst($cliente->tipo)); ?>
 
-    </p>
+                    </p>
 
-    <p class="card-text mb-1">
-        <strong>Plano:</strong>
-        <?php echo e(match($cliente->tipo_cliente) {
-                'markup_1' => 'Varejo',
-                'markup_2' => 'Empresa / Empreiteiro',
-                'markup_3' => 'Atacado',
-                default => $cliente->tipo_cliente ?? 'Não definido'
-            }); ?>
+                    <p class="card-text mb-1">
+                        <strong>Plano:</strong>
+                        <?php echo e(match($cliente->tipo_cliente) {
+                                'markup_1' => 'Varejo',
+                                'markup_2' => 'Empresa / Empreiteiro',
+                                'markup_3' => 'Atacado',
+                                default => $cliente->tipo_cliente ?? 'Não definido'
+                            }); ?>
 
-    </p>
+                    </p>
 
-    <p class="card-text mb-1">
-        <strong>CPF/CNPJ:</strong>
-        <?php echo e($cliente->cpf_cnpj ?? '-'); ?>
+                    <p class="card-text mb-1">
+                        <strong>CPF/CNPJ:</strong>
+                        <?php echo e($cliente->cpf_cnpj ?? '-'); ?>
 
-    </p>
+                    </p>
 
-    <p class="card-text mb-1">
-        <strong>Telefone:</strong>
-        <?php echo e($cliente->telefone ?? '-'); ?>
+                    <p class="card-text mb-1">
+                        <strong>Telefone:</strong>
+                        <?php echo e($cliente->telefone ?? '-'); ?>
 
-    </p>
+                    </p>
 
-    <p class="card-text mb-1">
-        <strong>Email:</strong>
-        <?php echo e($cliente->email ?? '-'); ?>
+                    <p class="card-text mb-1">
+                        <strong>Email:</strong>
+                        <?php echo e($cliente->email ?? '-'); ?>
 
-    </p>
+                    </p>
 
-    <p class="card-text mb-1">
-        <strong>Limite de Crédito:</strong>
-        R$
-        <?php echo e(number_format(
-                $cliente->credito->limite_credito ?? 0,
-                2,
-                ',',
-                '.'
-            )); ?>
+                    <p class="card-text mb-1">
+                        <strong>Limite de Crédito:</strong>
+                        R$
+                        <?php echo e(number_format(
+                                $cliente->credito->limite_credito ?? 0,
+                                2,
+                                ',',
+                                '.'
+                            )); ?>
 
-    </p>
+                    </p>
 
-    <p class="card-text">
-        <strong>Observações:</strong>
-        <?php echo e($cliente->observacoes ?? '-'); ?>
+                    <p class="card-text">
+                        <strong>Observações:</strong>
+                        <?php echo e($cliente->observacoes ?? '-'); ?>
 
-    </p>
+                    </p>
 
-</div>
+                </div>
                         <div class="card-footer text-center">
-                            <a href="<?php echo e(route('clientes.show', $cliente->id)); ?>" class="btn btn-sm btn-info">Ver</a>
+                            <a href="<?php echo e(route('clientes.show', $cliente->id)); ?>" class="btn btn-sm btn-info">Conta Corrente</a>
                             <a href="<?php echo e(route('clientes.edit', $cliente->id)); ?>" class="btn btn-sm btn-warning">Editar</a>
                             <form action="<?php echo e(route('clientes.desativar', $cliente->id)); ?>" method="POST" style="display:inline-block;">
                                 <?php echo csrf_field(); ?>

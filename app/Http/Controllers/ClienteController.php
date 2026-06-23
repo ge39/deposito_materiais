@@ -40,7 +40,7 @@ class ClienteController extends Controller
         return view('clientes.index', compact('clientes'));
     }
 
-
+    // Cliente credito
     public function buscar (Request $request){
          $credito = \App\Models\ClienteCredito::where('cliente_id', $cliente->id)
             ->latest('id')

@@ -201,7 +201,7 @@ class PdvController extends Controller
         ->orderBy('nome') 
         ->limit(20) 
         ->get([ 
-            'id', 'nome', 'tipo', 'cpf_cnpj', 'telefone', 'endereco', 'numero', 'cep', 'bairro', 'cidade', 'estado' 
+            'id', 'nome', 'tipo','cpf_cnpj', 'telefone', 'endereco', 'numero', 'cep', 'bairro', 'cidade', 'estado', 'tipo_cliente'
         ]); 
 
         $clientes = $clientes->map(function ($cliente) { 
@@ -236,6 +236,8 @@ class PdvController extends Controller
                 'bairro' => $cliente->bairro, 
                 'cidade' => $cliente->cidade, 
                 'estado' => $cliente->estado, 
+                 // 🚀 INJEÇÃO CIRÚRGICA 2: Repassa o valor do enum para o JSON que o modal_cliente vai ler
+                'tipo_cliente' => $cliente->tipo_cliente ?? 'markup_1', 
 
                 // ========================= 
                 // FINANCEIRO ATUALIZADO 
@@ -309,6 +311,82 @@ class PdvController extends Controller
     
    /**
      * F3 – Buscar Produto (Modal de produtos) */        
+    // public function buscarProduto(Request $request)
+    // {
+    //     $query = trim($request->input('query'));
+
+    //     if (!$query || strlen($query) < 2) {
+    //         return response()->json([]);
+    //     }
+
+    //       // 🔹 Autenticação (se necessário)
+    //     if (!auth()->check()) {
+    //         return response()->json([
+    //             'status' => 'erro',
+    //             'mensagem' => 'Usuário não autorizado.'
+    //         ], 401);
+    //     }
+
+    //     // Carrega produtos com relacionamentos e lotes válidos (para cálculo de estoque)
+    //     $produtos = Produto::with([
+    //             'categoria',
+    //             'marca',
+    //             'unidadeMedida',
+    //             'lotes' => function ($q) {
+    //                 $q->where('status', 1)
+    //                 ->where('quantidade_disponivel', '>', 0)
+    //                 ->whereDate('validade_lote', '>=', now());
+    //             }
+    //         ])
+    //         ->where('ativo', 1)
+    //         ->where(function($q) use ($query) {
+    //             $q->where('nome', 'LIKE', "%{$query}%")
+    //             ->orWhere('sku', 'LIKE', "%{$query}%")
+    //             ->orWhere('codigo_barras', 'LIKE', "%{$query}%");
+    //         })
+    //         ->limit(20)
+    //         ->get();
+
+    //     if ($produtos->isEmpty()) {
+    //         return response()->json([]);
+    //     }
+
+    //     // Monta retorno simples e consistente para o front
+    //     $resultado = $produtos->map(function ($p) {
+
+    //         // soma dos lotes válidos para quantidade disponível
+    //         $quantidadeTotal = $p->lotes->sum('quantidade_disponivel');
+
+    //         return [
+    //             'id' => $p->id,
+    //             'nome' => $p->nome,
+    //             'preco_venda' => $p->preco_venda, // 🔍 SÓ O PREÇO 1 FOI DEIXADO PASSAR!
+    //             'preco_venda' => $p->preco_venda,
+    //             'sku' => $p->sku,
+    //             'codigo_barras' => $p->codigo_barras,
+
+    //             // marca como objeto compatível com seu JS (p.marca?.nome)
+    //             'marca' => [
+    //                 'nome' => $p->marca->nome ?? ''
+    //             ],
+
+    //             // unidade exposta diretamente (sigla)
+    //             'unidade' => $p->unidadeMedida->sigla ?? ($p->unidadeMedida->nome ?? 'UN'),
+
+    //             // imagem: transforma em URL pública se houver arquivo armazenado
+    //             //  'imagem' => $p->imagem ? asset('storage/'.$p->imagem) : null,
+          
+    //             'imagem' => $p->imagem ? url('storage/'.$p->imagem) : url('images/produto-sem-imagem.png'),
+
+    //             // quantidade total disponivel calculada a partir dos lotes carregados
+    //             'quantidade_total_disponivel' => (int) $quantidadeTotal,
+    //         ];
+    //     });
+
+          
+    //     return response()->json($resultado);
+    // }
+        /* F3 – Buscar Produto (Modal de produtos) */        
     public function buscarProduto(Request $request)
     {
         $query = trim($request->input('query'));
@@ -317,7 +395,7 @@ class PdvController extends Controller
             return response()->json([]);
         }
 
-          // 🔹 Autenticação (se necessário)
+        // 🔹 Autenticação (se necessário)
         if (!auth()->check()) {
             return response()->json([
                 'status' => 'erro',
@@ -359,6 +437,15 @@ class PdvController extends Controller
                 'id' => $p->id,
                 'nome' => $p->nome,
                 'preco_venda' => $p->preco_venda,
+                
+                // 🚀 INJEÇÃO CIRÚRGICA: Repassa os markups e tabelas de preço para o JSON do Front
+                'preco_venda_2' => $p->preco_venda_2,
+                'preco_venda_3' => $p->preco_venda_3,
+                'markup_1' => $p->markup_1,
+                'markup_2' => $p->markup_2,
+                'markup_3' => $p->markup_3,
+                'custo_real_entrada' => $p->custo_real_entrada,
+
                 'sku' => $p->sku,
                 'codigo_barras' => $p->codigo_barras,
 
@@ -369,9 +456,6 @@ class PdvController extends Controller
 
                 // unidade exposta diretamente (sigla)
                 'unidade' => $p->unidadeMedida->sigla ?? ($p->unidadeMedida->nome ?? 'UN'),
-
-                // imagem: transforma em URL pública se houver arquivo armazenado
-                //  'imagem' => $p->imagem ? asset('storage/'.$p->imagem) : null,
           
                 'imagem' => $p->imagem ? url('storage/'.$p->imagem) : url('images/produto-sem-imagem.png'),
 
@@ -380,10 +464,80 @@ class PdvController extends Controller
             ];
         });
 
-          
         return response()->json($resultado);
     }
+
        // Buscar produto por codigo de barras
+    // public function buscarProdutoPorCodigo($codigo)
+    // {
+    //     // 🔹 Validação básica
+    //     if (empty($codigo)) {
+    //         return response()->json([
+    //             'status' => 'erro',
+    //             'mensagem' => 'Código de produto não informado.'
+    //         ], 400);
+    //     }
+
+    //     // 🔹 Autenticação
+    //     if (!auth()->check()) {
+    //         return response()->json([
+    //             'status' => 'erro',
+    //             'mensagem' => 'Usuário não autorizado.'
+    //         ], 401);
+    //     }
+
+    //     // 🔹 Buscar produto ativo com lotes válidos
+    //     $produto = Produto::with([
+    //         'categoria',
+    //         'marca',
+    //         'unidadeMedida',
+    //         'lotes' => function ($q) {
+    //             $q->where('status', 1)
+    //             ->where('quantidade_disponivel', '>', 0)
+    //             ->whereDate('validade_lote', '>=', now());
+    //         }
+    //     ])
+    //     ->where('ativo', 1)
+    //     ->where('codigo_barras', $codigo)
+    //     ->first();
+
+    //     if (!$produto) {
+    //         return response()->json([
+    //             'status' => 'erro',
+    //             'mensagem' => 'Produto não encontrado.'
+    //         ], 404);
+    //     }
+
+    //     // 🔹 Unidade Dinâmica vinda do relacionamento com a tabela unidade_medidas
+    //     $produto->unidade_sigla = $produto->unidadeMedida->sigla ?? null;
+
+    //     // 🔹 Soma quantidade total disponível nos lotes ativos
+    //     $produto->quantidade_total_disponivel = $produto->lotes->sum('quantidade_disponivel');
+
+    //     // 🔔 Informação de validade informativa
+    //     $produto->alerta_validade = null;
+
+    //     if ($produto->lotes->count() > 0) {
+    //         $loteMaisProximo = $produto->lotes->sortBy('validade_lote')->first();
+
+    //         $diasParaVencer = now()->startOfDay()
+    //             ->diffInDays(\Carbon\Carbon::parse($loteMaisProximo->validade_lote), false);
+
+    //         if ($diasParaVencer < 0) {
+    //             $produto->alerta_validade = 'Produto com lote vencido';
+    //         } elseif ($diasParaVencer === 0) {
+    //             $produto->alerta_validade = 'Produto vence hoje';
+    //         } elseif ($diasParaVencer <= 30) {
+    //             $produto->alerta_validade = "Produto vence em {$diasParaVencer} dias";
+    //         }
+    //     }
+        
+    //     return response()->json([
+    //         'status' => 'ok',
+    //         'produto' => $produto
+    //     ]);
+    // }
+        // Buscar produto por codigo de barras
     public function buscarProdutoPorCodigo($codigo)
     {
         // 🔹 Validação básica
@@ -448,11 +602,14 @@ class PdvController extends Controller
             }
         }
         
+        // 🚀 GARANTIA DO BACKEND: Garante que os campos brutos vão junto no JSON da resposta
+        // para que o JavaScript do leitor de código de barras consiga ler p.preco_venda_2, p.preco_venda_3, etc.
         return response()->json([
             'status' => 'ok',
             'produto' => $produto
         ]);
     }
+
 
    
     /**
