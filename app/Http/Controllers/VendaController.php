@@ -21,16 +21,199 @@ class VendaController extends Controller
      * Responsabilidade TOTAL do backend
      */
 
-    public function finalizar(Request $request, CreditoService $creditoService) 
-    { 
-            // 🕵️‍♂️ CAPTURA DOS DADOS ANTES DE PERSISTIR
-        // \Log::info('===== DADOS RECEBIDOS NO BACKEND (PDV) =====');
-        // \Log::info('URL Acessada: ' . request()->fullUrl());
-        // \Log::info('Payload Completo:', $request->all());
-        // \Log::info('Valor de orcamento_id isolado: ' . $request->input('orcamento_id'));
-        // \Log::info('============================================');
+    // public function finalizar(Request $request, CreditoService $creditoService) 
+    // { 
+    //         // 🕵️‍♂️ CAPTURA DOS DADOS ANTES DE PERSISTIR
+    //     \Log::info('===== DADOS RECEBIDOS NO BACKEND (PDV) =====');
+    //     \Log::info('URL Acessada: ' . request()->fullUrl());
+    //     \Log::info('Payload Completo:', $request->all());
+    //     \Log::info('Valor de orcamento_id isolado: ' . $request->input('orcamento_id'));
+    //     \Log::info('============================================');
     
         
+    //     // Helper de Sanitização Decimal
+    //     $limparNumero = function($valor) { 
+    //         if (is_numeric($valor)) return (float) $valor; 
+    //         $stringLimpa = preg_replace('/[^\d,.]/', '', $valor); 
+    //         return (float) (strpos($stringLimpa, ',') !== false && strpos($stringLimpa, '.') !== false 
+    //             ? str_replace(',', '', $stringLimpa) 
+    //             : str_replace(',', '.', $stringLimpa));
+    //     };
+
+    //     DB::beginTransaction(); 
+    //     try { 
+    //         // 1️⃣ Define Cliente e Caixa
+    //         $clienteId = $this->buscarOuDefinirCliente($request->input('cliente_id'));
+    //         $caixaId = (int) $request->input('caixa_id');
+    //         // 🔥 DECLARAÇÃO DA VARIÁVEL CORRETA (Com o "$" e o nome exato)
+    //         $funcionarioId = auth()->id() ?? $request->input('funcionario_id') ?? $request->input('funciona_id') ?? 00;
+
+    //         // 2️⃣ Instancia a Venda
+    //         $dadosVenda = [ 
+    //             'cliente_id'     => $clienteId, 
+    //             'funcionario_id' => $funcionarioId, // 🔥 Correção do mapeamento da coluna do banco
+    //             'caixa_id'       => $caixaId, 
+    //             'status'         => 'aberta', 
+    //             'total'          => 0,
+    //             'data_venda'     => $request->dataVenda ?? now()
+    //         ]; 
+    //         $venda = Venda::create($dadosVenda); 
+
+    //         // 3️⃣ Executa Itens e FIFO (Filho)
+    //         $valorTotal = $this->processarItensVenda($venda, $request->input('itens', []), $limparNumero);
+    //         $venda->update(['total' => $valorTotal]);
+
+    //         // 4️⃣ Executa os Pagamentos (Filho)
+    //         $userId = auth()->id() ?? $request->input('user_id', 1);
+    //         $pagamentos = $this->pagamentos_venda($venda->id, $request, $userId, $limparNumero);
+
+    //         // 5️⃣ Executa Caixa e Crediário (Filho)
+    //         $this->finalizarFluxoFinanceiro($venda, $pagamentos, $caixaId, $creditoService);
+
+    //         // 6️⃣ Fecha a venda
+    //         $venda->update(['status' => 'finalizada']);
+
+    //         // 🎯 RASTREAMENTO SIMPLIFICADO POR PRODUTO (Sem erro de coluna)
+    //         $clienteIdLog = $request->input('cliente_id');
+            
+    //         // Coleta apenas o produto_id do primeiro item enviado
+    //         $primeiroItem = $request->input('itens.0');
+    //         $produtoIdLog = $primeiroItem ? $primeiroItem['produto_id'] : null;
+
+    //         if ($produtoIdLog) {
+    //             // Busca o orçamento ativo do cliente que contenha esse produto
+    //             $orcamento = \App\Models\Orcamento::where('cliente_id', $clienteIdLog)
+    //                 ->where('status', 'Aprovado')
+    //                 ->whereHas('itens', function($query) use ($produtoIdLog) {
+    //                     $query->where('produto_id', $produtoIdLog);
+    //                 })
+    //                 ->latest()
+    //                 ->first();
+
+    //             if ($orcamento) {
+    //                 // Executa o update bruto direto no banco
+    //                 \App\Models\Orcamento::where('id', $orcamento->id)->update([
+    //                     'status'       => 'Faturado',
+    //                     'editando_por' => auth()->id() ?? $request->input('funcionario_id') ?? 1
+    //                 ]);
+    //             }
+    //         }
+    //         DB::commit(); 
+    //         return response()->json(['success' => true, 'venda_id' => $venda->id], 200);
+
+    //     } catch (\Exception $e) { 
+    //         DB::rollBack(); 
+    //         return response()->json(['success' => false, 'erro' => $e->getMessage()], 422); 
+    //     } 
+    // }
+
+    // public function finalizar(Request $request, CreditoService $creditoService) 
+    // { 
+    //     // 🕵️‍♂️ CAPTURA DOS DADOS ANTES DE PERSISTIR
+    //     \Log::info('===== DADOS RECEBIDOS NO BACKEND (PDV) =====');
+    //     \Log::info('URL Acessada: ' . request()->fullUrl());
+    //     \Log::info('Payload Completo:', $request->all());
+    //     \Log::info('Valor de orcamento_id isolado: ' . $request->input('orcamento_id'));
+    //     \Log::info('============================================');
+
+    //     // Helper de Sanitização Decimal
+    //     $limparNumero = function($valor) { 
+    //         if (is_numeric($valor)) return (float) $valor; 
+    //         $stringLimpa = preg_replace('/[^\d,.]/', '', $valor); 
+    //         return (float) (strpos($stringLimpa, ',') !== false && strpos($stringLimpa, '.') !== false 
+    //             ? str_replace(',', '', $stringLimpa) 
+    //             : str_replace(',', '.', $stringLimpa));
+    //     };
+
+    //     DB::beginTransaction(); 
+    //     try { 
+    //         // 1️⃣ Define Cliente e Caixa
+    //         $clienteId = $this->buscarOuDefinirCliente($request->input('cliente_id'));
+    //         $caixaId = (int) $request->input('caixa_id');
+    //         $funcionarioId = auth()->id() ?? $request->input('funcionario_id') ?? $request->input('funciona_id') ?? 00;
+
+    //         // 🚀 MELHORIA CIRÚRGICA 1: Normalização de Chaves do Front-End
+    //         // Captura o array de itens original enviado pelo JSON ontem
+    //         $itensOriginais = $request->input('itens', []);
+    //         $itensTratados = [];
+
+    //         // Varre os itens para garantir que o 'preco_unitario' existirá mesmo se o JS mandar 'valor_unitario'
+    //         foreach ($itensOriginais as $item) {
+    //             if (isset($item['produto_id'])) {
+    //                 $item['preco_unitario'] = $item['valor_unitario'] ?? $item['preco_unitario'] ?? 0;
+    //                 $itensTratados[] = $item;
+    //             }
+    //         }
+
+    //         // 2️⃣ Instancia a Venda
+    //         $dadosVenda = [ 
+    //             'cliente_id'     => $clienteId, 
+    //             'funcionario_id' => $funcionarioId, 
+    //             'caixa_id'       => $caixaId, 
+    //             'status'         => 'aberta', 
+    //             'total'          => 0,
+    //             'data_venda'     => $request->dataVenda ?? now()
+    //         ]; 
+    //         $venda = Venda::create($dadosVenda); 
+
+    //         // 3️⃣ Executa Itens e FIFO (Passando o array com as chaves normalizadas)
+    //         // 🚀 O fluxo de estoque continua idêntico, mas agora blindado contra chaves zeradas
+    //         $valorTotal = $this->processarItensVenda($venda, $itensTratados, $limparNumero);
+    //         $venda->update(['total' => $valorTotal]);
+
+    //         // 4️⃣ Executa os Pagamentos (Filho)
+    //         $userId = auth()->id() ?? $request->input('user_id', 1);
+    //         $pagamentos = $this->pagamentos_venda($venda->id, $request, $userId, $limparNumero);
+
+    //         // 5️⃣ Executa Caixa e Crediário (Filho)
+    //         $this->finalizarFluxoFinanceiro($venda, $pagamentos, $caixaId, $creditoService);
+
+    //         // 6️⃣ Fecha a venda
+    //         $venda->update(['status' => 'finalizada']);
+
+    //         // 🎯 RASTREAMENTO SIMPLIFICADO POR PRODUTO (Sem erro de coluna)
+    //         $clienteIdLog = $request->input('cliente_id');
+            
+    //         // Coleta apenas o produto_id do primeiro item enviado
+    //         $primeiroItem = count($itensTratados) > 0 ? $itensTratados[0] : null;
+    //         $produtoIdLog = $primeiroItem ? $primeiroItem['produto_id'] : null;
+
+    //         if ($produtoIdLog) {
+    //             // Busca o orçamento ativo do cliente que contenha esse produto
+    //             $orcamento = \App\Models\Orcamento::where('cliente_id', $clienteIdLog)
+    //                 ->where('status', 'Aprovado')
+    //                 ->whereHas('itens', function($query) use ($produtoIdLog) {
+    //                     $query->where('produto_id', $produtoIdLog);
+    //                 })
+    //                 ->latest()
+    //                 ->first();
+
+    //             if ($orcamento) {
+    //                 // Executa o update bruto direto no banco
+    //                 \App\Models\Orcamento::where('id', $orcamento->id)->update([
+    //                     'status'       => 'Faturado',
+    //                     'editando_por' => auth()->id() ?? $request->input('funcionario_id') ?? 1
+    //                     ]);
+    //                 }
+    //             }
+    //             DB::commit(); 
+    //             return response()->json(['success' => true, 'venda_id' => $venda->id], 200);
+
+    //         } catch (\Exception $e) { 
+    //             DB::rollBack(); 
+    //             return response()->json(['success' => false, 'erro' => $e->getMessage()], 422); 
+    //         } 
+    // }
+
+    public function finalizar(Request $request, CreditoService $creditoService) 
+    { 
+        // 🕵️‍♂️ CAPTURA DOS DADOS ANTES DE PERSISTIR
+        \Log::info('===== DADOS RECEBIDOS NO BACKEND (PDV) =====');
+        \Log::info('URL Acessada: ' . request()->fullUrl());
+        \Log::info('Payload Completo:', $request->all());
+        \Log::info('Valor de orcamento_id isolado: ' . $request->input('orcamento_id'));
+        \Log::info('============================================');
+
         // Helper de Sanitização Decimal
         $limparNumero = function($valor) { 
             if (is_numeric($valor)) return (float) $valor; 
@@ -45,13 +228,34 @@ class VendaController extends Controller
             // 1️⃣ Define Cliente e Caixa
             $clienteId = $this->buscarOuDefinirCliente($request->input('cliente_id'));
             $caixaId = (int) $request->input('caixa_id');
-            // 🔥 DECLARAÇÃO DA VARIÁVEL CORRETA (Com o "$" e o nome exato)
             $funcionarioId = auth()->id() ?? $request->input('funcionario_id') ?? $request->input('funciona_id') ?? 00;
+
+            // 🚀 BALANCEMENTO REFINADO: Normalização e espelhamento completo de chaves para o Estoque
+            $itensOriginais = $request->input('itens', []);
+            $itensTratados = [];
+
+            foreach ($itensOriginais as $item) {
+                if (isset($item['produto_id'])) {
+                    // Resolve o preço encontrando qualquer uma das chaves e replica em todas para blindar o estoque
+                    $precoDefinido = $item['valor_unitario'] ?? $item['preco_unitario'] ?? $item['preco'] ?? 0;
+                    
+                    $item['valor_unitario'] = $precoDefinido;
+                    $item['preco_unitario'] = $precoDefinido;
+                    $item['preco']          = $precoDefinido; // 🎯 Alimenta o preço esperado pela baixa de estoque!
+
+                    // Garante consistência na quantidade caso mude o seletor no JS
+                    $qtdDefinida = $item['quantidade'] ?? $item['qtd'] ?? 1;
+                    $item['quantidade']     = $qtdDefinida;
+                    $item['qtd']            = $qtdDefinida;
+
+                    $itensTratados[] = $item;
+                }
+            }
 
             // 2️⃣ Instancia a Venda
             $dadosVenda = [ 
                 'cliente_id'     => $clienteId, 
-                'funcionario_id' => $funcionarioId, // 🔥 Correção do mapeamento da coluna do banco
+                'funcionario_id' => $funcionarioId, 
                 'caixa_id'       => $caixaId, 
                 'status'         => 'aberta', 
                 'total'          => 0,
@@ -59,9 +263,30 @@ class VendaController extends Controller
             ]; 
             $venda = Venda::create($dadosVenda); 
 
-            // 3️⃣ Executa Itens e FIFO (Filho)
-            $valorTotal = $this->processarItensVenda($venda, $request->input('itens', []), $limparNumero);
+            // 3️⃣ Executa Itens, FIFO/Estoque com chaves 100% espelhadas
+            $valorTotal = $this->processarItensVenda($venda, $itensTratados, $limparNumero);
             $venda->update(['total' => $valorTotal]);
+
+            // 🚀 PERSISTÊNCIA COMPLETA: Gravação física na tabela item_vendas
+            foreach ($itensTratados as $item) {
+                if (isset($item['produto_id'])) {
+                    $precoFinal = $limparNumero($item['preco_unitario']);
+                    
+                    if ($precoFinal <= 0) {
+                        $precoBase = DB::table('produtos')->where('id', $item['produto_id'])->value('preco_venda');
+                        $precoFinal = $precoBase ? (float)$precoBase : 0.00;
+                    }
+
+                    \App\Models\ItemVenda::create([
+                        'venda_id'       => $venda->id,
+                        'produto_id'     => $item['produto_id'],
+                        'lote_id'        => $item['lote_id'] ?? null,
+                        'quantidade'     => $limparNumero($item['quantidade']),
+                        'preco_unitario' => $precoFinal,
+                        'desconto'       => $limparNumero($item['desconto'] ?? 0),
+                    ]);
+                }
+            }
 
             // 4️⃣ Executa os Pagamentos (Filho)
             $userId = auth()->id() ?? $request->input('user_id', 1);
@@ -73,15 +298,13 @@ class VendaController extends Controller
             // 6️⃣ Fecha a venda
             $venda->update(['status' => 'finalizada']);
 
-            // 🎯 RASTREAMENTO SIMPLIFICADO POR PRODUTO (Sem erro de coluna)
+            // 🎯 RASTREAMENTO SIMPLIFICADO POR PRODUTO
             $clienteIdLog = $request->input('cliente_id');
             
-            // Coleta apenas o produto_id do primeiro item enviado
-            $primeiroItem = $request->input('itens.0');
+            $primeiroItem = count($itensTratados) > 0 ? $itensTratados[0] : null;
             $produtoIdLog = $primeiroItem ? $primeiroItem['produto_id'] : null;
 
             if ($produtoIdLog) {
-                // Busca o orçamento ativo do cliente que contenha esse produto
                 $orcamento = \App\Models\Orcamento::where('cliente_id', $clienteIdLog)
                     ->where('status', 'Aprovado')
                     ->whereHas('itens', function($query) use ($produtoIdLog) {
@@ -91,17 +314,12 @@ class VendaController extends Controller
                     ->first();
 
                 if ($orcamento) {
-                    // Executa o update bruto direto no banco
                     \App\Models\Orcamento::where('id', $orcamento->id)->update([
                         'status'       => 'Faturado',
                         'editando_por' => auth()->id() ?? $request->input('funcionario_id') ?? 1
                     ]);
                 }
             }
-
-
-
-
             DB::commit(); 
             return response()->json(['success' => true, 'venda_id' => $venda->id], 200);
 
@@ -110,7 +328,6 @@ class VendaController extends Controller
             return response()->json(['success' => false, 'erro' => $e->getMessage()], 422); 
         } 
     }
-    
      /**
      * Define ou localiza o cliente correto para a venda.
      */
@@ -125,93 +342,51 @@ class VendaController extends Controller
         }
         return (int) $clienteIdRaw;
     }
-    
-    /**
-     * Processa a baixa de estoque dos itens utilizando o algoritmo FIFO.
-     * Protegido contra concorrência multi-lote via Lock Cirúrgico de milissegundos.
-     */
-    // private function processarItensVenda(Venda $venda, array $itens, $limparNumero): float
-    // {
-    //     $valorTotalVenda = 0;
-
-    //     foreach ($itens as $item) {
-    //         $quantidadeNecessaria = $limparNumero($item['quantidade'] ?? $item['qtd'] ?? 1);
-    //         $precoUnitario        = $limparNumero($item['valor_unitario'] ?? $item['preco_unitario'] ?? $item['preco'] ?? $item['valor'] ?? 0);
-    //         $desconto             = $limparNumero($item['desconto'] ?? 0.00);
-    //         $produtoId            = $item['produto_id'] ?? $item['id'] ?? null;
-
-    //         if (!$produtoId) {
-    //             throw new \InvalidArgumentException('Identificador do produto inválido no carrinho.');
-    //         }
-
-    //         if ($precoUnitario <= 0) {
-    //             $produtoBanco = DB::table('produtos')->where('id', $produtoId)->first();
-    //             $precoUnitario = $produtoBanco ? (float) $produtoBanco->preco_venda : 0.00;
-    //         }
-
-    //         $valorTotalVenda += ($quantidadeNecessaria * $precoUnitario) - $desconto;
-
-    //         // 🔒 LOCK CIRÚRGICO: Trava apenas as linhas dos lotes ativos deste produto.
-    //         // Como a venda agora é gravada em um único passo no controller, esse lock dura apenas
-    //         // alguns milissegundos, garantindo o FIFO perfeito sem congelar as outras frentes de caixa.
-    //         $lotes = DB::table('lotes')
-    //             ->where('produto_id', $produtoId)
-    //             ->where('quantidade_disponivel', '>', 0)
-    //             ->orderBy('created_at', 'asc')
-    //             ->lockForUpdate() // 🔥 Reativado de forma otimizada para consistência multi-lote
-    //             ->get();
-
-    //         if ($lotes->isEmpty()) {
-    //             $venda->itens()->create([
-    //                 'produto_id'     => $produtoId,
-    //                 'lote_id'        => null,
-    //                 'quantidade'     => $quantidadeNecessaria,
-    //                 'preco_unitario' => $precoUnitario,
-    //                 'desconto'       => $desconto
-    //             ]);
-    //         } else {
-    //             foreach ($lotes as $lote) {
-    //                 if ($quantidadeNecessaria <= 0) break;
-                    
-    //                 // 🧠 Garante o cálculo exato baseado no valor atualizado e travado pelo lock
-    //                 $qtdConsumir = min($quantidadeNecessaria, $lote->quantidade_disponivel);
-
-    //                 $venda->itens()->create([
-    //                     'produto_id'     => $produtoId,
-    //                     'lote_id'        => $lote->id,
-    //                     'quantidade'     => $qtdConsumir,
-    //                     'preco_unitario' => $precoUnitario,
-    //                     'desconto'       => $desconto
-    //                 ]);
-
-    //                 // Subtração segura e isolada
-    //                 DB::table('lotes')
-    //                     ->where('id', $lote->id)
-    //                     ->decrement('quantidade_disponivel', $qtdConsumir);
-                        
-    //                 $quantidadeNecessaria -= $qtdConsumir;
-    //             }
-
-    //             // Fallback: Se a venda estourar o estoque físico dos lotes cadastrados
-    //             if ($quantidadeNecessaria > 0) {
-    //                 $venda->itens()->create([
-    //                     'produto_id'     => $produtoId,
-    //                     'lote_id'        => null,
-    //                     'quantidade'     => $quantidadeNecessaria,
-    //                     'preco_unitario' => $precoUnitario,
-    //                     'desconto'       => $desconto
-    //                 ]);
-    //             }
-    //         }
-    //     }
-
-    //     return $valorTotalVenda;
-    // }
-
     /**
      * Processa a baixa de estoque dos itens, valida teto de descontos manuais
      * baseados no perfil do cliente e implementa FIFO.
      */
+    // private function processarItensVenda(Venda $venda, array $itens, $limparNumero): float
+    // {
+    //     $valorTotalVenda = 0;
+    //     $cliente = DB::table('clientes')->where('id', $venda->cliente_id)->first();
+    //     $perfilCliente = $cliente ? $cliente->tipo_cliente : 'markup_1';
+
+    //     foreach ($itens as $item) {
+    //         $qtd = $limparNumero($item['quantidade'] ?? $item['qtd'] ?? 1);
+    //         $precoCobrado = $limparNumero($item['preco'] ?? 0);
+    //         $descInformado = $limparNumero($item['desconto'] ?? 0);
+    //         $prodId = $item['produto_id'] ?? $item['id'] ?? null;
+
+    //         $produto = DB::table('produtos')->where('id', $prodId)->first();
+
+    //         // 🧠 1. Define preço e desconto máx baseado no perfil
+    //         switch ($perfilCliente) {
+    //             case 'markup_2': $maxDesc = $produto->desconto_max_2 ?? 0; break;
+    //             case 'markup_3': $maxDesc = $produto->desconto_max_3 ?? 0; break;
+    //             default: $maxDesc = $produto->desconto_max_1 ?? 0;
+    //         }
+
+    //         // 🧠 2. Valida trava de desconto (em %)
+    //         $totalBruto = $qtd * ($precoCobrado ?: $produto->preco_venda);
+    //         $descPerc = ($totalBruto > 0) ? ($descInformado / $totalBruto) * 100 : 0;
+            
+    //         if ($descPerc > $maxDesc) {
+    //             throw new \Exception("Desconto excede o máximo de {$maxDesc}%");
+    //         }
+
+    //         // ... Lógica FIFO (lockForUpdate) ...
+    //         // (Mantém a lógica de lotes do código original)
+    //         $valorTotalVenda += ($totalBruto - $descInformado);
+    //     }
+    //     return $valorTotalVenda;
+    // }
+
+        /**
+     * Processa a baixa de estoque dos itens, valida teto de descontos manuais
+     * baseados no perfil do cliente e implementa FIFO.
+     */
+    
     private function processarItensVenda(Venda $venda, array $itens, $limparNumero): float
     {
         $valorTotalVenda = 0;
@@ -220,11 +395,20 @@ class VendaController extends Controller
 
         foreach ($itens as $item) {
             $qtd = $limparNumero($item['quantidade'] ?? $item['qtd'] ?? 1);
-            $precoCobrado = $limparNumero($item['preco'] ?? 0);
+            
+            // 🚀 CORREÇÃO 1: Normalização cirúrgica para ler a chave enviada ontem pelo front-end
+            $precoOriginal = $item['valor_unitario'] ?? $item['preco_unitario'] ?? $item['preco'] ?? 0;
+            $precoCobrado = $limparNumero($precoOriginal);
+            
             $descInformado = $limparNumero($item['desconto'] ?? 0);
             $prodId = $item['produto_id'] ?? $item['id'] ?? null;
+            $loteIdInformado = $item['lote_id'] ?? null;
 
             $produto = DB::table('produtos')->where('id', $prodId)->first();
+
+            if (!$produto) {
+                continue;
+            }
 
             // 🧠 1. Define preço e desconto máx baseado no perfil
             switch ($perfilCliente) {
@@ -241,12 +425,68 @@ class VendaController extends Controller
                 throw new \Exception("Desconto excede o máximo de {$maxDesc}%");
             }
 
-            // ... Lógica FIFO (lockForUpdate) ...
-            // (Mantém a lógica de lotes do código original)
+            // =======================================================================
+            // 🚀 CORREÇÃO 2: IMPLEMENTAÇÃO DO ABATE NO LOTE (FLUXO FIFO BRUTO)
+            // =======================================================================
+            $lotes = [];
+
+            // Se o front-end mandou um lote_id, tenta dar baixa nele se houver estoque
+            if ($loteIdInformado) {
+                $loteEspecifico = DB::table('lotes')
+                    ->where('id', $loteIdInformado)
+                    ->where('produto_id', $prodId)
+                    ->where('quantidade_disponivel', '>', 0)
+                    ->first();
+                if ($loteEspecifico) {
+                    $lotes[] = $loteEspecifico;
+                }
+            }
+
+            // Fallback FIFO automático: se o lote da tela falhar, busca por ordem de chegada
+            if (empty($lotes)) {
+                $lotes = DB::table('lotes')
+                    ->where('produto_id', $prodId)
+                    ->where('quantidade_disponivel', '>', 0)
+                    ->orderBy('created_at', 'asc')
+                    ->lockForUpdate()
+                    ->get();
+            }
+
+            $qtdRestante = $qtd;
+
+            // Loop de fracionamento: consome o saldo disponível das colunas físicas do banco
+            foreach ($lotes as $lote) {
+                if ($qtdRestante <= 0) break;
+
+                $consumo = min($lote->quantidade_disponivel, $qtdRestante);
+                $novaQtdLote = $lote->quantidade_disponivel - $consumo;
+
+                // Executa o UPDATE real na tabela de lotes do MariaDB
+                DB::table('lotes')
+                    ->where('id', $lote->id)
+                    ->update([
+                        'quantidade_disponivel' => $novaQtdLote,
+                        'updated_at'            => now()
+                    ]);
+
+                $qtdRestante -= $consumo;
+            }
+
+            // Atualiza de forma síncrona a quantidade consolidada no cadastro geral do produto
+            $novoEstoqueGeral = max(0, $produto->quantidade_estoque - $qtd);
+            DB::table('produtos')
+                ->where('id', $prodId)
+                ->update([
+                    'quantidade_estoque' => $novoEstoqueGeral,
+                    'updated_at'         => now()
+                ]);
+            // =======================================================================
+
             $valorTotalVenda += ($totalBruto - $descInformado);
         }
         return $valorTotalVenda;
     }
+
 
      /**
      * Registra os pagamentos de forma isolada.
@@ -347,14 +587,19 @@ class VendaController extends Controller
      * Gera os dados do cupom de forma estática e segura para impressão ou reimpressão.
      */
      public function cupom($id) 
+
     { 
-        // 1. Carrega a venda com os relacionamentos originais
-        $venda = Venda::with([
-            'cliente', 
-            'itens.produto.unidadeMedida', 
-            'itens.lote',                  
-            'funcionario'
-        ])->findOrFail($id); 
+        // 1. Carrega a venda pai com os relacionamentos de primeiro nível
+        $venda = Venda::with(['cliente', 'funcionario'])->findOrFail($id); 
+
+        // 🚀 CARREGAMENTO CIRÚRGICO: Busca os itens diretamente partindo de ItemVenda
+        // Isso anula qualquer falha de mapeamento ou chave estrangeira invertida do Eloquent
+        $itensReais = \App\Models\ItemVenda::with(['produto.unidadeMedida', 'lote'])
+            ->where('venda_id', $id)
+            ->get();
+
+        // Injeta os itens carregados diretamente na relação da Venda
+        $venda->setRelation('itens', $itensReais);
 
         // Busca o histórico real de pagamentos gravado no banco de dados
         $pagamentosDaVenda = \Illuminate\Support\Facades\DB::table('pagamentos_venda')

@@ -217,57 +217,6 @@ class EstoqueService
             ->increment('quantidade_reservada', $qtd);
     }
     
-    
-    /**
-     * CANCELAMENTO DE RESERVA
-     */
-    
-    // public function cancelarReserva(ItemOrcamento $item): void
-    // {
-    //     DB::transaction(function () use ($item) {
-
-    //         $movService = app(MovimentacaoOrcamentoService::class);
-
-    //         $vinculos = DB::table('item_orcamento_lotes')
-    //             ->where('item_orcamento_id', $item->id)
-    //             ->lockForUpdate()
-    //             ->get();
-
-    //         foreach ($vinculos as $v) {
-
-    //             $lote = DB::table('lotes')
-    //                 ->where('id', $v->lote_id)
-    //                 ->lockForUpdate()
-    //                 ->first();
-
-    //             $antes = $lote->quantidade_reservada;
-    //             $depois = $antes - $v->quantidade_reservada;
-
-    //             DB::table('lotes')
-    //                 ->where('id', $v->lote_id)
-    //                 ->decrement('quantidade_reservada', $v->quantidade_reservada);
-
-    //             // 🔥 REGISTRA MOVIMENTAÇÃO
-    //             $movService->registrar(
-    //                 $v->lote_id,
-    //                 $item->orcamento_id,
-    //                 $item->id,
-    //                 TipoMovimentacao::CANCELAMENTO,
-    //                 $antes,
-    //                 $depois,
-    //                 'Liberação de reserva',
-    //                 OrigemMovimentacao::SISTEMA
-    //             );
-    //         }
-
-    //         DB::table('item_orcamento_lotes')
-    //             ->where('item_orcamento_id', $item->id)
-    //             ->delete();
-
-    //         $this->recalcularItem($item);
-    //     });
-    // }
-
     public function cancelarReserva(ItemOrcamento $item): void
     {
         DB::transaction(function () use ($item) {
@@ -408,37 +357,4 @@ class EstoqueService
             ]);
         }
     }
-
-
-
-    //  public function reprocessarProduto(int $produtoId)
-    // {
-    //     DB::transaction(function () use ($produtoId) {
-
-    //         // 1. pega todos itens pendentes do produto
-    //         $itens = ItemOrcamento::where('produto_id', $produtoId)
-    //             ->whereRaw('(quantidade_solicitada - quantidade_atendida) > 0')
-    //             ->orderBy('orcamento_id')
-    //             ->lockForUpdate()
-    //             ->get();
-
-    //         foreach ($itens as $item) {
-
-    //             // 2. tenta redistribuir com FIFO
-    //             $this->distribuir(
-    //                 $item,
-    //                 $produtoId,
-    //                 $item->quantidade_solicitada - $item->quantidade_atendida
-    //             );
-
-    //             // 3. recalcula fonte da verdade
-    //             $this->recalcularItem($item);
-    //         }
-
-    //         // 4. atualiza status dos orçamentos afetados
-    //         $this->atualizarStatusOrcamento(
-    //             $itens->pluck('orcamento_id')->unique()->toArray()
-    //         );
-    //     });
-    // }
 }

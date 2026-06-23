@@ -56,7 +56,7 @@ class Venda extends Model
     /* Relacionamentos */
     public function itens()
     {
-        return $this->hasMany(ItemVenda::class, 'venda_id');
+        return $this->hasMany(ItemVenda::class, 'venda_id','id');
     }
 
     public function pagamentos()

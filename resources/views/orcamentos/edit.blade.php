@@ -1,517 +1,127 @@
 @extends('layouts.app')
 
-@php
-    $novaValidade = \Carbon\Carbon::now()->addDays(7)->format('Y/m/d');
-@endphp
-
 @section('content')
 <div class="container">
-    <h2 class="mb-4">Editar Pedido/Orçamento #{{ $orcamento->codigo_orcamento }}  </h2>
-    
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
 
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <strong>Erro!</strong> Verifique os campos obrigatórios.
-            <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+<h2 class="mb-4">Editar Orçamento</h2>
 
-    @if($orcamento->status === 'Expirado')
-        <div class="alert alert-danger text-center fw-bold" style="font-size: 18px;">
-            ⚠️ ATENÇÃO! ESTE ORÇAMENTO ESTÁ <u>EXPIRADO</u>.<br>
-            AO SALVAR, VIRA <span class="text-danger">AGUARDANDO APROVAÇÃO</span>.<br>
-            Nova validade: 
-            <span class="text-primary">{{ \Carbon\Carbon::now()->addDays(7)->format('d/m/Y') }}</span>.
-        </div>
-    @endif
+@if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
+@endif
 
-    <form action="{{ route('orcamentos.update', $orcamento->id) }}" method="POST" id="formOrcamento">
-        @csrf
-        @method('PUT')
+@if ($errors->any())
+    <div class="alert alert-danger">
+        <strong>Erro!</strong> Verifique os campos obrigatórios.
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
+<form action="{{ route('orcamentos.store') }}" method="POST" id="formOrcamento">
+    @csrf
 
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Cliente *</label>
-                        <div class="form-control bg-light">
-                            {{ $orcamento->cliente->nome ?? 'Cliente não encontrado' }}
-                        </div>
-                        <input type="hidden" name="cliente_id" id="clienteSelect" value="{{ $orcamento->cliente_id }}">
-                    </div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
 
-                    <div class="col-md-2">
-                        <label class="form-label">Data *</label>
-                        <input type="date" name="data_orcamento" class="form-control"
-                               value="{{ old('data_orcamento', $orcamento->data_orcamento->format('Y-m-d')) }}" required>
-                    </div>
-
-                    <div class="col-md-2">
-                        <label class="form-label text-danger">Validade até</label>
-                        @php
-                            $validade = $orcamento->status === 'Expirado'
-                                ? now()->addDays(7)->format('Y-m-d')
-                                : (old('validade') ?? \Carbon\Carbon::parse($orcamento->validade)->format('Y-m-d'));
-                        @endphp
-                        <input type="date" name="validade" class="form-control" value="{{ $validade }}" required>
-                    </div>
-                </div>
-
-                <hr>
-
-                <div class="row fw-bold border-bottom pb-2 mb-2">
-                    <div class="col-md-3 text-primary">ID - Produto</div>
-                    <div class="col-md-3">Lote</div>
-                    <div class="col-md-1">Qtd</div>
-                    <div class="col-md-2">Unidade</div>
-                    <div class="col-md-1">Preço</div>
-                    <div class="col-md-1">Subtotal</div>
-                    <div class="col-md-1 text-center">Ação</div>
-                </div>
-
-                <div id="itensContainer">
-
-                    @php
-                        $oldProdutos = old('produtos', $orcamento->itens->map(function($item){
-                            return [
-                                'id' => $item->produto_id,
-                                'quantidade' => $item->quantidade_solicitada,
-                                'preco_unitario' => $item->preco_unitario,
-                                'unidade' => $item->produto->unidadeMedida->nome ?? '',
-                                'lote_id'=> $item->lote_principal->numero_lote ?? 'Sem lote',
-                                'lote_label' => $item->lote->numero_lote ?? 'Sem lote',
-                            ];
-                        })->toArray());
-                    @endphp
-
-                    @foreach($oldProdutos as $i => $oldItem)
-                        <div class="row align-items-center mb-2 item-row">
-                            <div class="col-md-3">
-                                <select name="produtos[{{ $i }}][id]" class="form-select produtoSelect" required>
-                                    <option value="">Selecione...</option>
-                                    @foreach($produtos as $produto)
-                                        <option value="{{ $produto->id }}"
-                                            data-preco="{{ $produto->preco_venda }}"
-                                            data-unidade="{{ $produto->unidadeMedida->nome ?? '' }}"
-                                            {{ (int)$oldItem['id'] === (int)$produto->id ? 'selected' : '' }}>
-                                            {{ $produto->id }} - {{ $produto->nome }} 
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-md-3">
-                                <div class="form-control bg-light loteLabel">
-                                    {{ $oldItem['lote_label'] }}
-                                </div>
-                                <input type="hidden"
-                                    name="produtos[{{ $i }}][lote_id]"
-                                    class="loteInput"
-                                    value="{{ $oldItem['lote_id'] }}" >
-                            </div>
-
-                            <div class="col-md-1">
-                                <input type="number" name="produtos[{{ $i }}][quantidade]" class="form-control qtd" min="1" value="{{ $oldItem['quantidade'] }}" required>
-                            </div>
-
-                            <div class="col-md-2 unidade">{{ $oldItem['unidade'] }}</div>
-
-                            <div class="col-md-1">
-                                <div class="preco">{{ number_format($oldItem['preco_unitario'], 2, ',', '.') }}</div>
-                                <input type="hidden" name="produtos[{{ $i }}][preco_unitario]" value="{{ $oldItem['preco_unitario'] }}">
-                            </div>
-
-                            <div class="col-md-1 subtotal">
-                                {{ number_format($oldItem['quantidade'] * $oldItem['preco_unitario'], 2, ',', '.') }}
-                            </div>
-
-                            <div class="col-md-1 text-center">
-                                <button type="button" class="btn btn-sm btn-danger remover">X</button>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-
-                <div class="text-end mt-3">
-                    <button type="button" class="btn btn-primary" id="addProduto">+ Produto</button>
-                    <button type="submit" class="btn btn-success" id="btnSalvar" atualizarBotaoSalvar()>Salvar</button>
-                    <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary">Voltar</a>
-                </div>
-
-                <div class="text-end mt-2">
-                    <h5>Total: R$ <span id="total">{{ number_format($orcamento->total, 2, ',', '.') }}</span></h5>
-                </div>
-
-                <div class="mt-3">
-                    <label class="form-label">Observações</label>
-                    <textarea name="observacoes" class="form-control" rows="3">{{ old('observacoes', $orcamento->observacoes ?: 'Sem observações') }}</textarea>
-                </div>
-
-            </div>
-        </div>
-    </form>
-</div>
-
-<!-- botao +Produto - Controle os itens do select options, sai da pagina inativa por 3 minutos -->
-<!-- <script>
-    document.addEventListener('DOMContentLoaded', () => {
-
-        const produtos = @json($produtos);
-        const container = document.getElementById('itensContainer');
-        const totalSpan = document.getElementById('total');
-        const addBtn = document.getElementById('addProduto');
-        const clienteSelect = document.getElementById('clienteSelect');
-
-        let index = container.querySelectorAll('.item-row').length;
-
-        // ===============================
-        // CRIAR ITEM
-        // ===============================
-        function criarItem() {
-            const div = document.createElement('div');
-            div.classList.add('row','align-items-center','mb-2','item-row');
-
-            div.innerHTML = `
-                <div class="col-md-3">
-                    <select name="produtos[${index}][id]" class="form-select produtoSelect" required>
+            <!-- Cliente e Datas -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Cliente *</label>
+                    <select name="cliente_id" id="clienteSelect" class="form-select" required>
                         <option value="">Selecione...</option>
-                        ${produtos.map(p => `
-                            <option value="${p.id}"
-                                data-preco="${p.preco_venda}"
-                                data-unidade="${p.unidade_medida?.nome || ''}">
-                                ${p.id} - ${p.nome} 
+                        @foreach($clientes as $cliente)
+                            <option value="{{ $cliente->id }}" data-perfil="{{ $cliente->tipo_cliente ?? 'markup_1' }}">
+                                {{ $cliente->nome }}
                             </option>
-                        `).join('')}
+                        @endforeach
                     </select>
                 </div>
 
                 <div class="col-md-3">
-                    <select name="produtos[${index}][lote_id]" class="form-select loteSelect" required>
-                        <option value="">Selecione o lote</option>
-                    </select>
+                    <label class="form-label">Data</label>
+                    <input type="date" name="data_orcamento" class="form-control"
+                        value="{{ date('Y-m-d') }}">
                 </div>
 
-                <div class="col-md-1">
-                    <input type="number"
-                        name="produtos[${index}][quantidade_solicitada]"
-                        class="form-control qtd"
-                        value="1" min="1" required>
+                <div class="col-md-3">
+                    <label class="form-label">Validade</label>
+                    <input type="date" name="validade" class="form-control"
+                        value="{{ date('Y-m-d', strtotime('+7 days')) }}">
+                </div>
+            </div>
+
+            <hr>
+
+            <h5>Itens do Orçamento</h5>
+
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Lote</th>
+                        <th>Quantidade</th>
+                        <th>Unidade</th>
+                        <th>Preço</th>
+                        <th style="width: 100px;">Desc. (%)</th> {{-- 🚀 ADICIONADO NO CABEÇALHO --}}
+                        <th>Subtotal</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="itensContainer"></tbody>
+            </table>
+
+            <div class="text-end">
+                <button type="button" class="btn btn-primary" id="addProduto">+ Adicionar Produto</button>
+                <button type="submit" class="btn btn-success" id="btnSalvar" atualizarBotaoSalvar()>Salvar Orçamento</button>
+                <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary">Voltar</a>
+            </div>
+
+                <div class="text-end mt-2 d-flex justify-content-end align-items-center gap-4">
+                    {{-- 🚀 NOVO CAMPO: Exibe a soma de todos os descontos aplicados em R$ --}}
+                    <h5 class="text-danger mb-0">Total Desconto: R$ <span id="totalDesconto">0,00</span></h5>
+                    
+                    {{-- 🚀 SEU CAMPO ORIGINAL DE TOTAL BRUTO REALINHADO --}}
+                    <h5 class="text-muted mb-0">Total Bruto: R$ <span id="totalBruto">0,00</span></h5>
+
+                    {{-- 🚀 NOVO CAMPO REQUISITADO: Exibe o valor líquido com os descontos já abatidos --}}
+                    <h4 class="text-success mb-0 fw-bold">Valor com Desconto: R$ <span id="totalLiquido">0,00</span></h4>
                 </div>
 
-                <div class="col-md-2 unidade"></div>
 
-                <div class="col-md-1">
-                    <div class="preco">0,00</div>
-                    <input type="hidden"
-                        name="produtos[${index}][preco_unitario]"
-                        value="0">
-                </div>
+            <div class="mb-3 mt-3 bg-secondary  p-3 rounded">
+                <label class="form-label text-warning">Observações:</label>
+                <label class="form-label text-light"> insira aqui as informações que vão aparecer impressos no documento de entrega.</label>
+                <label class="form-label text-warning"> Ex: melhor periodo para entrega: manha ou tarde, nome da pessoa que vai receber ?</label>
+                <textarea name="observacoes" class="form-control" rows="3">Sem observações</textarea>
+            </div>
 
-                <div class="col-md-1 subtotal">0,00</div>
+        </div>
+    </div>
+</form>
 
-                <div class="col-md-1 text-center">
-                    <button type="button" class="btn btn-sm btn-danger remover">X</button>
-                </div>
-            `;
-
-            container.appendChild(div);
-            index++;
-
-            clienteSelect.classList.add('readonly-select');
-        }
-    
-        function getProdutosSelecionados() {
-            const selecionados = [];
-
-            document.querySelectorAll('.produtoSelect').forEach(select => {
-                if (select.value) {
-                    selecionados.push(select.value);
-                }
-            });
-
-            return selecionados;
-        }
-
-        // ===============================
-        // ATUALIZAR TOTAL
-        // ===============================
-        function atualizarTotal() {
-            let total = 0;
-
-            container.querySelectorAll('.item-row').forEach(row => {
-
-                const qtd = parseFloat(row.querySelector('.qtd').value) || 0;
-                const preco = parseFloat(row.querySelector('input[name*="[preco_unitario]"]').value) || 0;
-
-                const subtotal = qtd * preco;
-
-                row.querySelector('.subtotal').textContent =
-                    subtotal.toFixed(2).replace('.', ',');
-
-                total += subtotal;
-            });
-
-            totalSpan.textContent = total.toFixed(2).replace('.', ',');
-        }
-
-        // ===============================
-        // SELECIONAR PRODUTO
-        // ===============================
-        container.addEventListener('change', e => {
-
-            if (!e.target.classList.contains('produtoSelect')) return;
-
-            if (!clienteSelect.value) {
-                alert('Selecione o cliente primeiro!');
-                e.target.value = '';
-                return;
-            }
-
-            const produtoId = e.target.value;
-            const produto = produtos.find(p => p.id == produtoId);
-            const row = e.target.closest('.item-row');
-
-            // PREÇO E UNIDADE
-            const preco = parseFloat(produto?.preco_venda || 0);
-            const unidade = produto?.unidade_medida?.nome || '';
-
-            row.querySelector('.preco').textContent =
-                preco.toFixed(2).replace('.', ',');
-
-            row.querySelector('.unidade').textContent = unidade;
-
-            row.querySelector('input[name*="[preco_unitario]"]').value = preco;
-
-            // ===============================
-            // LOTE (SEM FILTRO DE ESTOQUE)
-            // ===============================
-            // 🔥 CARREGAR LOTES
-            const loteSelect = row.querySelector('.loteSelect');
-            loteSelect.innerHTML = '<option value="">Selecione o lote</option>';
-
-            if (!produto || !produto.lotes) return;
-
-            // const lotesValidos = produto.lotes.filter(l => {
-            //     const disponivel =
-            //         (parseFloat(l.quantidade_solicitada) || 0) -
-            //         (parseFloat(l.quantidade_reservada) || 0);
-
-            //     // return l.status == 1 && disponivel > 0;
-            //     return l.status == 1 ;
-            // });
-
-           const lotesValidos = produto.lotes
-            .map(l => {
-
-                const quantidade = Number(l.quantidade ?? 0);
-                const reservado = Number(l.quantidade_reservada ?? 0);
-
-                const disponivel = quantidade - reservado;
-
-                return {
-                    ...l,
-                    disponivel
-                };
-            })
-            .filter(l => l.disponivel > 0 && l.status == 1);
-
-            // 👉 SEM LOTE
-            if (lotesValidos.length === 0) {
-                loteSelect.innerHTML = '<option value="">Sem lote disponível</option>';
-                return;
-            }
-
-            // 👉 COM VÁRIOS LOTES
-            lotesValidos.forEach(l => {
-
-                const disponivel =
-                    (parseFloat(l.quantidade) || 0) -
-                    (parseFloat(l.quantidade_reservada) || 0);
-
-                loteSelect.innerHTML += `
-                    <option value="${l.id}">
-                        ${l.numero_lote} | Qtd: ${disponivel}
-                    </option>
-                `;
-            });
-            atualizarTotal();
-        });
-
-        // ===============================
-        // ALTERAR QUANTIDADE
-        // ===============================
-        container.addEventListener('input', e => {
-            if (e.target.classList.contains('qtd')) {
-                atualizarTotal();
-            }
-        });
-
-        // ===============================
-        // REMOVER ITEM
-        // ===============================
-        container.addEventListener('click', e => {
-            if (e.target.classList.contains('remover')) {
-
-                e.target.closest('.item-row').remove();
-                atualizarTotal();
-
-                if (container.querySelectorAll('.item-row').length === 0) {
-                    clienteSelect.classList.remove('readonly-select');
-                }
-            }
-        });
-
-        // ===============================
-        // ADICIONAR ITEM
-        // ===============================
-        addBtn.addEventListener('click', () => {
-
-            if (!clienteSelect.value) {
-                alert('Selecione um cliente primeiro');
-                return;
-            }
-
-            const last = container.querySelector('.item-row:last-child');
-
-            if (last) {
-                const produto = last.querySelector('.produtoSelect').value;
-                const qtd = last.querySelector('.qtd').value;
-                const preco = last.querySelector('input[name*="[preco_unitario]"]').value;
-
-                if (!produto || !qtd || !preco) {
-                    alert('Complete o item antes de adicionar outro');
-                    return;
-                }
-            }
-
-            criarItem();
-        });
-
-        // ===============================
-        // INICIAL
-        // ===============================
-        atualizarTotal();
-
-        // ===============================
-        // LIMPAR EDIÇÃO AO SAIR
-        // ===============================
-        window.addEventListener('beforeunload', () => {
-            navigator.sendBeacon(
-                "{{ route('orcamentos.limparEdicao', $orcamento->id) }}",
-                new URLSearchParams({'_token': '{{ csrf_token() }}'})
-            );
-        });
-
-        // ===============================
-        // TIMER INATIVIDADE
-        // ===============================
-        let timeout;
-        const tempoLimite = 30000;
-
-        function resetTimer() {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                window.location.href = "{{ route('orcamentos.index') }}";
-            }, tempoLimite);
-        }
-
-        window.onload = resetTimer;
-        document.onmousemove = resetTimer;
-        document.onkeydown = resetTimer;
-        document.onclick = resetTimer;
-        document.onscroll = resetTimer;
-
-    });
-    
-</script> -->
-
-
+</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
 
         const produtos = @json($produtos);
-        const container = document.getElementById('itensContainer');
-        const totalSpan = document.getElementById('total');
+        const tableBody = document.getElementById('itensContainer');
         const addBtn = document.getElementById('addProduto');
         const clienteSelect = document.getElementById('clienteSelect');
+        const totalSpan = document.getElementById('total');
 
-        let index = container.querySelectorAll('.item-row').length;
+        let index = 0;
 
-        // ===============================
-        // CRIAR ITEM
-        // ===============================
-        function criarItem() {
-
-            const div = document.createElement('div');
-            div.classList.add('row','align-items-center','mb-2','item-row');
-
-            div.innerHTML = `
-                <div class="col-md-3">
-                    <select name="produtos[${index}][id]" class="form-select produtoSelect" required>
-                        <option value="">Selecione...</option>
-                        ${produtos.map(p => `
-                            <option value="${p.id}"
-                                data-preco="${p.preco_venda}"
-                                data-unidade="${p.unidade_medida?.nome || ''}">
-                                ${p.id} - ${p.nome} 
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-
-                <div class="col-md-3">
-                    <select name="produtos[${index}][lote_id]" class="form-select loteSelect" required>
-                        <option value="">Selecione o lote</option>
-                    </select>
-                </div>
-
-                <div class="col-md-1">
-                    <input type="number"
-                        name="produtos[${index}][quantidade_solicitada]"
-                        class="form-control qtd"
-                        value="1" min="1" required>
-                </div>
-
-                <div class="col-md-2 unidade"></div>
-
-                <div class="col-md-1">
-                    <div class="preco">0,00</div>
-                    <input type="hidden"
-                        name="produtos[${index}][preco_unitario]"
-                        value="0">
-                </div>
-
-                <div class="col-md-1 subtotal">0,00</div>
-
-                <div class="col-md-1 text-center">
-                    <button type="button" class="btn btn-sm btn-danger remover">X</button>
-                </div>
-            `;
-
-            container.appendChild(div);
-            index++;
-
-            clienteSelect.classList.add('readonly-select');
-
-            atualizarOpcoesProdutos();
-        }
-
-        // ===============================
-        // PRODUTOS JÁ SELECIONADOS
-        // ===============================
+        // ================================
+        // 🔥 PRODUTOS SELECIONADOS
+        // ================================
         function getProdutosSelecionados() {
             const selecionados = [];
 
-            document.querySelectorAll('.produtoSelect').forEach(select => {
+            tableBody.querySelectorAll('.produtoSelect').forEach(select => {
                 if (select.value) {
                     selecionados.push(select.value);
                 }
@@ -520,14 +130,13 @@
             return selecionados;
         }
 
-        // ===============================
-        // ATUALIZAR OPTIONS
-        // ===============================
+        // ================================
+        // 🔥 ATUALIZA OPTIONS (OCULTA USADOS)
+        // ================================
         function atualizarOpcoesProdutos() {
-
             const selecionados = getProdutosSelecionados();
 
-            document.querySelectorAll('.produtoSelect').forEach(select => {
+            tableBody.querySelectorAll('.produtoSelect').forEach(select => {
 
                 const valorAtual = select.value;
 
@@ -535,46 +144,298 @@
 
                     if (!option.value) return;
 
-                    // mantém selecionado atual
+                    // mantém o selecionado atual visível
                     if (option.value === valorAtual) {
-                        option.style.display = '';
+                        option.hidden = false;
                         return;
                     }
 
-                    // oculta repetidos
-                    option.style.display =
-                        selecionados.includes(option.value) ? 'none' : '';
+                    // oculta se já foi usado em outro select
+                    option.hidden = selecionados.includes(option.value);
                 });
             });
         }
 
-        // ===============================
-        // ATUALIZAR TOTAL
-        // ===============================
-        function atualizarTotal() {
+        // ================================
+        // CRIAR ITEM
+        // ================================
+        // function criarItem() {
 
-            let total = 0;
+        //     const tr = document.createElement('tr');
 
-            container.querySelectorAll('.item-row').forEach(row => {
+        //     tr.innerHTML = `
+        //         <td>
+        //             <select name="produtos[${index}][id]" class="form-select produtoSelect" required>
+        //                 <option value="">Selecione...</option>
+        //                 ${produtos.map(p => `
+        //                     <option value="${p.id}"
+        //                         data-preco="${p.preco_venda}"
+        //                         data-desc-max="${p.desconto_max_1 || 0}" {{-- 🎯 Puxa a coluna de trava de desconto --}}
+        //                         data-unidade="${p.unidade_medida?.nome || ''}">
+        //                         ${p.id} - ${p.nome}
+        //                     </option>
+        //                 `).join('')}
+        //             </select>
+        //         </td>
 
-                const qtd = parseFloat(row.querySelector('.qtd').value) || 0;
-                const preco = parseFloat(row.querySelector('input[name*="[preco_unitario]"]').value) || 0;
+        //         <td>
+        //             <select name="produtos[${index}][lote_id]" class="form-select loteSelect" required>
+        //                 <option value="">Selecione o lote</option>
+        //             </select>
+        //         </td>
 
-                const subtotal = qtd * preco;
+        //         <td>
+        //             <input type="number"
+        //                 name="produtos[${index}][quantidade]"
+        //                 class="form-control qtd"
+        //                 value="1" min="1" required>
+        //         </td>
 
-                row.querySelector('.subtotal').textContent =
-                    subtotal.toFixed(2).replace('.', ',');
+        //         <td>
+        //             <span class="unidadeLabel"></span>
+        //             <input type="hidden" name="produtos[${index}][unidade]" class="unidade">
+        //         </td>
 
-                total += subtotal;
-            });
+        //         <td>
+        //             <span class="precoLabel">0,00</span>
+        //             <input type="hidden" name="produtos[${index}][preco_unitario]" class="preco">
+                    
+        //             {{-- 🎯 ADICIONE APENAS ESTA LINHA ABAIXO DO INPUT PRECO --}}
+        //             <input type="hidden" class="maxDesc" value="0">
+        //         </td>
 
-            totalSpan.textContent = total.toFixed(2).replace('.', ',');
+
+        //         <td>
+        //             <span class="subtotalLabel">0,00</span>
+        //         </td>
+
+        //         <td>
+        //             <button type="button" class="btn btn-sm btn-danger remover">X</button>
+        //         </td>
+        //     `;
+
+        //     tableBody.appendChild(tr);
+        //     index++;
+
+        //     // 🔥 atualiza opções ao criar nova linha
+        //     atualizarOpcoesProdutos();
+        // }
+
+                // ================================
+        // CRIAR ITEM (COM CAMPOS DE DESCONTO)
+        // ================================
+        function criarItem() {
+
+            const tr = document.createElement('tr');
+
+            tr.innerHTML = `
+                <td>
+                    <select name="produtos[${index}][id]" class="form-select produtoSelect" required>
+                        <option value="">Selecione...</option>
+                        ${produtos.map(p => `
+                            <option value="${p.id}"
+                                data-preco="${p.preco_venda}"
+                                data-unidade="${p.unidade_medida?.nome || ''}">
+                                ${p.id} - ${p.nome}
+                            </option>
+                        `).join('')}
+                    </select>
+                </td>
+
+                <td>
+                    <select name="produtos[${index}][lote_id]" class="form-select loteSelect" required>
+                        <option value="">Selecione o lote</option>
+                    </select>
+                </td>
+
+                <td>
+                    <input type="number"
+                        name="produtos[${index}][quantidade]"
+                        class="form-control qtd"
+                        value="1" min="1" required>
+                </td>
+
+                <td>
+                    <span class="unidadeLabel"></span>
+                    <input type="hidden" name="produtos[${index}][unidade]" class="unidade">
+                </td>
+
+                <td>
+                    <span class="precoLabel">0,00</span>
+                    <input type="hidden" name="produtos[${index}][preco_unitario]" class="preco">
+                    {{-- 🎯 CORREÇÃO 1: Guarda o limite máximo (maxDesc) que o evento change vai injetar --}}
+                    <input type="hidden" class="maxDesc" value="0">
+                </td>
+
+                {{-- 🎯 CORREÇÃO 2: Cria o input visível do Desconto (%) na tabela --}}
+                <td>
+                    <input type="number"
+                        name="produtos[${index}][desconto]"
+                        class="form-control desc"
+                        value="0" min="0" max="100" step="1">
+                </td>
+
+                <td>
+                    <span class="subtotalLabel">0,00</span>
+                </td>
+
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger remover">X</button>
+                </td>
+            `;
+
+            tableBody.appendChild(tr);
+            index++;
+
+            // 🔥 atualiza opções ao criar nova linha original
+            atualizarOpcoesProdutos();
+
+              // 🚀 OUVIINTE DO DESCONTO: Faz o cálculo rodar em tempo real ao digitar
+            const inputDesc = tr.querySelector('.desc');
+            if (inputDesc) {
+                inputDesc.addEventListener('input', atualizarTotal);
+            }
         }
 
-        // ===============================
-        // SELECIONAR PRODUTO
-        // ===============================
-        container.addEventListener('change', e => {
+        // ================================
+        // ATUALIZAR TOTAL
+        // ================================
+        // function atualizarTotal() {
+        //     let total = 0;
+
+        //     tableBody.querySelectorAll('tr').forEach(tr => {
+
+        //         const qtd = parseFloat(tr.querySelector('.qtd').value) || 0;
+        //         const preco = parseFloat(tr.querySelector('.preco').value) || 0;
+
+        //         const subtotal = qtd * preco;
+
+        //         tr.querySelector('.subtotalLabel').textContent =
+        //             subtotal.toFixed(2).replace('.', ',');
+
+        //         total += subtotal;
+        //     });
+
+        //     totalSpan.textContent = total.toFixed(2).replace('.', ',');
+        // }
+        // =======================================================================
+        // ATUALIZAR TOTAL (Calcula Bruto, Desconto Acumulado e Valor Líquido)
+        // =======================================================================
+        function atualizarTotal() {
+            let acumuladoBruto = 0;
+            let acumuladoDesconto = 0;
+            let acumuladoLiquido = 0;
+
+            tableBody.querySelectorAll('tr').forEach(tr => {
+                const inputQtd = tr.querySelector('.qtd');
+                const inputPreco = tr.querySelector('.preco');
+                const inputDesc = tr.querySelector('.desc');
+
+                // Garante que quantidade e desconto sejam tratados como inteiros conforme a nova regra
+                const qtd = inputQtd ? (parseInt(inputQtd.value) || 0) : 0;
+                const precoUnitario = inputPreco ? (parseFloat(inputPreco.value) || 0) : 0;
+                const descPercent = inputDesc ? (parseInt(inputDesc.value) || 0) : 0;
+
+                // 1. Matemática do Item: Incide a porcentagem sobre o valor unitário
+                const brutoItem = qtd * precoUnitario;
+                const valorDescontoUnitario = precoUnitario * (descPercent / 100);
+                const valorDescontoTotalItem = qtd * valorDescontoUnitario;
+                
+                let liquidoItem = brutoItem - valorDescontoTotalItem;
+                if (liquidoItem < 0) liquidoItem = 0;
+
+                // 2. Atualiza o Subtotal visível da linha na tabela
+                const subtotalLabel = tr.querySelector('.subtotalLabel');
+                if (subtotalLabel) {
+                    subtotalLabel.textContent = liquidoItem.toFixed(2).replace('.', ',');
+                }
+
+                // 3. Acumula os valores para o resumo do rodapé
+                acumuladoBruto += brutoItem;
+                acumuladoDesconto += valorDescontoTotalItem;
+                acumuladoLiquido += liquidoItem;
+            });
+
+            // 🚀 INJEÇÃO DOS VALORES NOS TRÊS CAMPOS REQUISITADOS DO RODAPÉ
+            const spanDesconto = document.getElementById('totalDesconto');
+            const spanBruto = document.getElementById('totalBruto');
+            const spanLiquido = document.getElementById('totalLiquido');
+            const spanTotalAntigo = document.getElementById('total'); // Mantém para não quebrar a tag antiga se houver
+
+            if (spanDesconto) spanDesconto.textContent = acumuladoDesconto.toFixed(2).replace('.', ',');
+            if (spanBruto) spanBruto.textContent = acumuladoBruto.toFixed(2).replace('.', ',');
+            if (spanLiquido) spanLiquido.textContent = acumuladoLiquido.toFixed(2).replace('.', ',');
+            if (spanTotalAntigo) spanTotalAntigo.textContent = acumuladoLiquido.toFixed(2).replace('.', ',');
+        }
+
+        // ================================
+        // PRODUTO ALTERADO + LOTES
+        // ================================
+        // tableBody.addEventListener('change', e => {
+
+        //     if (!e.target.classList.contains('produtoSelect')) return;
+
+        //     if (!clienteSelect.value) {
+        //         alert('Selecione o cliente primeiro!');
+        //         e.target.value = '';
+        //         return;
+        //     }
+
+        //     const produtoId = e.target.value;
+        //     const produto = produtos.find(p => p.id == produtoId);
+        //     const tr = e.target.closest('tr');
+
+        //     const preco = parseFloat(produto?.preco_venda || 0);
+        //     const unidade = produto?.unidade_medida?.nome || '';
+
+        //     tr.querySelector('.preco').value = preco;
+        //     tr.querySelector('.precoLabel').textContent = preco.toFixed(2).replace('.', ',');
+
+        //     tr.querySelector('.unidade').value = unidade;
+        //     tr.querySelector('.unidadeLabel').textContent = unidade;
+
+        //     // ============================
+        //     // LOTES
+        //     // ============================
+        //     const loteSelect = tr.querySelector('.loteSelect');
+        //     loteSelect.innerHTML = '<option value="">Selecione o lote</option>';
+
+        //     if (!produto || !produto.lotes) return;
+
+        //     const lotesValidos = produto.lotes.filter(l => {
+
+        //         const disponivel =
+        //             (parseFloat(l.quantidade) || 0) -
+        //             (parseFloat(l.quantidade_reservada) || 0);
+
+        //         return l.status == 1 && disponivel > 0;
+        //     });
+
+        //     if (lotesValidos.length === 0) {
+        //         loteSelect.innerHTML = '<option value="">Sem lote disponível</option>';
+        //         return;
+        //     }
+
+        //     lotesValidos.forEach(l => {
+
+        //         const disponivel =
+        //             (parseFloat(l.quantidade) || 0) -
+        //             (parseFloat(l.quantidade_reservada) || 0);
+
+        //         loteSelect.innerHTML += `
+        //             <option value="${l.id}">
+        //                 ${l.numero_lote} | Qtd: ${disponivel}
+        //             </option>
+        //         `;
+        //     });
+
+        //     // 🔥 ATUALIZA BLOQUEIO DE PRODUTOS
+        //     atualizarOpcoesProdutos();
+
+        //     atualizarTotal();
+        // });
+
+        tableBody.addEventListener('change', e => {
 
             if (!e.target.classList.contains('produtoSelect')) return;
 
@@ -586,39 +447,65 @@
 
             const produtoId = e.target.value;
             const produto = produtos.find(p => p.id == produtoId);
-            const row = e.target.closest('.item-row');
+            const tr = e.target.closest('tr');
 
-            // PREÇO E UNIDADE
-            const preco = parseFloat(produto?.preco_venda || 0);
+            // =======================================================================
+            // 🚀 INTERCEPTAÇÃO CIRÚRGICA: DEFINE PREÇO E DESCONTO POR MARKUP DO CLIENTE
+            // =======================================================================
+            // Captura o perfil cadastrado no option do cliente selecionado no topo
+            const clienteOpt = clienteSelect.options[clienteSelect.selectedIndex];
+            const perfilCliente = clienteOpt ? (clienteOpt.dataset.perfil || 'markup_1') : 'markup_1';
+
+            let preco = 0;
+            let maxDesc = 0;
+
+            // Alinha dinamicamente os valores de acordo com as colunas reais do banco
+            if (perfilCliente === 'markup_2') {
+                preco = parseFloat(produto?.preco_venda_2 || produto?.preco_venda || 0);
+                maxDesc = parseFloat(produto?.desconto_max_2 || 0);
+            } else if (perfilCliente === 'markup_3') {
+                preco = parseFloat(produto?.preco_venda_3 || produto?.preco_venda || 0);
+                maxDesc = parseFloat(produto?.desconto_max_3 || 0);
+            } else {
+                preco = parseFloat(produto?.preco_venda || 0);
+                maxDesc = parseFloat(produto?.desconto_max_1 || 0);
+            }
+
             const unidade = produto?.unidade_medida?.nome || '';
 
-            row.querySelector('.preco').textContent =
-                preco.toFixed(2).replace('.', ',');
+            // Grava e exibe o preço correto do perfil na linha
+            tr.querySelector('.preco').value = preco;
+            tr.querySelector('.precoLabel').textContent = preco.toFixed(2).replace('.', ',');
 
-            row.querySelector('.unidade').textContent = unidade;
+            // 🚀 GRAVA E EXIBE O LIMITE MÁXIMO DE DESCONTO NO INPUT OCULTO E NO PLACEHOLDER
+            const inputMaxDesc = tr.querySelector('.maxDesc');
+            const inputDesc = tr.querySelector('.desc');
+            
+            if (inputMaxDesc) inputMaxDesc.value = maxDesc;
+            if (inputDesc) {
+                inputDesc.placeholder = `Até ${maxDesc}%`;
+                inputDesc.max = maxDesc;
+            }
 
-            row.querySelector('input[name*="[preco_unitario]"]').value = preco;
+            tr.querySelector('.unidade').value = unidade;
+            tr.querySelector('.unidadeLabel').textContent = unidade;
 
-            // ===============================
-            // LOTES
-            // ===============================
-            const loteSelect = row.querySelector('.loteSelect');
+            // ============================
+            // LOTES (Sua lógica original intocada)
+            // ============================
+            const loteSelect = tr.querySelector('.loteSelect');
             loteSelect.innerHTML = '<option value="">Selecione o lote</option>';
 
             if (!produto || !produto.lotes) return;
 
-            const lotesValidos = produto.lotes
-                .map(l => {
+            const lotesValidos = produto.lotes.filter(l => {
 
-                    const quantidade = Number(l.quantidade ?? 0);
-                    const reservado = Number(l.quantidade_reservada ?? 0);
+                const disponivel =
+                    (parseFloat(l.quantidade) || 0) -
+                    (parseFloat(l.quantidade_reservada) || 0);
 
-                    return {
-                        ...l,
-                        disponivel: quantidade - reservado
-                    };
-                })
-                .filter(l => l.disponivel > 0 && l.status == 1);
+                return l.status == 1 && disponivel > 0;
+            });
 
             if (lotesValidos.length === 0) {
                 loteSelect.innerHTML = '<option value="">Sem lote disponível</option>';
@@ -638,98 +525,123 @@
                 `;
             });
 
-            atualizarTotal();
+            // 🔥 ATUALIZA BLOQUEIO DE PRODUTOS
             atualizarOpcoesProdutos();
+
+            atualizarTotal();
         });
 
-        // ===============================
-        // ALTERAR QUANTIDADE
-        // ===============================
-        container.addEventListener('input', e => {
-            if (e.target.classList.contains('qtd')) {
+
+        // ================================
+        // QUANTIDADE
+        // ================================
+        // tableBody.addEventListener('input', e => {
+        //     if (e.target.classList.contains('qtd')) {
+        //         atualizarTotal();
+        //     }
+        // });
+                // =======================================================================
+        // 🎯 TRAVA RIGIDA DE DIGITAÇÃO: IMPEDE DESCONTO ACIMA DO LIMITE DO BANCO
+        // =======================================================================
+               // =======================================================================
+        // 🎯 TRAVA DE DIGITAÇÃO: MENSAGEM CLARA QUANDO O PRODUTO NÃO TEM DESCONTO
+        // =======================================================================
+        tableBody.addEventListener('input', e => {
+            
+            if (!e.target.classList.contains('desc')) {
                 atualizarTotal();
-            }
-        });
-
-        // ===============================
-        // REMOVER ITEM
-        // ===============================
-        container.addEventListener('click', e => {
-
-            if (e.target.classList.contains('remover')) {
-
-                e.target.closest('.item-row').remove();
-
-                atualizarTotal();
-                atualizarOpcoesProdutos();
-
-                if (container.querySelectorAll('.item-row').length === 0) {
-                    clienteSelect.classList.remove('readonly-select');
-                }
-            }
-        });
-
-        // ===============================
-        // ADICIONAR ITEM
-        // ===============================
-        addBtn.addEventListener('click', () => {
-
-            if (!clienteSelect.value) {
-                alert('Selecione um cliente primeiro');
                 return;
             }
 
-            const last = container.querySelector('.item-row:last-child');
+            const tr = e.target.closest('tr');
+            if (!tr) return;
 
-            if (last) {
+            const inputMaxDesc = tr.querySelector('.maxDesc');
+            const maxPermitido = inputMaxDesc ? (parseInt(inputMaxDesc.value) || 0) : 0;
+            
+            let valorDigitado = parseInt(e.target.value) || 0;
 
-                const produto = last.querySelector('.produtoSelect').value;
-                const qtd = last.querySelector('.qtd').value;
-                const preco = last.querySelector('input[name*="[preco_unitario]"]').value;
+            // 🚫 VERIFICAÇÃO EM TEMPO REAL:
+            if (valorDigitado > maxPermitido) {
+                
+                // 🚀 MENSAGEM CUSTOMIZADA: Trata o caso do produto com 0% no banco de dados
+                if (maxPermitido === 0) {
+                    alert(`📢 Item sem Margem: Este produto não possui margem de desconto autorizada no cadastro.`);
+                } else {
+                    alert(`🚨 Limite Excedido: O desconto máximo permitido para este produto neste perfil é de ${maxPermitido}%!`);
+                }
+                
+                // Força o campo a retornar para o limite legal (que é 0 ou o teto do banco)
+                e.target.value = maxPermitido; 
+            }
+
+            atualizarTotal();
+        });
+
+
+         // 🚫 VERIFICAÇÃO EM TEMPO REAL: Se passar do limite, bloqueia na hora!
+            // if (valorDigitado > maxPermitido) {
+            //     alert(`🚨 Margem Violada: O desconto máximo permitido para este produto neste perfil de cliente é de ${maxPermitido}%!`);
+                
+            //     // Força o valor do campo a voltar exatamente para o teto máximo legal
+            //     e.target.value = maxPermitido;
+            // }
+
+
+        // ================================
+        // REMOVER
+        // ================================
+        tableBody.addEventListener('click', e => {
+            if (e.target.classList.contains('remover')) {
+
+                e.target.closest('tr').remove();
+
+                // 🔥 libera produto novamente
+                atualizarOpcoesProdutos();
+
+                atualizarTotal();
+            }
+        });
+
+        // ================================
+        // ADICIONAR PRODUTO
+        // ================================
+        addBtn.addEventListener('click', () => {
+
+            if (!clienteSelect.value) {
+                alert('Selecione um cliente primeiro!');
+                return;
+            }
+
+            const lastRow = tableBody.querySelector('tr:last-child');
+
+            if (lastRow) {
+
+                const produto = lastRow.querySelector('.produtoSelect')?.value;
+                const lote = lastRow.querySelector('.loteSelect')?.value;
+                const qtd = lastRow.querySelector('.qtd')?.value;
+                const preco = lastRow.querySelector('.preco')?.value;
 
                 if (!produto || !qtd || !preco) {
                     alert('Complete o item antes de adicionar outro');
+                    return;
+                }
+
+                if (!lote) {
+                    alert('Selecione o lote antes de adicionar outro');
+                    lastRow.querySelector('.loteSelect')?.focus();
+                    return;
+                }
+
+                if (qtd <= 0) {
+                    alert('Informe uma quantidade válida');
+                    lastRow.querySelector('.qtd')?.focus();
                     return;
                 }
             }
 
             criarItem();
         });
-
-        // ===============================
-        // INICIAL
-        // ===============================
-        atualizarTotal();
-        atualizarOpcoesProdutos();
-
-        // ===============================
-        // LIMPAR EDIÇÃO AO SAIR
-        // ===============================
-        window.addEventListener('beforeunload', () => {
-            navigator.sendBeacon(
-                "{{ route('orcamentos.limparEdicao', $orcamento->id) }}",
-                new URLSearchParams({'_token': '{{ csrf_token() }}'})
-            );
-        });
-
-        // ===============================
-        // TIMER INATIVIDADE
-        // ===============================
-        let timeout;
-        const tempoLimite = 30000;
-
-        function resetTimer() {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                window.location.href = "{{ route('orcamentos.index') }}";
-            }, tempoLimite);
-        }
-
-        window.onload = resetTimer;
-        document.onmousemove = resetTimer;
-        document.onkeydown = resetTimer;
-        document.onclick = resetTimer;
-        document.onscroll = resetTimer;
 
     });
 </script>

@@ -105,7 +105,7 @@
 
                 </div>
                         <div class="card-footer text-center">
-                            <a href="{{ route('clientes.show', $cliente->id) }}" class="btn btn-sm btn-info">Conta Corrente---------------------------------------</a>
+                            <a href="{{ route('clientes.show', $cliente->id) }}" class="btn btn-sm btn-info">Conta Corrente</a>
                             <a href="{{ route('clientes.edit', $cliente->id) }}" class="btn btn-sm btn-warning">Editar</a>
                             <form action="{{ route('clientes.desativar', $cliente->id) }}" method="POST" style="display:inline-block;">
                                 @csrf
