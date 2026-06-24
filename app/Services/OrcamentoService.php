@@ -220,140 +220,258 @@ class OrcamentoService
     // }
 
         public function criarCompleto(array $request)
-        {
-            return DB::transaction(function () use ($request) {
+    {
+        return DB::transaction(function () use ($request) {
 
-                $empresa = Empresa::where('ativo', 1)->firstOrFail();
+            $empresa = Empresa::where('ativo', 1)->firstOrFail();
 
-                $orcamento = Orcamento::create([
-                    'cliente_id' => $request['cliente_id'],
-                    'empresa_id' => $empresa->id,
-                    'data_orcamento' => now(),
-                    'validade' => $request['validade'],
-                    'codigo_orcamento' => now()->format('YmdHis'),
-                    'status' => 'Aguardando Aprovacao',
-                    'observacoes' => $request['observacoes'] ?? null,
-                    'total' => 0,
-                    'ativo' => 1,
-                    'editando_por' => Auth::id(),
-                    'editando_em' => now(),
+            // 🚀 1. Captura o desconto global enviado pela tela (Ex: 5)
+            $descontoGlobal = (float) ($request['desconto_global'] ?? 0);
+
+            $orcamento = Orcamento::create([
+                'cliente_id' => $request['cliente_id'],
+                'empresa_id' => $empresa->id,
+                'data_orcamento' => now(),
+                'validade' => $request['validade'],
+                'codigo_orcamento' => now()->format('YmdHis'),
+                'status' => 'Aguardando Aprovacao',
+                'observacoes' => $request['observacoes'] ?? null,
+                'total' => 0, // Inicia zerado para receber o cálculo real abaixo
+                'ativo' => 1,
+                'editando_por' => Auth::id(),
+                'editando_em' => now(),
+            ]);
+
+            $orcamento->update([
+                'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
+            ]);
+
+            if (empty($request['produtos']) || !is_array($request['produtos'])) {
+                throw new \Exception('Produtos inválidos no orçamento');
+            }
+
+            foreach ($request['produtos'] as $itemReq) {
+                $produtoId = $itemReq['id'] ?? null;
+                if (!$produtoId) continue;
+
+                $qtd = $itemReq['quantidade_solicitada'] ?? $itemReq['quantidade'] ?? 0;
+                $preco = $itemReq['preco_unitario'] ?? $itemReq['preco'] ?? 0;
+
+                if ($qtd <= 0) continue;
+
+                // 🧠 MATEMÁTICA DO RATEIO EXIBIDO NA SUA IMAGEM
+                // Exemplo com Desconto de 5%
+                $valorDescontoUnitario = $preco * ($descontoGlobal / 100); 
+                $precoUnitarioLiquido = $preco - $valorDescontoUnitario;   
+                $valorDescontoTotalItem = $qtd * $valorDescontoUnitario;   
+                $subtotalItem = $qtd * $precoUnitarioLiquido;              
+
+                if ($subtotalItem < 0) $subtotalItem = 0;
+
+                // Salva cada item contendo sua respectiva fatia do desconto proporcional
+                $item = ItemOrcamento::create([
+                    'orcamento_id'          => $orcamento->id,
+                    'produto_id'            => $produtoId,
+                    'quantidade_solicitada' => $qtd,
+                    'quantidade_atendida'   => 0,
+                    'quantidade_pendente'   => $qtd,
+                    'preco_unitario'        => $preco,                
+                    'preco_liquido'         => $precoUnitarioLiquido, 
+                    'desconto_percentual'   => $descontoGlobal,       // Grava os 5% na linha
+                    'valor_desconto'        => $valorDescontoTotalItem, // Grava os R$ 261,75 rateados nas linhas
+                    'subtotal'              => $subtotalItem,         // Subtotal Líquido da linha
+                    'status'                => 'indisponivel',
+                    'previsao_entrega'      => now()->addDays(7),
                 ]);
 
-                // 🔥 garante código único
-                $orcamento->update([
-                    'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
-                ]);
+                // Executa suas rotinas nativas de estoque de forma transparente
+                $this->estoqueService->recalcularReservar($item->id, $produtoId, $qtd);
+                $this->recalcularItemCompleto($item);
+                $item->refresh();
+            }
 
-                if (empty($request['produtos']) || !is_array($request['produtos'])) {
-                    throw new \Exception('Produtos inválidos no orçamento');
-                }
+            // Recarrega as linhas processadas do banco
+            $orcamento->load('itens');
 
-                foreach ($request['produtos'] as $itemReq) {
+            // 🚀 2. SELEÇÃO DA REGRA DE FECHAMENTO DO TOTAL DO ORÇAMENTO:
+            // Se o total deve ser estrito ao valor que fechou na tela (Solicitado), usamos a linha abaixo:
+            $totalLiquidoFinal = $orcamento->itens->sum('subtotal');
 
-                    $produtoId = $itemReq['id'] ?? null;
-                    if (!$produtoId) continue;
+            // Verifica se o service de estoque deixou pendências de saldo
+            $temPendente = $orcamento->itens
+                ->where('quantidade_pendente', '>', 0)
+                ->isNotEmpty();
 
-                    $qtd = $itemReq['quantidade_solicitada']
-                        ?? $itemReq['quantidade']
-                        ?? 0;
+            // 🚀 3. Atualiza o orçamento gravando os R$ 4973,25 finais na coluna 'total'
+            $orcamento->update([
+                'total' => $totalLiquidoFinal,
+                'status' => $temPendente ? 'Aguardando Estoque' : 'Aguardando Aprovacao'
+            ]);
 
-                    $preco = $itemReq['preco_unitario']
-                        ?? $itemReq['preco']
-                        ?? 0;
-
-                    if ($qtd <= 0) continue;
-
-                    // 🚀 CAPTURA CIRÚRGICA DO DESCONTO (%) CONFORME AS NOVAS REGRAS DO FRONT-END
-                    $descPercent = (int) ($itemReq['desconto'] ?? $itemReq['desconto_percentual'] ?? 0);
-
-                    // 🧠 MATEMÁTICA ALINHADA COM A GRADE DA TELA
-                    // 1. Valor em Reais do desconto em cima de UMA unidade do produto
-                    $valorDescontoUnitario = $preco * ($descPercent / 100);
-                    
-                    // 2. Preço unitário líquido após o abatimento
-                    $precoUnitarioLiquido = $preco - $valorDescontoUnitario;
-                    
-                    // 3. Montante total em Reais que o cliente economizou nesta linha
-                    $valorDescontoTotalItem = $qtd * $valorDescontoUnitario;
-
-                    // 4. Subtotal líquido do item com os descontos aplicados
-                    $subtotalItem = $qtd * $precoUnitarioLiquido;
-                    if ($subtotalItem < 0) $subtotalItem = 0;
-
-                    // 🚀 GRAVAÇÃO COM INJEÇÃO DOS NOVOS CAMPOS DO MARIADB NO MODEL
-                    $item = ItemOrcamento::create([
-                        'orcamento_id'          => $orcamento->id,
-                        'produto_id'            => $produtoId,
-                        'quantidade_solicitada' => $qtd,
-                        'quantidade_atendida'   => 0,
-                        'quantidade_pendente'   => $qtd,
-                        'preco_unitario'        => $preco,                // Mantém o preço base original
-                        'preco_liquido'         => $precoUnitarioLiquido, // 🎯 Novo campo: Preço com o desconto unitário
-                        'desconto_percentual'   => $descPercent,          // 🎯 Novo campo: Porcentagem inteira (ex: 15)
-                        'valor_desconto'        => $valorDescontoTotalItem, // 🎯 Novo campo: Total economizado na linha em R$
-                        'subtotal'              => $subtotalItem,         // 🎯 Subtotal agora armazena o valor líquido
-                        'status'                => 'indisponivel',
-                        'previsao_entrega'      => now()->addDays(7),
-                    ]);
-
-                    // 🔥 1. processa estoque (FIFO)
-                    $this->estoqueService->recalcularReservar(
-                        $item->id,
-                        $produtoId,
-                        $qtd
-                    );
-
-                    // 🔥 2. garante consistência do item
-                    $this->recalcularItemCompleto($item);
-
-                    // 🔥 3. atualiza estado em memória
-                    $item->refresh();
-                }
-
-                // 🔥 4. recarrega TODOS os itens já atualizados
-                $orcamento->load('itens');
-
-                // 🔥 5. calcula total CORRETAMENTE (baseado no atendido e aplicando o preço líquido)
-                // 🚀 ALTERADO: Agora multiplica pelo preco_liquido para o caixa receber o valor com desconto!
-                $total = $orcamento->itens->sum(function ($item) {
-                    return $item->quantidade_atendida * ($item->preco_liquido ?? $item->preco_unitario);
-                });
-
-                // 🔥 6. verifica pendências reais
-                $temPendente = $orcamento->itens
-                    ->where('quantidade_pendente', '>', 0)
-                    ->isNotEmpty();
-
-                // 🔥 7. atualiza orçamento FINAL
-                $orcamento->update([
-                    'total' => $total,
-                    'status' => $temPendente
-                        ? 'Aguardando Estoque'
-                        : 'Aguardando Aprovacao'
-                ]);
-
-                return $orcamento;
-            });
-        }
-
-    
-
+            return $orcamento;
+        });
+    }
      /* =========================================
      | EDITAR
      ========================================= */
    
+    // public function dadosParaEdicao($id)
+    // {
+    //     try {
+
+    //         $orcamento = Orcamento::with([
+    //             'itens.produto.unidadeMedida',
+    //             'itens.produto.lotes' => function ($q) {
+
+    //                 $q->where('status', 1)
+    //                 ->whereRaw('(quantidade - quantidade_reservada) > 0')
+    //                 ->where(function ($q2) {
+
+    //                     // 🔹 Produto controla validade
+    //                     $q2->where(function ($q3) {
+    //                         $q3->whereHas('produto', function ($p) {
+    //                             $p->where('controla_validade', 1);
+    //                         })
+    //                         ->where(function ($q4) {
+    //                             $q4->whereDate('validade_lote', '>=', now())
+    //                                 ->orWhereNull('validade_lote');
+    //                         });
+    //                     })
+
+    //                     // 🔹 Produto NÃO controla validade
+    //                     ->orWhere(function ($q3) {
+    //                         $q3->whereHas('produto', function ($p) {
+    //                             $p->where('controla_validade', 0);
+    //                         });
+    //                     });
+    //                 })
+    //                 ->orderBy('id', 'asc');
+    //             },
+    //             'itens.lote'
+    //         ])->findOrFail($id);
+
+    //         // 🔒 Controle de edição concorrente
+    //         if ($orcamento->editando_por && $orcamento->editando_por != auth()->id()) {
+    //             $usuario = $orcamento->usuarioEditando;
+    //             $nomeUsuario = $usuario->name ?? 'Outro usuário';
+
+    //             return [
+    //                 'erro' => "Este orçamento está sendo editado por: {$nomeUsuario}"
+    //             ];
+    //         }
+
+    //         $orcamento->update([
+    //             'editando_por' => auth()->id(),
+    //             'editando_em' => now()
+    //         ]);
+
+    //         // 👥 Clientes
+    //         $clientes = Cliente::where('ativo', 1)
+    //             ->orderBy('nome')
+    //             ->get();
+
+    //         // 📦 Produtos já usados no orçamento
+    //         $produtosIdsOrcamento = $orcamento->itens->pluck('produto_id');
+
+    //         // 📦 Produtos disponíveis + usados
+    //         $produtos = Produto::with([
+    //             'unidadeMedida',
+    //             'lotes' => function ($q) {
+
+    //                 $q->where('status', 1)
+    //                 ->whereRaw('(quantidade - quantidade_reservada) > 0')
+    //                 ->where(function ($q2) {
+
+    //                     // 🔹 Produto controla validade
+    //                     $q2->where(function ($q3) {
+    //                         $q3->whereHas('produto', function ($p) {
+    //                             $p->where('controla_validade', 1);
+    //                         })
+    //                         ->where(function ($q4) {
+    //                             $q4->whereDate('validade_lote', '>=', now())
+    //                                 ->orWhereNull('validade_lote');
+    //                         });
+    //                     })
+
+    //                     // 🔹 Produto NÃO controla validade
+    //                     ->orWhere(function ($q3) {
+    //                         $q3->whereHas('produto', function ($p) {
+    //                             $p->where('controla_validade', 0);
+    //                         });
+    //                     });
+
+    //                 })
+    //                 ->orderBy('id', 'asc');
+    //             }
+    //         ])
+    //         ->where('ativo', 1)
+    //         ->where(function ($q) use ($produtosIdsOrcamento) {
+
+    //             // Produtos com estoque válido
+    //             $q->where(function ($q2) {
+    //                 $q2->where('controla_validade', 0)
+    //                 ->orWhereHas('lotes', function ($qq) {
+    //                     $qq->where('status', 1)
+    //                         ->whereRaw('(quantidade - quantidade_reservada) > 0')
+    //                         ->where(function ($q3) {
+    //                             $q3->whereDate('validade_lote', '>=', now())
+    //                                 ->orWhereNull('validade_lote');
+    //                         });
+    //                 });
+    //             })
+
+    //             // OU produtos já usados no orçamento
+    //             ->orWhereIn('id', $produtosIdsOrcamento);
+    //         })
+    //         ->orderBy('nome')
+    //         ->get();
+
+    //         // 🔗 Mapear lotes por produto
+    //         $lotes = [];
+
+    //         foreach ($produtos as $produto) {
+    //             $lotes[$produto->id] = $produto->lotes;
+    //         }
+
+    //         return compact('orcamento', 'clientes', 'produtos', 'lotes');
+
+    //     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+
+    //         return [
+    //             'erro' => 'Orçamento não encontrado',
+    //             'detalhes' => $e->getMessage()
+    //         ];
+
+    //     } catch (\Illuminate\Database\QueryException $e) {
+
+    //         return [
+    //             'erro' => 'Erro de banco de dados',
+    //             'sql' => $e->getSql(),
+    //             'bindings' => $e->getBindings(),
+    //             'mensagem' => $e->getMessage()
+    //         ];
+
+    //     } catch (\Throwable $e) {
+
+    //         return [
+    //             'erro' => 'Erro inesperado',
+    //             'mensagem' => $e->getMessage(),
+    //             'arquivo' => $e->getFile(),
+    //             'linha' => $e->getLine(),
+    //             'trace' => collect($e->getTrace())->take(5)
+    //         ];
+    //     }
+    // }
+
     public function dadosParaEdicao($id)
     {
         try {
-
             $orcamento = Orcamento::with([
                 'itens.produto.unidadeMedida',
                 'itens.produto.lotes' => function ($q) {
-
                     $q->where('status', 1)
                     ->whereRaw('(quantidade - quantidade_reservada) > 0')
                     ->where(function ($q2) {
-
                         // 🔹 Produto controla validade
                         $q2->where(function ($q3) {
                             $q3->whereHas('produto', function ($p) {
@@ -364,7 +482,6 @@ class OrcamentoService
                                     ->orWhereNull('validade_lote');
                             });
                         })
-
                         // 🔹 Produto NÃO controla validade
                         ->orWhere(function ($q3) {
                             $q3->whereHas('produto', function ($p) {
@@ -404,11 +521,9 @@ class OrcamentoService
             $produtos = Produto::with([
                 'unidadeMedida',
                 'lotes' => function ($q) {
-
                     $q->where('status', 1)
                     ->whereRaw('(quantidade - quantidade_reservada) > 0')
                     ->where(function ($q2) {
-
                         // 🔹 Produto controla validade
                         $q2->where(function ($q3) {
                             $q3->whereHas('produto', function ($p) {
@@ -419,21 +534,18 @@ class OrcamentoService
                                     ->orWhereNull('validade_lote');
                             });
                         })
-
                         // 🔹 Produto NÃO controla validade
                         ->orWhere(function ($q3) {
                             $q3->whereHas('produto', function ($p) {
                                 $p->where('controla_validade', 0);
                             });
                         });
-
                     })
                     ->orderBy('id', 'asc');
                 }
             ])
             ->where('ativo', 1)
             ->where(function ($q) use ($produtosIdsOrcamento) {
-
                 // Produtos com estoque válido
                 $q->where(function ($q2) {
                     $q2->where('controla_validade', 0)
@@ -446,7 +558,6 @@ class OrcamentoService
                             });
                     });
                 })
-
                 // OU produtos já usados no orçamento
                 ->orWhereIn('id', $produtosIdsOrcamento);
             })
@@ -455,31 +566,36 @@ class OrcamentoService
 
             // 🔗 Mapear lotes por produto
             $lotes = [];
-
             foreach ($produtos as $produto) {
                 $lotes[$produto->id] = $produto->lotes;
             }
 
-            return compact('orcamento', 'clientes', 'produtos', 'lotes');
+            // 📊 CONFORMIDADE COM DESCONTO GLOBAL:
+            // Garante que se o campo de desconto global estiver nulo no banco, ele retorne 0 para a Blade
+            if (!isset($orcamento->desconto_global)) {
+                $orcamento->desconto_global = $orcamento->desconto_percentual ?? 0;
+            }
+
+            // Calcula o Total Bruto (Soma pura de item * quantidade) para enviar separado caso o $orcamento->total já seja o valor líquido no seu banco
+            $totalBrutoCalculado = $orcamento->itens->sum(function($item) {
+                return $item->quantidade_solicitada * $item->preco_unitario;
+            });
+
+            return compact('orcamento', 'clientes', 'produtos', 'lotes', 'totalBrutoCalculado');
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-
             return [
                 'erro' => 'Orçamento não encontrado',
                 'detalhes' => $e->getMessage()
             ];
-
         } catch (\Illuminate\Database\QueryException $e) {
-
             return [
                 'erro' => 'Erro de banco de dados',
                 'sql' => $e->getSql(),
                 'bindings' => $e->getBindings(),
                 'mensagem' => $e->getMessage()
             ];
-
         } catch (\Throwable $e) {
-
             return [
                 'erro' => 'Erro inesperado',
                 'mensagem' => $e->getMessage(),
@@ -489,6 +605,7 @@ class OrcamentoService
             ];
         }
     }
+
 
     /* =========================================
      | APROVAR COMPLETO
@@ -854,6 +971,277 @@ class OrcamentoService
             return $orcamento;
         });
     }
+
+    //  public function atualizarCompleto(Request $request, $id)
+    // {
+    //     return DB::transaction(function () use ($request, $id) {
+
+    //         $orcamento = Orcamento::with('itens')->lockForUpdate()->findOrFail($id);
+
+    //         // 🚀 CAPTURA O PERCENTUAL DE DESCONTO GLOBAL VINDO DO RODAPÉ DA TELA
+    //         $descontoGlobal = (float) $request->input('desconto_global', 0);
+
+    //         $produtos = collect($request->input('produtos', []));
+    //         $totalBrutoAcumulado = 0;
+
+    //         // ===============================
+    //         // 🔥 1. REMOVER ITENS QUE NÃO VIERAM NO REQUEST
+    //         // ===============================
+    //         $produtosIdsRequest = $produtos->pluck('id')->toArray();
+
+    //         $itensRemover = $orcamento->itens()
+    //             ->whereNotIn('produto_id', $produtosIdsRequest)
+    //             ->get();
+
+    //         foreach ($itensRemover as $item) {
+    //             // 🔓 1. libera estoque reservado desse item
+    //             $this->estoqueService->cancelarReserva($item);
+
+    //             // 🗑️ remove o item do orçamento
+    //             $item->delete();
+    //         }
+
+    //         // ===============================
+    //         // 🔥 2. PROCESSAR ITENS DO REQUEST
+    //         // ===============================
+    //         // foreach ($produtos as $produtoReq) {
+
+    //         //     $produtoId = $produtoReq['id'] ?? null;
+    //         //     $loteId = $produtoReq['lote_id'] ?? null;
+
+    //         //     $quantidadeNova = $produtoReq['quantidade_solicitada']
+    //         //         ?? $produtoReq['quantidade']
+    //         //         ?? 0;
+
+    //         //     $preco = (float) ($produtoReq['preco_unitario'] ?? 0);
+
+    //         //     if (!$produtoId || $quantidadeNova <= 0) {
+    //         //         continue;
+    //         //     }
+
+    //         //     // 🔍 busca ou cria item
+    //         //     $item = ItemOrcamento::firstOrCreate(
+    //         //         [
+    //         //             'orcamento_id' => $orcamento->id,
+    //         //             'produto_id' => $produtoId,
+    //         //         ],
+    //         //         [
+    //         //             'quantidade_solicitada' => 0,
+    //         //             'quantidade_atendida' => 0,
+    //         //             'quantidade_pendente' => 0,
+    //         //             'preco_unitario' => $preco,
+    //         //             'preco_liquido' => $preco,
+    //         //             'desconto_percentual' => 0,
+    //         //             'valor_desconto' => 0,
+    //         //             'subtotal' => 0,
+    //         //             'status' => 'indisponivel',
+    //         //             'previsao_entrega' => now()->addDays(7),
+    //         //             'ativo' => true,
+    //         //         ]
+    //         //     );
+
+    //         //     // 🧠 MATEMÁTICA DO RATEIO DO DESCONTO GLOBAL DO RODAPÉ
+    //         //     $valorDescontoUnitario = $preco * ($descontoGlobal / 100);
+    //         //     $precoUnitarioLiquido = $preco - $valorDescontoUnitario;
+    //         //     $valorDescontoTotalItem = $quantidadeNova * $valorDescontoUnitario;
+    //         //     $subtotalLiquidoItem = $quantidadeNova * $precoUnitarioLiquido;
+
+    //         //     if ($subtotalLiquidoItem < 0) {
+    //         //         $subtotalLiquidoItem = 0;
+    //         //     }
+
+    //         //     // ===============================
+    //         //     // 🔥 ATUALIZA QUANTIDADE, PREÇO E CÁLCULO LÍQUIDO
+    //         //     // ===============================
+    //         //     $item->quantidade_solicitada = $quantidadeNova;
+    //         //     $item->preco_unitario        = $preco;
+    //         //     $item->preco_liquido         = $precoUnitarioLiquido;  // 🎯 Atualizado: Preço cobrado abatido o desconto
+    //         //     $item->desconto_percentual   = $descontoGlobal;        // 🎯 Atualizado: Histórico de % da tela
+    //         //     $item->valor_desconto        = $valorDescontoTotalItem;// 🎯 Atualizado: Total de R$ economizados na linha
+    //         //     $item->subtotal              = $subtotalLiquidoItem;   // 🎯 Atualizado: Guarda subtotal já líquido no banco
+    //         //     $item->save();
+
+    //         //     // ===============================
+    //         //     // 🔥 LIBERA TODAS AS RESERVAS ATUAIS (MANTIDO SEU PADRÃO)
+    //         //     // ===============================
+    //         //     $this->estoqueService->cancelarReserva($item);
+
+    //         //     // ===============================
+    //         //     // 🔥 TENTA ATENDER NOVAMENTE (FIFO)
+    //         //     // ===============================
+    //         //     $this->estoqueService->recalcularReservar(
+    //         //         $item->id,
+    //         //         $produtoId,
+    //         //         $quantidadeNova
+    //         //     );
+
+    //         //     // 🔄 garante estado atualizado
+    //         //     $item->refresh();
+
+    //         //     // ===============================
+    //         //     // 🔥 RECALCULO FINAL DO ITEM
+    //         //     // ===============================
+    //         //     $quantidadeAtendida = DB::table('item_orcamento_lotes')
+    //         //         ->where('item_orcamento_id', $item->id)
+    //         //         ->sum('quantidade_reservada');
+
+    //         //     $item->quantidade_atendida = $quantidadeAtendida;
+    //         //     $item->quantidade_pendente = max(0, $item->quantidade_solicitada - $quantidadeAtendida);
+
+    //         //     // 🔥 status correto
+    //         //     if ($quantidadeAtendida <= 0) {
+    //         //         $item->status = 'indisponivel';
+    //         //     } elseif ($item->quantidade_pendente > 0) {
+    //         //         $item->status = 'parcial';
+    //         //     } else {
+    //         //         $item->status = 'disponivel';
+    //         //     }
+
+    //         //     $item->save();
+    //         // }
+
+    //                     // ===============================
+    //         // 🔥 2. PROCESSAR ITENS DO REQUEST
+    //         // ===============================
+    //         // Captura o desconto vindo do campo único do rodapé da tela
+    //         $descontoGlobal = (int) $request->input('desconto_global', 0);
+
+    //         foreach ($produtos as $produtoReq) {
+
+    //             $produtoId = $produtoReq['id'] ?? null;
+    //             $loteId = $produtoReq['lote_id'] ?? null;
+
+    //             $quantidadeNova = $produtoReq['quantidade_solicitada']
+    //                 ?? $produtoReq['quantidade']
+    //                 ?? 0;
+
+    //             $preco = (float) ($produtoReq['preco_unitario'] ?? 0);
+
+    //             if (!$produtoId || $quantidadeNova <= 0) {
+    //                 continue;
+    //             }
+
+    //             // 🔍 busca ou cria item
+    //             $item = ItemOrcamento::firstOrCreate(
+    //                 [
+    //                     'orcamento_id' => $orcamento->id,
+    //                     'produto_id' => $produtoId,
+    //                 ],
+    //                 [
+    //                     'quantidade_solicitada' => 0,
+    //                     'quantidade_atendida' => 0,
+    //                     'quantidade_pendente' => 0,
+    //                     'preco_unitario' => $preco,
+    //                     'preco_liquido' => $preco,
+    //                     'desconto_percentual' => 0,
+    //                     'valor_desconto' => 0,
+    //                     'subtotal' => 0,
+    //                     'status' => 'indisponivel',
+    //                     'previsao_entrega' => now()->addDays(7),
+    //                     'ativo' => true,
+    //                 ]
+    //             );
+
+    //             // 🧮 CÁLCULO ALINHADO COM SEUS DADOS REAIS:
+    //             $valorDescontoUnitario = $preco * ($descontoGlobal / 100);
+    //             $precoLiquidoItem      = $preco - $valorDescontoUnitario;
+    //             $valorDescontoTotal    = $quantidadeNova * $valorDescontoUnitario;
+    //             $subtotalLiquido       = $quantidadeNova * $precoLiquidoItem;
+
+    //             // ===============================
+    //             // 🔥 ATUALIZA QUANTIDADE E VALORES LÍQUIDOS
+    //             // ===============================
+    //             $item->quantidade_solicitada = $quantidadeNova;
+    //             $item->preco_unitario        = $preco;
+    //             $item->preco_liquido         = $precoLiquidoItem;    // Salva ex: 99.75
+    //             $item->desconto_percentual   = $descontoGlobal;      // Salva ex: 5
+    //             $item->valor_desconto        = $valorDescontoTotal;    // Salva ex: 21.00
+    //             $item->subtotal              = $subtotalLiquido;       // Salva ex: 399.00
+    //             $item->save();
+
+    //             // ===============================
+    //             // 🔥 LIBERA TODAS AS RESERVAS ATUAIS (MANTIDO SEU PADRÃO)
+    //             // ===============================
+    //             $this->estoqueService->cancelarReserva($item);
+
+    //             // ===============================
+    //             // 🔥 TENTA ATENDER NOVAMENTE (FIFO)
+    //             // ===============================
+    //             $this->estoqueService->recalcularReservar(
+    //                 $item->id,
+    //                 $produtoId,
+    //                 $quantidadeNova
+    //             );
+
+    //             // 🔄 garante estado atualizado
+    //             $item->refresh();
+
+    //             // ===============================
+    //             // 🔥 RECALCULO FINAL DO ITEM
+    //             // ===============================
+    //             $quantidadeAtendida = DB::table('item_orcamento_lotes')
+    //                 ->where('item_orcamento_id', $item->id)
+    //                 ->sum('quantidade_reservada');
+
+    //             $item->quantidade_atendida = $quantidadeAtendida;
+    //             $item->quantidade_pendente = max(0, $item->quantidade_solicitada - $quantidadeAtendida);
+
+    //             if ($quantidadeAtendida <= 0) {
+    //                 $item->status = 'indisponivel';
+    //             } elseif ($item->quantidade_pendente > 0) {
+    //                 $item->status = 'parcial';
+    //             } else {
+    //                 $item->status = 'disponivel';
+    //             }
+
+    //             // 🎯 ATENÇÃO: Mantém o subtotal como líquido baseado no que foi calculado acima
+    //             $item->subtotal = $subtotalLiquido;
+    //             $item->save();
+    //         }
+
+    //         // ===============================
+    //         // 🔥 RECALCULO FINAL DO TOTAL (SOMA OS SUBTOTAIS LÍQUIDOS)
+    //         // ===============================
+    //         $totalLiquidoOrcamento = ItemOrcamento::where('orcamento_id', $orcamento->id)
+    //             ->sum('subtotal') ?? 0;
+
+    //         // ===============================
+    //         // 🔥 STATUS FINAL DO ORÇAMENTO
+    //         // ===============================
+    //         $temPendentes = ItemOrcamento::where('orcamento_id', $orcamento->id)
+    //             ->whereRaw('(quantidade_solicitada - quantity_atendida) > 0')
+    //             ->exists();
+
+    //         $orcamento->update([
+    //             'total'  => $totalLiquidoOrcamento, // Grava ex: 731.50
+    //             'status' => $temPendentes ? 'Aguardando Estoque' : 'Aguardando Aprovacao',
+    //         ]);
+
+    //         return $orcamento;
+
+    //         // ===============================
+    //         // 🔥 RECALCULO FINAL DO TOTAL (BASEADO NO ATENDIDO LÍQUIDO OU SOLICITADO LÍQUIDO)
+    //         // Se o caixa cobrar pelo Solicitado Líquido (R$ 4973,25 da sua imagem), usamos SUM(subtotal)
+    //         // ===============================
+    //         $totalLiquidoFinal = ItemOrcamento::where('orcamento_id', $orcamento->id)
+    //             ->sum('subtotal') ?? 0;
+
+    //         // ===============================
+    //         // 🔥 STATUS FINAL DO ORÇAMENTO
+    //         // ===============================
+    //         $temPendentes = ItemOrcamento::where('orcamento_id', $orcamento->id)
+    //             ->whereRaw('(quantidade_solicitada - quantidade_atendida) > 0')
+    //             ->exists();
+
+    //         $orcamento->update([
+    //             'total'  => $totalLiquidoFinal, // 🎯 Salva o valor líquido correto com desconto
+    //             'status' => $temPendentes ? 'Aguardando Estoque' : 'Aguardando Aprovacao',
+    //         ]);
+
+    //         return $orcamento;
+    //     });
+    // }
+
 
     public function cancelar(Orcamento $orcamento)
     {

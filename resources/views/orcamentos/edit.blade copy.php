@@ -6,7 +6,8 @@
 
 @section('content')
 <div class="container">
-    <h2 class="mb-4">Editar Pedido/Orçamento #{{ $orcamento->codigo_orcamento }}  </h2>
+    <h2 class="mb-4">Emitir Orçamento - Editar </h2>
+    <span>#{{ $orcamento->codigo_orcamento }}</span>
     
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
@@ -36,7 +37,7 @@
         @csrf
         @method('PUT')
 
-        <div class="card shadow-sm mb-4">
+        <div class="container-fluid px-6 card shadow-sm mb-4 ">
             <div class="card-body">
 
                 <div class="row mb-3">
@@ -118,7 +119,7 @@
                                     value="{{ $oldItem['lote_id'] }}" >
                             </div>
 
-                            <div class="col-md-1">
+                            <div class="col-md-1 ">
                                 <input type="number" name="produtos[{{ $i }}][quantidade]" class="form-control qtd" min="1" value="{{ $oldItem['quantidade'] }}" required>
                             </div>
 
@@ -160,6 +161,7 @@
     </form>
 </div>
 
+<!-- botao +Produto - Controle os itens do select options, sai da pagina inativa por 3 minutos -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
 
