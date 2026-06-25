@@ -130,7 +130,7 @@
                             </p>
 
                             <p class="card-text mb-1">
-                                <strong>Reservado:</strong> 
+                                <strong>Utilizado:</strong> 
                                 {{ $produto->quantidade_reservada ?? 0 }}
                             </p>
 

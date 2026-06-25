@@ -136,7 +136,7 @@
                             </p>
 
                             <p class="card-text mb-1">
-                                <strong>Reservado:</strong> 
+                                <strong>Utilizado:</strong> 
                                 <?php echo e($produto->quantidade_reservada ?? 0); ?>
 
                             </p>

@@ -1,20 +1,22 @@
 
 
-<?php $__env->startSection('content'); ?>
-<div class="container mt-4">
-    <h2 class="mb-4">Lotes do Produto: 000<?php echo e($produto->id); ?> </h2>
+    <?php $__env->startSection('content'); ?>
+    <div class="container mt-4">
+        <h2 class="mb-4">Lotes do Produto: 000<?php echo e($produto->id); ?> </h2>
 
     <div class="justify-content-end gap-2 text-primary">
-         Produto: <strong> <?php echo e($produto->nome); ?>  - Estoque: <?php echo e($produto->estoque ?? '0'); ?>  <?php echo e($produto->unidadeMedida->nome); ?>(s)</strong>
+        Produto: <strong> <?php echo e($produto->nome); ?>  - Estoque: <?php echo e($produto->estoque ?? '0'); ?>  <?php echo e($produto->unidadeMedida->nome); ?>(s)</strong>
     </div>
 
-    <?php if($produto->lotes->isEmpty()): ?>
+    <!-- 🎯 CORREÇÃO 1: Verifica a contagem usando a variável filtrada do Controller -->
+    <?php if($lotes->isEmpty()): ?>
         <div class="alert alert-warning text-center py-3">
-            Nenhum lote cadastrado para este produto.
+            Nenhum lote com saldo disponível para este produto.
         </div>
     <?php else: ?>
         <div class="row">
-            <?php $__currentLoopData = $produto->lotes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $lote): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <!-- 🎯 CORREÇÃO 2: Faz o loop usando $lotes em vez de $produto->lotes -->
+            <?php $__currentLoopData = $lotes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $lote): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <div class="col-md-4 mb-3">
                     <div class="card border shadow-sm h-100">
                         <div class="card-body">
@@ -22,8 +24,8 @@
                                 <i class="bi bi-box-seam"></i> Lote #<?php echo e($lote->numero_lote); ?> 
                             </h5>
                             <p class="card-text mb-1"><strong>Lote Criado por:</strong> <?php echo e($lote->usuario->name ?? '-'); ?></p>
-                                <!-- <p class="card-text mb-1"><strong>Pedido Compra:</strong> 000<?php echo e($lote->pedido_compra_id); ?></p> -->
-                             <p class="card-text mb-1">
+                            
+                            <p class="card-text mb-1">
                                 <strong>Pedido Compra:</strong>
                                 <?php if($lote->pedido_compra_id): ?>
                                     <a href="<?php echo e(route('pedidos.show', $lote->pedido_compra_id)); ?>">
@@ -33,11 +35,11 @@
                                 <?php else: ?>
                                     <span class="text-danger">Sem pedido</span>
                                 <?php endif; ?>
-
                             </p>
 
                             <p class="card-text mb-1"><strong>Produto ID:</strong> 000<?php echo e($lote->produto_id); ?></p>
-                            <p class="card-text mb-1"><strong>Qtd Comprada:</strong> <?php echo e($lote->quantidade); ?> <?php echo e($produto->unidadeMedida->nome); ?>(s)</p>
+                            <p class="card-text mb-1"><strong>Qtd Comprada:</strong> <?php echo e((int)$lote->quantidade); ?> <?php echo e($produto->unidadeMedida->nome); ?>(s)</p>
+                            <p class="card-text mb-1"><strong>Qtd Disponivel:</strong> <?php echo e($lote->quantidade_disponivel); ?> <?php echo e($produto->unidadeMedida->nome); ?>(s)</p>
                             <p class="card-text mb-1"><strong>Qtd Reservada p/ Orcamento:</strong> <?php echo e($lote->quantidade_reservada); ?> <?php echo e($produto->unidadeMedida->nome); ?>(s)</p>
                             <p class="card-text mb-1"><strong>Preço de Compra:</strong> R$ <?php echo e(number_format($lote->preco_compra, 2, ',', '.')); ?></p>
                             <p class="card-text mb-1"><strong>Data da Compra:</strong> <?php echo e(\Carbon\Carbon::parse($lote->data_compra)->format('d/m/Y')); ?></p>
@@ -48,7 +50,14 @@
                 </div>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </div>
+
+        <!-- 🎯 ADICIONADO: Links de paginação caso existam mais de 20 lotes ativos -->
+        <div class="mt-3 d-flex justify-content-center">
+            <?php echo e($lotes->appends(request()->query())->links()); ?>
+
+        </div>
     <?php endif; ?>
+
 
    <div class="container mt-4 d-flex justify-content-end gap-2">
         <a href="<?php echo e(url()->previous()); ?>" class="btn btn-secondary">Voltar</a>

@@ -55,7 +55,7 @@
 
                 {{-- ESTOQUE TOTAL (SQL) --}}
                 <!-- <div style="width:80px">
-                    {{ $produto->estoque_total ?? 0 }}
+                    {{ $produto->estoque ?? 0 }}
                 </div> -->
 
                 {{-- RESERVADO (SQL) --}}
@@ -65,7 +65,7 @@
 
                 {{-- DISPONÍVEL (SQL) --}}
                 <div style="width:100px">
-                    {{ $produto->disponivel ?? 0 }}
+                    {{ $produto->estoque  ?? 0 }}
                 </div>
 
                 {{-- PREÇO --}}

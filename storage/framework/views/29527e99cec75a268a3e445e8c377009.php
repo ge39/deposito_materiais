@@ -55,7 +55,7 @@
 
                 
                 <!-- <div style="width:80px">
-                    <?php echo e($produto->estoque_total ?? 0); ?>
+                    <?php echo e($produto->estoque ?? 0); ?>
 
                 </div> -->
 
@@ -67,7 +67,7 @@
 
                 
                 <div style="width:100px">
-                    <?php echo e($produto->disponivel ?? 0); ?>
+                    <?php echo e($produto->estoque  ?? 0); ?>
 
                 </div>
 

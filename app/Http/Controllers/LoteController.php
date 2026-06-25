@@ -12,6 +12,79 @@ class LoteController extends Controller
     /**
      * Lista todos os lotes ou os lotes de um produto específico
      */
+    // public function index(Request $request, $produto_id = null)
+    // {
+    //     $search = $request->input('search');
+
+    //     if ($produto_id) {
+    //         $produto = Produto::findOrFail($produto_id);
+
+    //         $lotes = $produto->lotes()
+    //             ->when($search, function ($query) use ($search) {
+    //                 $query->where('codigo_lote', 'LIKE', "%$search%");
+    //             })
+    //             ->orderBy('id', 'DESC')
+    //             ->paginate(20);
+
+    //         return view('lotes.index', compact('produto', 'lotes', 'search'));
+    //     }
+
+    //     $lotes = Lote::with('produto')
+    //         ->when($search, function ($query) use ($search) {
+    //             $query->where('codigo_lote', 'LIKE', "%$search%")
+    //                   ->orWhereHas('produto', function ($q) use ($search) {
+    //                       $q->where('nome', 'LIKE', "%$search%");
+    //                   });
+    //         })
+    //         ->orderBy('id', 'DESC')
+    //         ->paginate(20);
+
+    //     return view('lotes.index', compact('lotes', 'search'));
+    // }
+
+    /**
+     * Lista todos os lotes ou os lotes de um produto específico (apenas com saldo disponível)
+     */
+    // public function index(Request $request, $produto_id = null)
+    // {
+    //     $search = $request->input('search');
+
+    //     if ($produto_id) {
+    //         $produto = Produto::findOrFail($produto_id);
+
+    //         $lotes = $produto->lotes()
+    //             // 🎯 Trava 1: Garante apenas lotes com saldo disponível para o produto específico
+    //             ->where('quantidade_disponivel', '>', 0)
+    //             ->when($search, function ($query) use ($search) {
+    //                 $query->where('codigo_lote', 'LIKE', "%$search%");
+    //             })
+    //             ->orderBy('id', 'DESC')
+    //             ->paginate(20);
+
+    //         return view('lotes.index', compact('produto', 'lotes', 'search'));
+    //     }
+
+    //     $lotes = Lote::with('produto')
+    //         // 🎯 Trava 2: Garante apenas lotes com saldo disponível na listagem geral
+    //         ->where('quantidade_disponivel', '>', 0)
+    //         ->when($search, function ($query) use ($search) {
+    //             // Agrupa o OR para que a busca não anule a trava principal do saldo maior que zero
+    //             $query->where(function ($q2) use ($search) {
+    //                 $q2->where('codigo_lote', 'LIKE', "%$search%")
+    //                 ->orWhereHas('produto', function ($q) use ($search) {
+    //                     $q->where('nome', 'LIKE', "%$search%");
+    //                 });
+    //             });
+    //         })
+    //         ->orderBy('id', 'DESC')
+    //         ->paginate(20);
+
+    //     return view('lotes.index', compact('lotes', 'search'));
+    // }
+
+   /**
+     * Lista todos os lotes ou os lotes de um produto específico (apenas com saldo disponível)
+     */
     public function index(Request $request, $produto_id = null)
     {
         $search = $request->input('search');
@@ -19,7 +92,9 @@ class LoteController extends Controller
         if ($produto_id) {
             $produto = Produto::findOrFail($produto_id);
 
-            $lotes = $produto->lotes()
+            // 🎯 CORREÇÃO CIRÚRGICA: Filtra usando o tipo inteiro (int) nativo da sua coluna do banco
+            $lotes = Lote::where('produto_id', $produto->id)
+                ->where('quantidade_disponivel', '>', 0) // 🛡️ O MariaDB agora removerá os cards zerados obrigatoriamente
                 ->when($search, function ($query) use ($search) {
                     $query->where('codigo_lote', 'LIKE', "%$search%");
                 })
@@ -29,18 +104,25 @@ class LoteController extends Controller
             return view('lotes.index', compact('produto', 'lotes', 'search'));
         }
 
+        // Listagem geral do sistema
         $lotes = Lote::with('produto')
+            ->where('quantidade_disponivel', '>', 0)
             ->when($search, function ($query) use ($search) {
-                $query->where('codigo_lote', 'LIKE', "%$search%")
-                      ->orWhereHas('produto', function ($q) use ($search) {
-                          $q->where('nome', 'LIKE', "%$search%");
-                      });
+                $query->where(function ($q2) use ($search) {
+                    $q2->where('codigo_lote', 'LIKE', "%$search%")
+                    ->orWhereHas('produto', function ($q) use ($search) {
+                        $q->where('nome', 'LIKE', "%$search%");
+                    });
+                });
             })
             ->orderBy('id', 'DESC')
             ->paginate(20);
 
         return view('lotes.index', compact('lotes', 'search'));
     }
+
+
+
 
     /**
      * Formulário de criação

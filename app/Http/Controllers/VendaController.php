@@ -208,11 +208,11 @@ class VendaController extends Controller
     public function finalizar(Request $request, CreditoService $creditoService) 
     { 
         // 🕵️‍♂️ CAPTURA DOS DADOS ANTES DE PERSISTIR
-        \Log::info('===== DADOS RECEBIDOS NO BACKEND (PDV) =====');
-        \Log::info('URL Acessada: ' . request()->fullUrl());
-        \Log::info('Payload Completo:', $request->all());
-        \Log::info('Valor de orcamento_id isolado: ' . $request->input('orcamento_id'));
-        \Log::info('============================================');
+        // \Log::info('===== DADOS RECEBIDOS NO BACKEND (PDV) =====');
+        // \Log::info('URL Acessada: ' . request()->fullUrl());
+        // \Log::info('Payload Completo:', $request->all());
+        // \Log::info('Valor de orcamento_id isolado: ' . $request->input('orcamento_id'));
+        // \Log::info('============================================');
 
         // Helper de Sanitização Decimal
         $limparNumero = function($valor) { 
