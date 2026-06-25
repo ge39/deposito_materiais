@@ -81,7 +81,7 @@
                 </div>
 
                 <!-- Container de Itens Dinâmicos -->
-                <div id="itensContainer" class="p-1">
+                <!-- <div id="itensContainer" class="p-1">
                     @php
                         $oldProdutos = old('produtos', $orcamento->itens->map(function($item){
                             return [
@@ -141,21 +141,97 @@
                             </div>
                         </div>
                     @endforeach
-                </div>
-                 <!-- Botão Adicionar Produto posicionado alinhado à esquerda -->
-                         <!-- <div class="mb-4 col-12 d-flex justify-content-end pe-3"> 
-                            <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm" id="addProduto">
-                                + Adicionar Produto
-                            </button>
-                        </div> -->
 
+                </div> -->
+                
+
+                <!-- Container de Itens Dinâmicos -->
+                <div id="itensContainer" class="p-1">
+                    @php
+                        $oldProdutos = old('produtos', $orcamento->itens->map(function($item){
+                            return [
+                                'id' => $item->produto_id,
+                                'quantidade' => $item->quantidade_solicitada,
+                                // 🎯 CORREÇÃO: Usar o preço original de venda (bruto) para evitar o desconto cumulativo no JS
+                                'preco_unitario' => $item->produto->preco_venda ?? 0, 
+                                'unidade' => $item->produto->unidadeMedida->nome ?? '',
+                                'lote_id'=> $item->lote->id ?? 'Sem lote',
+                                'lote_label' => $item->lote->numero_lote ?? 'Sem lote',
+                            ];
+                        })->toArray());
+                    @endphp
+
+                    @foreach($oldProdutos as $i => $oldItem)
+                        <div class="row align-items-center mb-2 item-row border-bottom pb-2">
+                            <div class="col-md-3">
+                                <select name="produtos[{{ $i }}][id]" class="form-select produtoSelect" required>
+                                    <option value="">Selecione...</option>
+                                    @foreach($produtos as $produto)
+                                        <option value="{{ $produto->id }}"
+                                            data-preco="{{ $produto->preco_venda }}"
+                                            data-unidade="{{ $produto->unidadeMedida->nome ?? '' }}"
+                                            {{ (int)$oldItem['id'] === (int)$produto->id ? 'selected' : '' }}>
+                                            {{ $produto->id }} - {{ $produto->nome }} 
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="form-control bg-light loteLabel fw-bold text-secondary">
+                                    {{ $oldItem['lote_label'] }}
+                                </div>
+                                <input type="hidden"
+                                    name="produtos[{{ $i }}][lote_id]"
+                                    class="loteInput"
+                                    value="{{ $oldItem['lote_id'] }}" >
+                            </div>
+
+                            <div class="col-md-1">
+                                <input type="number" name="produtos[{{ $i }}][quantidade]" class="form-control qtd text-center" min="1" value="{{ $oldItem['quantidade'] }}" required>
+                            </div>
+
+                            <div class="col-md-2 unidade text-muted">{{ $oldItem['unidade'] }}</div>
+
+                            <div class="col-md-1 fw-bold text-dark">
+                                @php
+                                    // Aplica o percentual de desconto salvo se houver para a renderização inicial do Blade
+                                    $descontoPercentualSalvo = $orcamento->itens->first()->desconto_percentual ?? 0;
+                                    $precoLiquidoInicial = $oldItem['preco_unitario'] * (1 - ($descontoPercentualSalvo / 100));
+                                @endphp
+                                <div class="precoLabel">R$ {{ number_format($precoLiquidoInicial, 2, ',', '.') }}</div>
+                                <!-- O input hidden armazena o preço bruto inicial para que o JS leia corretamente sem distorções -->
+                                <input type="hidden" name="produtos[{{ $i }}][preco_unitario]" class="preco" value="{{ $oldItem['preco_unitario'] }}">
+                            </div>
+
+                           <div class="col-md-1 fw-bold text-dark subtotal">
+                                R$ <span class="subtotalLabel">0,00</span>
+                            </div>
+
+                            <div class="col-md-1 text-center">
+                                <button type="button" class="btn btn-sm btn-danger remover px-3 fw-bold">X</button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Botão Adicionar Produto posicionado alinhado à esquerda -->
+                <div class="mb-4 col-12 d-flex justify-content-end pe-3"> 
+                    <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm" id="addProduto">
+                        + Adicionar Produto
+                    </button>
+                </div>
                 <!-- 📑 INTEGRADO: NOVA ESTRUTURA EM DUAS COLUNAS EQUILIBRADAS -->
                <div class="row mt-4">
-                    <!-- 1. Adicionado id="toggleObservacoes" e estilo de cursor para indicar clique -->
-                    <label id="toggleObservacoes" class="form-label text-dark d-block fw-bold mb-1" style="cursor: pointer;">
+                    <!-- Label com atributos nativos do Bootstrap para controlar o colapso -->
+                    <label id="toggleObservacoes" class="form-label text-dark d-block fw-bold mb-1" 
+                        style="cursor: pointer;" 
+                        data-bs-toggle="collapse" 
+                        data-bs-target="#containerObservacoes" 
+                        aria-expanded="false" 
+                        aria-controls="containerObservacoes">
                         + Observações
                     </label>
-                    
                     <!-- 2. Adicionada a classe d-none no container do bloco cinza para iniciar oculto -->
                     <div id="containerObservacoes" class="col-md-12 d-flex flex-column justify-content-end d-none">
                         <!-- Bloco Cinza de Observações -->
@@ -164,9 +240,9 @@
                                 Insira aqui as informações que vão aparecer impressas no documento de entrega.
                             </label>
                             <textarea name="observacoes" class="form-control" rows="4">{{ old('observacoes', $orcamento->observacoes ?: 'Sem observações') }}</textarea>
-                            <label class="form-label text-dark d-block small mt-2 mb-0">
+                            <!-- <label class="form-label text-dark d-block small mt-2 mb-0">
                                 Ex: melhor período para entrega: manhã ou tarde, nome da pessoa que vai receber?
-                            </label>
+                            </label> -->
                         </div>
                     </div>
 
@@ -243,6 +319,7 @@
                                         <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary px-4 fw-bold shadow-sm">
                                             Voltar
                                         </a>
+                                        
                                     </div>
                                 </div>
                             </div>  
@@ -319,11 +396,13 @@
         }
 
         // CRIAR ITEM DINÂMICO
+
         function criarItem() {
             const divRow = document.createElement('div');
             divRow.className = 'row align-items-center mb-2 item-row border-bottom pb-2';
 
             divRow.innerHTML = `
+                <!-- Seleção do Produto -->
                 <div class="col-md-3">
                     <select name="produtos[${index}][id]" class="form-select produtoSelect" required>
                         <option value="">Selecione...</option>
@@ -337,49 +416,44 @@
                     </select>
                 </div>
 
+                <!-- Seleção do Lote -->
                 <div class="col-md-3">
                     <select name="produtos[${index}][lote_id]" class="form-select loteSelect" required>
                         <option value="">Selecione o lote</option>
                     </select>
                 </div>
 
+                <!-- Quantidade -->
                 <div class="col-md-1">
                     <input type="number" name="produtos[${index}][quantidade]" class="form-control qtd text-center" min="1" value="1" required>
                 </div>
 
+                <!-- Unidade de Medida -->
                 <div class="col-md-2 unidade text-muted"></div>
 
-               <div class="col-md-1">
-                    @php
-                        // Procura o item real no banco para pegar o preço líquido que foi salvo com desconto
-                        $itemOrcamentoReal = $orcamento->itens->where('produto_id', $oldItem['id'])->first();
-                        $precoExibicao = $itemOrcamentoReal ? $itemOrcamentoReal->preco_liquido : $oldItem['preco_unitario'];
-                    @endphp
-                    <div class="preco">R$ {{ number_format($precoExibicao, 2, ',', '.') }}</div>
-                    <input type="hidden" name="produtos[{{ $i }}][preco_unitario]" class="preco" value="{{ $precoExibicao }}">
+                <!-- Preço Unitário (Atualizado dinamicamente via JS) -->
+                <div class="col-md-1 fw-bold text-dark">
+                    <div class="precoLabel">R$ 0,00</div>
+                    <input type="hidden" name="produtos[${index}][preco_unitario]" class="preco" value="0">
                 </div>
 
-              
-                <!-- 🎯 SUBSTITUA POR (Correto - exibindo o subtotal líquido real gravado no item): -->
-                <div class="col-md-1 subtotal">
-                    @php
-                        $subtotalLiquidoReal = $itemOrcamentoReal ? $itemOrcamentoReal->subtotal : ($oldItem['quantidade'] * $oldItem['preco_unitario']);
-                    @endphp
-                    <span class="subtotalLabel">{{ number_format($subtotalLiquidoReal, 2, ',', '.') }}</span>
+                <!-- Subtotal da Linha (Calculado dinamicamente via JS) -->
+                <div class="col-md-1 fw-bold text-dark subtotal">
+                    <span class="subtotalLabel">0,00</span>
                 </div>
 
-
-                         
-                 <div class="col-md-1 text-center">
-                    <button type="button" class="btn btn-sm btn-danger remover">X</button>
+                <!-- Botão Remover Linha -->
+                <div class="col-md-1 text-center">
+                    <button type="button" class="btn btn-sm btn-danger remover px-3 fw-bold">X</button>
                 </div>
-             `;
+            `;
 
             tableBody.appendChild(divRow);
             index++;
 
             atualizarOpcoesProdutos();
         }
+
 
         // =========================================================================
         // 📊 ATUALIZAR TOTAL (TRAVAS DINÂMICAS DESCONTO_MAX_1, 2 E 3)

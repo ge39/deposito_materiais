@@ -1,4 +1,5 @@
 <?php $__env->startSection('content'); ?>
+
 <div class="container mt-4">
     <div class="card border-dark mx-auto" style="max-width: 380px;">
         <div class="card-body text-center" style="font-family: monospace; font-size: 14px; line-height: 1.4; color: #000;">
@@ -20,12 +21,14 @@
             <div class="text-start mb-2">
                 <p class="mb-0"><strong>CÓDIGO:</strong> <?php echo e(str_pad($venda->id, 6, '0', STR_PAD_LEFT)); ?></p>
                 <p class="mb-0"><strong>DATA:</strong> <?php echo e($venda->created_at ? $venda->created_at->format('d/m/Y H:i:s') : date('d/m/Y H:i:s')); ?></p>
-                <p class="mb-0"><strong>TERMINAL:</strong> <?php echo e($terminalId); ?></p> 
+                <p class="mb-0"><strong>TERMINAL:</strong> <?php echo e($terminalId); ?></p>
                 <p class="mb-0"><strong>VENDEDOR:</strong> <?php echo e(auth()->user()->name ?? auth()->user()->nome ?? $venda->funcionario->name ?? 'Balcão'); ?></p>
                 <p class="mb-0"><strong>CLIENTE:</strong> <?php echo e($venda->cliente->nome ?? 'VENDA BALCAO'); ?></p>
             </div>
             
             <hr class="my-2" style="border-top: 1px dashed #000;">
+
+                        <hr class="my-2" style="border-top: 1px dashed #000;">
 
             
             <div style="font-family: monospace; font-size: 12px; margin-top: 14px;">
@@ -36,33 +39,32 @@
                 </div>
 
                 
-                <?php $totalLiquidoCalculado = 0; ?>
+                <?php 
+                    $totalBrutoAcumulado = 0; 
+                ?>
                 <?php $__currentLoopData = $venda->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <?php
+                        // Mantém os valores cheios da venda para exibição nas linhas
                         $precoUnitario = (float) $item->preco_unitario;
-                        $quantidade    = (float) $item->quantidade;
-                        $descontoItem  = (float) ($item->desconto ?? 0);
-                        $totalItem     = ($quantidade * $precoUnitario) - $descontoItem;
+                        $quantidade    = (float) ($item->quantidade ?? $item->quantidade_solicitada ?? 0);
+                        $totalItem     = $quantidade * $precoUnitario;
                         
-                        $totalLiquidoCalculado += $totalItem;
+                        // Acumula o valor bruto para justificar o rodapé
+                        $totalBrutoAcumulado += $totalItem;
 
-                        // Busca dinamicamente a unidade de medida das tabelas relacionadas
                         $siglaMedida = $item->produto->unidadeMedida->sigla ?? $item->unidade ?? 'UN';
-                        
-                        // Busca dinamicamente o número do lote relacionado ao item
-                        $numeroLote = $item->lote->numero_lote ?? 'N/A';
+                        $numeroLote  = $item->lote->numero_lote ?? 'N/A';
                     ?>
-                    <div style="margin-top: 4px; padding-bottom: 4px;font-size:12px; border-bottom: 1px dotted #eee; display: flex; flex-direction: column;">
+                    <div style="margin-top: 4px; padding-bottom: 4px; font-size:12px; border-bottom: 1px dotted #eee; display: flex; flex-direction: column;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             
                             
-                            <div style="flex: 2; display: flex; flex-direction: column; text-align: left;margin-bottom: -10px;">
-                                <span style="font-weight:normal;font-size: 11px; line-height: 1.2;">
+                            <div style="flex: 2; display: flex; flex-direction: column; text-align: left; margin-bottom: -10px;">
+                                <span style="font-weight:normal; font-size: 11px; line-height: 1.2;">
                                     <?php echo e($item->produto->nome ?? 'Item não identificado'); ?>
 
                                 </span>
                                 <span style="font-size: 11px; color: #555; margin-top: -1px;">
-                                    <!-- Cod: <?php echo e($item->produto_id); ?> | Lote: <?php echo e($numeroLote); ?> -->
                                     Lote: <?php echo e($numeroLote); ?>
 
                                 </span>
@@ -80,17 +82,10 @@
                             </div>
 
                             
-                            <div style="flex: 1;text-align: right; font-weight:normal;">
-                                <span> <?php echo e(number_format($totalItem, 2, ',', '.')); ?></span>
+                            <div style="flex: 1; text-align: right; font-weight:normal;">
+                                <span><?php echo e(number_format($totalItem, 2, ',', '.')); ?></span>
                             </div>
                         </div>
-
-                        
-                        <?php if($descontoItem > 0): ?>
-                            <div style="text-align: right; font-size: 10px; color: red; margin-top: 2px;">
-                                <span>(-) Desc. Item: R$ <?php echo e(number_format($descontoItem, 2, ',', '.')); ?></span>
-                            </div>
-                        <?php endif; ?>
                     </div>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </div>
@@ -100,13 +95,12 @@
             
             <div class="text-start mb-2">
                 <p class="mb-1 fw-bold">FORMA(S) DE PAGAMENTO:</p>
-                <div id="formas-pagamento-render">
+                <!-- <div id="formas-pagamento-render">
                     <?php if(count($venda->pagamentos) > 0): ?>
                         <?php $__currentLoopData = $venda->pagamentos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pagamento): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <div class="d-flex justify-content-between">
                                 <span class="text-uppercase"><?php echo e($pagamento->forma_pagamento ?? $pagamento->tipo); ?></span>
                                 <span>
-                                    
                                     <?php if(($pagamento->forma_pagamento ?? $pagamento->tipo) === 'dinheiro' && isset($troco) && $troco > 0): ?>
                                         R$ <?php echo e(number_format($pagamento->valor + $troco, 2, ',', '.')); ?>
 
@@ -120,54 +114,163 @@
                     <?php elseif(!empty($venda->forma_pagamento)): ?>
                         <div class="d-flex justify-content-between">
                             <span class="text-uppercase"><?php echo e($venda->forma_pagamento); ?></span>
-                            <span>R$ <?php echo e(number_format($totalLiquidoCalculado, 2, ',', '.')); ?></span>
+                            <span>R$ <?php echo e(number_format($venda->total, 2, ',', '.')); ?></span>
+                        </div>
+                    <?php endif; ?>
+                </div> -->
+            </div>
+
+            <hr class="my-2" style="border-top: 1px dashed #000;">
+
+            
+            <div class="totais-cupom" style="margin-top: 10px; font-size:14px; font-family: monospace;">
+                <?php
+                    $totalLiquidoVenda = (float) $venda->total;
+                    $totalBrutoExibicao = $totalBrutoAcumulado;
+                    $valorDescontoReal = 0;
+                    $percentualDesconto = 0;
+
+                    // Captura o ID do orçamento se ele estiver guardado na tabela de vendas
+                    $orcamentoId = $venda->orcamento_id ?? null;
+
+                    if ($orcamentoId) {
+                        // Captura a soma dos descontos reais salvos nas linhas do orçamento
+                        $valorDescontoReal = (float) \DB::table('item_orcamentos')
+                            ->where('orcamento_id', $orcamentoId)
+                            ->sum('valor_desconto');
+
+                        // Pega o percentual aplicado do primeiro item
+                        $percentualDesconto = (float) \DB::table('item_orcamentos')
+                            ->where('orcamento_id', $orcamentoId)
+                            ->value('desconto_percentual') ?? 0;
+
+                        // Recompõe o bruto oficial para bater com a soma matemática
+                        $totalBrutoExibicao = $totalLiquidoVenda + $valorDescontoReal;
+                    } else {
+                        // Caso seja venda comum do PDV sem orçamento
+                        $valorDescontoReal = $totalBrutoAcumulado - $totalLiquidoVenda;
+                        if ($valorDescontoReal < 0) $valorDescontoReal = 0;
+                        
+                        $percentualDesconto = $totalBrutoAcumulado > 0 
+                            ? round(($valorDescontoReal / $totalBrutoAcumulado) * 100) 
+                            : 0;
+                    }
+                ?>
+
+                <?php if($valorDescontoReal > 0.05): ?>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                        <span>TOTAL BRUTO:</span>
+                        <span>R$ <?php echo e(number_format($totalBrutoExibicao, 2, ',', '.')); ?></span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; color: red; font-size: 13px;">
+                        <span>DESCONTO (<?php echo e(round($percentualDesconto)); ?>%):</span>
+                        <span>(-) R$ <?php echo e(number_format($valorDescontoReal, 2, ',', '.')); ?></span>
+                    </div>
+                <?php endif; ?>
+
+                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; margin-top: 4px;">
+                    <span>TOTAL LÍQUIDO:</span>
+                    <span>R$ <?php echo e(number_format($totalLiquidoVenda, 2, ',', '.')); ?></span>
+                </div>
+            </div>
+
+
+            <hr class="my-2" style="border-top: 1px dashed #000;">
+
+                      <hr class="my-2" style="border-top: 1px dashed #000;">
+
+            
+            <div class="text-start mb-2">
+                <p class="mb-1 fw-bold">FORMA(S) DE PAGAMENTO:</p>
+                <div id="formas-pagamento-render">
+                    <?php if(count($venda->pagamentos) > 0): ?>
+                        <?php $__currentLoopData = $venda->pagamentos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pagamento): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-uppercase"><?php echo e($pagamento->forma_pagamento ?? $pagamento->tipo); ?></span>
+                                <span>
+                                    <?php if(($pagamento->forma_pagamento ?? $pagamento->tipo) === 'dinheiro' && isset($troco) && $troco > 0): ?>
+                                        R$ <?php echo e(number_format($pagamento->valor + $troco, 2, ',', '.')); ?>
+
+                                    <?php else: ?>
+                                        R$ <?php echo e(number_format($pagamento->valor, 2, ',', '.')); ?>
+
+                                    <?php endif; ?>
+                                </span>
+                            </div>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    <?php elseif(!empty($venda->forma_pagamento)): ?>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-uppercase"><?php echo e($venda->forma_pagamento); ?></span>
+                            <span>R$ <?php echo e(number_format($venda->total, 2, ',', '.')); ?></span>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
 
-
             <hr class="my-2" style="border-top: 1px dashed #000;">
 
             
-            <div class="totais-cupom" style="margin-top: 10px; font-size:14px;font-family: monospace;">
+
+                        <hr class="my-2" style="border-top: 1px dashed #000;">
+
+            
+            <div class="totais-cupom" style="margin-top: 10px; font-size:14px; font-family: monospace;">
                 <?php
-                    $descontoTotal = $venda->itens->sum('desconto');
+                    // 1. Soma real das formas de pagamento cadastradas no caixa para esta venda
+                    $totalLiquidoRealPado = (float) $venda->pagamentos->sum('valor');
+
+                    // Fallback caso a coleção de pagamentos esteja vazia no momento da renderização
+                    if($totalLiquidoRealPado <= 0) {
+                        $totalLiquidoRealPado = (float) $venda->total;
+                    }
+
+                    // 2. Calcula a diferença real de desconto concedido
+                    $valorDescontoReal = $totalBrutoAcumulado - $totalLiquidoRealPado;
+                    if ($valorDescontoReal < 0) $valorDescontoReal = 0;
+
+                    // 3. Calcula o percentual exato do desconto aplicado
+                    $percentualDesconto = $totalBrutoAcumulado > 0 
+                        ? round(($valorDescontoReal / $totalBrutoAcumulado) * 100) 
+                        : 0;
                 ?>
 
-                <?php if($descontoTotal > 0): ?>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>DESCONTO TOTAL ITEMS:</span>
-                        <span>R$ <?php echo e(number_format($descontoTotal, 2, ',', '.')); ?></span>
-                    </div>
-                <?php endif; ?>
-
-                <div style="display: flex; justify-content: space-between; font-weight:normal; ">
-                    <span>TOTAL LÍQUIDO:</span>
-                    <span>R$ <?php echo e(number_format($totalLiquidoCalculado, 2, ',', '.')); ?></span>
+                
+                <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 2px;">
+                    <span>TOTAL BRUTO:</span>
+                    <span>R$ <?php echo e(number_format($totalBrutoAcumulado, 2, ',', '.')); ?></span>
                 </div>
 
                 
-                <?php if(isset($troco) && $troco > 0): ?>
-                    <div style="display: flex; justify-content: space-between; font-weight:normal; margin-top: 4px;">
-                        <span>TROCO:</span>
-                        <span>R$ <?php echo e(number_format($troco, 2, ',', '.')); ?></span>
+                <?php if($valorDescontoReal > 0): ?>
+                    <div style="display: flex; justify-content: space-between; color: red; font-size: 13px; margin-bottom: 2px;">
+                        <span>DESCONTO (<?php echo e($percentualDesconto); ?>%):</span>
+                        <span>(-) R$ <?php echo e(number_format($valorDescontoReal, 2, ',', '.')); ?></span>
                     </div>
                 <?php endif; ?>
 
-                <hr style="border-top: 1px dashed #000; margin: 5px 0;">
-
                 
-                <div id="bloco-calculo-troco-real"></div>
+                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; margin-top: 4px; border-top: 1px dotted #000; padding-top: 4px;">
+                    <span>TOTAL LÍQUIDO:</span>
+                    <span>R$ <?php echo e(number_format($totalLiquidoRealPado, 2, ',', '.')); ?></span>
+                </div>
             </div>
 
             <hr class="my-2" style="border-top: 1px dashed #000;">
-            <p class="mb-0 text-muted fst-italic">Obrigado pela preferência, volte sempre!</p>
+            <p class="mb-0 small text-muted">Obrigado pela preferência, volte sempre!</p>
+            
+            <div class="mt-3">
+                <button type="button" class="btn btn-sm btn-outline-primary d-print-none" onclick="window.print()">
+                    Reimprimir
+                </button>
+            </div>
 
-            <button class="btn btn-primary btn-sm mt-3" onclick="window.print()">Reimprimir</button>
         </div>
     </div>
 </div>
+
+
+
 
 
 
@@ -176,7 +279,10 @@
     document.addEventListener("DOMContentLoaded", function() {
         // Captura o objeto de pagamento preenchido no caixa antes de fechar o modal
         let dadosOrigem = window.opener?.pagamentoDataFinal || window.parent?.pagamentoDataFinal;
-        let totalLiquido = parseFloat("<?php echo e($totalLiquidoCalculado); ?>") || 0;
+        
+        // 🎯 Correção: Substitua a linha 177 antiga por esta que lê o valor líquido real da venda
+        let totalLiquido = parseFloat("<?php echo e($venda->total); ?>") || 0;
+
 
         if (dadosOrigem) {
             let htmlFormas = '';

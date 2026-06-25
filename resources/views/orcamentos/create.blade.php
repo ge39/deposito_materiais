@@ -276,11 +276,11 @@
                 const produtoSelect = tr.querySelector('.produtoSelect');
                 const qtd = parseFloat(tr.querySelector('.qtd').value) || 0;
                 const precoCobrado = parseFloat(tr.querySelector('.preco').value) || 0;
-
                 const subtotal = qtd * precoCobrado;
-                tr.querySelector('.subtotalLabel').textContent = subtotal.toFixed(2).replace('.', ',');
+                tr.querySelector('.subtotalLabel').textContent = "R$ " + subtotal.toFixed(2).replace('.', ',');
                 totalBruto += subtotal;
-
+             
+                
                 // Validação dinâmica do desconto baseado no preço cobrado
                 if (produtoSelect && produtoSelect.value) {
                     const produtoId = produtoSelect.value;
