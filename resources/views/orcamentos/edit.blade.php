@@ -150,18 +150,21 @@
                         </div> -->
 
                 <!-- 📑 INTEGRADO: NOVA ESTRUTURA EM DUAS COLUNAS EQUILIBRADAS -->
-                <div class="row mt-4">
+               <div class="row mt-4">
+                    <!-- 1. Adicionado id="toggleObservacoes" e estilo de cursor para indicar clique -->
+                    <label id="toggleObservacoes" class="form-label text-dark d-block fw-bold mb-1" style="cursor: pointer;">
+                        + Observações
+                    </label>
                     
-                    <!-- 🖋️ Coluna Esquerda: Informações de Entrega e Botão Adicionar -->
-                    <div class="col-md-6 d-flex flex-column justify-content-between">
+                    <!-- 2. Adicionada a classe d-none no container do bloco cinza para iniciar oculto -->
+                    <div id="containerObservacoes" class="col-md-12 d-flex flex-column justify-content-end d-none">
                         <!-- Bloco Cinza de Observações -->
                         <div class="bg-secondary p-3 rounded mb-3">
-                            <label class="form-label text-warning d-block fw-bold mb-1">Observações:</label>
-                            <label class="form-label text-light small d-block mb-2">
+                            <label class="form-label text-dark small d-block mb-2">
                                 Insira aqui as informações que vão aparecer impressas no documento de entrega.
                             </label>
                             <textarea name="observacoes" class="form-control" rows="4">{{ old('observacoes', $orcamento->observacoes ?: 'Sem observações') }}</textarea>
-                            <label class="form-label text-warning d-block small mt-2 mb-0">
+                            <label class="form-label text-dark d-block small mt-2 mb-0">
                                 Ex: melhor período para entrega: manhã ou tarde, nome da pessoa que vai receber?
                             </label>
                         </div>
@@ -242,13 +245,9 @@
                                         </a>
                                     </div>
                                 </div>
-                             
                             </div>  
-
-                            
                         </div>  
                     </div>
-
                 </div> <!-- Fim da row de duas colunas -->
             </div>
         </div>
@@ -575,6 +574,27 @@
 
         // Executa a inicialização assim que o DOM estiver pronto
         inicializarValoresExistentes();
+    });
+</script>
+
+
+<!-- modal observações abrir/fechar -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const label = document.getElementById("toggleObservacoes");
+        const container = document.getElementById("containerObservacoes");
+
+        label.addEventListener("click", function () {
+            // Alterna a classe d-none do Bootstrap (exibe/oculta)
+            container.classList.toggle("d-none");
+
+            // Alterna o texto do label entre + e - conforme a visibilidade
+            if (container.classList.contains("d-none")) {
+                label.textContent = "+ Observações:";
+            } else {
+                label.textContent = "- Observações:";
+            }
+        });
     });
 </script>
 

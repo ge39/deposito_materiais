@@ -219,7 +219,7 @@ class OrcamentoService
     //     });
     // }
 
-        public function criarCompleto(array $request)
+    public function criarCompleto(array $request)
     {
         return DB::transaction(function () use ($request) {
 
@@ -606,7 +606,6 @@ class OrcamentoService
         }
     }
 
-
     /* =========================================
      | APROVAR COMPLETO
      ========================================= */
@@ -817,7 +816,6 @@ class OrcamentoService
             $item->save();
         });
     }
-
 
     public function atualizarCompleto(Request $request, $id)
     {
