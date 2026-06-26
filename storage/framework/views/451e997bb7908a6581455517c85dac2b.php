@@ -36,31 +36,36 @@
                 </select>
             </div>
 
-            <div class="col-md-4 mb-3">
+           <div class="col-md-4 mb-3">
                 <label for="tipo_cliente" class="form-label font-weight-bold">
                     Perfil de Preço / Tabela de Markup
                 </label>
-                
-               <select name="tipo_cliente" id="tipo_cliente" class="form-select form-control" onchange="atualizarDicaPerfil()">
-                    <option value="markup_1"
-                        <?php echo e(old('tipo_cliente', $cliente->tipo_cliente ?? 'markup_1') == 'markup_1' ? 'selected' : ''); ?>>
+
+                <select name="tipo_cliente"
+                        id="tipo_cliente"
+                        class="form-select form-control"
+                        onchange="atualizarDicaPerfil()">
+
+                    <?php
+                        $tipoClienteSelecionado = old('tipo_cliente', $cliente->tipo_cliente ?? 'markup_1');
+                    ?>
+
+                    <option value="markup_1" <?php echo e($tipoClienteSelecionado === 'markup_1' ? 'selected' : ''); ?>>
                         Varejo (Markup 1 - Padrão)
                     </option>
 
-                    <option value="markup_2"
-                        <?php echo e(old('tipo_cliente', $cliente->tipo_cliente ?? 'markup_1') == 'markup_2' ? 'selected' : ''); ?>>
+                    <option value="markup_2" <?php echo e($tipoClienteSelecionado === 'markup_2' ? 'selected' : ''); ?>>
                         Empresa / Empreiteiro (Markup 2)
                     </option>
 
-                    <option value="markup_3"
-                        <?php echo e(old('tipo_cliente', $cliente->tipo_cliente ?? 'markup_1') == 'markup_3' ? 'selected' : ''); ?>>
+                    <option value="markup_3" <?php echo e($tipoClienteSelecionado === 'markup_3' ? 'selected' : ''); ?>>
                         Atacado (Markup 3)
                     </option>
                 </select>
 
-                <!-- Box Informativo Dinâmico -->
-                <div class="mt-2 p-2 rounded border bg-light text-muted small" id="box_explicativo_perfil" style="min-height: 50px; line-height: 1.4;">
-                    <!-- O texto explicativo será injetado aqui via JS -->
+                <div class="mt-2 p-2 rounded border bg-light text-muted small"
+                    id="box_explicativo_perfil"
+                    style="min-height: 50px; line-height: 1.4;">
                 </div>
 
                 <?php $__errorArgs = ['tipo_cliente'];
@@ -203,6 +208,11 @@ unset($__errorArgs, $__bag); ?>
             alerta.style.display = 'none';
         }, 5000);
     }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        atualizarDicaPerfil();
+    });
 </script>
 <?php $__env->stopSection(); ?>
 

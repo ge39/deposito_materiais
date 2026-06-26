@@ -40,6 +40,7 @@ use App\Http\Controllers\{
     MovimentacaoOrcamentoDashboardController,
     MovimentacaoCaixaController,
     LimiteClienteController,
+    EstoqueDivergenciaController,
 };
 
 // ===============================
@@ -506,3 +507,9 @@ Route::get(
     [PDVController::class, 'verificarSangriaAjax']
 )->name('pdv.verificar.sangria');
 
+
+// vendas com estoque negativo, com registro do estoque_divergencia
+Route::prefix('estoque-divergencias')->name('estoque-divergencias.')->group(function () {
+    Route::get('/', [EstoqueDivergenciaController::class, 'index'])->name('index');
+    Route::get('/{id}', [EstoqueDivergenciaController::class, 'show'])->name('show');
+});
