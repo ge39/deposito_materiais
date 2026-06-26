@@ -1,12 +1,16 @@
 
 
-<?php $__env->startSection('content'); ?>
+
+<main class="container-fluid px-4 mt-4">
+    <?php $__env->startSection('content'); ?>
+</main>
+
 <div class="container-fluid">
 
     <h4 class="mb-3">Divergências de Estoque</h4>
 
     <form method="GET" class="card card-body mb-3">
-        <div class="row col-md-12 mb-2">
+        <div class="row align-items-end">
 
             <div class="col-md-2 mb-2">
                 <label>Produto</label>
@@ -54,6 +58,13 @@
                     Limpar
                 </a>
 
+                <a href="<?php echo e(route('estoque-divergencias.pdf', request()->query())); ?>"
+                target="_blank"
+                class="btn btn-danger"
+                style="width: 120px;">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                    PDF
+                </a>
             </div>
 
         </div>

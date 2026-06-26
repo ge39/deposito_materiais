@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\EstoqueDivergencia;
-use App\Models\Lote;
+use App\Models\Empresa;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class EstoqueDivergenciaController extends Controller
@@ -80,5 +81,46 @@ class EstoqueDivergenciaController extends Controller
             'usuario_id' => auth()->id(),
             'created_at' => now(),
         ]);
+    }
+
+    public function pdf(Request $request)
+    {
+        $query = EstoqueDivergencia::with([
+            'produto',
+            'usuario'
+        ]);
+
+        if ($request->filled('produto')) {
+            $query->whereHas('produto', function ($q) use ($request) {
+                $q->where('nome', 'like', '%' . $request->produto . '%');
+            });
+        }
+
+        if ($request->filled('tipo')) {
+            $query->where('tipo', $request->tipo);
+        }
+
+        if ($request->filled('data_inicio')) {
+            $query->whereDate('created_at', '>=', $request->data_inicio);
+        }
+
+        if ($request->filled('data_fim')) {
+            $query->whereDate('created_at', '<=', $request->data_fim);
+        }
+
+        $divergencias = $query
+            ->orderBy('produto_id')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('produto_id');
+
+        $empresa = Empresa::first();
+
+        $pdf = Pdf::loadView('estoque_divergencias.pdf', compact(
+            'divergencias',
+            'empresa'
+        ))->setPaper('a4', 'landscape');
+
+        return $pdf->stream('relatorio-divergencias-estoque.pdf');
     }
 }

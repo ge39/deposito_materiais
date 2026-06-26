@@ -511,5 +511,6 @@ Route::get(
 // vendas com estoque negativo, com registro do estoque_divergencia
 Route::prefix('estoque-divergencias')->name('estoque-divergencias.')->group(function () {
     Route::get('/', [EstoqueDivergenciaController::class, 'index'])->name('index');
+    Route::get('/pdf', [EstoqueDivergenciaController::class, 'pdf'])->name('pdf');
     Route::get('/{id}', [EstoqueDivergenciaController::class, 'show'])->name('show');
 });

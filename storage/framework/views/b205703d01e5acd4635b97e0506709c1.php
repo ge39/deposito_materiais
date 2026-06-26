@@ -367,11 +367,13 @@
     <?php echo $__env->yieldContent('content'); ?>
 </main>
 
-<footer class="mt-5 py-3 border-top bg-light text-center text-muted">
-    <small>
-        © <?php echo e(date('Y')); ?> <?php echo e(config('app.name', 'Depósito de Materiais')); ?> — JMFSoftware2017
-    </small>
-</footer>
+<?php if(!request()->routeIs('pdv.*')): ?>
+    <footer class="mt-5 py-3 border-top bg-light text-center text-muted">
+        <small>
+            © <?php echo e(date('Y')); ?> <?php echo e(config('app.name', 'Depósito de Materiais')); ?> — JMFSoftware2017
+        </small>
+    </footer>
+<?php endif; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
