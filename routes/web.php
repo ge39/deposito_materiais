@@ -41,6 +41,7 @@ use App\Http\Controllers\{
     MovimentacaoCaixaController,
     LimiteClienteController,
     EstoqueDivergenciaController,
+    BackupController,
 };
 
 // ===============================
@@ -514,3 +515,28 @@ Route::prefix('estoque-divergencias')->name('estoque-divergencias.')->group(func
     Route::get('/pdf', [EstoqueDivergenciaController::class, 'pdf'])->name('pdf');
     Route::get('/{id}', [EstoqueDivergenciaController::class, 'show'])->name('show');
 });
+
+
+// =====================================================
+// Backup do Sistema
+// =====================================================
+Route::middleware(['auth'])
+    ->prefix('backups')
+    ->name('backups.')
+    ->group(function () {
+
+        Route::get('/', [BackupController::class, 'index'])
+            ->name('index');
+
+        Route::post('/gerar', [BackupController::class, 'gerar'])
+            ->name('gerar');
+
+        Route::post('/restaurar', [BackupController::class, 'restaurar'])
+            ->name('restaurar');
+
+        Route::get('/download/{arquivo}', [BackupController::class, 'download'])
+            ->name('download');
+
+        Route::delete('/{arquivo}', [BackupController::class, 'destroy'])
+            ->name('destroy');
+    });

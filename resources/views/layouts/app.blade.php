@@ -168,175 +168,138 @@
                     <ul class="dropdown-menu">
 
                         {{-- Cadastros administrativos --}}
-                        <li>
-                            <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                               href="{{ $canAccessAdmin ? route('users.index') : '#' }}">
-                                <i class="bi bi-person-gear me-2"></i>Gerenciar Usuários
-                            </a>
-                        </li>
+                        {{-- Cadastros --}}
+<li class="dropdown-submenu">
+    <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
+        <i class="bi bi-folder2-open me-2"></i>Cadastros
+    </a>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('users.index') : '#' }}"><i class="bi bi-person-gear me-2"></i>Usuários</a></li>
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('empresa.index') : '#' }}"><i class="bi bi-building me-2"></i>Empresa</a></li>
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('clientes.index') : '#' }}"><i class="bi bi-people me-2"></i>Clientes</a></li>
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('fornecedores.index') : '#' }}"><i class="bi bi-truck me-2"></i>Fornecedores</a></li>
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('funcionarios.index') : '#' }}"><i class="bi bi-person-badge me-2"></i>Funcionários</a></li>
+    </ul>
+</li>
 
-                        <li>
-                            <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                               href="{{ $canAccessAdmin ? route('empresa.index') : '#' }}">
-                                <i class="bi bi-building me-2"></i>Empresa
-                            </a>
-                        </li>
+<li><hr class="dropdown-divider"></li>
 
-                        <li><hr class="dropdown-divider"></li>
+{{-- Financeiro --}}
+<li class="dropdown-submenu">
+    <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
+        <i class="bi bi-currency-dollar me-2"></i>Financeiro
+    </a>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('sangria-config.index') : '#' }}"><i class="bi bi-cash-coin me-2"></i>Define Sangria</a></li>
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('fechamento.lista') : '#' }}"><i class="bi bi-safe me-2"></i>Fechamento de Caixa</a></li>
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('limites-view') : '#' }}"><i class="bi bi-credit-card-2-front me-2"></i>Controle Limite Crédito</a></li>
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('auditoria_caixa.index') : '#' }}"><i class="bi bi-clipboard-check me-2"></i>Relatório Auditoria de Caixa</a></li>
+    </ul>
+</li>
 
-                        <li>
-                            <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                               href="{{ $canAccessAdmin ? route('clientes.index') : '#' }}">
-                                <i class="bi bi-people me-2"></i>Clientes
-                            </a>
-                        </li>
+{{-- Controle de Estoque --}}
+<li class="dropdown-submenu">
+    <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
+        <i class="bi bi-boxes me-2"></i>Controle de Estoque
+    </a>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('estoque-divergencias.index') : '#' }}"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Divergências de Estoque</a></li>
+        <li><a class="dropdown-item disabled" href="#"><i class="bi bi-clipboard-check me-2"></i>Inventário Geral</a></li>
+        <li><a class="dropdown-item disabled" href="#"><i class="bi bi-arrow-repeat me-2"></i>Ajustes de Estoque</a></li>
+        <li><a class="dropdown-item disabled" href="#"><i class="bi bi-clock-history me-2"></i>Movimentações de Estoque</a></li>
+    </ul>
+</li>
 
-                        <li>
-                            <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                               href="{{ $canAccessAdmin ? route('fornecedores.index') : '#' }}">
-                                <i class="bi bi-truck me-2"></i>Fornecedores
-                            </a>
-                        </li>
+{{-- Relatórios --}}
+<li class="dropdown-submenu">
+    <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
+        <i class="bi bi-bar-chart-line me-2"></i>Relatórios
+    </a>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('relatorio.reposicao') : '#' }}"><i class="bi bi-box-arrow-in-down me-2"></i>Orçamento / Repor Estoque</a></li>
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('dashboard.movimentacoes') : '#' }}"><i class="bi bi-graph-up-arrow me-2"></i>Orçamento / Dashboard</a></li>
+    </ul>
+</li>
 
-                        <li>
-                            <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                               href="{{ $canAccessAdmin ? route('funcionarios.index') : '#' }}">
-                                <i class="bi bi-person-badge me-2"></i>Funcionários
-                            </a>
-                        </li>
+{{-- Segurança --}}
+<li class="dropdown-submenu">
+    <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
+        <i class="bi bi-shield-lock me-2"></i>Segurança
+    </a>
 
-                        <li><hr class="dropdown-divider"></li>
+    <ul class="dropdown-menu">
 
-                        {{-- Financeiro --}}
-                        <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
-                                <i class="bi bi-currency-dollar me-2"></i>Financeiro
-                            </a>
+        {{-- Dashboard --}}
+        <li>
+            <a class="dropdown-item disabled" href="#">
+                <i class="bi bi-speedometer2 me-2"></i>
+                Dashboard
+            </a>
+        </li>
 
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                                       href="{{ $canAccessAdmin ? route('sangria-config.index') : '#' }}">
-                                        <i class="bi bi-cash-coin me-2"></i>Define Sangria
-                                    </a>
-                                </li>
+        <li><hr class="dropdown-divider"></li>
 
-                                <li>
-                                    <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                                       href="{{ $canAccessAdmin ? route('fechamento.lista') : '#' }}">
-                                        <i class="bi bi-safe me-2"></i>Fechamento de Caixa
-                                    </a>
-                                </li>
+        {{-- Backup --}}
+        <li>
+            <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
+               href="{{ $canAccessAdmin ? route('backups.index') : '#' }}">
+                <i class="bi bi-database-check me-2"></i>
+                Backup Manual
+            </a>
+        </li>
 
-                                <li>
-                                    <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                                       href="{{ $canAccessAdmin ? route('limites-view') : '#' }}">
-                                        <i class="bi bi-credit-card-2-front me-2"></i>Controle Limite Crédito
-                                    </a>
-                                </li>
+        <li>
+            <a class="dropdown-item disabled" href="#">
+                <i class="bi bi-clock-history me-2"></i>
+                Backup Automático
+            </a>
+        </li>
 
-                                <li>
-                                    <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                                       href="{{ $canAccessAdmin ? route('auditoria_caixa.index') : '#' }}">
-                                        <i class="bi bi-clipboard-check me-2"></i>Relatório Auditoria de Caixa
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+        <li>
+            <a class="dropdown-item disabled" href="#">
+                <i class="bi bi-gear me-2"></i>
+                Configuração do Backup
+            </a>
+        </li>
 
-                        {{-- Promoções --}}
-                        <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
-                                <i class="bi bi-tags me-2"></i>Promoções & Descontos
-                            </a>
+        <li>
+            <a class="dropdown-item disabled" href="#">
+                <i class="bi bi-folder-check me-2"></i>
+                Histórico de Backups
+            </a>
+        </li>
 
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                                       href="{{ $canAccessAdmin ? route('painel_promocao.index') : '#' }}">
-                                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                                    </a>
-                                </li>
+        <li><hr class="dropdown-divider"></li>
 
-                                <li>
-                                    <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                                       href="{{ $canAccessAdmin ? route('promocoes.index') : '#' }}">
-                                        <i class="bi bi-list-stars me-2"></i>Listar Promoções
-                                    </a>
-                                </li>
+        {{-- Auditoria --}}
+        <li>
+            <a class="dropdown-item disabled" href="#">
+                <i class="bi bi-shield-check me-2"></i>
+                Auditoria
+            </a>
+        </li>
 
-                                <li>
-                                    <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                                       href="{{ $canAccessAdmin ? route('promocoes.create') : '#' }}">
-                                        <i class="bi bi-plus-circle me-2"></i>Nova Promoção
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+        <li>
+            <a class="dropdown-item disabled" href="#">
+                <i class="bi bi-file-earmark-text me-2"></i>
+                Logs do Sistema
+            </a>
+        </li>
 
-                        {{-- Relatórios --}}
-                        <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
-                                <i class="bi bi-bar-chart-line me-2"></i>Relatórios
-                            </a>
+    </ul>
+</li>
 
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                                       href="{{ $canAccessAdmin ? route('relatorio.reposicao') : '#' }}">
-                                        <i class="bi bi-box-arrow-in-down me-2"></i>Orçamento / Repor Estoque
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                                       href="{{ $canAccessAdmin ? route('dashboard.movimentacoes') : '#' }}">
-                                        <i class="bi bi-graph-up-arrow me-2"></i>Orçamento / Dashboard
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        {{-- Controle de Estoque --}}
-                        <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
-                                <i class="bi bi-boxes me-2"></i>Controle de Estoque
-                            </a>
-
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
-                                       href="{{ $canAccessAdmin ? route('estoque-divergencias.index') : '#' }}">
-                                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Divergências de Estoque
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-clipboard-check me-2"></i>Inventário Geral
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-arrow-repeat me-2"></i>Ajustes de Estoque
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-clock-history me-2"></i>Movimentações de Estoque
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-calendar-x me-2"></i>Validade dos Lotes
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
+{{-- Promoções --}}
+<li class="dropdown-submenu">
+    <a class="dropdown-item dropdown-toggle {{ !$canAccessAdmin ? 'disabled' : '' }}" href="#">
+        <i class="bi bi-tags me-2"></i>Promoções & Descontos
+    </a>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('painel_promocao.index') : '#' }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('promocoes.index') : '#' }}"><i class="bi bi-list-stars me-2"></i>Listar Promoções</a></li>
+        <li><a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}" href="{{ $canAccessAdmin ? route('promocoes.create') : '#' }}"><i class="bi bi-plus-circle me-2"></i>Nova Promoção</a></li>
+    </ul>
+</li>
                     </ul>
                 </li>
 

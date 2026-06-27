@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\Paginator; // 🎯 CORREÇÃO DO BUG: Importação do Paginator adicionada
+use App\Services\Backup\Contracts\BackupDriverInterface;
+use App\Services\Backup\Drivers\LocalBackupDriver;
 use App\Models\Orcamento;
 use App\Models\Promocao;
 use App\Observers\PromocaoObserver;
@@ -22,9 +24,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(BackupDriverInterface::class, function () {
+            return match (config('backup.driver')) {
+                'local' => new LocalBackupDriver(),
+                default => new LocalBackupDriver(),
+            };
+        });
     }
-
     /**
      * Bootstrap any application services.
      */
