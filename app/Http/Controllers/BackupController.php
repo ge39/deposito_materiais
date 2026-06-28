@@ -68,12 +68,19 @@ class BackupController extends Controller
                 'texto' => 'Sistema protegido',
                 'descricao' => 'Último backup realizado recentemente.',
             ];
+            $dias = (int) round($dias);
+
         } elseif ($dias <= 7) {
+
+            $diasInteiro = (int) floor((float) $dias);
+
             $statusBackup = [
                 'classe' => 'warning',
                 'icone' => 'bi-shield-exclamation',
                 'texto' => 'Backup requer atenção',
-                'descricao' => "Último backup realizado há {$dias} dias.",
+                'descricao' => 'Último backup realizado há ' .
+                    $diasInteiro . ' ' .
+                    ($diasInteiro === 1 ? 'dia.' : 'dias.'),
             ];
         }
     }
