@@ -1,6 +1,5 @@
-@extends('layouts.app')
- <!-- window.CLIENTE_BALCAO = @json($clienteBalcao); -->
-@section('content')
+ <!-- window.CLIENTE_BALCAO = <?php echo json_encode($clienteBalcao, 15, 512) ?>; -->
+<?php $__env->startSection('content'); ?>
 
 
 <?php session(['terminal_id' => $terminal->id]); ?>
@@ -468,21 +467,25 @@
      🎯 CONTROLADOR HIERÁRQUICO DE OVERLAYS DO PDV
      ======================================================================= -->
 
-    @if(isset($bloquearPorTempo) && $bloquearPorTempo)
+    <?php if(isset($bloquearPorTempo) && $bloquearPorTempo): ?>
 
         <!-- 🚨 1️⃣ MÓDULO EXCLUSIVO: BLOQUEIO POR TURNO EXPIRADO (+12H) -->
         <div id="modalBloquearCaixa" style="display: block;">
             <div class="carimbo-caixa">
                 <span class="
-                    {{ $status === 'Aberto' ? 'status-aberto' : '' }}
-                    {{ $status === 'Fechado' ? 'status-fechado' : '' }}
-                    {{ $status === 'Pendente' ? 'status-pendente' : '' }}
-                    {{ $status === 'Inconsistente' ? 'status-inconsistente' : '' }}
+                    <?php echo e($status === 'Aberto' ? 'status-aberto' : ''); ?>
+
+                    <?php echo e($status === 'Fechado' ? 'status-fechado' : ''); ?>
+
+                    <?php echo e($status === 'Pendente' ? 'status-pendente' : ''); ?>
+
+                    <?php echo e($status === 'Inconsistente' ? 'status-inconsistente' : ''); ?>
+
                 " style="padding: 5px 10px; border-radius: 5px; font-size: 30px; font-weight: bold; text-align: center; display: inline-block">
                     CAIXA BLOQUEADO
                 </span>
-                <p style="color:red; font-size: 24px;text-align: center; display: inline-column"> Caixa: {{ $caixa->id }}</p>
-                 <p style="color:gray; font-size: 14px;text-align: center; display: inline-column"> Operador: {{ $operador }}</p>
+                <p style="color:red; font-size: 24px;text-align: center; display: inline-column"> Caixa: <?php echo e($caixa->id); ?></p>
+                 <p style="color:gray; font-size: 14px;text-align: center; display: inline-column"> Operador: <?php echo e($operador); ?></p>
             </div>
 
             <div class="listaCaixasEsquecidos list-group text-center" id="listaCaixasEsquecidos">
@@ -492,20 +495,20 @@
             <button id="btnFecharCaixaImediato" 
                     class="btn-abrir-caixa"
                     autofocus
-                    onclick="window.location.href='/fechamento_caixa/fechamento/{{ $caixa->id }}'">
+                    onclick="window.location.href='/fechamento_caixa/fechamento/<?php echo e($caixa->id); ?>'">
                 FECHAR CAIXA
             </button>
             
             <button id="btnSairPdvImediato" 
                     class="btn-sair-caixa"
-                    onclick="window.location.href='{{ route('dashboard') }}'">
+                    onclick="window.location.href='<?php echo e(route('dashboard')); ?>'">
                 SAIR
             </button>
         </div>
         <!-- Script de Teclado exclusivo para travar o Turno Expirado -->
         <script>
             window.PDV_BLOQUEADO = true;
-            window.CAIXA_ID      = @json($caixa->id ?? null);
+            window.CAIXA_ID      = <?php echo json_encode($caixa->id ?? null, 15, 512) ?>;
 
             window.addEventListener('keydown', function (event) {
                 const atalhosBloqueados = [
@@ -541,7 +544,7 @@
                 document.getElementById('btnFecharCaixaImediato')?.focus();
             }, 100);
         </script>
-    @else
+    <?php else: ?>
 
         <!-- 💰 2️⃣ MÓDULO EXCLUSIVO: OPERAÇÃO NORMAL OU ALERTA DE SANGRIA -->
         <!-- Modal Alerta Carrinho Vazio (Bootstrap) -->
@@ -572,47 +575,48 @@
             <div class="modal-dialog modal-dialog-centered">
 
                 <div class="modal-content shadow-lg border-0">
-                    <div class="modal-header @if($bloquearPDV) bg-danger text-white @else bg-warning text-dark @endif">
+                    <div class="modal-header <?php if($bloquearPDV): ?> bg-danger text-white <?php else: ?> bg-warning text-dark <?php endif; ?>">
                         <h5 class="modal-title fw-bold">
-                            @if($bloquearPDV)
+                            <?php if($bloquearPDV): ?>
                                 🚫 BLOQUEIO DE CAIXA
-                            @else
+                            <?php else: ?>
                                 ⚠️ LIMITE DE SANGRIA ATINGIDO
-                            @endif
+                            <?php endif; ?>
                         </h5>
                     </div>
 
                     <div class="modal-body text-center py-4">
                         <h4 class="fw-bold mb-3">
                             Saldo Gaveta:
-                            <span id="saldoAtualModal" class="text-dark">R$ {{ number_format($saldoAtual, 2, ',', '.') }}</span>
+                            <span id="saldoAtualModal" class="text-dark">R$ <?php echo e(number_format($saldoAtual, 2, ',', '.')); ?></span>
                         </h4>
 
                         <p class="fs-5 mb-2">
-                            Limite configurado: <strong  id="limiteSangriaModal">R$ {{ number_format($limiteSangria, 2, ',', '.') }}</strong>
+                            Limite configurado: <strong  id="limiteSangriaModal">R$ <?php echo e(number_format($limiteSangria, 2, ',', '.')); ?></strong>
                         </p>
 
-                        @if($bloquearPDV)
+                        <?php if($bloquearPDV): ?>
                             <div class="alert alert-danger fw-bold fs-5 shadow-sm">
                                 PDV BLOQUEADO<br>Realize sangria para continuar as vendas.
                             </div>
-                        @else
+                        <?php else: ?>
                             <div class="alert alert-warning fw-bold fs-5 shadow-sm">
                                 Recomendado realizar sangria.
                             </div>
-                        @endif
+                        <?php endif; ?>
 
                         <hr>
                         <h3 class="fw-bold text-primary">💰 Valor sugerido para sangria:</h3>
                         <h2 id="valorSugeridoModal" class="display-6 fw-bold text-success">
-                            R$ {{ number_format($saldoAtual ?? 0, 2, ',', '.') }}
+                            R$ <?php echo e(number_format($saldoAtual ?? 0, 2, ',', '.')); ?>
+
                         </h2>
                         <p class="text-muted">Oriente a operadora a retirar este valor do caixa.</p>
                     </div>
 
                     <div class="modal-footer justify-content-between ">
                         <div class="d-flex gap-2">
-                            <a href="{{ route('caixa.sangria.form', $caixa->id) }}" class="btn btn-success px-4 fw-bold">
+                            <a href="<?php echo e(route('caixa.sangria.form', $caixa->id)); ?>" class="btn btn-success px-4 fw-bold">
                                 ✅ Efetuar Sangria
                             </a>
                             <button type="button" class="btn btn-secondary px-4" padding-2 data-bs-dismiss="modal" onclick="window.PDV_BLOQUEADO = false; 
@@ -628,8 +632,8 @@
         <!-- Script de Inicialização da Sangria do Bootstrap -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                var deveAvisar = {{ $avisarSangria ? 'true' : 'false' }};
-                var deveBloquear = {{ $bloquearPDV ? 'true' : 'false' }};
+                var deveAvisar = <?php echo e($avisarSangria ? 'true' : 'false'); ?>;
+                var deveBloquear = <?php echo e($bloquearPDV ? 'true' : 'false'); ?>;
                 
                 if (deveAvisar || deveBloquear) {
                     var modalElement = document.getElementById('modalSangria');
@@ -646,7 +650,7 @@
             });
         </script>
 
-    @endif
+    <?php endif; ?>
 
     <!-- FIM OVERLAY -->
      <!-- Informações do status do Caixa -->
@@ -657,35 +661,41 @@
 
             <div style="flex:1;">
                 <i class="bi bi-pc-display-horizontal text-primary me-1"></i>
-                <strong>Terminal:</strong> {{ str_pad($terminal->id, 2, '0', STR_PAD_LEFT) }}
+                <strong>Terminal:</strong> <?php echo e(str_pad($terminal->id, 2, '0', STR_PAD_LEFT)); ?>
+
             </div>
 
             <div style="flex:1.4;">
                 <i class="bi bi-person-fill text-success me-1"></i>
-                <strong>Operador:</strong> {{ $operador }}
+                <strong>Operador:</strong> <?php echo e($operador); ?>
+
             </div>
 
             <div style="flex:.7;">
                 <i class="bi bi-person-vcard text-secondary me-1"></i>
-                <strong>ID:</strong> {{ $operadorId }}
+                <strong>ID:</strong> <?php echo e($operadorId); ?>
+
             </div>
 
             <div style="flex:1;">
                 <i class="bi bi-cash-stack text-warning me-1"></i>
-                <strong>Caixa:</strong> {{ $caixa_id }}
+                <strong>Caixa:</strong> <?php echo e($caixa_id); ?>
+
             </div>
 
             <div style="flex:2;">
-                <i class="bi bi-circle-fill {{ $status === 'Aberto' ? 'text-success' : '' }} {{ $status === 'Fechado' ? 'text-danger' : '' }} {{ $status === 'Pendente' ? 'text-warning' : '' }} {{ $status === 'Inconsistente' ? 'text-danger' : '' }} me-1"></i>
+                <i class="bi bi-circle-fill <?php echo e($status === 'Aberto' ? 'text-success' : ''); ?> <?php echo e($status === 'Fechado' ? 'text-danger' : ''); ?> <?php echo e($status === 'Pendente' ? 'text-warning' : ''); ?> <?php echo e($status === 'Inconsistente' ? 'text-danger' : ''); ?> me-1"></i>
                 <strong>Status:</strong>
-                <span class="{{ $status === 'Aberto' ? 'status-aberto' : '' }} {{ $status === 'Fechado' ? 'status-fechado' : '' }} {{ $status === 'Pendente' ? 'status-pendente' : '' }} {{ $status === 'Inconsistente' ? 'status-inconsistente' : '' }}">
+                <span class="<?php echo e($status === 'Aberto' ? 'status-aberto' : ''); ?> <?php echo e($status === 'Fechado' ? 'status-fechado' : ''); ?> <?php echo e($status === 'Pendente' ? 'status-pendente' : ''); ?> <?php echo e($status === 'Inconsistente' ? 'status-inconsistente' : ''); ?>">
                     <strong>
-                        {{ $status }}
-                        @if($caixa)
-                            em {{ $caixaAberto->data_abertura->format('d/m/Y H:i') }}
-                        @else
+                        <?php echo e($status); ?>
+
+                        <?php if($caixa): ?>
+                            em <?php echo e($caixaAberto->data_abertura->format('d/m/Y H:i')); ?>
+
+                        <?php else: ?>
                             <span class="text-danger">Caixa não aberto</span>
-                        @endif
+                        <?php endif; ?>
                     </strong>
                 </span>
             </div>
@@ -752,41 +762,41 @@
     <div class="row g-2 mb-2 p-2 pdv-venda" style="background:#3a3a3a; color:white;">
         <div class="col-md-2 fw-bold mb-0">
             <label>Data Venda</label>
-            <input class="form-control fw-bold text-center" type="datetime-local" value="{{ date('Y-m-d\TH:i') }}" readonly>
+            <input class="form-control fw-bold text-center" type="datetime-local" value="<?php echo e(date('Y-m-d\TH:i')); ?>" readonly>
         </div>
 
         <div class="col-md-2 fw-bold mb-0">
              <!-- <label>ID</label> -->
                <!-- 👇 EXPORTAÇÃO PARA JS -->
               
-            <input type="hidden" id="cliente_id" name="cliente_id" value="{{ $clienteBalcao->id }}">
-            <input  type="hidden" id="operador_id" name="operador_id" value="{{  $operadorId }}">
-            <input  type="hidden" id="caixa_id" name="caixa_id" value="{{  $caixa->id }}">
-            <input  type="hidden" id="terminal_id" name="terminal_id" value="{{  $terminal->id }}">
-            <input  type="hidden" id="dataVenda"  type="datetime-local" value="{{ date('Y-m-d\TH:i') }}">
+            <input type="hidden" id="cliente_id" name="cliente_id" value="<?php echo e($clienteBalcao->id); ?>">
+            <input  type="hidden" id="operador_id" name="operador_id" value="<?php echo e($operadorId); ?>">
+            <input  type="hidden" id="caixa_id" name="caixa_id" value="<?php echo e($caixa->id); ?>">
+            <input  type="hidden" id="terminal_id" name="terminal_id" value="<?php echo e($terminal->id); ?>">
+            <input  type="hidden" id="dataVenda"  type="datetime-local" value="<?php echo e(date('Y-m-d\TH:i')); ?>">
 
             <label>Cliente</label>
             <input  type ="text" class="form-control  fs-6 fw-bold text-center" name = "nome" 
-            value ="{{ $clienteBalcao->nome }}">
+            value ="<?php echo e($clienteBalcao->nome); ?>">
 
         </div>
         
          <div class="col-md-1 fw-bold mb-0">
             <label>Pessoa</label>
             <input class="form-control  fs-6 fw-bold text-center" name="pessoa" 
-             value="{{  $clienteBalcao->tipo }}" required readonly>
+             value="<?php echo e($clienteBalcao->tipo); ?>" required readonly>
         </div>
 
         <div class="col-md-2 fw-bold mb-0">
             <label>Contato Local</label>
             <input class="form-control fs-6 fw-bold text-center" name="telefone" 
-            value="{{  $clienteBalcao->telefone }}" required >
+            value="<?php echo e($clienteBalcao->telefone); ?>" required >
         </div>
 
         <div class="col-md-5 fw-bold mb-0">
             <label>Endereço para entrega</label>
             <input id="endereco" class="form-control  fs-6 fw-bold text-center" name="endereco" 
-            value="{{  $clienteBalcao->endereco }}" required >
+            value="<?php echo e($clienteBalcao->endereco); ?>" required >
         </div>
         
     </div>
@@ -1227,7 +1237,7 @@
             // 🎯 CAPTURA DINÂMICA: O Laravel injeta o terminal_id do operador logado em tempo real
             // Se o operador mudar de máquina (ex: Terminal 5), o Blade se atualiza sozinho
            // Procure por esta linha perto do início do script:
-            const terminalAtualId = parseInt("{{ session('terminal_id') ?? cookie('terminal_id') ?? '' }}") || 10;
+            const terminalAtualId = parseInt("<?php echo e(session('terminal_id') ?? cookie('terminal_id') ?? ''); ?>") || 10;
 
             // E APAGUE ou comente o bloco de "if" que vinha logo abaixo bloqueando o código:
              
@@ -1290,7 +1300,7 @@
 
 <!-- Controle dos lotes vencidos -->
 <script>
-    const dataLote = @json($data ?? []);
+    const dataLote = <?php echo json_encode($data ?? [], 15, 512) ?>;
     const alertaLote = document.getElementById('alerta-lote');
 
     if (alertaLote) {
@@ -1450,7 +1460,7 @@
             try {
 
                 const response = await fetch(
-                    "{{ route('pdv.verificar.sangria', $caixa->id) }}"
+                    "<?php echo e(route('pdv.verificar.sangria', $caixa->id)); ?>"
                 );
 
                 const data = await response.json();
@@ -1487,10 +1497,10 @@
 
 
 <!-- Modals atahos -->
-@include('pdv.modals.modal_cliente_pdv')
-@include('pdv.modals.modal_produto_pdv')
-@include('pdv.modals.modal_orcamento')
-@include('pdv.modals.modal_finalizar')
+<?php echo $__env->make('pdv.modals.modal_cliente_pdv', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php echo $__env->make('pdv.modals.modal_produto_pdv', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php echo $__env->make('pdv.modals.modal_orcamento', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php echo $__env->make('pdv.modals.modal_finalizar', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
 
 <!-- =======================================================================
@@ -1498,26 +1508,26 @@
 ======================================================================= -->
 <script>
     // Injeta os dados mestres do banco para o ecossistema Javascript ler
-    window.CLIENTE_BALCAO      = @json($clienteBalcao ?? null); 
-    window.PDV_BLOQUEADO       = @json($caixaBloqueado ?? false);
-    window.CAIXA_ID            = @json($caixa->id ?? null);
-    window.CAIXA_POSSUI_VENDAS = @json($caixa->possui_vendas ?? false);
+    window.CLIENTE_BALCAO      = <?php echo json_encode($clienteBalcao ?? null, 15, 512) ?>; 
+    window.PDV_BLOQUEADO       = <?php echo json_encode($caixaBloqueado ?? false, 15, 512) ?>;
+    window.CAIXA_ID            = <?php echo json_encode($caixa->id ?? null, 15, 512) ?>;
+    window.CAIXA_POSSUI_VENDAS = <?php echo json_encode($caixa->possui_vendas ?? false, 15, 512) ?>;
     
     // Inicializadores obrigatórios de memória de escopo global
     window.carrinho            = [];
     window.orcamentoAtualId    = null; 
 
     window.PDV = {
-        caixa_id: {{ $caixa->id ?? 'null' }},
-        funcionario_id: {{ auth()->id() }},
-        dataVenda: "{{ now() }}"
+        caixa_id: <?php echo e($caixa->id ?? 'null'); ?>,
+        funcionario_id: <?php echo e(auth()->id()); ?>,
+        dataVenda: "<?php echo e(now()); ?>"
     };
 </script>
 
 <!-- ⚡ INJECTOR AUTOMÁTICO REVISADO: CARREGA O CLIENTE BALCÃO AO FINALIZAR QUALQUER VENDA -->
 <script>
     // 1️⃣ O Laravel extrai o registro do banco de dados e entrega pronto para a memória do JS
-    window.CLIENTE_BALCAO = @json($clienteBalcao);
+    window.CLIENTE_BALCAO = <?php echo json_encode($clienteBalcao, 15, 512) ?>;
 
     // 2️⃣ FUNÇÃO MESTRE: Aplica os dados do banco diretamente nas propriedades .value dos inputs
     window.forcarInjecaoClienteBalcao = function() {
@@ -1649,18 +1659,19 @@
 })();
 </script>
 <!-- 🎯 CARREGAMENTO SEQUENCIAL DOS ARQUIVOS (Módulos Base) -->
-<script src="{{ asset('js/pdv/pdv_storage.js') }}" defer></script>
-<script src="{{ asset('js/pdv/carrinho.js') }}" defer></script>
+<script src="<?php echo e(asset('js/pdv/pdv_storage.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/carrinho.js')); ?>" defer></script>
 
 <!-- Scripts de Regras e Comportamento do Sistema -->
-<script src="{{ asset('js/pdv/app.js') }}" defer></script>
-<script src="{{ asset('js/pdv/regras.js') }}" defer></script>
-<script src="{{ asset('js/pdv/produto.js') }}" defer></script>
-<script src="{{ asset('js/pdv/orcamento.js') }}" defer></script>
-<script src="{{ asset('js/pdv/ui.js') }}" defer></script>
-<script src="{{ asset('js/pdv/pdv.js') }}" defer></script>
-<script src="{{ asset('js/pdv/form-masks.js') }}" defer></script>
-<script src="{{ asset('js/pdv/atalhos.js') }}" defer></script>
+<script src="<?php echo e(asset('js/pdv/app.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/regras.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/produto.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/orcamento.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/ui.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/pdv.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/form-masks.js')); ?>" defer></script>
+<script src="<?php echo e(asset('js/pdv/atalhos.js')); ?>" defer></script>
 
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/pdv/index.blade.php ENDPATH**/ ?>

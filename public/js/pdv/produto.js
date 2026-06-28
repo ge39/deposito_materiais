@@ -6,7 +6,6 @@ window.emitirBipPDV = function() {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
-        
         const imgBg = document.getElementById('produto-imagem-bg');
 
         oscillator.connect(gainNode);
@@ -179,7 +178,9 @@ if (window.__pdvProdutoJsCarregado) {
             if (!window.carrinho) { window.carrinho = []; }
 
             // 3️⃣ BUSCA SE O ITEM JÁ EXISTE NO CARRINHO (Mesmo Produto + Mesmo Lote)
-            const itemExistente = window.carrinho.find(i => i.produto_id == produto.id && i.lote_id == loteId);
+            const loteChave = loteId ?? 'SEM_LOTE';
+
+            const itemExistente = window.carrinho.find(i => i.produto_id == produto.id && i.lote_id == loteChave);
 
             const quantidadeFinalSolicitada = itemExistente
                 ? Number(itemExistente.quantidade) + Number(quantidade)
@@ -198,7 +199,7 @@ if (window.__pdvProdutoJsCarregado) {
 
             itemExistente.quantidade = novaQtd;
 
-            const linhaVisual = tabelaItens.querySelector(`tr[data-produto="${produto.id}"][data-lote="${loteId}"]`);
+            const linhaVisual = tabelaItens.querySelector(`tr[data-produto="${produto.id}"][data-lote="${loteChave}"]`);
 
             if (linhaVisual) {
                 const campoQtd = linhaVisual.querySelector('.item-quantidade');
@@ -233,18 +234,31 @@ if (window.__pdvProdutoJsCarregado) {
                 novaLinha.dataset.lote = loteId || 'SEM_LOTE';
                 novaLinha.style.cursor = "pointer";
 
-                novaLinha.innerHTML = `
-                    <td>${numeroItem}</td>
-                    <td>${produto.id}</td>
+               novaLinha.innerHTML = `
+                    <td class="text-center">${numeroItem}</td>
+                    <td class="text-center">${loteId || 'SEM_LOTE'}</td>
                     <td class="text-start">${produto.nome}</td>
-                    <td>R$ ${preco.toFixed(2).replace('.', ',')}</td>
-                    <td class="item-quantidade">${quantidade}</td>
-                    <td>${produto.unidade_sigla || 'UN'}</td>
-                    <td class="subtotal fw-bold">${(quantidade * preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td class="text-end">R$ ${preco.toFixed(2).replace('.', ',')}</td>
+                    <td class="text-center item-quantidade">${quantidade}</td>
+                    <td class="text-center">${produto.unidade_sigla || 'UN'}</td>
+                    <td class="text-end subtotal fw-bold">${(quantidade * preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                     <td class="text-muted d-none">Lote: ${loteSelecionado.numero_lote || 'SEM LOTE'}</td>
                 `;
 
                 tabelaItens.appendChild(novaLinha);
+
+                // remove seleção anterior
+                // tabelaItens.querySelectorAll("tr").forEach(tr =>
+                //     tr.classList.remove("table-active")
+                // );
+
+                // // seleciona a última restaurada
+                // linhaSelecionada = novaLinha;
+                // novaLinha.classList.add("table-active");
+
+                // if (acoesCarrinho) {
+                //     acoesCarrinho.style.display = "block";
+                // }
             }
 
             // 5️⃣ ATUALIZAÇÃO DOS INDICADORES FINANCEIROS E FEEDBACK VISUAL/SONORO
@@ -269,7 +283,7 @@ if (window.__pdvProdutoJsCarregado) {
                     }
                     
                     // 📊 EXIBIÇÃO NO F12
-                    console.log("💾 LOCALSTORAGE ESPELHADO COM SUCESSO:", window.carrinho);
+                    // console.log("💾 LOCALSTORAGE ESPELHADO COM SUCESSO:", window.carrinho);
                 } else {
                     // 🧹 Limpa os dados de forma inteligente se o carrinho ficar vazio
                     if (typeof PdvStorage !== 'undefined') {
@@ -279,7 +293,7 @@ if (window.__pdvProdutoJsCarregado) {
                     }
                 }
             } catch (errStorage) {
-                console.error("Falha ao espelhar LocalStorage:", errStorage);
+                // console.error("Falha ao espelhar LocalStorage:", errStorage);
             }
         };
 
@@ -651,124 +665,135 @@ if (window.__pdvProdutoJsCarregado) {
         });
     });
 
-   // =======================================================================
-    // 🎯 RESGATAR DADOS DO LOCALSTORAGE NO F5 (REESCRITO COM TODAS AS LINHAS E MULTIPLICADOR)
     // =======================================================================
-    window.resgatarCarrinhoF5 = function() {
+    // 🎯 RESGATAR CARRINHO DO LOCALSTORAGE APÓS F5
+    // =======================================================================
+    window.resgatarCarrinhoF5 = async function () {
         try {
             const salvo = localStorage.getItem('pdv_carrinho_atual');
             if (!salvo) return;
 
             const itensSalvos = JSON.parse(salvo);
+
             if (!Array.isArray(itensSalvos) || itensSalvos.length === 0) return;
 
-            console.log("📂 [F5 RESTORE] Reconstruindo carrinho na marra...", itensSalvos);
-
-            // Limpa a array temporária e aponta para o elemento da tabela do seu PDV
-            window.carrinho = [];
             const tabelaItens = document.getElementById("lista-itens");
-            if (!tabelaItens) return;
 
-            itensSalvos.forEach(item => {
-                // Lógica de Renderização Direta (Garante a tela cheia mesmo se o fetch falhar)
-                function injetarLinhaNaTela(nomeProduto, siglaUnidade) {
-                    const precoVenda = Number(item.preco_unitario || 0);
-                    const qtdSalva = Number(item.quantidade || 1);
+            if (!tabelaItens) {
+                console.warn("Tabela de itens não encontrada.");
+                return;
+            }
 
-                    // 1. Alimenta a memória global exatamente no formato esperado pelo Laravel
-                    window.carrinho.push({
-                        produto_id: parseInt(item.produto_id),
-                        lote_id: item.lote_id || 0,
-                        descricao: item.descricao || nomeProduto, // 🌟 Correção: Salvando a descrição/nome do produto
-                        quantidade: qtdSalva,
-                        preco_unitario: precoVenda,
-                        desconto: Number(item.desconto || 0),
-                        nome: nomeProduto // Mantém o nome na memória ativa do script
-                    });
+            // Evita duplicidade caso a função rode mais de uma vez
+            tabelaItens.innerHTML = '';
+            window.carrinho = [];
 
-                    // 2. INJEÇÃO DIRETA NO HTML: Desenha a linha fisicamente na tabela com todas as colunas
-                    const numeroItem = tabelaItens.querySelectorAll("tr").length + 1;
-                    const novaLinha = document.createElement("tr");
-                    novaLinha.dataset.produto = item.produto_id;
-                    novaLinha.dataset.lote = item.lote_id || 0;
-                    novaLinha.style.cursor = "pointer";
+            for (const item of itensSalvos) {
+                const produtoId = parseInt(item.produto_id);
+                const loteId = item.lote_id || 0;
+                const quantidade = Number(item.quantidade || 1);
+                const precoUnitario = Number(item.preco_unitario || 0);
+                const desconto = Number(item.desconto || 0);
 
-                    novaLinha.innerHTML = `
-                        <td>${numeroItem}</td>
-                        <td>${item.lote_id || 'OK'}</td>
-                        <td class="text-start">${nomeProduto}</td>
-                        <td>R$ ${precoVenda.toFixed(2).replace('.', ',')}</td>
-                        <td class="item-quantidade">${qtdSalva}</td>
-                        <td>${siglaUnidade}</td>
-                        <td class="subtotal fw-bold">${(qtdSalva * precoVenda).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                        <td class="text-muted d-none">Lote: OK</td>
-                    `;
-                    tabelaItens.appendChild(novaLinha);
+                let nomeProduto = item.nome || item.descricao || `Produto #${produtoId || ''}`;
+                let siglaUnidade = item.unidade_sigla || item.unidade || 'UN';
 
-                    // 🛠️ RECALCULA O RODAPÉ AUTOMATICAMENTE
-                    let contadorSequencial = 1;
-                    tabelaItens.querySelectorAll("tr").forEach(linha => {
-                        const primeiraCelula = linha.querySelector("td");
-                        if (primeiraCelula) primeiraCelula.textContent = contadorSequencial++;
-                    });
+                // Busca dados atualizados no banco, se houver ID válido
+                if (produtoId && !isNaN(produtoId)) {
+                    try {
+                        const response = await fetch(`/pdv/produto/${produtoId}`, {
+                            headers: { "Accept": "application/json" }
+                        });
 
-                    let subtotalAcumulado = 0;
-                    tabelaItens.querySelectorAll("tr").forEach(linha => {
-                        const campoSubtotal = linha.querySelector(".subtotal");
-                        if (campoSubtotal) {
-                            let textoValor = campoSubtotal.textContent
-                                .replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
-                            subtotalAcumulado += parseFloat(textoValor) || 0;
+                        if (response.ok) {
+                            const data = await response.json();
+
+                            if (data.status === "ok" && data.produto) {
+                                nomeProduto = data.produto.nome || nomeProduto;
+                                siglaUnidade = data.produto.unidade_sigla || siglaUnidade;
+                            }
                         }
-                    });
-
-                    const labelTotalGeral = document.getElementById("totalGeral") || document.getElementById("total_geral") || document.getElementById("inputTotalGeral");
-                    if (labelTotalGeral) {
-                        if (labelTotalGeral.tagName === 'INPUT') {
-                            labelTotalGeral.value = subtotalAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        } else {
-                            labelTotalGeral.textContent = subtotalAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        }
+                    } catch (erroFetch) {
+                        console.warn("Falha ao consultar produto no F5. Usando LocalStorage.", erroFetch);
                     }
                 }
 
-                // ========================================================== //
-                // 📡 VALIDAÇÃO INTEGRAL ANTES DE CONSULTAR A ROTA DO BANCO   //
-                // ========================================================== //
-                const idValido = parseInt(item.produto_id);
+                // Recria memória global do carrinho
+                window.carrinho.push({
+                    produto_id: produtoId || 0,
+                    lote_id: loteId,
+                    descricao: nomeProduto,
+                    quantidade: quantidade,
+                    preco_unitario: precoUnitario,
+                    desconto: desconto,
+                    nome: nomeProduto
+                });
 
-                if (!idValido || isNaN(idValido)) {
-                    // 🎯 SE O ID FOR INVÁLIDO, PULA A API E CAI DIRETO NA CONTINGÊNCIA PERFEITA
-                    console.log(`📦 [F5 RECOVERY] ID ausente. Renderizando diretamente via LocalStorage:`, item.nome || item.descricao);
-                    injetarLinhaNaTela(item.nome || item.descricao || "Produto Sem Nome", 'UN');
-                    return; // Encerra o processamento deste item atual no laço do forEach
-                }
+                // Renderiza linha
+                const numeroItem = tabelaItens.querySelectorAll("tr").length + 1;
+                const subtotal = quantidade * precoUnitario;
 
-                // Executa a busca oficial no Laravel apenas com a certeza do ID numérico
-                fetch(`/pdv/produto/${idValido}`, { headers: { "Accept": "application/json" } })
-                    .then(res => {
-                        if (!res.ok) throw new Error("Rota de produto inválida ou não encontrada");
-                        return res.json();
-                    })
-                    .then(dataRes => {
-                        if (dataRes.status === "ok" && dataRes.produto) {
-                            // Plano A: Renderiza com o nome atualizado vindo direto do banco de dados
-                            injetarLinhaNaTela(dataRes.produto.nome, dataRes.produto.unidade_sigla || 'UN');
-                        } else {
-                            // Plano B: Se a resposta da API vier incompleta, usa os metadados locais
-                            injetarLinhaNaTela(item.nome || item.descricao || `Produto #${idValido}`, 'UN');
-                        }
-                    })
-                    .catch(err => {
-                        // Plano C: Se a internet cair ou o Laravel der timeout, a contingência assume
-                        injetarLinhaNaTela(item.nome || item.descricao || `Produto #${idValido}`, 'UN');
-                    });
-            }); // Fim do foreach
+                const novaLinha = document.createElement("tr");
+                novaLinha.dataset.produto = produtoId || 0;
+                novaLinha.dataset.lote = loteId;
+                novaLinha.style.cursor = "pointer";
+
+                novaLinha.innerHTML = `
+                    <td class="text-center">${numeroItem}</td>
+                    <td class="text-center">${loteId || 'OK'}</td>
+                    <td class="text-start">${nomeProduto}</td>
+                    <td class="text-end">R$ ${precoUnitario.toFixed(2).replace('.', ',')}</td>
+                    <td class="text-center item-quantidade">${quantidade}</td>
+                    <td class="text-center">${siglaUnidade}</td>
+                    <td class="text-end subtotal fw-bold">
+                        ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
+                    <td class="text-muted d-none">Lote: ${loteId || 'OK'}</td>
+                `;
+
+                tabelaItens.appendChild(novaLinha);
+            }
+
+            atualizarTotalCarrinhoF5();
+
+            console.log("Carrinho restaurado após F5:", window.carrinho);
 
         } catch (error) {
-            console.error("Falha ao ler dados no F5:", error);
+            console.error("Falha ao restaurar carrinho após F5:", error);
         }
     };
+
+
+    // =======================================================================
+    // 🧮 ATUALIZAR TOTAL DO CARRINHO RESTAURADO
+    // =======================================================================
+    function atualizarTotalCarrinhoF5() {
+        const total = (window.carrinho || []).reduce((soma, item) => {
+            const quantidade = Number(item.quantidade || 0);
+            const preco = Number(item.preco_unitario || 0);
+            const desconto = Number(item.desconto || 0);
+
+            return soma + ((quantidade * preco) - desconto);
+        }, 0);
+
+        const campoTotal =
+            document.getElementById("totalGeral") ||
+            document.getElementById("total_geral") ||
+            document.getElementById("inputTotalGeral");
+
+        if (!campoTotal) return;
+
+        const totalFormatado = total.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+
+        if (campoTotal.tagName === 'INPUT') {
+            campoTotal.value = totalFormatado;
+        } else {
+            campoTotal.textContent = totalFormatado;
+        }
+    }
 
 
     // Gatilho: Executa o script de forma segura dependendo do estado do DOM
