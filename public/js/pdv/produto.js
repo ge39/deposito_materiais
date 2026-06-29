@@ -342,16 +342,21 @@ if (window.__pdvProdutoJsCarregado) {
                             window.produtoAtual = produto;
 
                             // Imagem do produto
-                            const imgProduto = document.getElementById("produto-imagem");
+                           const imgProduto = document.getElementById("produto-imagem");
 
                             if (imgProduto) {
+                                imgProduto.onerror = function () {
+                                    this.onerror = null;
+                                    this.src = "/image/produto-sem-imagem.png";
+                                };
+
                                 if (produto.imagem && produto.imagem.trim() !== "") {
                                     imgProduto.src = "/" + produto.imagem;
-                                    imgProduto.style.display = "block";
                                 } else {
                                     imgProduto.src = "/image/produto-sem-imagem.png";
-                                    imgProduto.style.display = "block";
                                 }
+
+                                imgProduto.style.display = "block";
                             }
 
                             if (inputId_produto) inputId_produto.value = produto.id;

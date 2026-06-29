@@ -369,24 +369,21 @@
         outline: 3px solid #2563eb;
     }
 
-   
-  
     .pdv-area {
     position: relative; /* cria o contexto do PDV */
     }
 
-    .acoes-carrinho {
-        position: absolute; /* flutua DENTRO do PDV */
-        width:98.8%;
-        display: none;
+   .acoes-carrinho {
+        position: absolute;
+        width: 98.8%;
         cursor: move;
-        background: #ffffff;
+        background: #212529;
         border: 2px solid #ced4da;
         border-radius: 10px;
-        /* padding: 10px; */
-        z-index: 1000;
+        padding: 10px;
+        z-index: 1030;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    } 
+    }
 
 
         .linha-carrinho.selecionada {
@@ -395,25 +392,13 @@
     }
 
     /* 🎯 CORRIGIDO: Removido o seletor duplicado e quebrado com vírgula */
-    #acoes-carrinho {
+    /* #acoes-carrinho {
         display: block;
         gap: 10px;
-    }
+    } */
   
     .pdv-area {
         position: relative; /* cria o contexto do PDV */
-    }
-
-    .acoes-carrinho {
-        position: absolute; /* flutua DENTRO do PDV */
-        width: 98.8%;
-        display: none;
-        cursor: move;
-        background: #ffffff;
-        border: 2px solid #ced4da;
-        border-radius: 10px;
-        z-index: 1000;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
     .linha-selecionada {
@@ -847,7 +832,6 @@
                 </thead>  
                 <tbody id="lista-itens" ></tbody> 
             </table>
-
              <!-- BOTÕES DE AÇÃO DO ITEM SELECIONADO -->
             <div id="acoes-carrinho" class="acoes-carrinho mt-2 bg-dark d-none">
                 <!-- 🚀 O flexbox garante o nome na esquerda e os botões agrupados na direita -->
@@ -859,7 +843,10 @@
                     <!-- Bloco dos botões alinhados à direita -->
                     <div class="d-flex gap-2">
                         <button id="btnDiminuir" class="btn btn-warning btn-lg">− Diminuir</button>
-                        <button id="btnRemover" class="btn btn-danger btn-lg">Remover</button>
+                        <button id="btnRemover" type="button" class="btn btn-danger btn-lg">
+                            Remover
+                        </button>
+                        
                         <button id="btnOcultar" class="btn btn-secondary btn-lg">Ocultar</button>
                     </div>
                 </div>
@@ -867,7 +854,6 @@
        
         </div>
     </div>
-
    <!-- RODAPÉ DOS BOTÕES -->
     <div class="col-md-12 row mt-1 d-flex flex-wrap gap-1">
 
@@ -923,7 +909,7 @@
     <!-- 🎨 SEU MODAL DE ADVERTÊNCIA ATUAL -->
     <div class="modal fade" id="modalPdvRemover" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 25px; background-color: #fff9f9;">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 25px; background-color: #fff9f9;z-index: 1060;">
                 <div class="modal-body p-5">
                     <h5 class="fw-bold mb-4 text-dark" style="font-size: 1.25rem;">
                         ⚠️ ATENÇÃO: ADVERTÊNCIA!
@@ -1495,6 +1481,11 @@
     });
 </script>
 
+<script>
+document.getElementById('btnRemover').addEventListener('click', function () {
+    document.getElementById('acoes-carrinho').classList.add('d-none');
+});
+</script>
 
 <!-- Modals atahos -->
 <?php echo $__env->make('pdv.modals.modal_cliente_pdv', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
@@ -1613,7 +1604,7 @@
         painel.style.top = (tabelaRect.bottom + 8) + 'px';
         painel.style.width = tabelaRect.width + 'px';
         painel.style.right = 'auto';
-        painel.style.zIndex = '9999';
+        // painel.style.zIndex = '9999';
     }
 
     tabela.addEventListener('click', function (e) {
@@ -1658,6 +1649,39 @@
     });
 })();
 </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const btnRemover = document.getElementById('btnRemover');
+        const painelAcoes = document.getElementById('acoes-carrinho');
+        const modalRemoverEl = document.getElementById('modalPdvRemover');
+
+        if (!btnRemover) {
+            console.error('btnRemover não encontrado');
+            return;
+        }
+
+        if (!modalRemoverEl) {
+            console.error('modalPdvRemover não encontrado');
+            return;
+        }
+
+        btnRemover.addEventListener('click', function () {
+
+            if (painelAcoes) {
+                painelAcoes.classList.add('d-none');
+            }
+
+            const modalRemover = bootstrap.Modal.getOrCreateInstance(modalRemoverEl);
+            modalRemover.show();
+
+        });
+
+    });
+</script>
+
+                        
 <!-- 🎯 CARREGAMENTO SEQUENCIAL DOS ARQUIVOS (Módulos Base) -->
 <script src="<?php echo e(asset('js/pdv/pdv_storage.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/carrinho.js')); ?>" defer></script>
