@@ -444,139 +444,139 @@ if (window.__pdvProdutoJsCarregado) {
         // ========================================================== //
         btnRemover?.replaceWith(btnRemover.cloneNode(true));
         
-        if (!window.btnRemoverConfigurado) {
-            document.getElementById("btnRemover")?.addEventListener("click", function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+            if (!window.btnRemoverConfigurado) {
+                document.getElementById("btnRemover")?.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
 
-                if (!linhaSelecionada) {
-                    alert("Clique em um item da tabela primeiro para selecioná-lo.");
-                    return;
-                }
+                    if (!linhaSelecionada) {
+                        alert("Clique em um item da tabela primeiro para selecioná-lo.");
+                        return;
+                    }
 
-                const produtoId = linhaSelecionada.dataset.produto;
-                const loteId = linhaSelecionada.dataset.lote;
+                    const produtoId = linhaSelecionada.dataset.produto;
+                    const loteId = linhaSelecionada.dataset.lote;
 
-                // 🌟 CORREÇÃO: Captura especificamente a célula de descrição (índice 2)
-                const celulas = linhaSelecionada.querySelectorAll("td");
-                let nomeProduto = "Produto selecionado";
-                
-                if (celulas && celulas.length >= 3) {
-                    nomeProduto = celulas[2].textContent.trim(); // Índice 2 corresponde à 3ª coluna (Descrição)
-                }
+                    // 🌟 CORREÇÃO: Captura especificamente a célula de descrição (índice 2)
+                    const celulas = linhaSelecionada.querySelectorAll("td");
+                    let nomeProduto = "Produto selecionado";
+                    
+                    if (celulas && celulas.length >= 3) {
+                        nomeProduto = celulas[2].textContent.trim(); // Índice 2 corresponde à 3ª coluna (Descrição)
+                    }
 
-                const modalElemento = document.getElementById('modalPdvRemover');
-                if (!modalElemento) {
-                    if (confirm(`⚠️ ADVERTÊNCIA!\n\nYou está prestes a remover o produto:\n"${nomeProduto}"\n\nDeseja confirmar?`)) {
+                    const modalElemento = document.getElementById('modalPdvRemover');
+                    if (!modalElemento) {
+                        if (confirm(`⚠️ ADVERTÊNCIA!\n\nYou está prestes a remover o produto:\n"${nomeProduto}"\n\nDeseja confirmar?`)) {
+                            executarRemocaoPdv(produtoId, loteId);
+                        }
+                        if (inputCodigo) inputCodigo.focus();
+                        return;
+                    }
+
+                    // Injeta dinamicamente o nome do produto no corpo do modal
+                    const campoNomeModal = document.getElementById("modalNomeProduto");
+                    if (campoNomeModal) campoNomeModal.textContent = nomeProduto;
+
+                    // Inicializa e exibe o modal do Bootstrap
+                    const meuModal = new bootstrap.Modal(modalElemento);
+                    meuModal.show();
+
+                    // Remove o fundo escuro se o modal sumir
+                    modalElemento.addEventListener('hidden.bs.modal', function () {
+                        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+                        document.body.classList.remove('modal-open');
+                        document.body.style.overflow = '';
+                        if (inputCodigo) inputCodigo.focus();
+                    }, { once: true });
+
+                    // Gerenciamento seguro dos botões internos do modal
+                    const btnConf = document.getElementById("btnModalConfirmar");
+                    const btnCanc = document.getElementById("btnModalCancelar");
+
+                    const acaoConfirmar = function() {
                         executarRemocaoPdv(produtoId, loteId);
-                    }
-                    if (inputCodigo) inputCodigo.focus();
-                    return;
-                }
+                        meuModal.hide();
+                        btnConf.removeEventListener("click", acaoConfirmar);
+                    };
+                    
+                    const acaoCancelar = function() {
+                        meuModal.hide();
+                        btnCanc.removeEventListener("click", acaoCancelar);
+                    };
 
-                // Injeta dinamicamente o nome do produto no corpo do modal
-                const campoNomeModal = document.getElementById("modalNomeProduto");
-                if (campoNomeModal) campoNomeModal.textContent = nomeProduto;
+                    btnConf.addEventListener("click", acaoConfirmar, { once: true });
+                    btnCanc.addEventListener("click", acaoCancelar, { once: true });
 
-                // Inicializa e exibe o modal do Bootstrap
-                const meuModal = new bootstrap.Modal(modalElemento);
-                meuModal.show();
+                    // Atalhos de teclado seguros
+                    const escutarTecladoModal = function(tecla) {
+                        if (tecla.key === "Enter") {
+                            tecla.preventDefault();
+                            btnConf.click();
+                            window.removeEventListener("keydown", escutarTecladoModal);
+                        }
+                        if (tecla.key === "Escape") {
+                            tecla.preventDefault();
+                            btnCanc.click();
+                            window.removeEventListener("keydown", escutarTecladoModal);
+                        }
+                    };
+                    window.addEventListener("keydown", escutarTecladoModal);
+                });
 
-                // Remove o fundo escuro se o modal sumir
-                modalElemento.addEventListener('hidden.bs.modal', function () {
-                    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-                    document.body.classList.remove('modal-open');
-                    document.body.style.overflow = '';
-                    if (inputCodigo) inputCodigo.focus();
-                }, { once: true });
-
-                // Gerenciamento seguro dos botões internos do modal
-                const btnConf = document.getElementById("btnModalConfirmar");
-                const btnCanc = document.getElementById("btnModalCancelar");
-
-                const acaoConfirmar = function() {
-                    executarRemocaoPdv(produtoId, loteId);
-                    meuModal.hide();
-                    btnConf.removeEventListener("click", acaoConfirmar);
-                };
-                
-                const acaoCancelar = function() {
-                    meuModal.hide();
-                    btnCanc.removeEventListener("click", acaoCancelar);
-                };
-
-                btnConf.addEventListener("click", acaoConfirmar, { once: true });
-                btnCanc.addEventListener("click", acaoCancelar, { once: true });
-
-                // Atalhos de teclado seguros
-                const escutarTecladoModal = function(tecla) {
-                    if (tecla.key === "Enter") {
-                        tecla.preventDefault();
-                        btnConf.click();
-                        window.removeEventListener("keydown", escutarTecladoModal);
-                    }
-                    if (tecla.key === "Escape") {
-                        tecla.preventDefault();
-                        btnCanc.click();
-                        window.removeEventListener("keydown", escutarTecladoModal);
-                    }
-                };
-                window.addEventListener("keydown", escutarTecladoModal);
-            });
-
-            window.btnRemoverConfigurado = true;
-        }
-
-        // // 📦 FUNÇÃO CENTRALIZADA QUE FAZ A LIMPEZA REAL NO LOCALSTORAGE E NA TELA
-        function executarRemocaoPdv(produtoId, loteId) {
-            window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
-            linhaSelecionada.remove();
-            linhaSelecionada = null;
-
-            if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
-
-            try {
-                if (window.carrinho && window.carrinho.length > 0) {
-                    if (typeof PdvStorage !== 'undefined') PdvStorage.salvarCarrinho(window.carrinho);
-                    else localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
-                } else {
-                    if (typeof PdvStorage !== 'undefined') PdvStorage.limparPdv();
-                    else localStorage.removeItem('pdv_carrinho_atual');
-                }
-            } catch (errStorage) {
-                console.error("Erro ao salvar LocalStorage:", errStorage);
+                window.btnRemoverConfigurado = true;
             }
 
-            atualizarNumeroItens();
-            atualizarTotalCarrinho();
-        }
+            // // 📦 FUNÇÃO CENTRALIZADA QUE FAZ A LIMPEZA REAL NO LOCALSTORAGE E NA TELA
+            function executarRemocaoPdv(produtoId, loteId) {
+                window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
+                linhaSelecionada.remove();
+                linhaSelecionada = null;
 
-        // 📦 FUNÇÃO ISOLADA PARA NÃO REPETIR CÓDIGO
-        function ejecutarRemocaoLogica(produtoId, loteId) {
-            window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
-            linhaSelecionada.remove();
-            linhaSelecionada = null;
+                if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
 
-            if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
-
-            try {
-                if (window.carrinho && window.carrinho.length > 0) {
-                    if (typeof PdvStorage !== 'undefined') PdvStorage.salvarCarrinho(window.carrinho);
-                    else localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
-                } else {
-                    if (typeof PdvStorage !== 'undefined') PdvStorage.limparPdv();
-                    else localStorage.removeItem('pdv_carrinho_atual');
+                try {
+                    if (window.carrinho && window.carrinho.length > 0) {
+                        if (typeof PdvStorage !== 'undefined') PdvStorage.salvarCarrinho(window.carrinho);
+                        else localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
+                    } else {
+                        if (typeof PdvStorage !== 'undefined') PdvStorage.limparPdv();
+                        else localStorage.removeItem('pdv_carrinho_atual');
+                    }
+                } catch (errStorage) {
+                    console.error("Erro ao salvar LocalStorage:", errStorage);
                 }
-            } catch (errStorage) {
-                console.error("Falha ao espelhar LocalStorage:", errStorage);
+
+                atualizarNumeroItens();
+                atualizarTotalCarrinho();
             }
 
-            atualizarNumeroItens();
-            atualizarTotalCarrinho();
-        }
+            // 📦 FUNÇÃO ISOLADA PARA NÃO REPETIR CÓDIGO
+            function ejecutarRemocaoLogica(produtoId, loteId) {
+                window.carrinho = window.carrinho.filter(i => !(i.produto_id == produtoId && i.lote_id == loteId));
+                linhaSelecionada.remove();
+                linhaSelecionada = null;
 
-        // 4️⃣ PROGRAMA O BOTÃO DE OCULTAR / CANCELAR A SELEÇÃO
-        btnOcultar?.addEventListener("click", function() {
+                if (acoesCarrinho) acoesCarrinho.classList.add("d-none");
+
+                try {
+                    if (window.carrinho && window.carrinho.length > 0) {
+                        if (typeof PdvStorage !== 'undefined') PdvStorage.salvarCarrinho(window.carrinho);
+                        else localStorage.setItem('pdv_carrinho_atual', JSON.stringify(window.carrinho));
+                    } else {
+                        if (typeof PdvStorage !== 'undefined') PdvStorage.limparPdv();
+                        else localStorage.removeItem('pdv_carrinho_atual');
+                    }
+                } catch (errStorage) {
+                    console.error("Falha ao espelhar LocalStorage:", errStorage);
+                }
+
+                atualizarNumeroItens();
+                atualizarTotalCarrinho();
+            }
+
+            // 4️⃣ PROGRAMA O BOTÃO DE OCULTAR / CANCELAR A SELEÇÃO
+            btnOcultar?.addEventListener("click", function() {
             tabelaItens?.querySelectorAll("tr").forEach(tr => tr.classList.remove("table-active"));
             linhaSelecionada = null;
             if (acoesCarrinho) acoesCarrinho.classList.add("d-none");

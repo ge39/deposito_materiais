@@ -415,9 +415,7 @@
 
             calcularPagamentos();
         }
-        // ENVIO AJAX COMPATÍVEL VIA FETCH (FLUXO CONTINUO)
         // ========================================================
-               // ========================================================
         // ENVIO AJAX COMPATÍVEL VIA FETCH (CORRIGIDO E ALINHADO)
         // ========================================================
         btnFinalizar?.addEventListener('click', function() {
@@ -454,10 +452,24 @@
             let idCaixaFinal = parseInt(inputCaixaHidden?.value, 10) || parseInt(window.caixa_id, 10) || 1;
             
             let formData = new FormData();
+            const inputOrcamento = document.getElementById('orcamento_id');
+            const orcamentoIdFinal = inputOrcamento?.value ? Number(inputOrcamento.value) : null;
+            // console.log('CSI MODAL BLADE - ORCAMENTO_ID:', orcamentoIdFinal)
+
+            // =====================================================
+            // DADOS PRINCIPAIS DA VENDA
+            // =====================================================
             formData.append('cliente_id', idClienteFinal || '');
             formData.append('funcionario_id', idFuncionarioFinal);
             formData.append('caixa_id', idCaixaFinal);
             formData.append('dataVenda', new Date().toISOString().slice(0, 19).replace('T', ' '));
+
+            // =====================================================
+            // ORÇAMENTO VINCULADO À VENDA
+            // =====================================================
+            formData.append('orcamento_id', orcamentoIdFinal || '');
+
+            console.log('CSI FORMDATA - ORCAMENTO_ID ENVIADO:', orcamentoIdFinal);
 
             // Processamento dos Itens do Carrinho
             if (window.carrinho && window.carrinho.length > 0) {
@@ -550,6 +562,7 @@
                 btnFinalizar.innerHTML = textoOriginalBtn;
             });
         });
+
         function verificarNovoCaixa() {
             // Gatilho interno original mantido em escopo
         }
@@ -584,6 +597,7 @@
 
             // limpa campos do PDV
             const campos = [
+                '#orcamento_id',
                 '#descricao',
                 '#codigo_barras',
                 '#preco_venda',

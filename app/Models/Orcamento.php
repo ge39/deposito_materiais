@@ -25,6 +25,7 @@ class Orcamento extends Model
         'validade',
         'data_orcamento',
         'codigo_orcamento',
+        'tipo_entrega',
         'status',
         'observacoes',
         'total',
@@ -41,7 +42,6 @@ class Orcamento extends Model
         
     ];
 
-   
 
     /* =========================
      | RELACIONAMENTOS

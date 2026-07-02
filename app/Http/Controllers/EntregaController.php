@@ -3,73 +3,168 @@
 namespace App\Http\Controllers;
 
 use App\Models\Entrega;
-use App\Models\Venda;
-use App\Models\Funcionario;
-use App\Models\Frota;
+use App\Services\Entregas\EntregaService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class EntregaController extends Controller
 {
-    public function index()
+    protected EntregaService $entregaService;
+
+    public function __construct(EntregaService $entregaService)
     {
-        $entregas = Entrega::with(['venda','frota','funcionario'])->get();
-        return view('entregas.index', compact('entregas'));
+        $this->entregaService = $entregaService;
     }
 
-    public function create()
+    public function index(Request $request)
     {
-        $vendas = Venda::all();
-        $frotas = Frota::all();
-        $funcionarios = Funcionario::where('funcao','motorista')->get();
-        return view('entregas.create', compact('vendas','frotas','funcionarios'));
-    }
+        $query = Entrega::with(['venda', 'orcamento', 'itens'])
+            ->orderByDesc('id');
 
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'venda_id' => 'required|exists:vendas,id',
-            'frota_id' => 'required|exists:frotas,id',
-            'funcionario_id' => 'required|exists:funcionarios,id',
-            'data_entrega' => 'nullable|date',
-            'endereco_entrega' => 'nullable|string|max:255',
-            'status' => 'required|in:pendente,em_transito,entregue,cancelada',
-        ]);
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
 
-        Entrega::create($data);
-        return redirect()->route('entregas.index')->with('success', 'Entrega criada com sucesso.');
+        if ($request->filled('data_prevista')) {
+            $query->whereDate('data_prevista', $request->data_prevista);
+        }
+
+        if ($request->filled('codigo_entrega')) {
+            $query->where('codigo_entrega', 'like', '%' . $request->codigo_entrega . '%');
+        }
+
+        $entregas = $query->paginate(20)->withQueryString();
+
+        $resumo = [
+            'pendentes' => Entrega::where('status', 'pendente')->count(),
+            'separando' => Entrega::where('status', 'separando')->count(),
+            'carregados' => Entrega::where('status', 'carregado')->count(),
+            'em_rota' => Entrega::where('status', 'em_rota')->count(),
+            'entregues' => Entrega::where('status', 'entregue')->count(),
+            'parciais' => Entrega::where('status', 'parcial')->count(),
+        ];
+
+        return view('entregas.index', compact('entregas', 'resumo'));
     }
 
     public function show(Entrega $entrega)
     {
+        $entrega->load([
+            'venda',
+            'orcamento',
+            'itens.vendaItem',
+        ]);
+
         return view('entregas.show', compact('entrega'));
     }
 
-    public function edit(Entrega $entrega)
+    public function separar(Entrega $entrega)
     {
-        $vendas = Venda::all();
-        $frotas = Frota::all();
-        $funcionarios = Funcionario::where('funcao','motorista')->get();
-        return view('entregas.edit', compact('entrega','vendas','frotas','funcionarios'));
+        return $this->alterarStatusComRetorno($entrega, 'separando', 'Entrega enviada para separação.');
     }
 
-    public function update(Request $request, Entrega $entrega)
+    public function carregar(Entrega $entrega)
     {
-        $data = $request->validate([
-            'venda_id' => 'required|exists:vendas,id',
-            'frota_id' => 'required|exists:frotas,id',
-            'funcionario_id' => 'required|exists:funcionarios,id',
-            'data_entrega' => 'nullable|date',
-            'endereco_entrega' => 'nullable|string|max:255',
-            'status' => 'required|in:pendente,em_transito,entregue,cancelada',
+        return $this->alterarStatusComRetorno($entrega, 'carregado', 'Entrega marcada como carregada.');
+    }
+
+    public function enviarParaRota(Entrega $entrega)
+    {
+        return $this->alterarStatusComRetorno($entrega, 'em_rota', 'Entrega enviada para rota.');
+    }
+
+    public function confirmar(Entrega $entrega)
+    {
+        try {
+            $this->entregaService->confirmarEntrega($entrega);
+
+            return redirect()
+                ->back()
+                ->with('success', 'Entrega confirmada com sucesso.');
+
+        } catch (ValidationException $e) {
+            return redirect()
+                ->back()
+                ->withErrors($e->errors());
+
+        } catch (Throwable $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Erro ao confirmar entrega: ' . $e->getMessage());
+        }
+    }
+
+    public function confirmarParcial(Request $request, Entrega $entrega)
+    {
+        $dados = $request->validate([
+            'itens' => ['required', 'array'],
+            'itens.*.entrega_item_id' => ['required', 'integer', 'exists:entrega_itens,id'],
+            'itens.*.quantidade_entregue' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $entrega->update($data);
-        return redirect()->route('entregas.index')->with('success', 'Entrega atualizada com sucesso.');
+        try {
+            $this->entregaService->confirmarParcial($entrega, $dados['itens']);
+
+            return redirect()
+                ->back()
+                ->with('success', 'Entrega parcial registrada com sucesso.');
+
+        } catch (ValidationException $e) {
+            return redirect()
+                ->back()
+                ->withErrors($e->errors());
+
+        } catch (Throwable $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Erro ao registrar entrega parcial: ' . $e->getMessage());
+        }
     }
 
-    public function destroy(Entrega $entrega)
+    public function cancelar(Request $request, Entrega $entrega)
     {
-        $entrega->delete();
-        return redirect()->route('entregas.index')->with('success', 'Entrega removida com sucesso.');
+        $dados = $request->validate([
+            'motivo' => ['nullable', 'string'],
+        ]);
+
+        try {
+            $this->entregaService->cancelar($entrega, $dados['motivo'] ?? null);
+
+            return redirect()
+                ->back()
+                ->with('success', 'Entrega cancelada com sucesso.');
+
+        } catch (ValidationException $e) {
+            return redirect()
+                ->back()
+                ->withErrors($e->errors());
+
+        } catch (Throwable $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Erro ao cancelar entrega: ' . $e->getMessage());
+        }
+    }
+
+    private function alterarStatusComRetorno(Entrega $entrega, string $status, string $mensagem)
+    {
+        try {
+            $this->entregaService->alterarStatus($entrega, $status);
+
+            return redirect()
+                ->back()
+                ->with('success', $mensagem);
+
+        } catch (ValidationException $e) {
+            return redirect()
+                ->back()
+                ->withErrors($e->errors());
+
+        } catch (Throwable $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Erro ao atualizar entrega: ' . $e->getMessage());
+        }
     }
 }

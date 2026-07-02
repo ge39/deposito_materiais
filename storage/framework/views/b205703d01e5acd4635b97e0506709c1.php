@@ -184,6 +184,12 @@
 
 <li><hr class="dropdown-divider"></li>
 
+<li>
+    <a class="dropdown-item" href="<?php echo e(route('entregas.index')); ?>">
+        <i class="bi bi-truck me-2"></i>Gerenciamento de Entregas
+    </a>
+</li>
+
 
 <li class="dropdown-submenu">
     <a class="dropdown-item dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#">

@@ -186,6 +186,20 @@ document.addEventListener('DOMContentLoaded', function () {
         // 2️⃣ DEFINIÇÃO DO OBJETO PRINCIPAL
         const orcamentoObj = data.orcamento || data.data || data; 
 
+        // ==========================================
+        // DEBUG - DADOS RECEBIDOS DO ORÇAMENTO
+        // ==========================================
+
+        // console.group('========== ORÇAMENTO RECEBIDO ==========');
+
+        //console.log('Objeto Completo:', orcamentoObj);
+
+        //console.log('Dados do Cliente:', orcamentoObj.cliente);
+
+        //console.log('Itens:', orcamentoObj.itens);
+
+        console.groupEnd();
+
         // 🎯 CORREÇÃO DE ESCOPO: Inicializa as variáveis no topo para estarem disponíveis em qualquer lugar da função
         const codigoPedido = orcamentoObj?.codigo_orcamento || orcamentoObj?.id || orcamentoObj?.codigo || 'N/A';
         const nomeCliente = orcamentoObj?.cliente?.nome || orcamentoObj?.nome_cliente || 'Cliente não identificado';
@@ -273,6 +287,27 @@ document.addEventListener('DOMContentLoaded', function () {
         // 5️⃣ CONTINUAÇÃO DO SEU CÓDIGO ORIGINAL (Apenas se o status for válido)
         if (data.orcamento && data.orcamento.id) {
             window.orcamentoAtualId = data.orcamento.id;
+            const orcamentoObj = data.orcamento || data.data || data;
+
+            window.orcamentoAtual = orcamentoObj;
+            window.orcamentoAtualId = Number(orcamentoObj.id);
+
+            const inputOrcamento = document.getElementById('orcamento_id');
+
+            // //console.log('CSI ORÇAMENTO - INPUT EXISTE?', !!inputOrcamento);
+            // //console.log('CSI ORÇAMENTO - ID DO OBJETO:', orcamentoObj?.id);
+
+            if (inputOrcamento && orcamentoObj?.id) {
+                inputOrcamento.value = Number(orcamentoObj.id);
+                //console.log('CSI ORÇAMENTO - INPUT PREENCHIDO COM:', inputOrcamento.value);
+            } else {
+                console.error('CSI ORÇAMENTO - FALHA AO PREENCHER INPUT', {
+                    inputExiste: !!inputOrcamento,
+                    orcamentoId: orcamentoObj?.id || null
+                });
+            }
+            
+            //console.log('ORÇAMENTO CARREGADO NO PDV:', window.orcamentoAtual);
 
             preencherCliente(data.orcamento.cliente);
             preencherCarrinhoSincronizado(data.orcamento.itens);
@@ -341,12 +376,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // 📢 1. LOG DE ENTRADA (Se esse printar, sabemos que o fetch deu certo)
-            console.log("🟢 FETCH DE FATURAMENTO OK! Iniciando limpezas...");
+            //console.log("🟢 FETCH DE FATURAMENTO OK! Iniciando limpezas...");
 
             alert('Venda finalizada com sucesso! Orçamento marcado como Faturado.');
 
             // 📢 2. TESTE DIRETO DE ENGENHARIA REVERSA (Sem depender de arquivos externos)
-            console.log("⚡ Executando reset direto dentro do orcamento.js...");
+            //console.log("⚡ Executando reset direto dentro do orcamento.js...");
             
             window.orcamentoAtualId = null;
             window.carrinho = []; 
@@ -370,9 +405,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (totalGeral) totalGeral.textContent = 'R$ 0,00';
 
             // 📢 3. TENTATIVA DE CHAMAR O ARQUIVO EXTERNO
-            console.log("🔍 Tentando acionar o arquivo limparPDV.js...");
+            //console.log("🔍 Tentando acionar o arquivo limparPDV.js...");
             if (typeof window.limparPDV === 'function') {
-                console.log("🎯 Sucesso: Função global limparPDV encontrada e acionada!");
+                //console.log("🎯 Sucesso: Função global limparPDV encontrada e acionada!");
                 window.limparPDV();
             } else {
                 console.error("❌ Erro de Escopo: A função window.limparPDV não foi encontrada no escopo global.");
@@ -548,62 +583,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.emitirBipPDV();
             }
         }
-
-        // ======================================================
-        // 🔔 ALERTA VISUAL DO ORÇAMENTO
-        // ======================================================
-
-        //  function exibirAlertaBootstrap(mensagem, classe = 'warning') {
-        //     const container = document.getElementById('container-alerta-orcamento');
-
-        //     // Fallback caso o container de alertas não exista no DOM
-        //     if (!container) {
-        //         alert(mensagem.replace(/<\/?[^>]+(>|$)/g, ''));
-        //         return;
-        //     }
-
-        //     // Define o ícone ideal dinamicamente com base na classe do Bootstrap
-        //     let icone = '⚠️';
-        //     if (classe === 'danger' || classe === 'error') { icone = '🚫'; classe = 'danger'; }
-        //     if (classe === 'success') icone = '✅';
-        //     if (classe === 'info') icone = 'ℹ️';
-
-        //     // Cria um ID único para este alerta conseguir sumir sozinho depois
-        //     const alertaId = 'alert_' + Date.now() + Math.floor(Math.random() * 100);
-
-        //     // Injeta o novo alerta empilhando-o no container (com sombra, sem bordas gerais e com borda grossa à esquerda)
-        //     container.insertAdjacentHTML('beforeend', `
-        //         <div id="${alertaId}" class="alert alert-${classe} alert-dismissible fade show shadow-sm border-0 border-start border-4 border-${classe} bg-white text-dark mb-2 py-3" role="alert" style="min-width: 280px; transition: all 0.3s ease;">
-        //             <div class="d-flex align-items-center">
-        //                 <div class="fs-4 me-3 lh-1">
-        //                     ${icone}
-        //                 </div>
-        //                 <div class="text-start fw-medium small" style="padding-right: 20px;">
-        //                     ${mensagem}
-        //                 </div>
-        //             </div>
-        //             <button 
-        //                 type="button" 
-        //                 class="btn-close" 
-        //                 data-bs-dismiss="alert" 
-        //                 aria-label="Close"
-        //                 style="padding: 1.25rem 1rem;">
-        //             </button>
-        //         </div>
-        //     `);
-
-        //     // Fecha o alerta automaticamente após 5 segundos de forma suave
-        //     setTimeout(() => {
-        //         const alertaEl = document.getElementById(alertaId);
-        //         if (alertaEl && typeof bootstrap !== 'undefined') {
-        //             const bsAlert = bootstrap.Alert.getOrCreateInstance(alertaEl);
-        //             bsAlert.close();
-        //         } else if (alertaEl) {
-        //             alertaEl.remove(); // Fallback caso o JS do Bootstrap não esteja pronto
-        //         }
-        //     }, 5000);
-        // }
-
        
     }
 

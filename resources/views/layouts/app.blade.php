@@ -183,6 +183,12 @@
 </li>
 
 <li><hr class="dropdown-divider"></li>
+{{-- ENTREGAS --}}
+<li>
+    <a class="dropdown-item" href="{{ route('entregas.index') }}">
+        <i class="bi bi-truck me-2"></i>Gerenciamento de Entregas
+    </a>
+</li>
 
 {{-- Financeiro --}}
 <li class="dropdown-submenu">

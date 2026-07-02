@@ -175,60 +175,25 @@ window.limparPDV = function() {
 // =======================================================================
 // 📡 MONITOR DE REQUISIÇÕES AUTOMÁTICO (FETCH SPY)
 // =======================================================================
-(function () {
-
+(function() {
     const originalFetch = window.fetch;
-
-    window.fetch = async function (...args) {
-
+    window.fetch = async function(...args) {
         const response = await originalFetch.apply(this, args);
         const url = args[0];
 
-        // =====================================================
-        // INTERCEPTA AS ROTAS DE FATURAMENTO DO PDV
-        // =====================================================
-        if (
-            typeof url === 'string'
-            && (
-                url.includes('/pdv/faturar')
-                || url.includes('/vendas/finalizar')
-                || url.includes('/vendas')
-            )
-        ) {
+        // Se a rota chamada foi a de faturar orçamento ou finalizar venda
+        if (typeof url === 'string' && (url.includes('/pdv/faturar') || url.includes('/vendas/finalizar') || url.includes('/vendas'))) {
+            
+            // Se o servidor retornou sucesso, executa a limpeza violenta por string direta
+            if (response.ok) {
+                window.limparLocalStoragePDV();
+            }
 
-            // =====================================================
-            // CLONA A RESPOSTA PARA NÃO CONSUMIR O BODY ORIGINAL
-            // =====================================================
-            const responseClone = response.clone();
-
-            responseClone.json()
-                .then(data => {
-
-                    // =====================================================
-                    // LIMPEZA DO PDV SOMENTE APÓS CONFIRMAÇÃO DO BACKEND
-                    // =====================================================
-                    if (data?.success === true) {
-
-                        window.limparLocalStoragePDV();
-
-                        // =====================================================
-                        // RESTAURA O CLIENTE BALCÃO E REINICIALIZA A TELA
-                        // =====================================================
-                        setTimeout(() => {
-                            window.forcarInjecaoClienteBalcao();
-                        }, 150);
-                    }
-
-                })
-                .catch(() => {
-                    // =====================================================
-                    // RESPOSTA NÃO É JSON.
-                    // NÃO EXECUTA A LIMPEZA AUTOMÁTICA.
-                    // =====================================================
-                });
+            // Aguarda o encerramento do processo e restaura os inputs e o foco da tela
+            setTimeout(() => {
+                window.forcarInjecaoClienteBalcao();
+            }, 150);
         }
-
         return response;
     };
-
 })();

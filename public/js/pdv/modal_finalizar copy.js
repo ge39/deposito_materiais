@@ -613,8 +613,7 @@ document.addEventListener('DOMContentLoaded', function () {
             'quantidade',
             'qtd_disponivel',
             'total_geral',
-            'unidade',
-            'orcamento_id'
+            'unidade'
         ];
 
         campos.forEach(id => {
@@ -642,11 +641,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function finalizarVenda(e) {
         e.preventDefault();
-       
-
+        console.log('FINALIZAR VENDA INICIADO');
         if (btnFinalizar.disabled) return;
 
-              
         const inputCliente =
             document.querySelector('input[name="cliente_id"]')
             || document.getElementById('input-cliente-id');
@@ -818,40 +815,16 @@ document.addEventListener('DOMContentLoaded', function () {
         // =====================================================
     // EVENTOS FINALIZAÇÃO
     // =====================================================
-    // btnFinalizar.addEventListener('keydown', function (e) {
-    //     if (e.key === 'Enter') {
-    //         // 🎯 GATILHO CHAVE: Garante que os dados finais da memória estejam gravados 
-    //         // no LocalStorage no milissegundo anterior ao disparo do fetch
-    //         if (typeof PdvStorage !== 'undefined' && window.carrinho) {
-    //             PdvStorage.salvarCarrinho(window.carrinho);
-    //         }
-
-    //         finalizarVenda(e);
-    //     }
-    // });
-    // =====================================================
-    // EVENTOS FINALIZAÇÃO
-    // =====================================================
-    if (btnFinalizar) {
-
-        const dispararFinalizacaoVenda = function (e) {
+    btnFinalizar.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            // 🎯 GATILHO CHAVE: Garante que os dados finais da memória estejam gravados 
+            // no LocalStorage no milissegundo anterior ao disparo do fetch
             if (typeof PdvStorage !== 'undefined' && window.carrinho) {
                 PdvStorage.salvarCarrinho(window.carrinho);
             }
 
             finalizarVenda(e);
-        };
-
-        btnFinalizar.addEventListener('click', function (e) {
-            dispararFinalizacaoVenda(e);
-           
-        });
-
-        btnFinalizar.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-                dispararFinalizacaoVenda(e);
-            }
-        });
-    }
+        }
+    });
 
  });

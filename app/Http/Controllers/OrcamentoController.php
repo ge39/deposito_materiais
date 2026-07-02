@@ -32,7 +32,7 @@ class OrcamentoController extends Controller
         }
 
         // 🔴 BLOQUEIO EM REDE: Identifica se o orçamento já passou pelo PDV
-        if ($orcamento->status === 'Faturado' || $orcamento->status === Orcamento::STATUS_FATURADO) {
+        if ($orcamento->status === 'faturado' || $orcamento->status === Orcamento::STATUS_FATURADO) {
             return response()->json([
                 'success' => false, 
                 'message' => '⚠️ Atenção: Este orçamento já foi pago e finalizado no caixa!'

@@ -759,6 +759,7 @@
             <input  type="hidden" id="caixa_id" name="caixa_id" value="<?php echo e($caixa->id); ?>">
             <input  type="hidden" id="terminal_id" name="terminal_id" value="<?php echo e($terminal->id); ?>">
             <input  type="hidden" id="dataVenda"  type="datetime-local" value="<?php echo e(date('Y-m-d\TH:i')); ?>">
+            <input type="hidden" id="orcamento_id" name="orcamento_id" value="">
 
             <label>Cliente</label>
             <input  type ="text" class="form-control  fs-6 fw-bold text-center" name = "nome" 
@@ -870,7 +871,7 @@
         </div>
 
         <div class="col">
-            <button class="btn btn-success fs-6 w-100 md-1 p-2">F5 - Inicio Venda</button>
+            <button class="btn btn-success fs-6 w-100 md-1 p-2">F5 - Venda</button>
         </div>
 
         <div class="col">
@@ -882,7 +883,7 @@
         </div> 
 
          <div class="col">
-            <button class="btn btn-primary fs-6  w-100 md-1 p-2">Alt+P Reimprimir</button>
+            <button class="btn btn-primary fs-6  w-100 md-1 p-2">Alt+P Print</button>
         </div>
 
         <!-- Botão de atalho rápido no painel ou menu de funções do seu PDV -->
@@ -1480,11 +1481,20 @@
 
     });
 </script>
-
+<!-- oculta o modal remover item do -->
 <script>
-document.getElementById('btnRemover').addEventListener('click', function () {
-    document.getElementById('acoes-carrinho').classList.add('d-none');
-});
+    document.getElementById('btnRemover').addEventListener('click', function () {
+        document.getElementById('acoes-carrinho').classList.add('d-none');
+    });
+</script>
+
+<!-- lê o input  orcamento_id -->
+<script>
+    const inputOrcamento = document.getElementById('orcamento_id');
+
+    const orcamento_id = inputOrcamento?.value
+        ? Number(inputOrcamento.value)
+        : null;
 </script>
 
 <!-- Modals atahos -->
@@ -1604,7 +1614,6 @@ document.getElementById('btnRemover').addEventListener('click', function () {
         painel.style.top = (tabelaRect.bottom + 8) + 'px';
         painel.style.width = tabelaRect.width + 'px';
         painel.style.right = 'auto';
-        // painel.style.zIndex = '9999';
     }
 
     tabela.addEventListener('click', function (e) {
@@ -1649,7 +1658,7 @@ document.getElementById('btnRemover').addEventListener('click', function () {
     });
 })();
 </script>
-
+<!-- botao remover itens do carrinho -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
 
@@ -1681,7 +1690,6 @@ document.getElementById('btnRemover').addEventListener('click', function () {
     });
 </script>
 
-                        
 <!-- 🎯 CARREGAMENTO SEQUENCIAL DOS ARQUIVOS (Módulos Base) -->
 <script src="<?php echo e(asset('js/pdv/pdv_storage.js')); ?>" defer></script>
 <script src="<?php echo e(asset('js/pdv/carrinho.js')); ?>" defer></script>

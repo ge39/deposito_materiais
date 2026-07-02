@@ -513,7 +513,7 @@
             if(imagem && imagem!==''){
                 elImg.src=imagem;
             }else{
-                elImg.src="/images/produto-sem-imagem.png";
+                elImg.src="/image/produtos/produto-sem-imagem.png";
             }
         }
 

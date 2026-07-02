@@ -540,3 +540,18 @@ Route::middleware(['auth'])
         Route::delete('/{arquivo}', [BackupController::class, 'destroy'])
             ->name('destroy');
     });
+
+    // Entregas
+
+Route::prefix('entregas')
+    ->name('entregas.')
+    ->group(function () {
+        Route::get('/', [EntregaController::class, 'index'])->name('index');
+        Route::get('/{entrega}', [EntregaController::class, 'show'])->name('show');
+
+        Route::patch('/{entrega}/separar', [EntregaController::class, 'separar'])->name('separar');
+        Route::patch('/{entrega}/carregar', [EntregaController::class, 'carregar'])->name('carregar');
+        Route::patch('/{entrega}/rota', [EntregaController::class, 'enviarParaRota'])->name('rota');
+        Route::patch('/{entrega}/confirmar', [EntregaController::class, 'confirmar'])->name('confirmar');
+        Route::patch('/{entrega}/cancelar', [EntregaController::class, 'cancelar'])->name('cancelar');
+    });

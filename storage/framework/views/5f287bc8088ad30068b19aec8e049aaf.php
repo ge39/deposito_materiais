@@ -1,9 +1,9 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 <div class="container">
 
-    {{-- CABEÇALHO --}}
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">
@@ -15,21 +15,22 @@
             </p>
         </div>
 
-        <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary px-4">
+        <a href="<?php echo e(route('orcamentos.index')); ?>" class="btn btn-secondary px-4">
             <i class="bi bi-arrow-left-circle me-1"></i>
             Voltar
         </a>
     </div>
 
-    {{-- ALERTAS --}}
-    @if(session('success'))
+    
+    <?php if(session('success')): ?>
         <div class="alert alert-success shadow-sm">
             <i class="bi bi-check-circle me-1"></i>
-            {{ session('success') }}
-        </div>
-    @endif
+            <?php echo e(session('success')); ?>
 
-    @if ($errors->any())
+        </div>
+    <?php endif; ?>
+
+    <?php if($errors->any()): ?>
         <div class="alert alert-danger shadow-sm">
             <strong>
                 <i class="bi bi-exclamation-triangle me-1"></i>
@@ -37,14 +38,14 @@
             </strong>
             Verifique os campos obrigatórios.
             <ul class="mb-0 mt-2">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
+                <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><?php echo e($error); ?></li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </ul>
         </div>
-    @endif
+    <?php endif; ?>
 
-    {{-- CARDS INFORMATIVOS --}}
+    
     <div class="row mb-4">
         <div class="col-md-3 mb-2">
             <div class="card shadow-sm border-0 h-100">
@@ -103,8 +104,8 @@
         </div>
     </div>
 
-    <form action="{{ route('orcamentos.store') }}" method="POST" id="formOrcamento">
-        @csrf
+    <form action="<?php echo e(route('orcamentos.store')); ?>" method="POST" id="formOrcamento">
+        <?php echo csrf_field(); ?>
 
         <div class="card shadow-sm mb-4 border-0">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
@@ -120,7 +121,7 @@
 
             <div class="card-body">
 
-                {{-- Cliente e Datas --}}
+                
                 <div class="border rounded p-3 mb-3 bg-light">
                     <h5 class="mb-3 text-primary">
                         <i class="bi bi-person-lines-fill me-1"></i>
@@ -132,33 +133,34 @@
                             <label class="form-label">Cliente *</label>
                             <select name="cliente_id" id="clienteSelect" class="form-select" required>
                                 <option value="">Selecione...</option>
-                                @foreach($clientes as $cliente)
+                                <?php $__currentLoopData = $clientes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cliente): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option
-                                        value="{{ $cliente->id }}"
-                                        data-endereco="{{ $cliente->endereco ?? '' }}"
-                                        data-numero="{{ $cliente->numero ?? '' }}"
-                                        data-complemento="{{ $cliente->complemento ?? '' }}"
-                                        data-bairro="{{ $cliente->bairro ?? '' }}"
-                                        data-cidade="{{ $cliente->cidade ?? '' }}"
-                                        data-cep="{{ $cliente->cep ?? '' }}"
-                                        data-telefone="{{ $cliente->telefone ?? '' }}"
+                                        value="<?php echo e($cliente->id); ?>"
+                                        data-endereco="<?php echo e($cliente->endereco ?? ''); ?>"
+                                        data-numero="<?php echo e($cliente->numero ?? ''); ?>"
+                                        data-complemento="<?php echo e($cliente->complemento ?? ''); ?>"
+                                        data-bairro="<?php echo e($cliente->bairro ?? ''); ?>"
+                                        data-cidade="<?php echo e($cliente->cidade ?? ''); ?>"
+                                        data-cep="<?php echo e($cliente->cep ?? ''); ?>"
+                                        data-telefone="<?php echo e($cliente->telefone ?? ''); ?>"
                                     >
-                                        {{ $cliente->nome }}
+                                        <?php echo e($cliente->nome); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
 
                         <div class="col-md-3">
                             <label class="form-label">Data</label>
                             <input type="date" name="data_orcamento" class="form-control"
-                                   value="{{ date('Y-m-d') }}">
+                                   value="<?php echo e(date('Y-m-d')); ?>">
                         </div>
 
                         <div class="col-md-3">
                             <label class="form-label">Validade</label>
                             <input type="date" name="validade" class="form-control"
-                                   value="{{ date('Y-m-d', strtotime('+7 days')) }}">
+                                   value="<?php echo e(date('Y-m-d', strtotime('+7 days'))); ?>">
                         </div>
 
                         <div class="col-md-2 d-flex align-items-end">
@@ -170,7 +172,7 @@
                     </div>
                 </div>
 
-              {{-- Tipo de Atendimento / Entrega --}}
+              
             <div class="border rounded p-3 mb-3 bg-light shadow-sm">
                 <h5 class="mb-3 text-primary fw-bold">
                     <i class="bi bi-truck me-1"></i>
@@ -265,7 +267,7 @@
                 </div>
         </div>
 
-                            {{-- Itens --}}
+                            
                             <div class="border rounded p-3 mb-3 bg-light">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="mb-0 text-primary">
@@ -297,7 +299,7 @@
                                 </div>
                             </div>
 
-                            {{-- Resumo Financeiro --}}
+                            
                             <div class="row justify-content-end mb-3">
                                 <div class="col-md-5">
                                     <div class="card shadow-sm border-0">
@@ -347,14 +349,14 @@
                                 </div>
                             </div>
 
-                            {{-- Botões --}}
+                            
                             <div class="text-end mb-2">
                                 <button type="submit" class="btn btn-success px-4" id="btnSalvar">
                                     <i class="bi bi-check-circle me-1"></i>
                                     Salvar Orçamento
                                 </button>
 
-                                <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary px-4">
+                                <a href="<?php echo e(route('orcamentos.index')); ?>" class="btn btn-secondary px-4">
                                     <i class="bi bi-arrow-left-circle me-1"></i>
                                     Voltar
                                 </a>
@@ -373,7 +375,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
 
-        const produtos = @json($produtos);
+        const produtos = <?php echo json_encode($produtos, 15, 512) ?>;
         const tableBody = document.getElementById('itensContainer');
         const addBtn = document.getElementById('addProduto');
         const clienteSelect = document.getElementById('clienteSelect');
@@ -840,6 +842,7 @@
     });
 </script>
 
-<script src="{{ asset('js/orcamento.js') }}"></script>
+<script src="<?php echo e(asset('js/orcamento.js')); ?>"></script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/orcamentos/create.blade.php ENDPATH**/ ?>
