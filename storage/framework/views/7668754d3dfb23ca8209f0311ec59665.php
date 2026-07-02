@@ -1,15 +1,15 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 
 <div class="container-fluid">
 
-    {{-- CABEÇALHO --}}
+    
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h4 class="mb-0">
                 <i class="bi bi-truck me-2"></i>Central da Entrega
-                <span class="text-muted">#{{ $entrega->codigo_entrega ?? $entrega->id }}</span>
+                <span class="text-muted">#<?php echo e($entrega->codigo_entrega ?? $entrega->id); ?></span>
             </h4>
             <small class="text-muted">
                 Acompanhamento operacional da entrega, itens, responsável e status logístico.
@@ -17,28 +17,30 @@
         </div>
 
         <div class="d-flex gap-2">
-            <a href="{{ route('entregas.index') }}" class="btn btn-secondary btn-sm">
+            <a href="<?php echo e(route('entregas.index')); ?>" class="btn btn-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>Voltar
             </a>
         </div>
     </div>
 
-    {{-- ALERTAS --}}
-    @if(session('success'))
+    
+    <?php if(session('success')): ?>
         <div class="alert alert-success alert-dismissible fade show">
-            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+            <i class="bi bi-check-circle me-2"></i><?php echo e(session('success')); ?>
+
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @if(session('error'))
+    <?php if(session('error')): ?>
         <div class="alert alert-danger alert-dismissible fade show">
-            <i class="bi bi-exclamation-triangle me-2"></i>{{ session('error') }}
+            <i class="bi bi-exclamation-triangle me-2"></i><?php echo e(session('error')); ?>
+
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @php
+    <?php
         $statusClasses = [
             'pendente'  => 'bg-warning text-dark',
             'separando' => 'bg-primary',
@@ -62,9 +64,9 @@
         ];
 
         $statusAtual = $entrega->status;
-    @endphp
+    ?>
 
-    {{-- RESUMO OPERACIONAL --}}
+    
     <div class="row mb-3">
 
         <div class="col-md-3 mb-2">
@@ -72,8 +74,9 @@
                 <div class="card-body py-2">
                     <small class="text-muted">Status Atual</small>
                     <h5 class="mb-0">
-                        <span class="badge {{ $statusClasses[$statusAtual] ?? 'bg-secondary' }}">
-                            {{ $statusLabels[$statusAtual] ?? ucfirst($statusAtual) }}
+                        <span class="badge <?php echo e($statusClasses[$statusAtual] ?? 'bg-secondary'); ?>">
+                            <?php echo e($statusLabels[$statusAtual] ?? ucfirst($statusAtual)); ?>
+
                         </span>
                     </h5>
                 </div>
@@ -85,7 +88,8 @@
                 <div class="card-body py-2">
                     <small class="text-muted">Data Prevista</small>
                     <h5 class="mb-0">
-                        {{ $entrega->data_prevista ? $entrega->data_prevista->format('d/m/Y') : '-' }}
+                        <?php echo e($entrega->data_prevista ? $entrega->data_prevista->format('d/m/Y') : '-'); ?>
+
                     </h5>
                 </div>
             </div>
@@ -96,7 +100,8 @@
                 <div class="card-body py-2">
                     <small class="text-muted">Data Realizada</small>
                     <h5 class="mb-0">
-                        {{ $entrega->data_realizada ? $entrega->data_realizada->format('d/m/Y') : '-' }}
+                        <?php echo e($entrega->data_realizada ? $entrega->data_realizada->format('d/m/Y') : '-'); ?>
+
                     </h5>
                 </div>
             </div>
@@ -107,7 +112,8 @@
                 <div class="card-body py-2">
                     <small class="text-muted">Itens</small>
                     <h5 class="mb-0">
-                        {{ $entrega->itens->count() }}
+                        <?php echo e($entrega->itens->count()); ?>
+
                     </h5>
                 </div>
             </div>
@@ -117,7 +123,7 @@
 
     <div class="row">
 
-        {{-- DADOS PRINCIPAIS --}}
+        
         <div class="col-md-8">
 
             <div class="card shadow-sm mb-3">
@@ -132,49 +138,49 @@
 
                         <div class="col-md-3">
                             <small class="text-muted">Código</small>
-                            <div class="fw-bold">{{ $entrega->codigo_entrega ?? '-' }}</div>
+                            <div class="fw-bold"><?php echo e($entrega->codigo_entrega ?? '-'); ?></div>
                         </div>
 
                         <div class="col-md-3">
                             <small class="text-muted">Venda</small>
-                            <div>{{ $entrega->venda_id ?? '-' }}</div>
+                            <div><?php echo e($entrega->venda_id ?? '-'); ?></div>
                         </div>
 
                         <div class="col-md-3">
                             <small class="text-muted">Orçamento</small>
-                            <div>{{ $entrega->orcamento_id ?? '-' }}</div>
+                            <div><?php echo e($entrega->orcamento_id ?? '-'); ?></div>
                         </div>
 
                         <div class="col-md-3">
                             <small class="text-muted">Tipo</small>
                             <div>
-                                @if($entrega->tipo_entrega === 'retira_loja')
+                                <?php if($entrega->tipo_entrega === 'retira_loja'): ?>
                                     <span class="badge bg-secondary">
                                         <i class="bi bi-shop me-1"></i>Retira loja
                                     </span>
-                                @else
+                                <?php else: ?>
                                     <span class="badge bg-info text-dark">
                                         <i class="bi bi-truck me-1"></i>Entrega
                                     </span>
-                                @endif
+                                <?php endif; ?>
                             </div>
                         </div>
 
                         <div class="col-md-6 mt-3">
                             <small class="text-muted">Responsável pelo recebimento</small>
-                            <div class="fw-bold">{{ $entrega->responsavel_recebimento ?? '-' }}</div>
+                            <div class="fw-bold"><?php echo e($entrega->responsavel_recebimento ?? '-'); ?></div>
                         </div>
 
                         <div class="col-md-6 mt-3">
                             <small class="text-muted">Telefone</small>
-                            <div>{{ $entrega->telefone_recebimento ?? '-' }}</div>
+                            <div><?php echo e($entrega->telefone_recebimento ?? '-'); ?></div>
                         </div>
 
                     </div>
                 </div>
             </div>
 
-            {{-- ENDEREÇO --}}
+            
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-dark text-white py-2">
                     <strong>
@@ -184,17 +190,18 @@
 
                 <div class="card-body">
                     <p class="mb-1">
-                        {{ $entrega->endereco_entrega ?? 'Endereço não informado.' }}
+                        <?php echo e($entrega->endereco_entrega ?? 'Endereço não informado.'); ?>
+
                     </p>
 
                     <small class="text-muted">
                         Usa endereço do cliente:
-                        <strong>{{ $entrega->usar_endereco_cliente ? 'Sim' : 'Não' }}</strong>
+                        <strong><?php echo e($entrega->usar_endereco_cliente ? 'Sim' : 'Não'); ?></strong>
                     </small>
                 </div>
             </div>
 
-            {{-- ITENS --}}
+            
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
                     <strong>
@@ -202,7 +209,8 @@
                     </strong>
 
                     <span class="badge bg-light text-dark">
-                        Total: {{ $entrega->itens->count() }}
+                        Total: <?php echo e($entrega->itens->count()); ?>
+
                     </span>
                 </div>
 
@@ -222,29 +230,30 @@
                         </thead>
 
                         <tbody>
-                            @forelse($entrega->itens as $item)
+                            <?php $__empty_1 = true; $__currentLoopData = $entrega->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <tr>
-                                    <td class="text-center">{{ $item->id }}</td>
-                                    <td class="text-center">{{ $item->venda_item_id }}</td>
-                                    <td class="text-center">{{ number_format($item->quantidade_prevista, 2, ',', '.') }}</td>
-                                    <td class="text-center">{{ number_format($item->quantidade_entregue, 2, ',', '.') }}</td>
-                                    <td class="text-center">{{ number_format($item->saldo, 2, ',', '.') }}</td>
+                                    <td class="text-center"><?php echo e($item->id); ?></td>
+                                    <td class="text-center"><?php echo e($item->venda_item_id); ?></td>
+                                    <td class="text-center"><?php echo e(number_format($item->quantidade_prevista, 2, ',', '.')); ?></td>
+                                    <td class="text-center"><?php echo e(number_format($item->quantidade_entregue, 2, ',', '.')); ?></td>
+                                    <td class="text-center"><?php echo e(number_format($item->saldo, 2, ',', '.')); ?></td>
 
                                     <td class="text-center">
-                                        <span class="badge {{ $statusClasses[$item->status] ?? 'bg-secondary' }}">
-                                            {{ $statusLabels[$item->status] ?? ucfirst($item->status) }}
+                                        <span class="badge <?php echo e($statusClasses[$item->status] ?? 'bg-secondary'); ?>">
+                                            <?php echo e($statusLabels[$item->status] ?? ucfirst($item->status)); ?>
+
                                         </span>
                                     </td>
 
-                                    <td>{{ $item->observacao ?? '-' }}</td>
+                                    <td><?php echo e($item->observacao ?? '-'); ?></td>
                                 </tr>
-                            @empty
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                 <tr>
                                     <td colspan="7" class="text-center text-muted py-4">
                                         Nenhum item vinculado a esta entrega.
                                     </td>
                                 </tr>
-                            @endforelse
+                            <?php endif; ?>
                         </tbody>
                     </table>
 
@@ -253,7 +262,7 @@
 
         </div>
 
-        {{-- PAINEL OPERACIONAL --}}
+        
         <div class="col-md-4">
 
             <div class="card shadow-sm mb-3">
@@ -265,40 +274,40 @@
 
                <div class="card-body d-grid gap-2">
 
-                    @if($entrega->status === 'aguardando_separacao')
-                        <form method="POST" action="{{ route('entregas.separar', $entrega->id) }}">
-                            @csrf
-                            @method('PATCH')
+                    <?php if($entrega->status === 'aguardando_separacao'): ?>
+                        <form method="POST" action="<?php echo e(route('entregas.separar', $entrega->id)); ?>">
+                            <?php echo csrf_field(); ?>
+                            <?php echo method_field('PATCH'); ?>
                             <button type="submit" class="btn btn-primary btn-sm w-100">
                                 <i class="bi bi-box-seam me-1"></i>Iniciar Separação
                             </button>
                         </form>
-                    @endif
+                    <?php endif; ?>
 
-                    @if($entrega->status === 'separando')
-                        <form method="POST" action="{{ route('entregas.carregar', $entrega->id) }}">
-                            @csrf
-                            @method('PATCH')
+                    <?php if($entrega->status === 'separando'): ?>
+                        <form method="POST" action="<?php echo e(route('entregas.carregar', $entrega->id)); ?>">
+                            <?php echo csrf_field(); ?>
+                            <?php echo method_field('PATCH'); ?>
                             <button type="submit" class="btn btn-info btn-sm w-100">
                                 <i class="bi bi-truck-flatbed me-1"></i>Marcar como Carregado
                             </button>
                         </form>
-                    @endif
+                    <?php endif; ?>
 
-                    @if($entrega->status === 'carregado')
-                        <form method="POST" action="{{ route('entregas.rota', $entrega->id) }}">
-                            @csrf
-                            @method('PATCH')
+                    <?php if($entrega->status === 'carregado'): ?>
+                        <form method="POST" action="<?php echo e(route('entregas.rota', $entrega->id)); ?>">
+                            <?php echo csrf_field(); ?>
+                            <?php echo method_field('PATCH'); ?>
                             <button type="submit" class="btn btn-dark btn-sm w-100">
                                 <i class="bi bi-signpost-split me-1"></i>Saiu para Entrega
                             </button>
                         </form>
-                    @endif
+                    <?php endif; ?>
 
-                    @if(in_array($entrega->status, ['em_rota', 'parcial']))
-                        <form method="POST" action="{{ route('entregas.confirmar', $entrega->id) }}">
-                            @csrf
-                            @method('PATCH')
+                    <?php if(in_array($entrega->status, ['em_rota', 'parcial'])): ?>
+                        <form method="POST" action="<?php echo e(route('entregas.confirmar', $entrega->id)); ?>">
+                            <?php echo csrf_field(); ?>
+                            <?php echo method_field('PATCH'); ?>
                             <button type="submit" class="btn btn-success btn-sm w-100">
                                 <i class="bi bi-check2-circle me-1"></i>Confirmar Entrega Total
                             </button>
@@ -310,20 +319,20 @@
                                 data-bs-target="#modalEntregaParcial">
                             <i class="bi bi-sliders me-1"></i>Registrar Entrega Parcial
                         </button>
-                    @endif
+                    <?php endif; ?>
 
-                    @if(!in_array($entrega->status, ['entregue', 'cancelado', 'devolvido']))
+                    <?php if(!in_array($entrega->status, ['entregue', 'cancelado', 'devolvido'])): ?>
                         <button type="button"
                                 class="btn btn-danger btn-sm w-100"
                                 data-bs-toggle="modal"
                                 data-bs-target="#modalCancelarEntrega">
                             <i class="bi bi-x-octagon me-1"></i>Cancelar Entrega
                         </button>
-                    @endif
+                    <?php endif; ?>
 
                 </div>
 
-            {{-- TIMELINE --}}
+            
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-dark text-white py-2">
                     <strong>
@@ -333,7 +342,7 @@
 
                 <div class="card-body">
 
-                    @php
+                    <?php
                         $fluxo = [
                             'pendente'  => 'Entrega criada',
                             'separando' => 'Separação iniciada',
@@ -344,31 +353,32 @@
 
                         $ordem = array_keys($fluxo);
                         $indiceAtual = array_search($statusAtual, $ordem);
-                    @endphp
+                    ?>
 
-                    @foreach($fluxo as $status => $label)
-                        @php
+                    <?php $__currentLoopData = $fluxo; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $status => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php
                             $indice = array_search($status, $ordem);
                             $feito = $indiceAtual !== false && $indice <= $indiceAtual;
-                        @endphp
+                        ?>
 
                         <div class="d-flex align-items-start mb-2">
                             <div class="me-2">
-                                @if($feito)
+                                <?php if($feito): ?>
                                     <i class="bi bi-check-circle-fill text-success"></i>
-                                @else
+                                <?php else: ?>
                                     <i class="bi bi-circle text-muted"></i>
-                                @endif
+                                <?php endif; ?>
                             </div>
 
                             <div>
-                                <div class="{{ $feito ? 'fw-bold' : 'text-muted' }}">
-                                    {{ $label }}
+                                <div class="<?php echo e($feito ? 'fw-bold' : 'text-muted'); ?>">
+                                    <?php echo e($label); ?>
+
                                 </div>
-                                <small class="text-muted">{{ $statusLabels[$status] ?? $status }}</small>
+                                <small class="text-muted"><?php echo e($statusLabels[$status] ?? $status); ?></small>
                             </div>
                         </div>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                 </div>
             </div>
@@ -379,12 +389,12 @@
 
 </div>
 
-{{-- MODAL ENTREGA PARCIAL --}}
+
 <div class="modal fade" id="modalEntregaParcial" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <form method="POST" action="{{ route('entregas.confirmar', $entrega->id) }}" class="modal-content">
-            @csrf
-            @method('PATCH')
+        <form method="POST" action="<?php echo e(route('entregas.confirmar', $entrega->id)); ?>" class="modal-content">
+            <?php echo csrf_field(); ?>
+            <?php echo method_field('PATCH'); ?>
 
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title">
@@ -405,34 +415,37 @@
                     </thead>
 
                     <tbody>
-                        @foreach($entrega->itens as $index => $item)
+                        <?php $__currentLoopData = $entrega->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <tr>
                                 <td class="text-center">
-                                    #{{ $item->id }}
+                                    #<?php echo e($item->id); ?>
+
                                     <input type="hidden"
-                                           name="itens[{{ $index }}][entrega_item_id]"
-                                           value="{{ $item->id }}">
+                                           name="itens[<?php echo e($index); ?>][entrega_item_id]"
+                                           value="<?php echo e($item->id); ?>">
                                 </td>
 
                                 <td class="text-center">
-                                    {{ number_format($item->quantidade_prevista, 2, ',', '.') }}
+                                    <?php echo e(number_format($item->quantidade_prevista, 2, ',', '.')); ?>
+
                                 </td>
 
                                 <td class="text-center">
-                                    {{ number_format($item->quantidade_entregue, 2, ',', '.') }}
+                                    <?php echo e(number_format($item->quantidade_entregue, 2, ',', '.')); ?>
+
                                 </td>
 
                                 <td>
                                     <input type="number"
                                            step="0.01"
                                            min="0"
-                                           max="{{ $item->quantidade_prevista }}"
-                                           name="itens[{{ $index }}][quantidade_entregue]"
+                                           max="<?php echo e($item->quantidade_prevista); ?>"
+                                           name="itens[<?php echo e($index); ?>][quantidade_entregue]"
                                            class="form-control form-control-sm"
-                                           value="{{ $item->quantidade_entregue }}">
+                                           value="<?php echo e($item->quantidade_entregue); ?>">
                                 </td>
                             </tr>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
                 </table>
             </div>
@@ -450,12 +463,12 @@
     </div>
 </div>
 
-{{-- MODAL CANCELAR --}}
+
 <div class="modal fade" id="modalCancelarEntrega" tabindex="-1">
     <div class="modal-dialog">
-        <form method="POST" action="{{ route('entregas.cancelar', $entrega->id) }}" class="modal-content">
-            @csrf
-            @method('PATCH')
+        <form method="POST" action="<?php echo e(route('entregas.cancelar', $entrega->id)); ?>" class="modal-content">
+            <?php echo csrf_field(); ?>
+            <?php echo method_field('PATCH'); ?>
 
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title">
@@ -485,4 +498,5 @@
     </div>
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/entregas/show.blade.php ENDPATH**/ ?>

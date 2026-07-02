@@ -17,6 +17,41 @@ class EntregaController extends Controller
         $this->entregaService = $entregaService;
     }
 
+    // public function index(Request $request)
+    // {
+    //     $query = Entrega::with(['venda', 'orcamento', 'itens'])
+    //         ->orderByDesc('id');
+
+    //     if ($request->filled('status')) {
+    //         $query->where('status', $request->status);
+    //     }
+
+    //     if ($request->filled('data_prevista')) {
+    //         $query->whereDate('data_prevista', $request->data_prevista);
+    //     }
+
+    //     if ($request->filled('codigo_entrega')) {
+    //         $query->where('codigo_entrega', 'like', '%' . $request->codigo_entrega . '%');
+    //     }
+
+    //     $entregas = $query->paginate(20)->withQueryString();
+
+    //     $resumo = [
+    //         'pendentes' => Entrega::where('status', 'pendente')->count(),
+    //         'separando' => Entrega::where('status', 'separando')->count(),
+    //         'carregados' => Entrega::where('status', 'carregado')->count(),
+    //         'em_rota' => Entrega::where('status', 'em_rota')->count(),
+    //         'entregues' => Entrega::where('status', 'entregue')->count(),
+    //         'parciais' => Entrega::where('status', 'parcial')->count(),
+
+    //         'atrasadas' => Entrega::whereDate('data_prevista', '<', now()->toDateString())
+    //             ->whereNotIn('status', ['entregue', 'cancelado', 'devolvido'])
+    //             ->count(),
+    //     ];
+
+    //     return view('entregas.index', compact('entregas', 'resumo'));
+    // }
+
     public function index(Request $request)
     {
         $query = Entrega::with(['venda', 'orcamento', 'itens'])
@@ -36,13 +71,28 @@ class EntregaController extends Controller
 
         $entregas = $query->paginate(20)->withQueryString();
 
-        $resumo = [
-            'pendentes' => Entrega::where('status', 'pendente')->count(),
+       $resumo = [
+            'pendente_pagamento' => Entrega::where('status', 'pendente_pagamento')->count(),
+
+            'aguardando_separacao' => Entrega::where('status', 'aguardando_separacao')->count(),
+
             'separando' => Entrega::where('status', 'separando')->count(),
+
             'carregados' => Entrega::where('status', 'carregado')->count(),
+
             'em_rota' => Entrega::where('status', 'em_rota')->count(),
+
             'entregues' => Entrega::where('status', 'entregue')->count(),
+
             'parciais' => Entrega::where('status', 'parcial')->count(),
+
+            'devolvidos' => Entrega::where('status', 'devolvido')->count(),
+
+            'cancelados' => Entrega::where('status', 'cancelado')->count(),
+
+            'atrasadas' => Entrega::whereDate('data_prevista', '<', now()->toDateString())
+                ->whereNotIn('status', ['entregue', 'cancelado', 'devolvido'])
+                ->count(),
         ];
 
         return view('entregas.index', compact('entregas', 'resumo'));

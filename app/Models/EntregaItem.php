@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\ItemVenda;
 
 class EntregaItem extends Model
 {
@@ -27,9 +28,9 @@ class EntregaItem extends Model
         return $this->belongsTo(Entrega::class, 'entrega_id');
     }
 
-    public function vendaItem()
+   public function vendaItem()
     {
-        return $this->belongsTo(VendaItem::class, 'venda_item_id');
+        return $this->belongsTo(ItemVenda::class, 'venda_item_id');
     }
 
     public function getSaldoAttribute()
