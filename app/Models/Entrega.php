@@ -9,18 +9,21 @@ class Entrega extends Model
     protected $table = 'entregas';
 
     protected $fillable = [
-        'orcamento_id',
+       'orcamento_id',
         'venda_id',
         'codigo_entrega',
         'data_prevista',
-        'data_realizada',
+        'data_prevista_entrega',
+        'periodo_entrega',
+        'observacao_entrega',
         'status',
         'tipo_entrega',
         'usar_endereco_cliente',
         'endereco_entrega',
         'responsavel_recebimento',
         'telefone_recebimento',
-        'observacao',
+        'cobrar_frete',
+        'valor_frete',
     ];
 
     protected $casts = [

@@ -193,7 +193,7 @@
 
                     <div class="col-md-3 campo-entrega d-none">
                         <label class="form-label fw-bold">Usar endereço cadastrado?</label>
-                        <select name="usar_endereco_cadastrado" id="usar_endereco_cadastrado" class="form-select">
+                        <select name="usar_endereco_cliente" id="usar_endereco_cadastrado" class="form-select">
                             <option value="sim" selected>Sim</option>
                             <option value="nao">Não, informar outro endereço</option>
                         </select>
@@ -275,10 +275,10 @@
                                         Itens do Orçamento
                                     </h5>
 
-                                    <button type="button" class="btn btn-primary" id="addProduto">
+                                    <!-- <button type="button" class="btn btn-primary" id="addProduto">
                                         <i class="bi bi-plus-circle me-1"></i>
                                         Adicionar Produto
-                                    </button>
+                                    </button> -->
                                 </div>
 
                                 <div class="table-responsive">
@@ -297,8 +297,14 @@
                                         <tbody id="itensContainer"></tbody>
                                     </table>
                                 </div>
+                                    
                             </div>
-
+                            <div class="d-flex justify-content-end align-items-end mb-3">
+                                    <button type="button" class="btn btn-primary" id="addProduto">
+                                        <i class="bi bi-plus-circle me-1"></i>
+                                        Adicionar Produto
+                                    </button>
+                                </div>
                             
                             <div class="row justify-content-end mb-3">
                                 <div class="col-md-5">

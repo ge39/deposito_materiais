@@ -98,12 +98,20 @@ class EntregaController extends Controller
         return view('entregas.index', compact('entregas', 'resumo'));
     }
 
-    public function show(Entrega $entrega)
+   public function show(Entrega $entrega)
     {
         $entrega->load([
             'venda',
+            'venda.cliente',
+            'venda.itens.produto',
+
             'orcamento',
-            'itens.vendaItem',
+            'orcamento.cliente',
+            'orcamento.itens.produto',
+
+            'itens',
+            'itens.vendaItem.produto',
+            'itens.itemOrcamento.produto',
         ]);
 
         return view('entregas.show', compact('entrega'));

@@ -170,7 +170,7 @@ class EntregaService
         Orcamento $orcamento,
         Venda $venda,
         $itensVendaCriados
-    ): ?Entrega {
+        ): ?Entrega {
         return DB::transaction(function () use ($orcamento, $venda, $itensVendaCriados) {
             $orcamento->loadMissing('itens');
 

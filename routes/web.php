@@ -542,7 +542,6 @@ Route::middleware(['auth'])
     });
 
     // Entregas
-
 Route::prefix('entregas')
     ->name('entregas.')
     ->group(function () {

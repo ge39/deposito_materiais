@@ -15,7 +15,7 @@ use App\Models\Produto;
 use App\Services\EstoqueService;
 use App\Enums\TipoMovimentacao;
 use App\Enums\OrigemMovimentacao;
-
+use App\Models\Entrega;
 
 class OrcamentoService
 {
@@ -48,154 +48,107 @@ class OrcamentoService
     /* =========================================
      | DADOS CREATE
      ========================================= */
+    // public function dadosParaCriacao()
+    // {
+    //     return [
+    //         // Busca todos os clientes ordenados por nome
+    //         'clientes' => Cliente::orderBy('nome')->get(),
+
+    //         'produtos' => Produto::with([
+    //             'lotes' => function ($q) {
+
+    //                 $q->where('status', 1) // Apenas lotes ativos
+
+    //                 // Garante que há estoque disponível (quantidade - reservado > 0)
+    //                 ->whereRaw('(quantidade - quantidade_reservada) > 0')
+
+    //                 // Regra principal: controle de validade depende do produto
+    //                 ->where(function ($q2) {
+
+    //                     // 🔹 CASO 1: Produto controla validade (controla_validade = 1)
+    //                     $q2->where(function ($q3) {
+
+    //                         $q3->whereHas('produto', function ($p) {
+    //                             $p->where('controla_validade', 1);
+    //                         })
+
+    //                         // Só traz lotes dentro da validade
+    //                         ->whereDate('validade_lote', '>=', now());
+
+    //                         // Se quiser considerar lotes sem validade como válidos, descomente:
+    //                         // ->orWhereNull('validade_lote');
+    //                     })
+
+    //                     // 🔹 CASO 2: Produto NÃO controla validade (controla_validade = 0)
+    //                     ->orWhere(function ($q3) {
+
+    //                         $q3->whereHas('produto', function ($p) {
+    //                             $p->where('controla_validade', 0);
+    //                         });
+
+    //                         // Aqui NÃO aplicamos nenhum filtro de validade
+    //                         // Ou seja, todos os lotes entram independentemente da data
+    //                     });
+    //                 })
+
+    //                 // Ordena os lotes pelo ID (mais antigos primeiro)
+    //                 ->orderBy('id', 'asc');
+    //             }
+    //         ])
+
+    //         // Ordena os produtos pelo nome
+    //         ->orderBy('nome')->get(),
+    //     ];
+    // }
+
+    /* =========================================
+    | DADOS CREATE
+    ========================================= */
     public function dadosParaCriacao()
     {
         return [
-            // Busca todos os clientes ordenados por nome
-            'clientes' => Cliente::orderBy('nome')->get(),
+            'clientes' => Cliente::select(
+                    'id',
+                    'nome',
+                    'telefone',
+                    'cpf_cnpj',
+                    'cep',
+                    'endereco',
+                    'numero',
+                    'bairro',
+                    'cidade',
+                    'estado',
+                    'endereco_entrega'
+                )
+                ->orderBy('nome')
+                ->get(),
 
             'produtos' => Produto::with([
                 'lotes' => function ($q) {
-
-                    $q->where('status', 1) // Apenas lotes ativos
-
-                    // Garante que há estoque disponível (quantidade - reservado > 0)
-                    ->whereRaw('(quantidade - quantidade_reservada) > 0')
-
-                    // Regra principal: controle de validade depende do produto
-                    ->where(function ($q2) {
-
-                        // 🔹 CASO 1: Produto controla validade (controla_validade = 1)
-                        $q2->where(function ($q3) {
-
-                            $q3->whereHas('produto', function ($p) {
-                                $p->where('controla_validade', 1);
+                    $q->where('status', 1)
+                        ->whereRaw('(quantidade - quantidade_reservada) > 0')
+                        ->where(function ($q2) {
+                            $q2->where(function ($q3) {
+                                $q3->whereHas('produto', function ($p) {
+                                    $p->where('controla_validade', 1);
+                                })
+                                ->whereDate('validade_lote', '>=', now());
                             })
-
-                            // Só traz lotes dentro da validade
-                            ->whereDate('validade_lote', '>=', now());
-
-                            // Se quiser considerar lotes sem validade como válidos, descomente:
-                            // ->orWhereNull('validade_lote');
-                        })
-
-                        // 🔹 CASO 2: Produto NÃO controla validade (controla_validade = 0)
-                        ->orWhere(function ($q3) {
-
-                            $q3->whereHas('produto', function ($p) {
-                                $p->where('controla_validade', 0);
+                            ->orWhere(function ($q3) {
+                                $q3->whereHas('produto', function ($p) {
+                                    $p->where('controla_validade', 0);
+                                });
                             });
-
-                            // Aqui NÃO aplicamos nenhum filtro de validade
-                            // Ou seja, todos os lotes entram independentemente da data
-                        });
-                    })
-
-                    // Ordena os lotes pelo ID (mais antigos primeiro)
-                    ->orderBy('id', 'asc');
+                        })
+                        ->orderBy('id', 'asc');
                 }
             ])
-
-            // Ordena os produtos pelo nome
-            ->orderBy('nome')->get(),
+            ->orderBy('nome')
+            ->get(),
         ];
     }
 
-    // public function criarCompleto(array $request)
-    // {
-    //     return DB::transaction(function () use ($request) {
-
-    //         $empresa = Empresa::where('ativo', 1)->firstOrFail();
-
-    //         // 🚀 1. Captura o desconto global enviado pela tela (Ex: 5)
-    //         $descontoGlobal = (float) ($request['desconto_global'] ?? 0);
-    //          $tipoEntrega = $request['tipo_entrega'] ?? 'retira_loja';
-
-    //         $orcamento = Orcamento::create([
-    //             'cliente_id' => $request['cliente_id'],
-    //             'empresa_id' => $empresa->id,
-    //             'data_orcamento' => now(),
-    //              'tipo_entrega'      => $tipoEntrega,
-    //             'validade' => $request['validade'],
-    //             'codigo_orcamento' => now()->format('YmdHis'),
-    //             'status' => 'Aguardando Aprovacao',
-    //             'observacoes' => $request['observacoes'] ?? null,
-    //             'total' => 0, // Inicia zerado para receber o cálculo real abaixo
-    //             'ativo' => 1,
-    //             'editando_por' => Auth::id(),
-    //             'editando_em' => now(),
-    //         ]);
-
-    //         $orcamento->update([
-    //             'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
-    //         ]);
-
-    //         if (empty($request['produtos']) || !is_array($request['produtos'])) {
-    //             throw new \Exception('Produtos inválidos no orçamento');
-    //         }
-
-    //         foreach ($request['produtos'] as $itemReq) {
-    //             $produtoId = $itemReq['id'] ?? null;
-    //             if (!$produtoId) continue;
-
-    //             $qtd = $itemReq['quantidade_solicitada'] ?? $itemReq['quantidade'] ?? 0;
-    //             $preco = $itemReq['preco_unitario'] ?? $itemReq['preco'] ?? 0;
-
-    //             if ($qtd <= 0) continue;
-
-    //             // 🧠 MATEMÁTICA DO RATEIO EXIBIDO NA SUA IMAGEM
-    //             // Exemplo com Desconto de 5%
-    //             $valorDescontoUnitario = $preco * ($descontoGlobal / 100); 
-    //             $precoUnitarioLiquido = $preco - $valorDescontoUnitario;   
-    //             $valorDescontoTotalItem = $qtd * $valorDescontoUnitario;   
-    //             $subtotalItem = $qtd * $precoUnitarioLiquido;              
-
-    //             if ($subtotalItem < 0) $subtotalItem = 0;
-
-    //             // Salva cada item contendo sua respectiva fatia do desconto proporcional
-    //             $item = ItemOrcamento::create([
-    //                 'orcamento_id'          => $orcamento->id,
-    //                 'produto_id'            => $produtoId,
-    //                 'quantidade_solicitada' => $qtd,
-    //                 'quantidade_atendida'   => 0,
-    //                 'quantidade_pendente'   => $qtd,
-    //                 'preco_unitario'        => $preco,                
-    //                 'preco_liquido'         => $precoUnitarioLiquido, 
-    //                 'desconto_percentual'   => $descontoGlobal,       // Grava os 5% na linha
-    //                 'valor_desconto'        => $valorDescontoTotalItem, // Grava os R$ 261,75 rateados nas linhas
-    //                 'subtotal'              => $subtotalItem,         // Subtotal Líquido da linha
-    //                 'status'                => 'indisponivel',
-    //                 'previsao_entrega'      => now()->addDays(7),
-    //             ]);
-
-    //             // Executa suas rotinas nativas de estoque de forma transparente
-    //             $this->estoqueService->recalcularReservar($item->id, $produtoId, $qtd);
-    //             $this->recalcularItemCompleto($item);
-    //             $item->refresh();
-    //         }
-
-    //         // Recarrega as linhas processadas do banco
-    //         $orcamento->load('itens');
-
-    //         // 🚀 2. SELEÇÃO DA REGRA DE FECHAMENTO DO TOTAL DO ORÇAMENTO:
-    //         // Se o total deve ser estrito ao valor que fechou na tela (Solicitado), usamos a linha abaixo:
-    //         $totalLiquidoFinal = $orcamento->itens->sum('subtotal');
-
-    //         // Verifica se o service de estoque deixou pendências de saldo
-    //         $temPendente = $orcamento->itens
-    //             ->where('quantidade_pendente', '>', 0)
-    //             ->isNotEmpty();
-
-    //         // 🚀 3. Atualiza o orçamento gravando os R$ 4973,25 finais na coluna 'total'
-    //         $orcamento->update([
-    //             'total' => $totalLiquidoFinal,
-    //             'status' => $temPendente ? 'Aguardando Estoque' : 'Aguardando Aprovacao'
-    //         ]);
-
-    //         return $orcamento;
-    //     });
-    // }
-
+    // Dados do metodo CREATE
     public function criarCompleto(array $request)
     {
         return DB::transaction(function () use ($request) {
@@ -204,7 +157,43 @@ class OrcamentoService
 
             $descontoGlobal = (float) ($request['desconto_global'] ?? 0);
 
+            // $tipoEntrega = $request['tipo_entrega'] ?? 'retira_loja';
             $tipoEntrega = $request['tipo_entrega'] ?? 'retira_loja';
+
+            $cliente = Cliente::findOrFail($request['cliente_id']);
+
+            $usarEnderecoCliente = $request['usar_endereco_cliente'] ?? 'sim';
+            
+           $enderecoEntrega = null;
+
+           if ($usarEnderecoCliente === 'nao') {
+            $enderecoEntrega = collect([
+                $request['endereco_entrega'] ?? null,
+                !empty($request['numero_entrega']) ? 'Nº ' . $request['numero_entrega'] : null,
+                $request['complemento_entrega'] ?? null,
+                $request['bairro_entrega'] ?? null,
+                $request['cidade_entrega'] ?? null,
+                $request['cep_entrega'] ?? null,
+            ])
+            ->map(fn ($valor) => trim((string) $valor, " \t\n\r\0\x0B,"))
+            ->filter()
+            ->implode(', ');
+        }
+
+        // dd([
+        //     'tipo_entrega' => $tipoEntrega,
+        //     'usar_endereco_cliente' => $usarEnderecoCliente,
+        //     'endereco_entrega_concatenado' => $enderecoEntrega,
+        //     'dados_operacionais_entrega' => [
+        //         'data_prevista_entrega' => $request['data_prevista_entrega'] ?? null,
+        //         'periodo_entrega'       => $request['periodo_entrega'] ?? null,
+        //         'observacao_entrega'    => $request['observacao_entrega'] ?? null,
+        //     ],
+        // ]);
+
+            $cliente->update([
+                'endereco_entrega' => $enderecoEntrega,
+            ]);
 
             $orcamento = Orcamento::create([
                 'cliente_id'        => $request['cliente_id'],
@@ -223,7 +212,44 @@ class OrcamentoService
 
             $orcamento->update([
                 'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
+                
             ]);
+
+            if ($tipoEntrega === 'entrega') {
+
+                $dataPrevistaEntrega = $request['data_prevista_entrega'] ?? now()->addDays(7)->format('Y-m-d');
+
+                $enderecoFinalEntrega = $usarEnderecoCliente === 'nao'
+                    ? $enderecoEntrega
+                    : collect([
+                        $cliente->endereco ?? null,
+                        !empty($cliente->numero) ? 'Nº ' . $cliente->numero : null,
+                        $cliente->bairro ?? null,
+                        $cliente->cidade ?? null,
+                        $cliente->cep ?? null,
+                    ])
+                    ->map(fn ($valor) => trim((string) $valor, " \t\n\r\0\x0B,"))
+                    ->filter()
+                    ->implode(', ');
+
+                Entrega::create([
+                    'orcamento_id'              => $orcamento->id,
+                    'venda_id'                  => null,
+                    'codigo_entrega'            => 'ENT-' . now()->format('YmdHis') . $orcamento->id,
+                    'data_prevista'             => $dataPrevistaEntrega,
+                    'data_prevista_entrega'     => $dataPrevistaEntrega,
+                    'periodo_entrega'           => $request['periodo_entrega'] ?? null,
+                    'observacao_entrega'        => $request['observacao_entrega'] ?? null,
+                    'status'                    => 'Pendente_pagamento',
+                    'tipo_entrega'              => $tipoEntrega,
+                    'usar_endereco_cliente'     => $usarEnderecoCliente === 'sim' ? 1 : 0,
+                    'endereco_entrega'          => $enderecoFinalEntrega,
+                    'responsavel_recebimento'   => $request['contato_entrega'] ?? null,
+                    'telefone_recebimento'      => $request['telefone_entrega'] ?? null,
+                    'cobrar_frete'              => 0,
+                    'valor_frete'               => 0,
+                ]);
+            }
 
             if (empty($request['produtos']) || !is_array($request['produtos'])) {
                 throw new \Exception('Produtos inválidos no orçamento');
