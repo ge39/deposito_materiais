@@ -162,6 +162,24 @@
             <a href="{{ route('entregas.show', $entrega->id) }}" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
             </a>
+            @if(
+                in_array($entrega->status, [
+                    'Pendente_pagamento',
+                    'Aguardando_faturamento',
+                    'Aguardando_separacao'
+                ])
+            )
+
+            <a href="{{ route('entregas.atribuir-equipe', $entrega->id) }}"
+            class="btn btn-primary btn-sm">
+
+                <i class="bi bi-truck me-1"></i>
+
+                Equipe
+
+            </a>
+
+            @endif
         </div>
     </div>
 
@@ -291,12 +309,12 @@
                             <div class="fw-semibold">{{ $entrega->venda_id ?? '-' }}</div>
                         </div>
 
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <small class="text-muted">Orçamento</small>
-                            <div class="fw-semibold">{{ $entrega->orcamento_id ?? '-' }}</div>
+                            <div class="fw-semibold">{{ $entrega->orcamento->codigo_orcamento ?? $entrega->orcamento_id }}</div>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <small class="text-muted">Data prevista</small>
                             <div class="fw-semibold">
                                 {{ $dataPrevista ? $dataPrevista->format('d/m/Y') : '-' }}

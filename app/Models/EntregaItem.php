@@ -4,21 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\ItemVenda;
-use App\Models\OrcamentoItem;
+use App\Models\ItemOrcamento;
 
 class EntregaItem extends Model
 {
     protected $table = 'entrega_itens';
 
-   protected $fillable = [
-    'entrega_id',
-    'item_orcamento_id',
-    'venda_item_id',
-    'quantidade_prevista',
-    'quantidade_entregue',
-    'status',
-    'observacao',
-];
+    protected $fillable = [
+        'entrega_id',
+        'item_orcamento_id',
+        'venda_item_id',
+        'quantidade_prevista',
+        'quantidade_entregue',
+        'status',
+        'observacao',
+    ];
 
     protected $casts = [
         'quantidade_prevista' => 'decimal:2',
@@ -30,7 +30,7 @@ class EntregaItem extends Model
         return $this->belongsTo(Entrega::class, 'entrega_id');
     }
 
-   public function vendaItem()
+    public function vendaItem()
     {
         return $this->belongsTo(ItemVenda::class, 'venda_item_id');
     }

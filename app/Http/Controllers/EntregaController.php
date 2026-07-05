@@ -1,11 +1,14 @@
 <?php
 
 namespace App\Http\Controllers;
-
-use App\Models\Entrega;
-use App\Services\Entregas\EntregaService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+
+use App\Models\Entrega;
+use App\Models\Funcionario;
+use App\Models\Frota;
+use App\Services\Entregas\EntregaService;
+
 use Throwable;
 
 class EntregaController extends Controller
@@ -101,14 +104,14 @@ class EntregaController extends Controller
    public function show(Entrega $entrega)
     {
         $entrega->load([
+            'motorista',
+            'veiculo',
             'venda',
             'venda.cliente',
             'venda.itens.produto',
-
             'orcamento',
             'orcamento.cliente',
             'orcamento.itens.produto',
-
             'itens',
             'itens.vendaItem.produto',
             'itens.itemOrcamento.produto',
@@ -119,22 +122,28 @@ class EntregaController extends Controller
 
     public function separar(Entrega $entrega)
     {
-        return $this->alterarStatusComRetorno($entrega, 'separando', 'Entrega enviada para separação.');
+        return $this->alterarStatusComRetorno($entrega, 'Separando', 'Entrega enviada para separação.');
     }
 
     public function carregar(Entrega $entrega)
     {
-        return $this->alterarStatusComRetorno($entrega, 'carregado', 'Entrega marcada como carregada.');
+        return $this->alterarStatusComRetorno($entrega, 'Carregado', 'Entrega marcada como carregada.');
     }
 
     public function enviarParaRota(Entrega $entrega)
     {
-        return $this->alterarStatusComRetorno($entrega, 'em_rota', 'Entrega enviada para rota.');
+        return $this->alterarStatusComRetorno($entrega, 'Em_rota', 'Entrega enviada para rota.');
     }
 
     public function confirmar(Entrega $entrega)
     {
         try {
+            if ($entrega->status !== 'Em_rota') {
+                throw ValidationException::withMessages([
+                    'status' => 'A entrega só pode ser confirmada quando estiver Em rota.',
+                ]);
+            }
+
             $this->entregaService->confirmarEntrega($entrega);
 
             return redirect()
@@ -179,6 +188,50 @@ class EntregaController extends Controller
                 ->with('error', 'Erro ao registrar entrega parcial: ' . $e->getMessage());
         }
     }
+
+    
+    public function atribuirEquipe(Entrega $entrega)
+    {
+        $motoristas = Funcionario::motoristas()
+            ->ativos()
+            ->orderBy('nome')
+            ->get();
+
+        $veiculos = Frota::where('ativo', 1)
+            ->whereIn('status', ['disponivel', 'reservado'])
+            ->orderBy('placa')
+            ->get();
+
+        return view('entregas.atribuir-equipe', compact('entrega', 'motoristas', 'veiculos'));
+    }
+
+   public function salvarEquipe(Request $request, Entrega $entrega)
+    {
+        $dados = $request->validate([
+            'motorista_id' => ['required', 'exists:funcionarios,id'],
+            'veiculo_id' => ['required', 'exists:frotas,id'],
+        ]);
+
+        Funcionario::where('id', $dados['motorista_id'])
+            ->where('funcao', 'motorista')
+            ->where('ativo', 1)
+            ->firstOrFail();
+
+        Frota::where('id', $dados['veiculo_id'])
+            ->where('ativo', 1)
+            ->firstOrFail();
+
+        $this->entregaService->atribuirEquipe(
+            $entrega,
+            $dados['motorista_id'],
+            $dados['veiculo_id']
+        );
+
+        return redirect()
+            ->route('entregas.show', $entrega->id)
+            ->with('success', 'Motorista e veículo atribuídos com sucesso.');
+    }
+
 
     public function cancelar(Request $request, Entrega $entrega)
     {

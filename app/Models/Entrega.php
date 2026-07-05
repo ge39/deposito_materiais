@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Funcionario;
+use App\Models\Frota;
+use App\Models\Romaneio;
 
 class Entrega extends Model
 {
@@ -24,13 +27,34 @@ class Entrega extends Model
         'telefone_recebimento',
         'cobrar_frete',
         'valor_frete',
+        'motorista_id',
+        'veiculo_id',
+        'data_realizada',
     ];
 
     protected $casts = [
-        'data_prevista' => 'date',
-        'data_realizada' => 'date',
-        'usar_endereco_cliente' => 'boolean',
+    'data_prevista' => 'date',
+    'data_prevista_entrega' => 'date',
+    'data_realizada' => 'date',
+    'usar_endereco_cliente' => 'boolean',
+    'cobrar_frete' => 'boolean',
+    'valor_frete' => 'decimal:2',
     ];
+
+    public function motorista()
+    {
+        return $this->belongsTo(Funcionario::class, 'motorista_id');
+    }
+
+    public function veiculo()
+    {
+        return $this->belongsTo(Frota::class, 'veiculo_id');
+    }
+
+    public function romaneio()
+    {
+        return $this->hasOne(Romaneio::class, 'entrega_id');
+    }
 
     public function itens()
     {
@@ -62,9 +86,9 @@ class Entrega extends Model
         return $query->where('status', 'Aguardando_faturamento');
     }
 
-    public function scopeFaturadas($query)
+    public function scopeAguardandoSeparacao($query)
     {
-        return $query->where('status', 'Faturado');
+        return $query->where('status', 'Aguardando_separacao');
     }
 
     public function scopeSeparando($query)

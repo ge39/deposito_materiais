@@ -199,12 +199,12 @@
 
                     <div class="col-md-3 campo-entrega d-none">
                         <label class="form-label fw-bold">Data Prevista</label>
-                        <input type="date" name="data_prevista_entrega" id="data_prevista_entrega" class="form-control">
+                        <input type="date" name="data_prevista_entrega" id="data_prevista_entrega" class="form-control" required>
                     </div>
 
                     <div class="col-md-3 campo-entrega d-none">
                         <label class="form-label fw-bold">Período</label>
-                        <select name="periodo_entrega" id="periodo_entrega" class="form-select">
+                        <select name="periodo_entrega" id="periodo_entrega" class="form-select " required>
                             <option value="">Selecione...</option>
                             <option value="manha">Manhã</option>
                             <option value="tarde">Tarde</option>
@@ -272,11 +272,6 @@
                                         <i class="bi bi-box-seam me-1"></i>
                                         Itens do Orçamento
                                     </h5>
-
-                                    <!-- <button type="button" class="btn btn-primary" id="addProduto">
-                                        <i class="bi bi-plus-circle me-1"></i>
-                                        Adicionar Produto
-                                    </button> -->
                                 </div>
 
                                 <div class="table-responsive">
@@ -846,6 +841,30 @@
     });
 </script>
 
+<!-- Bloqueio de Salvamento, clique ou enter acidental -->
+<script>
+    const btnSalvar = document.getElementById('btnSalvar');
+    const formOrcamento = btnSalvar?.closest('form');
+
+    let salvandoOrcamento = false;
+
+    if (formOrcamento) {
+        formOrcamento.addEventListener('submit', function (e) {
+
+            if (salvandoOrcamento) {
+                e.preventDefault();
+                return false;
+            }
+
+            salvandoOrcamento = true;
+
+            if (btnSalvar) {
+                btnSalvar.disabled = true;
+                btnSalvar.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Salvando...';
+            }
+        });
+    }
+</script>
 <script src="{{ asset('js/orcamento.js') }}"></script>
 
 @endsection

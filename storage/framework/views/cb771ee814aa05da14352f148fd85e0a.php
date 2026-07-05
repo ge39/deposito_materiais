@@ -81,6 +81,11 @@
         </div>
 
         <div class="d-flex gap-1">
+
+            <a href="<?php echo e(route('romaneios.create')); ?>" class="btn btn-primary btn-sm">
+                <i class="bi bi-box-seam me-1"></i>Criar Romaneio
+            </a>
+
             <a href="<?php echo e(route('entregas.index')); ?>" class="btn btn-outline-dark btn-sm">
                 <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
             </a>
@@ -88,6 +93,7 @@
             <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
                 <i class="bi bi-file-earmark-arrow-down me-1"></i>Exportar
             </button>
+
         </div>
     </div>
 

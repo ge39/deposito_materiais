@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\{
     AuthController,
     AuditoriaCaixaController,
@@ -42,6 +43,8 @@ use App\Http\Controllers\{
     LimiteClienteController,
     EstoqueDivergenciaController,
     BackupController,
+    RomaneioController,
+    ExpedicaoController,
 };
 
 // ===============================
@@ -69,6 +72,7 @@ Route::middleware('auth')->group(function () {
         Route::post('receber/{id}', [PedidoCompraController::class, 'receber'])->name('receber');
         Route::get('cancelar/{id}', [PedidoCompraController::class, 'cancelar'])->name('cancelar');
         Route::get('pdf/{id}', [PedidoCompraController::class, 'gerarPdf'])->name('pdf');
+        
     });
     Route::resource('pedidos', PedidoCompraController::class);
 
@@ -542,15 +546,53 @@ Route::middleware(['auth'])
     });
 
     // Entregas
-Route::prefix('entregas')
-    ->name('entregas.')
-    ->group(function () {
-        Route::get('/', [EntregaController::class, 'index'])->name('index');
-        Route::get('/{entrega}', [EntregaController::class, 'show'])->name('show');
+    Route::prefix('entregas')
+        ->name('entregas.')
+        ->group(function () {
+            Route::get('/', [EntregaController::class, 'index'])->name('index');
+            Route::get('/{entrega}', [EntregaController::class, 'show'])->name('show');
 
-        Route::patch('/{entrega}/separar', [EntregaController::class, 'separar'])->name('separar');
-        Route::patch('/{entrega}/carregar', [EntregaController::class, 'carregar'])->name('carregar');
-        Route::patch('/{entrega}/rota', [EntregaController::class, 'enviarParaRota'])->name('rota');
-        Route::patch('/{entrega}/confirmar', [EntregaController::class, 'confirmar'])->name('confirmar');
-        Route::patch('/{entrega}/cancelar', [EntregaController::class, 'cancelar'])->name('cancelar');
-    });
+            Route::patch('/{entrega}/separar', [EntregaController::class, 'separar'])->name('separar');
+            Route::patch('/{entrega}/carregar', [EntregaController::class, 'carregar'])->name('carregar');
+            Route::patch('/{entrega}/rota', [EntregaController::class, 'enviarParaRota'])->name('rota');
+            Route::patch('/{entrega}/confirmar', [EntregaController::class, 'confirmar'])->name('confirmar');
+            Route::patch('/{entrega}/cancelar', [EntregaController::class, 'cancelar'])->name('cancelar');
+            Route::get('/{entrega}/atribuir-equipe', [EntregaController::class, 'atribuirEquipe']) ->name('atribuir-equipe');
+            Route::put('/{entrega}/atribuir-equipe', [EntregaController::class, 'salvarEquipe'])->name('salvar-equipe');
+            Route::resource('pedidos', PedidoCompraController::class);
+        });
+
+   
+// ROMANEIOS
+Route::prefix('romaneios')->name('romaneios.')->group(function () {
+    Route::get('/', [RomaneioController::class, 'index'])->name('index');
+    Route::get('/criar', [RomaneioController::class, 'create'])->name('create');
+    Route::post('/', [RomaneioController::class, 'store'])->name('store');
+
+    Route::get('/{romaneio}', [RomaneioController::class, 'show'])->name('show');
+    Route::get('/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('imprimir');
+
+    Route::post('/{romaneio}/cancelar', [RomaneioController::class, 'cancelar'])->name('cancelar');
+});
+
+// EXPEDIÇÃO
+Route::prefix('expedicao')->name('expedicao.')->group(function () {
+    Route::get('/', [ExpedicaoController::class, 'index'])->name('index');
+
+    Route::get('/romaneio/{romaneio}', [ExpedicaoController::class, 'show'])->name('show');
+
+    Route::get('/romaneio/{romaneio}/operacao', [ExpedicaoController::class, 'operacao'])
+        ->name('operacao');
+
+    Route::post('/romaneio/{romaneio}/iniciar-separacao', [ExpedicaoController::class, 'iniciarSeparacao'])
+        ->name('iniciar-separacao');
+
+    Route::post('/romaneio/{romaneio}/iniciar-carregamento', [ExpedicaoController::class, 'iniciarCarregamento'])
+        ->name('iniciar-carregamento');
+
+    Route::post('/romaneio/{romaneio}/finalizar-carregamento', [ExpedicaoController::class, 'finalizarCarregamento'])
+        ->name('finalizar-carregamento');
+
+    Route::post('/romaneio/{romaneio}/liberar-rota', [ExpedicaoController::class, 'liberarRota'])
+        ->name('liberar-rota');
+});

@@ -152,18 +152,7 @@ class OrcamentoService
     // Dados do metodo CREATE
     public function criarCompleto(array $request)
     {
-        
         return DB::transaction(function () use ($request) {
-
-            if (($request['tipo_entrega'] ?? null) === 'entrega') {
-                if (empty($request['data_prevista_entrega'])) {
-                    throw new \Exception('A data prevista da entrega é obrigatória.');
-                }
-
-                if (empty($request['periodo_entrega'])) {
-                    throw new \Exception('O período da entrega é obrigatório.');
-                }
-            }
 
             $empresa = Empresa::where('ativo', 1)->firstOrFail();
 
@@ -216,57 +205,57 @@ class OrcamentoService
                 
             ]);
 
-            // if ($tipoEntrega === 'entrega') {
+            if ($tipoEntrega === 'entrega') {
 
-            //     $dataPrevistaEntrega = $request['data_prevista_entrega'] ?? now()->addDays(7)->format('Y-m-d');
+                $dataPrevistaEntrega = $request['data_prevista_entrega'] ?? now()->addDays(7)->format('Y-m-d');
 
-            //     $enderecoFinalEntrega = $usarEnderecoCliente === 'nao'
-            //         ? $enderecoEntrega
-            //         : collect([
-            //             $cliente->endereco ?? null,
-            //             !empty($cliente->numero) ? 'Nº ' . $cliente->numero : null,
-            //             $cliente->bairro ?? null,
-            //             $cliente->cidade ?? null,
-            //             $cliente->cep ?? null,
-            //         ])
-            //         ->map(fn ($valor) => trim((string) $valor, " \t\n\r\0\x0B,"))
-            //         ->filter()
-            //         ->implode(', ');
+                $enderecoFinalEntrega = $usarEnderecoCliente === 'nao'
+                    ? $enderecoEntrega
+                    : collect([
+                        $cliente->endereco ?? null,
+                        !empty($cliente->numero) ? 'Nº ' . $cliente->numero : null,
+                        $cliente->bairro ?? null,
+                        $cliente->cidade ?? null,
+                        $cliente->cep ?? null,
+                    ])
+                    ->map(fn ($valor) => trim((string) $valor, " \t\n\r\0\x0B,"))
+                    ->filter()
+                    ->implode(', ');
 
-            //     $entrega = Entrega::create([
-            //         'orcamento_id'              => $orcamento->id,
-            //         'venda_id'                  => null,
-            //         'codigo_entrega'            => 'ENT-' . now()->format('YmdHis') . $orcamento->id,
-            //         'data_prevista'             => $dataPrevistaEntrega,
-            //         'data_prevista_entrega'     => $dataPrevistaEntrega,
-            //         'periodo_entrega'           => $request['periodo_entrega'] ?? null,
-            //         'observacao_entrega'        => $request['observacao_entrega'] ?? null,
-            //         'status'                    => 'Pendente_pagamento',
-            //         'tipo_entrega'              => $tipoEntrega,
-            //         'usar_endereco_cliente'     => $usarEnderecoCliente === 'sim' ? 1 : 0,
-            //         'endereco_entrega'          => $enderecoFinalEntrega,
-            //         'responsavel_recebimento'   => $request['contato_entrega'] ?? null,
-            //         'telefone_recebimento'      => $request['telefone_entrega'] ?? null,
-            //         'cobrar_frete'              => 0,
-            //         'valor_frete'               => 0,
-            //     ]);
+                $entrega = Entrega::create([
+                    'orcamento_id'              => $orcamento->id,
+                    'venda_id'                  => null,
+                    'codigo_entrega'            => 'ENT-' . now()->format('YmdHis') . $orcamento->id,
+                    'data_prevista'             => $dataPrevistaEntrega,
+                    'data_prevista_entrega'     => $dataPrevistaEntrega,
+                    'periodo_entrega'           => $request['periodo_entrega'] ?? null,
+                    'observacao_entrega'        => $request['observacao_entrega'] ?? null,
+                    'status'                    => 'Pendente_pagamento',
+                    'tipo_entrega'              => $tipoEntrega,
+                    'usar_endereco_cliente'     => $usarEnderecoCliente === 'sim' ? 1 : 0,
+                    'endereco_entrega'          => $enderecoFinalEntrega,
+                    'responsavel_recebimento'   => $request['contato_entrega'] ?? null,
+                    'telefone_recebimento'      => $request['telefone_entrega'] ?? null,
+                    'cobrar_frete'              => 0,
+                    'valor_frete'               => 0,
+                ]);
 
-            //     $orcamento->loadMissing('itens');
+                $orcamento->loadMissing('itens');
 
-            //     foreach ($orcamento->itens as $item) {
-            //         EntregaItem::create([
-            //             'entrega_id'              => $entrega->id,
-            //             'item_orcamento_id'       => $item->id,
-            //             'venda_item_id'           => null,
-            //             'quantidade_prevista'     => ($item->quantidade_atendida ?? 0) > 0
-            //                 ? $item->quantidade_atendida
-            //                 : $item->quantidade_solicitada,
-            //             'quantidade_entregue'     => 0,
-            //             'status'                  => 'Pendente',
-            //             'observacao'              => null,
-            //         ]);
-            //     }
-            // }
+                foreach ($orcamento->itens as $item) {
+                    EntregaItem::create([
+                        'entrega_id'              => $entrega->id,
+                        'item_orcamento_id'       => $item->id,
+                        'venda_item_id'           => null,
+                        'quantidade_prevista'     => ($item->quantidade_atendida ?? 0) > 0
+                            ? $item->quantidade_atendida
+                            : $item->quantidade_solicitada,
+                        'quantidade_entregue'     => 0,
+                        'status'                  => 'Pendente',
+                        'observacao'              => null,
+                    ]);
+                }
+            }
 
             if (empty($request['produtos']) || !is_array($request['produtos'])) {
                 throw new \Exception('Produtos inválidos no orçamento');

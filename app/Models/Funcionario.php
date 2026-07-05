@@ -39,11 +39,9 @@ class Funcionario extends Model
     ];
 
     // Casts para tipos específicos
-     protected $casts = [
-        'data_admissao' => 'date', // Laravel vai converter para Carbon
-        'cpf','nome','funcao','telefone','email',
-        'cep','endereco','cidade','estado','numero','bairro',
-        'observacoes','data_admissao','ativo'
+    protected $casts = [
+        'data_admissao' => 'date',
+        'ativo' => 'boolean',
     ];
 
     // Enum de funções válidas
@@ -56,6 +54,16 @@ class Funcionario extends Model
         'ADM-TI',
         'gerente',
     ];
+
+    public function scopeMotoristas($query)
+    {
+        return $query->where('funcao', 'motorista');
+    }
+
+    public function scopeAtivos($query)
+    {
+        return $query->where('ativo', 1);
+    }
 
     /**
      * Relacionamentos úteis
@@ -71,5 +79,10 @@ class Funcionario extends Model
     public function movimentacoesCaixa()
     {
         return $this->hasMany(MovimentacaoCaixa::class, 'user_id');
+    }
+
+    public function entregasComoMotorista()
+    {
+        return $this->hasMany(Entrega::class, 'motorista_id');
     }
 }

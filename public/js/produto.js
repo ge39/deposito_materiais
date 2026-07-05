@@ -15,7 +15,7 @@ function previewImage(event, previewId = 'imagemPreview') {
 document.addEventListener('DOMContentLoaded', function () {
     const nomeInput = document.getElementById('nome');
     const imagemPreview = document.getElementById('imagemPreview');
-    const imagemPadrao = '/storage/produtos/4Q6fMmYnfd5CJRJK3kDzvjFSrwiXpaJeAaOcBjz8.png'; // imagem padrão
+    const imagemPadrao = '/image/produtos/produto-sem-imagem.png'; // imagem padrão
     let timeout = null;
 
     nomeInput.addEventListener('input', function () {
