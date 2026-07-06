@@ -371,8 +371,7 @@
     </div>
 
 <script>
-
-    document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', () => {
 
         const produtos = @json($produtos);
         const tableBody = document.getElementById('itensContainer');
@@ -634,13 +633,20 @@
             descontoGlobalInput.addEventListener('input', atualizarTotal);
         }
 
-        tableBody.addEventListener('click', e => {
-            if (e.target.classList.contains('remover')) {
-                e.target.closest('tr').remove();
+       tableBody.addEventListener('click', e => {
+            // Captura o botão mesmo se clicar no ícone <i> interno
+            const botaoRemover = e.target.closest('.remover');
+
+            if (botaoRemover) {
+                // Remove o <tr> correspondente da tabela
+                botaoRemover.closest('tr').remove();
+                
+                // Executa suas funções originais de recalcular o PDV
                 atualizarOpcoesProdutos();
                 atualizarTotal();
             }
         });
+
 
         addBtn.addEventListener('click', () => {
 
