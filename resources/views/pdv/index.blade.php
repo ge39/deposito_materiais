@@ -611,6 +611,7 @@
         </div>
     
         <!-- Script de Inicialização da Sangria do Bootstrap -->
+<!--          
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 var deveAvisar = {{ $avisarSangria ? 'true' : 'false' }};
@@ -630,6 +631,8 @@
                 }
             });
         </script>
+         -->
+   
 
     @endif
 
@@ -1587,67 +1590,68 @@
 <!-- Ajustar o modal de diminuir itens do carrinho -->
 <script>
     (function () {
-    const painel = document.getElementById('acoes-carrinho');
-    const tabela = document.getElementById('lista-itens');
+        const painel = document.getElementById('acoes-carrinho');
+        const tabela = document.getElementById('lista-itens');
 
-    if (!painel || !tabela) return;
+        if (!painel || !tabela) return;
 
-    let arrastando = false;
-    let offsetX = 0;
-    let offsetY = 0;
+        let arrastando = false;
+        let offsetX = 0;
+        let offsetY = 0;
 
-    function posicionarAbaixoDaTabela() {
-        const tabelaRect = tabela.getBoundingClientRect();
+        function posicionarAbaixoDaTabela() {
+            const tabelaRect = tabela.getBoundingClientRect();
 
-        painel.style.position = 'fixed';
-        painel.style.left = tabelaRect.left + 'px';
-        painel.style.top = (tabelaRect.bottom + 8) + 'px';
-        painel.style.width = tabelaRect.width + 'px';
-        painel.style.right = 'auto';
-    }
-
-    tabela.addEventListener('click', function (e) {
-        const linha = e.target.closest('tr');
-        if (!linha) return;
-
-        setTimeout(() => {
-            posicionarAbaixoDaTabela();
-        }, 10);
-    });
-
-    painel.addEventListener('mousedown', function (e) {
-        if (e.target.closest('button')) return;
-
-        arrastando = true;
-
-        const rect = painel.getBoundingClientRect();
-
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-
-        painel.style.left = rect.left + 'px';
-        painel.style.top = rect.top + 'px';
-        painel.style.right = 'auto';
-    });
-
-    document.addEventListener('mousemove', function (e) {
-        if (!arrastando) return;
-
-        painel.style.left = (e.clientX - offsetX) + 'px';
-        painel.style.top = (e.clientY - offsetY) + 'px';
-    });
-
-    document.addEventListener('mouseup', function () {
-        arrastando = false;
-    });
-
-    window.addEventListener('resize', function () {
-        if (!painel.classList.contains('d-none')) {
-            posicionarAbaixoDaTabela();
+            painel.style.position = 'fixed';
+            painel.style.left = tabelaRect.left + 'px';
+            painel.style.top = (tabelaRect.bottom + 8) + 'px';
+            painel.style.width = tabelaRect.width + 'px';
+            painel.style.right = 'auto';
         }
-    });
-})();
+
+        tabela.addEventListener('click', function (e) {
+            const linha = e.target.closest('tr');
+            if (!linha) return;
+
+            setTimeout(() => {
+                posicionarAbaixoDaTabela();
+            }, 10);
+        });
+
+        painel.addEventListener('mousedown', function (e) {
+            if (e.target.closest('button')) return;
+
+            arrastando = true;
+
+            const rect = painel.getBoundingClientRect();
+
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+
+            painel.style.left = rect.left + 'px';
+            painel.style.top = rect.top + 'px';
+            painel.style.right = 'auto';
+        });
+
+        document.addEventListener('mousemove', function (e) {
+            if (!arrastando) return;
+
+            painel.style.left = (e.clientX - offsetX) + 'px';
+            painel.style.top = (e.clientY - offsetY) + 'px';
+        });
+
+        document.addEventListener('mouseup', function () {
+            arrastando = false;
+        });
+
+        window.addEventListener('resize', function () {
+            if (!painel.classList.contains('d-none')) {
+                posicionarAbaixoDaTabela();
+            }
+        });
+    })();
 </script>
+
 <!-- botao remover itens do carrinho -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -1679,6 +1683,56 @@
 
     });
 </script>
+
+<!-- Script de Inicialização da Sangria do Bootstrap -->
+<script>
+    // 1. Escuta global e prioritária do teclado (roda fora do ciclo do Bootstrap)
+    window.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' || event.keyCode === 27) {
+            var modalElement = document.getElementById('modalSangria');
+            
+            if (modalElement && modalElement.classList.contains('show')) {
+                // Interrompe qualquer bloqueio do Bootstrap
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Executa as limpezas de variáveis que estão no botão do seu HTML
+                window.PDV_BLOQUEADO = false; 
+                window.caixaBloqueado = false;
+
+                // Força o fechamento técnico do modal ignorando o 'static'
+                var modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                modalInstance.hide();
+                
+                // Remove resquícios visuais (backdrop cinza travado)
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+                var backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) backdrop.remove();
+            }
+        }
+    }, true); // O 'true' garante prioridade máxima sobre o PDV
+
+    // 2. Seu inicializador original do modal
+    document.addEventListener('DOMContentLoaded', function() {
+        var deveAvisar = {{ $avisarSangria ? 'true' : 'false' }};
+        var deveBloquear = {{ $bloquearPDV ? 'true' : 'false' }};
+        
+        if (deveAvisar || deveBloquear) {
+            var modalElement = document.getElementById('modalSangria');
+            if (modalElement) {
+                var modal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',
+                    keyboard: true
+                });
+                modal.show();
+            }
+        }
+    });
+</script>
+
+
 
 <!-- 🎯 CARREGAMENTO SEQUENCIAL DOS ARQUIVOS (Módulos Base) -->
 <script src="{{ asset('js/pdv/pdv_storage.js') }}" defer></script>
