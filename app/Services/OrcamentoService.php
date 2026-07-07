@@ -483,16 +483,132 @@ class OrcamentoService
      | APROVAR COMPLETO
      ========================================= */
    
+    // public function aprovarCompleto(int $orcamentoId)
+    // {
+    //     return DB::transaction(function () use ($orcamentoId) {
+
+    //         $movService = app(MovimentacaoOrcamentoService::class);
+
+    //         $orcamento = Orcamento::findOrFail($orcamentoId);
+
+    //         if ($orcamento->status === 'Aprovado') {
+    //             throw new \Exception('Orçamento já aprovado');
+    //         }
+
+    //         foreach ($orcamento->itens as $item) {
+
+    //             $vinculos = DB::table('item_orcamento_lotes')
+    //                 ->where('item_orcamento_id', $item->id)
+    //                 ->lockForUpdate()
+    //                 ->get();
+
+    //             foreach ($vinculos as $v) {
+
+    //                 $lote = DB::table('lotes')
+    //                     ->where('id', $v->lote_id)
+    //                     ->lockForUpdate()
+    //                     ->first();
+
+    //                 if (!$lote) {
+    //                     continue;
+    //                 }
+
+    //                 $disponivel = $lote->quantidade - $lote->quantidade_reservada;
+
+    //                 if ($disponivel <= 0) {
+    //                     continue;
+    //                 }
+
+    //                 $atender = min($item->quantidade_pendente, $disponivel);
+
+    //                 if ($atender > 0) {
+
+    //                     DB::table('lotes')
+    //                         ->where('id', $v->lote_id)
+    //                         ->increment('quantidade_reservada', $atender);
+
+    //                     DB::table('item_orcamento_lotes')
+    //                         ->where('id', $v->id)
+    //                         ->increment('quantidade_atendida', $atender);
+
+    //                     $item->quantidade_atendida += $atender;
+    //                     $item->quantidade_pendente -= $atender;
+    //                 }
+    //             }
+
+    //             $item->status = $item->quantidade_pendente > 0
+    //                 ? 'parcial'
+    //                 : 'disponivel';
+
+    //             $item->save();
+    //         }
+
+    //         $temPendente = $orcamento->itens()
+    //             ->where('quantidade_pendente', '>', 0)
+    //             ->exists();
+
+    //         $statusFinal = $temPendente
+    //             ? 'Aguardando Estoque'
+    //             : 'Aprovado';
+
+    //         $orcamento->update([
+    //             'status' => $statusFinal
+    //         ]);
+
+    //         if ($statusFinal === 'Aprovado') {
+
+    //             foreach ($orcamento->itens as $item) {
+
+    //                 $vinculos = DB::table('item_orcamento_lotes')
+    //                     ->where('item_orcamento_id', $item->id)
+    //                     ->get();
+
+    //                 foreach ($vinculos as $v) {
+
+    //                     $lote = DB::table('lotes')
+    //                         ->where('id', $v->lote_id)
+    //                         ->first();
+
+    //                     if (!$lote) {
+    //                         continue;
+    //                     }
+
+    //                     $antes = $lote->quantidade_reservada;
+    //                     $depois = $lote->quantidade_reservada;
+
+    //                     $movService->registrar(
+    //                         $v->lote_id,
+    //                         $orcamento->id,
+    //                         $item->id,
+    //                         TipoMovimentacao::APROVADO,
+    //                         $antes,
+    //                         $depois,
+    //                         'Orçamento aprovado',
+    //                         OrigemMovimentacao::SISTEMA
+    //                     );
+    //                 }
+    //             }
+    //             if ($orcamento->tipo_entrega === 'entrega') {
+                    
+    //                 app(\App\Services\Entregas\EntregaService::class)
+    //                     ->gerarEntregaDoOrcamento($orcamento);
+    //             }
+    //         }
+
+    //         return $orcamento;
+    //     });
+    // }
+    
     public function aprovarCompleto(int $orcamentoId)
     {
         return DB::transaction(function () use ($orcamentoId) {
 
             $movService = app(MovimentacaoOrcamentoService::class);
 
-            $orcamento = Orcamento::findOrFail($orcamentoId);
+            $orcamento = Orcamento::with('itens')->findOrFail($orcamentoId);
 
-            if ($orcamento->status === 'Aprovado') {
-                throw new \Exception('Orçamento já aprovado');
+            if (in_array($orcamento->status, ['Aprovado', 'Faturado'])) {
+                throw new \Exception('Orçamento já aprovado ou faturado.');
             }
 
             foreach ($orcamento->itens as $item) {
@@ -519,10 +635,15 @@ class OrcamentoService
                         continue;
                     }
 
-                    $atender = min($item->quantidade_pendente, $disponivel);
+                    $pendenteAtual = (float) $item->quantidade_pendente;
+
+                    if ($pendenteAtual <= 0) {
+                        continue;
+                    }
+
+                    $atender = min($pendenteAtual, $disponivel);
 
                     if ($atender > 0) {
-
                         DB::table('lotes')
                             ->where('id', $v->lote_id)
                             ->increment('quantidade_reservada', $atender);
@@ -531,8 +652,8 @@ class OrcamentoService
                             ->where('id', $v->id)
                             ->increment('quantidade_atendida', $atender);
 
-                        $item->quantidade_atendida += $atender;
-                        $item->quantidade_pendente -= $atender;
+                        $item->quantidade_atendida = (float) $item->quantidade_atendida + $atender;
+                        $item->quantidade_pendente = (float) $item->quantidade_pendente - $atender;
                     }
                 }
 
@@ -543,6 +664,8 @@ class OrcamentoService
                 $item->save();
             }
 
+            $orcamento->refresh()->load('itens');
+
             $temPendente = $orcamento->itens()
                 ->where('quantidade_pendente', '>', 0)
                 ->exists();
@@ -552,54 +675,59 @@ class OrcamentoService
                 : 'Aprovado';
 
             $orcamento->update([
-                'status' => $statusFinal
+                'status' => $statusFinal,
             ]);
 
-            if ($statusFinal === 'Aprovado') {
+            foreach ($orcamento->itens as $item) {
 
-                foreach ($orcamento->itens as $item) {
+                $vinculos = DB::table('item_orcamento_lotes')
+                    ->where('item_orcamento_id', $item->id)
+                    ->get();
 
-                    $vinculos = DB::table('item_orcamento_lotes')
-                        ->where('item_orcamento_id', $item->id)
-                        ->get();
+                foreach ($vinculos as $v) {
 
-                    foreach ($vinculos as $v) {
+                    $lote = DB::table('lotes')
+                        ->where('id', $v->lote_id)
+                        ->first();
 
-                        $lote = DB::table('lotes')
-                            ->where('id', $v->lote_id)
-                            ->first();
-
-                        if (!$lote) {
-                            continue;
-                        }
-
-                        $antes = $lote->quantidade_reservada;
-                        $depois = $lote->quantidade_reservada;
-
-                        $movService->registrar(
-                            $v->lote_id,
-                            $orcamento->id,
-                            $item->id,
-                            TipoMovimentacao::APROVADO,
-                            $antes,
-                            $depois,
-                            'Orçamento aprovado',
-                            OrigemMovimentacao::SISTEMA
-                        );
+                    if (!$lote) {
+                        continue;
                     }
+
+                    $antes = $lote->quantidade_reservada;
+                    $depois = $lote->quantidade_reservada;
+
+                    $movService->registrar(
+                        $v->lote_id,
+                        $orcamento->id,
+                        $item->id,
+                        TipoMovimentacao::APROVADO,
+                        $antes,
+                        $depois,
+                        $statusFinal === 'Aguardando Estoque'
+                            ? 'Orçamento aprovado parcialmente com pendência de estoque'
+                            : 'Orçamento aprovado',
+                        OrigemMovimentacao::SISTEMA
+                    );
                 }
-                if ($orcamento->tipo_entrega === 'entrega') {
-                    
+            }
+
+            if ($orcamento->tipo_entrega === 'entrega') {
+
+                $entregaJaExiste = DB::table('entregas')
+                    ->where('orcamento_id', $orcamento->id)
+                    ->exists();
+
+                if (!$entregaJaExiste) {
                     app(\App\Services\Entregas\EntregaService::class)
                         ->gerarEntregaDoOrcamento($orcamento);
                 }
             }
 
-            return $orcamento;
+            return $orcamento->refresh();
         });
     }
-    
-    
+
     public function recalcularItemCompleto(ItemOrcamento $item, ?float $quantidadeSolicitada = null): void
     {
         DB::transaction(function () use ($item, $quantidadeSolicitada) {
@@ -949,6 +1077,32 @@ class OrcamentoService
         });
 
         return $orcamento;
+    }
+    /**
+     * Retorna um orçamento com todos os relacionamentos necessários
+     * para a tela de visualização.
+     */
+    public function buscarCompleto(int $orcamentoId): Orcamento
+    {
+        return Orcamento::with([
+            'cliente',
+            'vendedor',
+            'usuario',
+
+            // Itens do orçamento
+            'itens',
+            'itens.produto',
+            'itens.lotes',
+
+            // Venda gerada a partir do orçamento
+            'venda',
+
+            // Entrega gerada
+            'entrega',
+            'entrega.itens',
+            'entrega.itens.produto',
+
+        ])->findOrFail($orcamentoId);
     }
 
 }

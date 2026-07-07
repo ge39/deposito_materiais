@@ -8,7 +8,6 @@ use App\Models\Funcionario;
 use App\Models\Romaneio;
 use App\Services\Expedicao\RomaneioService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class RomaneioController extends Controller
@@ -22,7 +21,14 @@ class RomaneioController extends Controller
 
     public function index(Request $request)
     {
-        $romaneios = Romaneio::with(['motorista', 'veiculo'])
+        $romaneios = Romaneio::with([
+                'entrega.orcamento.cliente',
+                'entrega.venda',
+                'motorista',
+                'veiculo',
+                'entrega.cliente',
+                'itens',
+            ])
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->where('status', $request->status);
             })
@@ -33,32 +39,25 @@ class RomaneioController extends Controller
         return view('romaneios.index', compact('romaneios'));
     }
 
-    public function show(Romaneio $romaneio)
-    {
-        $romaneio->load([
-            'motorista',
-            'veiculo',
-            'itens.entregaItem.entrega.cliente',
-            'itens.entregaItem.produto',
-        ]);
-
-        return view('romaneios.show', compact('romaneio'));
-    }
-
     public function create()
     {
         $entregasDisponiveis = Entrega::with([
-            'orcamento.cliente',
-            'venda.cliente',
-            'itens.vendaItem.produto',
-            'itens.itemOrcamento.produto',
-        ])
-        ->whereIn('status', [
-            'aguardando_separacao',
-            'separando',
-        ])
-        ->orderBy('data_prevista')
-        ->get();
+                'cliente',
+                'orcamento.cliente',
+                'venda.cliente',
+                'itens.produto',
+                'itens.vendaItem.produto',
+                'itens.itemOrcamento.produto',
+            ])
+            ->whereIn('status', [
+                'Aguardando_separacao',
+                'aguardando_separacao',
+                'Separando',
+                'separando',
+            ])
+            ->orderBy('data_prevista_entrega')
+            ->orderBy('id')
+            ->get();
 
         $motoristas = Funcionario::where('funcao', 'motorista')
             ->where(function ($query) {
@@ -83,32 +82,72 @@ class RomaneioController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'entregas' => ['required', 'array', 'min:1'],
-            'entregas.*' => ['required', 'integer', 'exists:entregas,id'],
+            'entregas' => ['nullable', 'array'],
+            'entregas.*' => ['nullable', 'integer', 'exists:entregas,id'],
+
+            'entrega_itens' => ['nullable', 'array'],
+            'entrega_itens.*' => ['nullable', 'integer', 'exists:entrega_itens,id'],
+
             'motorista_id' => ['nullable', 'integer', 'exists:funcionarios,id'],
             'veiculo_id' => ['nullable', 'integer', 'exists:frotas,id'],
-            'observacao' => ['nullable', 'string'],
+            'observacao' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        DB::beginTransaction();
+        if (
+            empty($request->input('entregas', [])) &&
+            empty($request->input('entrega_itens', []))
+        ) {
+            return back()
+                ->withInput()
+                ->with('error', 'Selecione pelo menos uma entrega ou item para criar o romaneio.');
+        }
 
         try {
-
             $romaneio = $this->romaneioService->criarRomaneio($request->all());
 
-            DB::commit();
-
             return redirect()
-                ->route('expedicao.show', $romaneio->id)
-                ->with('success', 'Romaneio criado com sucesso.');
+                ->route('romaneios.show', $romaneio->id)
+                ->with('success', 'Romaneio criado com sucesso. Agora ele já pode ser impresso para coleta física do estoque.');
         } catch (Throwable $e) {
-            DB::rollBack();
-
             return back()
                 ->withInput()
                 ->with('error', 'Erro ao criar romaneio: ' . $e->getMessage());
         }
     }
+
+    public function show(Romaneio $romaneio)
+    {
+        $romaneio->load([
+            'motorista',
+            'veiculo',
+            'entrega.cliente',
+            'entrega.orcamento',
+            'entrega.venda',
+            'itens.entregaItem.entrega.cliente',
+            'itens.entregaItem.produto',
+            'itens.entregaItem.vendaItem.produto',
+            'itens.entregaItem.itemOrcamento.produto',
+        ]);
+
+        return view('romaneios.show', compact('romaneio'));
+    }
+
+    // public function imprimir(Romaneio $romaneio)
+    // {
+    //     $romaneio->load([
+    //         'motorista',
+    //         'veiculo',
+    //         'entrega.cliente',
+    //         'entrega.orcamento',
+    //         'entrega.venda',
+    //         'itens.entregaItem.entrega.cliente',
+    //         'itens.entregaItem.produto',
+    //         'itens.entregaItem.vendaItem.produto',
+    //         'itens.entregaItem.itemOrcamento.produto',
+    //     ]);
+
+    //     return view('romaneios.imprimir', compact('romaneio'));
+    // }
 
     public function cancelar(Request $request, Romaneio $romaneio)
     {
@@ -123,18 +162,33 @@ class RomaneioController extends Controller
                 ->route('romaneios.index')
                 ->with('success', 'Romaneio cancelado com sucesso.');
         } catch (Throwable $e) {
-            return back()->with('error', 'Erro ao cancelar romaneio: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Erro ao cancelar romaneio: ' . $e->getMessage());
         }
     }
-
     public function imprimir(Romaneio $romaneio)
     {
         $romaneio->load([
             'motorista',
             'veiculo',
+            'entrega.cliente',
+            'entrega.orcamento',
+            'entrega.venda',
             'itens.entregaItem.entrega.cliente',
             'itens.entregaItem.produto',
+            'itens.entregaItem.vendaItem.produto',
+            'itens.entregaItem.itemOrcamento.produto',
         ]);
+
+        $romaneio->setRelation(
+            'itens',
+            $romaneio->itens->sortBy(function ($item) {
+                return $item->entregaItem->produto->localizacao_estoque
+                    ?? $item->entregaItem->vendaItem->produto->localizacao_estoque
+                    ?? $item->entregaItem->itemOrcamento->produto->localizacao_estoque
+                    ?? 'ZZZ';
+            })->values()
+        );
 
         return view('romaneios.imprimir', compact('romaneio'));
     }

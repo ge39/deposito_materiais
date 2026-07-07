@@ -269,31 +269,8 @@
 
     </div>
     <p class="total" style="font-size:12px;">Total: R$ <?php echo e(number_format($orcamento->total, 2, ',', '.')); ?></p>
-         <!-- FIM DA TABELA DE ITENS ENTREGUES -->
-</div>
 
-<!-- ========================================================================= -->
-<!-- 🔥 MOVIDO PARA A PRIMEIRA PÁGINA: RESUMO / OBS / ASSINATURA -->
-<!-- ========================================================================= -->
-<div style="margin-top: 15px; font-size: 11px;">
-    <div class="section-title">Resumo de Atendimento por Produto</div>
-    <!-- ...estrutura da tabela de resumo... -->
-</div>
-
-<!-- ... (observações, assinatura, contato) ... -->
-
-<!-- ========================================================================= -->
-<!-- 🎯 CONDICIONAL INTELIGENTE: SEGUNDA PÁGINA APENAS SE HOUVER PENDÊNCIA -->
-<!-- ========================================================================= -->
-<?php if($orcamento->itens->sum('quantidade_pendente') > 0): ?>
-    <div class="page-break"></div>
-    <div class="section">
-        <div class="section-title">Itens Pendentes / Não Entregues</div>
-        <!-- ...tabela de itens pendentes detalhada... -->
-    </div>
-<?php endif; ?>
-
- <!-- ASSINATURA -->
+     <!-- ASSINATURA -->
     <div class="assinatura">
         <div class="assinatura-box">
             <div class="linha">
@@ -307,12 +284,179 @@
         Em caso de dúvidas:<br>
         📞 (11) 99999-9999 | 📧 contato@empresa.com.br
     </div>
-
-<!-- FOOTER FIXO -->
+    <!-- FOOTER -->
 <div class="footer">
-    Documento gerado automaticamente
+    Documento gerado automaticamente - <?php echo e(config('app.name')); ?>
+
+</div>
 </div>
 
+<div class="page-break"></div>
+
+<!-- PENDENTES -->
+<div class="section">
+    <div class="section-title">Itens Pendentes / Não Entregues</div>
+        <div style="border: 1px solid gray; padding: 10px;">
+            <strong>
+                <?php echo e($orcamento->status ?? 'SEM STATUS'); ?> 
+                em: <?php echo e(\Carbon\Carbon::parse($orcamento->updated_at)->format('d/m/Y H:i')); ?>
+
+            </strong>
+        </div>
+    <p style="color:#aa0000; font-weight:bold;">
+        ⚠ Estes itens NÃO serão entregues neste pedido.<br>
+        Serão fornecidos conforme a previsão de entrega estipulada neste documento.
+    </p>
+
+    <!-- <div class="table">
+        <div class="tr">
+            <div class="th">ID</div>
+            <div class="th">Produto</div>
+            <div class="th text-center">Pendente</div>
+            <div class="th text-center">Previsão</div>
+        </div>
+
+        <?php $__empty_1 = true; $__currentLoopData = $orcamento->itens->where('quantidade_pendente', '>', 0); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+        <div class="tr">
+            <div class="td"><?php echo e($item->produto->id ?? '-'); ?></div>
+            <div class="td"><?php echo e($item->produto->descricao ?? '-'); ?></div>
+            <div class="td text-center"><?php echo e(number_format($item->quantidade_pendente, 2, ',', '.')); ?></div>
+            <div class="td text-center">
+                <?php echo e($item->previsao_entrega ? \Carbon\Carbon::parse($item->previsao_entrega)->format('d/m/Y') : '-'); ?>
+
+            </div>
+        </div>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+        <br>
+        <div class="tr" >
+            <div class="td text-center text-color-info">Nenhum item pendente</div>
+            <div class="td text-center text-color-info">Nenhum item pendente</div>
+            <div class="td text-center text-color-info">Nenhum item pendente</div>
+            <div class="td text-center text-color-info">Nenhum item pendente</div>
+        </div>
+        <?php endif; ?>
+    </div> -->
+
+    <!-- 🎯 CORREÇÃO: Todo o bloco e a quebra de página só existem se houver saldo pendente -->
+    <?php if($orcamento->itens->where('quantidade_pendente', '>', 0)->count() > 0): ?>
+        <div class="page-break"></div>
+        <div class="section">
+            <div class="section-title">Itens Pendentes / Não Entregues</div>
+            
+            <div style="border: 1px solid gray; padding: 10px;">
+                <strong><?php echo e($orcamento->status ?? 'SEM STATUS'); ?> em: <?php echo e(\Carbon\Carbon::parse($orcamento->updated_at)->format('d/m/Y H:i')); ?></strong>
+            </div>
+
+            <p style="color:#aa0000; font-weight: bold;">
+                ⚠ Estes itens NÃO serão entregues neste pedido. Serão fornecidos conforme a previsão.
+            </p>
+
+            <div class="table">
+                <div class="tr">
+                    <div class="th">ID</div>
+                    <div class="th">Produto</div>
+                    <div class="th text-center">Pendente</div>
+                    <div class="th text-center">Previsão</div>
+                </div>
+                <?php $__currentLoopData = $orcamento->itens->where('quantidade_pendente', '>', 0); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <div class="tr">
+                        <div class="td"><?php echo e($item->produto->id ?? '-'); ?></div>
+                        <div class="td"><?php echo e($item->produto->descricao ?? '-'); ?></div>
+                        <div class="td text-center"><?php echo e(number_format($item->quantidade_pendente, 2, ',', '.')); ?></div>
+                        <div class="td text-center"><?php echo e($item->previsao_entrega ? \Carbon\Carbon::parse($item->previsao_entrega)->format('d/m/Y') : '-'); ?></div>
+                    </div>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
+
+      <!-- HISTÓRICO / RESUMO POR PRODUTO -->
+    <!-- HEADER -->
+    <div style="margin-top:15px; font-size:11px;">
+
+        <div class="section-title">Resumo de Atendimento por Produto</div>
+
+        <!-- HEADER -->
+        <div style="
+            width: 100%;
+            border-bottom: 2px solid #000;
+            padding: 6px 0;
+            font-weight: bold;
+            background: #f0f0f0;
+        ">
+
+            <div style="display:inline-block; width:8%;">ID</div>
+            <div style="display:inline-block; width:34%;">Produto</div>
+            <div style="display:inline-block; width:14%; text-align:center;">Solicitado</div>
+            <div style="display:inline-block; width:14%; text-align:center;">Entregue</div>
+            <div style="display:inline-block; width:10%; text-align:center;">Pendente</div>
+            <div style="display:inline-block; width:16%; text-align:center;">Status</div>
+
+        </div>
+
+        <!-- LINHAS -->
+        
+        <?php $__currentLoopData = $orcamento->itens; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <div style="
+                width: 100%;
+                border-bottom: 1px solid #eee;
+                padding: 6px 0;
+            ">
+
+                <div style="display:inline-block; width:8%;">
+                    <?php echo e($item->produto_id); ?>
+
+                </div>
+
+                <div style="display:inline-block; width:34%;">
+                    <?php echo e($item->produto->descricao ?? '-'); ?>
+
+                </div>
+
+                <div style="display:inline-block; width:14%; text-align:center;">
+                    <?php echo e(number_format($item->quantidade_solicitada, 2, ',', '.')); ?>
+
+                </div>
+
+                <div style="display:inline-block; width:14%; text-align:center; color:green;">
+                    <?php echo e(number_format($item->quantidade_atendida, 2, ',', '.')); ?>
+
+                </div>
+
+                <div style="display:inline-block; width:10%; text-align:center; color:#aa0000;">
+                    <?php echo e(number_format($item->quantidade_pendente, 2, ',', '.')); ?>
+
+                </div>
+
+                <div style="display:inline-block; width:16%; text-align:center;">
+                    <?php if($item->quantidade_pendente <= 0): ?>
+                        Concluído
+                    <?php elseif($item->quantidade_atendida > 0): ?>
+                        Parcial
+                    <?php else: ?>
+                        Pendente
+                    <?php endif; ?>
+                </div>
+
+            </div>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+    </div>
+</div>
+
+<!-- OBS -->
+<?php if($orcamento->observacoes): ?>
+<div class="section">
+    <div class="section-title">Observações</div>
+    <div class="box">
+        <?php echo e($orcamento->observacoes); ?>
+
+    </div>
+</div>
+<?php endif; ?>
+
+
+
 </body>
-</html>
-<?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/orcamentos/pdf.blade.php ENDPATH**/ ?>
+</html><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/orcamentos/pdf.blade.php ENDPATH**/ ?>

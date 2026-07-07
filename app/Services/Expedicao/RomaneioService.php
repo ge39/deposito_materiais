@@ -3,6 +3,7 @@
 namespace App\Services\Expedicao;
 
 use App\Models\Entrega;
+use App\Models\EntregaItem;
 use App\Models\Romaneio;
 use App\Models\RomaneioItem;
 use Illuminate\Support\Facades\Auth;
@@ -11,63 +12,54 @@ use Illuminate\Validation\ValidationException;
 
 class RomaneioService
 {
-   public function criarRomaneio(array $dados): Romaneio
+    public function criarRomaneio(array $dados): Romaneio
     {
         return DB::transaction(function () use ($dados) {
             $entregasIds = $dados['entregas'] ?? [];
+            $entregaItensIds = $dados['entrega_itens'] ?? [];
 
-            if (empty($entregasIds)) {
+            if (empty($entregasIds) && empty($entregaItensIds)) {
                 throw ValidationException::withMessages([
-                    'entregas' => 'Selecione pelo menos uma entrega para criar o romaneio.',
+                    'romaneio' => 'Selecione pelo menos uma entrega ou item de entrega para criar o romaneio.',
                 ]);
             }
 
-            $entregas = Entrega::with(['itens'])
-                ->whereIn('id', $entregasIds)
-                ->lockForUpdate()
-                ->get();
+            $entregaItens = $this->buscarItensParaRomaneio($entregasIds, $entregaItensIds);
 
-            if ($entregas->count() !== count($entregasIds)) {
+            if ($entregaItens->isEmpty()) {
                 throw ValidationException::withMessages([
-                    'entregas' => 'Uma ou mais entregas selecionadas não foram encontradas.',
+                    'itens' => 'Nenhum item disponível para criação do romaneio.',
                 ]);
             }
 
-            foreach ($entregas as $entrega) {
-                if (! in_array($entrega->status, ['Aguardando_separacao'], true)) {
-                    throw ValidationException::withMessages([
-                        'entregas' => "A entrega #{$entrega->id} não está disponível para romaneio. Status atual: {$entrega->status}",
-                    ]);
-                }
+            $entregaPrincipal = $entregaItens->first()->entrega;
 
-                if ($entrega->itens->isEmpty()) {
-                    throw ValidationException::withMessages([
-                        'entregas' => "A entrega #{$entrega->id} não possui itens para expedição.",
-                    ]);
-                }
-            }
+            $this->validarEntregasDosItens($entregaItens);
 
-           $romaneio = Romaneio::create([
-                'entrega_id' => $entregas->first()->id,
+            $romaneio = Romaneio::create([
+                'entrega_id' => $entregaPrincipal->id,
                 'codigo_romaneio' => $this->gerarCodigoRomaneio(),
                 'data_emissao' => now(),
                 'status' => 'Gerado',
                 'motorista_id' => $dados['motorista_id'] ?? null,
                 'veiculo_id' => $dados['veiculo_id'] ?? null,
                 'observacao' => $dados['observacao'] ?? null,
+                'criado_por' => Auth::id(),
             ]);
 
-            foreach ($entregas as $entrega) {
-                foreach ($entrega->itens as $entregaItem) {
-                    RomaneioItem::create([
-                        'romaneio_id' => $romaneio->id,
-                        'entrega_item_id' => $entregaItem->id,
-                        'quantidade_prevista' => $entregaItem->quantidade_prevista ?? 0,
-                        'quantidade_carregada' => 0,
-                        'status' => 'Pendente',
-                    ]);
-                }
+            foreach ($entregaItens as $entregaItem) {
+                RomaneioItem::create([
+                    'romaneio_id' => $romaneio->id,
+                    'entrega_item_id' => $entregaItem->id,
+                    'quantidade_prevista' => $entregaItem->quantidade_prevista ?? 0,
+                    'quantidade_carregada' => 0,
+                    'status' => 'Pendente',
+                ]);
+            }
 
+            $entregasAfetadas = $entregaItens->pluck('entrega')->unique('id');
+
+            foreach ($entregasAfetadas as $entrega) {
                 $entrega->update([
                     'status' => 'Separando',
                 ]);
@@ -76,9 +68,62 @@ class RomaneioService
             return $romaneio->load([
                 'motorista',
                 'veiculo',
+                'entrega.cliente',
+                'entrega.orcamento',
+                'itens.entregaItem.produto',
                 'itens.entregaItem.entrega',
             ]);
         });
+    }
+
+    private function buscarItensParaRomaneio(array $entregasIds, array $entregaItensIds)
+    {
+        if (! empty($entregaItensIds)) {
+            return EntregaItem::with(['entrega', 'produto'])
+                ->whereIn('id', $entregaItensIds)
+                ->lockForUpdate()
+                ->get();
+        }
+
+        return EntregaItem::with(['entrega', 'produto'])
+            ->whereIn('entrega_id', $entregasIds)
+            ->lockForUpdate()
+            ->get();
+    }
+
+    private function validarEntregasDosItens($entregaItens): void
+    {
+        foreach ($entregaItens as $item) {
+            if (! $item->entrega) {
+                throw ValidationException::withMessages([
+                    'itens' => "O item #{$item->id} não possui entrega vinculada.",
+                ]);
+            }
+
+            if (! in_array($item->entrega->status, ['Aguardando_separacao', 'Separando'], true)) {
+                throw ValidationException::withMessages([
+                    'entregas' => "A entrega #{$item->entrega->id} não está disponível para romaneio. Status atual: {$item->entrega->status}",
+                ]);
+            }
+
+            if (in_array($item->status, ['Cancelado', 'Entregue', 'Devolvido'], true)) {
+                throw ValidationException::withMessages([
+                    'itens' => "O item #{$item->id} não está disponível para romaneio. Status atual: {$item->status}",
+                ]);
+            }
+
+            $jaExisteEmRomaneioAtivo = RomaneioItem::where('entrega_item_id', $item->id)
+                ->whereHas('romaneio', function ($query) {
+                    $query->whereNotIn('status', ['Cancelado']);
+                })
+                ->exists();
+
+            if ($jaExisteEmRomaneioAtivo) {
+                throw ValidationException::withMessages([
+                    'itens' => "O item #{$item->id} já está vinculado a um romaneio ativo.",
+                ]);
+            }
+        }
     }
 
     public function cancelar(Romaneio $romaneio, string $motivo): void
@@ -103,12 +148,17 @@ class RomaneioService
                 $item->update([
                     'status' => 'Cancelado',
                 ]);
+            }
 
-                if ($item->entregaItem && $item->entregaItem->entrega) {
-                    $item->entregaItem->entrega->update([
-                        'status' => 'Faturado',
-                    ]);
-                }
+            $entregasAfetadas = $romaneio->itens
+                ->pluck('entregaItem.entrega')
+                ->filter()
+                ->unique('id');
+
+            foreach ($entregasAfetadas as $entrega) {
+                $entrega->update([
+                    'status' => 'Aguardando_separacao',
+                ]);
             }
         });
     }

@@ -50,6 +50,12 @@ class Orcamento extends Model
     {
         return $this->belongsTo(Empresa::Class, 'empresa_id');
     }
+
+    public function usuario()
+    {
+        return $this->belongsTo(User::class, 'usuario_id');
+    }
+
     /** Cliente do orçamento */
    public function cliente()
     {
@@ -68,6 +74,21 @@ class Orcamento extends Model
         return $this->belongsTo(Fornecedor::class);
     }
 
+    public function lote()
+    {
+        return $this->hasMany(Lote::class, 'orcamento_id');
+    }
+
+    public function venda()
+    {
+        return $this->hasOne(Venda::class, 'orcamento_id');
+    }
+
+    public function entrega()
+    {
+        return $this->hasMany(Entrega::class, 'orcamento_id');
+    }
+
     /** Itens do orçamento */
     public function itens()
     {
@@ -79,6 +100,12 @@ class Orcamento extends Model
     {
         return $this->belongsTo(UnidadeMedida::class, 'unidade_medida_id');
     }
+
+    public function vendedor()
+    {
+        return $this->belongsTo(Funcionario::class, 'vendedor_id');
+    }
+
 
     /* =========================
      | SCOPES ÚTEIS PARA O PDV

@@ -48,7 +48,7 @@ class Produto extends Model
         'largura', 
         'altura', 
         'profundidade', 
-        'localizacao_estoque', 
+        'localizacao_estoque_id', 
         'imagem',
         'ativo',
         'codigo_barras', 
@@ -129,7 +129,7 @@ class Produto extends Model
     {
         return $this->hasMany(Lote::class, 'produto_id');
     }
-
+    
     public function itemVendas()
     {
         return $this->hasMany(ItemVenda::class, 'produto_id');
@@ -170,6 +170,11 @@ class Produto extends Model
     public function getEstoqueAttribute()
     {
         return $this->lotes->sum('quantidade_disponivel');
+    }
+
+    public function localizacaoEstoque()
+    {
+        return $this->belongsTo(LocalizacaoEstoque::class, 'localizacao_estoque_id');
     }
 
     // -------------------------------

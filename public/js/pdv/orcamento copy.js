@@ -330,93 +330,95 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // 🔹 FUNÇÃO GLOBAL CORRIGIDA: Envia os dados unificados resolvendo totais, caixa e cupom.blade
-    // window.faturarOrcamentoNoCaixa = async function () {
-    //     if (!window.orcamentoAtualId) {
-    //         return alert('Não há nenhum orçamento carregado no carrinho para finalizar.');
-    //     }
+    window.faturarOrcamentoNoCaixa = async function () {
+        if (!window.orcamentoAtualId) {
+            return alert('Não há nenhum orçamento carregado no carrinho para finalizar.');
+        }
 
-    //     if (!confirm('Deseja confirmar o recebimento e faturar esta venda?')) return;
-    //     try {
-    //         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!confirm('Deseja confirmar o recebimento e faturar esta venda?')) return;
+        try {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-    //         // 🧮 CALCULA O VALOR REAL BASEADO NO QUE FOI ALIMENTADO NO CARRINHO
-    //         let totalVendaCalculado = 0;
-    //         if (Array.isArray(window.carrinho)) {
-    //             window.carrinho.forEach(item => {
-    //                 totalVendaCalculado += (item.quantidade * item.preco_unitario);
-    //             });
-    //         }
+            // 🧮 CALCULA O VALOR REAL BASEADO NO QUE FOI ALIMENTADO NO CARRINHO
+            let totalVendaCalculado = 0;
+            if (Array.isArray(window.carrinho)) {
+                window.carrinho.forEach(item => {
+                    totalVendaCalculado += (item.quantidade * item.preco_unitario);
+                });
+            }
 
-    //         // Captura o id do cliente se houver nos inputs preenchidos
-    //         const clienteIdEl = document.querySelector('[name="cliente_id"]');
-    //         const clienteId = clienteIdEl ? clienteIdEl.value : null;
+            // Captura o id do cliente se houver nos inputs preenchidos
+            const clienteIdEl = document.querySelector('[name="cliente_id"]');
+            const clienteId = clienteIdEl ? clienteIdEl.value : null;
 
-    //         // 📦 PAYLOAD COMPLETO: Agora envia o carrinho e totais idênticos ao fluxo de produto.js
-    //         const payload = {
-    //             orcamento_id: window.orcamentoAtualId,
-    //             cliente_id: clienteId,
-    //             total: totalVendaCalculado,              // Alimenta vendas.total e movimentcoes_caixa.valor
-    //             itens: window.carrinho || []            // Alimenta item_vendas e impede cupom vazio
-    //         };
+            // 📦 PAYLOAD COMPLETO: Agora envia o carrinho e totais idênticos ao fluxo de produto.js
+            const payload = {
+                orcamento_id: window.orcamentoAtualId,
+                cliente_id: clienteId,
+                total: totalVendaCalculado,              // Alimenta vendas.total e movimentcoes_caixa.valor
+                itens: window.carrinho || []            // Alimenta item_vendas e impede cupom vazio
+            };
 
-    //         const response = await fetch('/pdv/faturar', {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json',
-    //                 'X-Requested-With': 'XMLHttpRequest',
-    //                 'X-CSRF-TOKEN': token
-    //             },
-    //             body: JSON.stringify(payload)
-    //         });
+            const response = await fetch('/pdv/faturar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify(payload)
+            });
 
-    //                    const data = await response.json();
+                       const data = await response.json();
 
-    //         if (!response.ok || !data.success) {
-    //             throw new Error(data.message || 'Falha ao finalizar o faturamento no servidor.');
-    //         }
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Falha ao finalizar o faturamento no servidor.');
+            }
 
-    //         // 📢 1. LOG DE ENTRADA (Se esse printar, sabemos que o fetch deu certo)
-    //         //console.log("🟢 FETCH DE FATURAMENTO OK! Iniciando limpezas...");
+            // 📢 1. LOG DE ENTRADA (Se esse printar, sabemos que o fetch deu certo)
+            //console.log("🟢 FETCH DE FATURAMENTO OK! Iniciando limpezas...");
 
-    //         alert('Venda finalizada com sucesso! Orçamento marcado como Faturado.');
+            alert('Venda finalizada com sucesso! Orçamento marcado como Faturado.');
 
-    //         // 📢 2. TESTE DIRETO DE ENGENHARIA REVERSA (Sem depender de arquivos externos)
-    //         //console.log("⚡ Executando reset direto dentro do orcamento.js...");
+            // 📢 2. TESTE DIRETO DE ENGENHARIA REVERSA (Sem depender de arquivos externos)
+            //console.log("⚡ Executando reset direto dentro do orcamento.js...");
             
-    //         window.orcamentoAtualId = null;
-    //         window.carrinho = []; 
+            window.orcamentoAtualId = null;
+            window.carrinho = []; 
 
-    //         // Alvos diretos baseados nas frentes de caixa padrão
-    //         const inputNome = document.getElementById('cliente-nome') || document.querySelector('[name="cliente_nome"]');
-    //         const inputTipo = document.getElementById('cliente-tipo') || document.querySelector('[name="pessoa"]');
-    //         const inputFone = document.getElementById('cliente-telefone') || document.querySelector('[name="contato_local"]');
-    //         const inputEnd  = document.getElementById('cliente-endereco') || document.querySelector('[name="endereco_entrega"]');
+            // Alvos diretos baseados nas frentes de caixa padrão
+            const inputNome = document.getElementById('cliente-nome') || document.querySelector('[name="cliente_nome"]');
+            const inputTipo = document.getElementById('cliente-tipo') || document.querySelector('[name="pessoa"]');
+            const inputFone = document.getElementById('cliente-telefone') || document.querySelector('[name="contato_local"]');
+            const inputEnd  = document.getElementById('cliente-endereco') || document.querySelector('[name="endereco_entrega"]');
 
-    //         if (inputNome) inputNome.value = 'VENDA BALCAO';
-    //         if (inputTipo) inputTipo.value = 'Física';
-    //         if (inputFone) inputFone.value = '';
-    //         if (inputEnd)  inputEnd.value  = '';
+            if (inputNome) inputNome.value = 'VENDA BALCAO';
+            if (inputTipo) inputTipo.value = 'Física';
+            if (inputFone) inputFone.value = '';
+            if (inputEnd)  inputEnd.value  = '';
 
-    //         // Esvazia as tabelas visíveis
-    //         const tbody = document.getElementById('lista-itens') || document.getElementById('lista-produtos') || document.querySelector('table tbody');
-    //         if (tbody) tbody.innerHTML = '';
+            // Esvazia as tabelas visíveis
+            const tbody = document.getElementById('lista-itens') || document.getElementById('lista-produtos') || document.querySelector('table tbody');
+            if (tbody) tbody.innerHTML = '';
 
-    //         const totalGeral = document.getElementById('totalGeral') || document.getElementById('total_geral');
-    //         if (totalGeral) totalGeral.textContent = 'R$ 0,00';
+            const totalGeral = document.getElementById('totalGeral') || document.getElementById('total_geral');
+            if (totalGeral) totalGeral.textContent = 'R$ 0,00';
 
-    //         // 📢 3. TENTATIVA DE CHAMAR O ARQUIVO EXTERNO
-    //         //console.log("🔍 Tentando acionar o arquivo limparPDV.js...");
-    //         if (typeof window.limparPDV === 'function') {
-    //             //console.log("🎯 Sucesso: Função global limparPDV encontrada e acionada!");
-    //             window.limparPDV();
-    //         } else {
-    //             console.error("❌ Erro de Escopo: A função window.limparPDV não foi encontrada no escopo global.");
-    //         }
+            // 📢 3. TENTATIVA DE CHAMAR O ARQUIVO EXTERNO
+            //console.log("🔍 Tentando acionar o arquivo limparPDV.js...");
+            if (typeof window.limparPDV === 'function') {
+                //console.log("🎯 Sucesso: Função global limparPDV encontrada e acionada!");
+                window.limparPDV();
+            } else {
+                console.error("❌ Erro de Escopo: A função window.limparPDV não foi encontrada no escopo global.");
+            }
 
-    //     } catch (error) {
-    //         console.error("🔴 Bloqueio no Bloco Catch:", error);
-    //         alert('Erro ao faturar: ' + error.message);
-    //     }
+        } catch (error) {
+            console.error("🔴 Bloqueio no Bloco Catch:", error);
+            alert('Erro ao faturar: ' + error.message);
+        }
+
+    };
 
     // };
 
@@ -591,10 +593,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 let precoUnitario = 0;
-
-                if (item.preco_liquido !== undefined && parseFloat(item.preco_liquido) > 0) {
-                    precoUnitario = parseFloat(item.preco_liquido);
-                } else if (item.preco_unitario !== undefined) {
+                if (item.preco_unitario !== undefined) {
                     precoUnitario = parseFloat(item.preco_unitario);
                 } else if (item.produto && item.produto.preco_venda !== undefined) {
                     precoUnitario = parseFloat(item.produto.preco_venda);
@@ -632,19 +631,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     quantity = 0;
                 }
 
-                // O subtotal financeiro deve vir da tabela item_orcamentos.
-                // Regra: subtotal já considera quantidade solicitada, preço líquido e desconto.
-                let subtotal = 0;
+                // O subtotal financeiro sempre corresponde ao total vendido
+                let subtotal = quantity * precoUnitario;
 
-                if (item.subtotal !== undefined && parseFloat(item.subtotal) > 0) {
-                    subtotal = parseFloat(item.subtotal);
-                } else {
+                // Compatibilidade com registros antigos
+                if ((quantity === 0 || isNaN(quantity)) && item.subtotal && precoUnitario > 0) {
+                    quantity = parseFloat(item.subtotal) / precoUnitario;
                     subtotal = quantity * precoUnitario;
-                }
-
-                // Compatibilidade com registros antigos sem quantidade informada
-                if ((quantity === 0 || isNaN(quantity)) && subtotal > 0 && precoUnitario > 0) {
-                    quantity = subtotal / precoUnitario;
                 }
 
                 totalGeralAcumulado += subtotal;
@@ -652,10 +645,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.carrinho.push({
                     produto_id: pId,
                     lote_id: lId,
-                    quantidade: parseFloat(item.quantidade_solicitada),
-                    preco_unitario: parseFloat(item.preco_liquido ?? item.preco_unitario),
-                    desconto: parseFloat(item.valor_desconto ?? 0),
-                    subtotal: parseFloat(item.subtotal ?? 0)
+                    quantidade: quantity,
+                    preco_unitario: precoUnitario,
+                    desconto: 0
                 });
 
                 const tr = document.createElement('tr');

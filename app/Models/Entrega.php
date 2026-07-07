@@ -46,6 +46,11 @@ class Entrega extends Model
         return $this->belongsTo(Funcionario::class, 'motorista_id');
     }
 
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class, 'cliente_id');
+    }
+
     public function veiculo()
     {
         return $this->belongsTo(Frota::class, 'veiculo_id');
@@ -59,6 +64,27 @@ class Entrega extends Model
     public function itens()
     {
         return $this->hasMany(EntregaItem::class, 'entrega_id');
+    }
+    
+    public function itensVenda()
+    {
+        return $this->hasMany(EntregaItem::class, 'entrega_id')
+            ->whereNotNull('venda_id');
+    }
+
+    public function itemVenda()
+    {
+        return $this->hasMany(ItemVenda::class, 'venda_id', 'venda_id');
+    }
+
+    public function itemOrcamento()
+    {
+        return $this->hasMany(ItemOrcamento::class, 'orcamento_id', 'orcamento_id');
+    }
+
+    public function vendaItem()
+    {
+        return $this->hasMany(VendaItem::class, 'venda_id', 'venda_id');
     }
 
     public function orcamento()

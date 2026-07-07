@@ -92,8 +92,8 @@
                         Cancelado
                     </span>
                 <?php elseif($orcamento->status === 'Aguardando Estoque'): ?>
-                    <span class="badge bg-secondary" style="font-size: 14px;">
-                        Aguardando Estoque
+                    <span class="badge bg-warning text-dark" style="font-size: 12px;">
+                        Aguardando Aprovacao / Estoque Parcial
                     </span>
                  <?php elseif($orcamento->status === 'Faturado'): ?>
                     <span class="badge bg-success" style="font-size: 14px;">
@@ -106,7 +106,7 @@
             <td><?php echo e($orcamento->codigo_orcamento); ?></td>
             <td>
                 <!-- Aguardando Aprovação -->
-                <?php if($orcamento->status === 'Aguardando Aprovacao' ): ?>
+                <?php if(in_array($orcamento->status, ['Aguardando Aprovacao', 'Aguardando Estoque'])): ?>
                
                     <a href="<?php echo e(route('orcamentos.edit', $orcamento->id)); ?>" class="btn btn-sm btn-warning">Editar</a>
                     
@@ -131,9 +131,10 @@
 
                 <!-- 'Aguardando Estoque -->
                 <?php if($orcamento->status === 'Aguardando Estoque' ): ?>
-                    <a href="<?php echo e(route('orcamentos.edit', $orcamento->id)); ?>" class="btn btn-sm btn-warning">Editar</a>
-                    
+                    <!-- <a href="<?php echo e(route('orcamentos.edit', $orcamento->id)); ?>" class="btn btn-sm btn-warning">Editar</a> -->
+                                       
                 <?php endif; ?>
+
                 <!-- Expirado -->
                 <?php if($orcamento->status === 'Expirado' ): ?>
                     <form method="POST" action="<?php echo e(route('orcamentos.reativar', $orcamento->id)); ?>" style="display:inline;">

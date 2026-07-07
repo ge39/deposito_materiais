@@ -7,6 +7,7 @@ use App\Models\Categoria;
 use App\Models\Fornecedor;
 use App\Models\UnidadeMedida;
 use App\Models\Marca;
+use App\Models\LocalizacaoEstoque;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -32,6 +33,7 @@ class ProdutoController extends Controller
             'fornecedor',
             'marca',
             'unidadeMedida',
+            'localizacaoEstoque',
             'lotes'
         ])
         ->where('ativo', 1)
@@ -39,35 +41,6 @@ class ProdutoController extends Controller
 
         return view('produtos.index', compact('produtos'));
     }
-
-//    public function create()
-//     {
-//         // Carrega apenas registros ativos
-//         $categorias = Categoria::where('ativo', 1)->get();
-//         $fornecedores = Fornecedor::where('ativo', 1)->get();
-//         $unidades = UnidadeMedida::where('ativo', 1)->get();
-//         $marcas = Marca::where('ativo', 1)->get();
-
-//          // 🌟 Certifique-se de salvar nesta variável exata:
-//         $unidadesMedida = UnidadeMedida::where('ativo', 1)->get(); 
-
-//         // Lista de produtos existentes com quantidade disponível calculada
-//         $produtosExistentes = Produto::with(['lotes' => function($query) {
-//             $query->where('status', 'ativo')->where('quantidade', '>', 0);
-//         }])->get()->map(function($produto) {
-//             $produto->quantidade_disponivel = $produto->lotes->sum('quantidade');
-//             return $produto;
-//         });
-
-//         return view('produtos.create', compact(
-//             'categorias',
-//             'fornecedores',
-//             'unidades',
-//             'marcas',
-//             'produtosExistentes',
-//             'unidadesMedida'
-//         ));
-//     }
 
     public function create()
     {
@@ -86,6 +59,11 @@ class ProdutoController extends Controller
         $marcas = Marca::where('ativo', 1)
             ->orderBy('nome')
             ->get();
+        
+        $localizacoesEstoque = LocalizacaoEstoque::where('ativo', 1)
+            ->orderBy('ordem_coleta')
+            ->orderBy('codigo')
+            ->get();    
 
         $unidadesMedida = UnidadeMedida::where('ativo', 1)
             ->orderBy('nome')
@@ -110,166 +88,16 @@ class ProdutoController extends Controller
             'unidades',
             'marcas',
             'produtosExistentes',
-            'unidadesMedida'
+            'unidadesMedida',
+            'localizacoesEstoque'
         ));
     }
-    
-    // public function store(Request $request)
-    // {
-    //     // Validação básica
-    //     $validated = $request->validate([
-    //         'nome'               => 'required|string|max:255',
-    //         'sku'                => 'nullable|string|max:255',
-    //         'descricao'          => 'nullable|string|max:255',
-    //         'categoria_id'       => 'required|integer',
-    //         'fornecedor_id'      => 'required|integer',
-    //         'marca_id'           => 'nullable|integer',
-    //         'unidade_medida_id'  => 'required|integer',
-    //         'codigo_barras'      => 'nullable|string|max:255',
-    //         'preco_venda'        => 'required|numeric',
-    //         'preco_custo'        => 'required|numeric',
-    //          'quantidade_estoque' => 'required|integer|min:1',
-    //         'data_compra'        => 'required|date',
-    //         'estoque_minimo'     => 'required|integer|min:0',
-    //         'controla_validade'  => 'required|boolean', // ✅ Novo campo
-    //         'validade_produto'   => 'nullable|date',
-    //         'imagem'             => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
-    //     ]);
-
-    //     // Validação condicional da validade
-    //     if ($validated['controla_validade']) {
-    //         $request->validate([
-    //             'validade_produto' => 'required|date|after_or_equal:today',
-    //         ]);
-    //     } else {
-    //         $validated['validade_produto'] = null;
-    //     }
-
-    //     DB::beginTransaction();
-
-    //     try {
-
-    //         $produto = Produto::where('nome', $validated['nome'])
-    //             ->where('sku', $validated['sku'])
-    //             ->where('marca_id', $validated['marca_id'])
-    //             ->where('categoria_id', $validated['categoria_id'])
-    //             ->where('unidade_medida_id', $validated['unidade_medida_id'])
-    //             ->lockForUpdate()
-    //             ->first();
-
-    //         if ($produto) {
-    //             // 🔹 PRODUTO EXISTENTE
-    //             $produto->descricao          = $validated['descricao'];
-    //             $produto->codigo_barras      = $validated['codigo_barras'];
-    //             $produto->preco_custo        = $validated['preco_custo'];
-    //             $produto->preco_venda        = $validated['preco_venda'];
-    //             $produto->controla_validade  = $validated['controla_validade'];
-    //             $produto->validade_produto   = $validated['validade_produto'];
-    //             $produto->save();
-    //         } else {
-    //             // 🔹 NOVO PRODUTO
-    //             $produto = Produto::create([
-    //                 'nome'               => $validated['nome'],
-    //                 'sku'                => $validated['sku'],
-    //                 'marca_id'           => $validated['marca_id'],
-    //                 'categoria_id'       => $validated['categoria_id'],
-    //                 'unidade_medida_id'  => $validated['unidade_medida_id'],
-    //                 'descricao'          => $validated['descricao'],
-    //                 'fornecedor_id'      => $validated['fornecedor_id'],
-    //                 'codigo_barras'      => $validated['codigo_barras'],
-    //                 'preco_custo'        => $validated['preco_custo'],
-    //                 'preco_venda'        => $validated['preco_venda'],
-    //                 'quantidade_estoque' => 0,
-    //                 'estoque_minimo'     => $validated['estoque_minimo'],
-    //                 'ativo'              => 1,
-    //                 'controla_validade'  => $validated['controla_validade'],
-    //                 'validade_produto'   => $validated['validade_produto'],
-    //             ]);
-    //         }
-
-    //         // 🔹 IMAGEM
-    //         if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
-
-    //             $arquivo = $request->file('imagem');
-    //             $nomeArquivo = time() . '.' . $arquivo->getClientOriginalExtension();
-    //             $destino = public_path('image/produtos');
-
-    //             if (!file_exists($destino)) {
-    //                 mkdir($destino, 0755, true);
-    //             }
-
-    //             $arquivo->move($destino, $nomeArquivo);
-    //             // Salve apenas o nome do arquivo
-    //             $produto->imagem = $nomeArquivo;
-    //             $produto->save();
-    //         }
-    //         // 🔹 LOTE
-    //         $lote = $produto->lotes()->create([
-    //             'numero_lote'           => 'L' . time(),
-    //             'pedido_compra_id'      => null,
-    //             'produto_id'            => $produto->id,
-    //             'fornecedor_id'         => $validated['fornecedor_id'],
-    //             'quantidade'            => $validated['quantidade_estoque'],
-    //             'quantidade_disponivel' => $validated['quantidade_estoque'],
-    //             'preco_compra'          => $validated['preco_custo'],
-    //             'data_compra'           => $validated['data_compra'],
-    //             'validade_lote'         => $validated['validade_produto'],
-    //             'lancado_por'           => auth()->id(),
-    //         ]);
-
-    //       // 🔹 ATUALIZA ESTOQUE
-    //     $produto->quantidade_estoque = $produto->lotes()->sum('quantidade');
-
-    //     // 🔹 UPLOAD DA IMAGEM
-    //     if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
-
-    //         $destino = public_path('image/produtos');
-
-    //         if (!file_exists($destino)) {
-    //             mkdir($destino, 0755, true);
-    //         }
-
-    //        $arquivo = $request->file('imagem');
-
-    //         // Substitui caracteres inválidos por '_', e depois reduz múltiplos '_' para apenas um
-    //         $nomeLimpo = preg_replace('/[^A-Za-z0-9._-]/', '_', $arquivo->getClientOriginalName());
-    //         $nomeLimpo = preg_replace('/_+/', '_', $nomeLimpo); // 🌟 Evita duplicar underscores
-
-    //         $nomeArquivo = time() . '_' . $nomeLimpo;
-
-
-    //         $nomeArquivo = time() . '_' . preg_replace(
-    //             '/[^A-Za-z0-9._-]/',
-    //             '_',
-    //             $arquivo->getClientOriginalName()
-    //         );
-
-    //         $arquivo->move($destino, $nomeArquivo);
-
-    //         // Salva o caminho relativo para uso com asset()
-    //         $produto->imagem = 'image/produtos/' . $nomeArquivo;
-    //     }
-
-    //     $produto->save();
-
-    //         $produto->save();
-
-    //         DB::commit();
-
-    //         return redirect()->route('produtos.index')
-    //                         ->with('success', 'Produto e lote salvos com sucesso!');
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return back()->withErrors('Erro ao salvar: ' . $e->getMessage());
-    //     }
-    // }
-
+   
     public function store(Request $request)
     {
         // 1. VALIDAÇÃO RIGOROSA DOS DADOS (Alinhada com o DESCRIBE do Banco)
         $validated = $request->validate([
-            'nome'              => 'required|string|max;255',
+            'nome'              => 'required|string|max:255',
             'sku'               => 'nullable|string|max:50|unique:produtos,sku', // Evita colisões
             'codigo_barras'     => 'nullable|string|max:50|unique:produtos,codigo_barras',
             'categoria_id'      => 'required|exists:categorias,id',
@@ -284,7 +112,7 @@ class ProdutoController extends Controller
             'largura'           => 'nullable|numeric|min:0',
             'altura'            => 'nullable|numeric|min:0',
             'profundidade'      => 'nullable|numeric|min:0',
-            'localizacao_estoque'=> 'nullable|string|max:100',
+            'localizacao_estoque_id' => 'nullable|exists:localizacoes_estoque,id',
             'descricao'         => 'nullable|string',
             'ncm'               => 'nullable|string|max:8',
             'cest'              => 'nullable|string|max:7',
@@ -352,7 +180,7 @@ class ProdutoController extends Controller
                 ->with('error', 'Erro ao salvar o produto: ' . $e->getMessage());
         }
     }
-    
+   
     /** FORMULÁRIO DE EDIÇÃO */
     public function edit(Produto $produto)
     {
@@ -369,12 +197,22 @@ class ProdutoController extends Controller
         $produto->editando_em = now();
         $produto->save();
 
+        // 🚀 INJETADO AQUI: Carrega os lotes trazendo o mais recente primeiro por performance
+        $produto->load(['lotes' => function($query) {
+            $query->latest();
+        }]);
+
         return view('produtos.edit', [
             'produto' => $produto,
             'categorias' => Categoria::all(),
             'fornecedores' => Fornecedor::all(),
             'unidades' => UnidadeMedida::all(),
             'marcas' => Marca::all(),
+            'localizacoesEstoque' => LocalizacaoEstoque::where('ativo', 1)
+                ->orderBy('ordem_coleta')
+                ->orderBy('codigo')
+                ->get(),
+
         ]);
     }
 
@@ -382,16 +220,7 @@ class ProdutoController extends Controller
     {
         $this->validateProduto($request, false);
 
-        // Validação condicional da validade
-        if ($request->controla_validade) {
-            $request->validate([
-                'validade_produto' => 'required|date|after_or_equal:today',
-            ]);
-        } else {
-            $request->merge(['validade_produto' => null]);
-        }
-
-        // --- Verifica bloqueio ANTES da transação ---
+        // 🔒 Bloqueio de edição
         if ($produto->editando_por && $produto->editando_por != auth()->id()) {
             $usuario = $produto->usuarioEditando;
             $nomeUsuario = $usuario->name ?? 'Outro usuário';
@@ -401,18 +230,35 @@ class ProdutoController extends Controller
                 ->with('error', "Este produto está sendo editado por: {$nomeUsuario}");
         }
 
-        DB::transaction(function () use ($request, $produto) {
+       // 📌 Dados base do request
+        $data = $request->except(['imagem']);
 
-            $produto->fill($request->except('imagem'));
+        // ✅ Checkboxes Tratados Corretamente (Forçando BOOLEANOS puros para o Cast do Model)
+        $data['ativo']             = $request->has('ativo') ? true : false;
+        $data['em_promocao']       = $request->has('em_promocao') ? true : false;
+        // Se o checkbox na view de produtos se chamar 'controla_validade', o tratamento abaixo está correto:
+        $data['controla_validade'] = $request->has('controla_validade') ? true : false;
 
-            // Atualiza validade e controla_validade
-            $produto->controla_validade = $request->controla_validade;
-            $produto->validade_produto  = $request->validade_produto;
+        // 📅 Validade condicional baseada no booleano puro
+        if ($data['controla_validade'] === true) {
+            $request->validate([
+                'validade_produto' => 'required|date|after_or_equal:today',
+            ]);
+        } else {
+            $data['validade_produto'] = null;
+        }
 
-           if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
+        // 💾 Executa a transação isolando a persistência com segurança
+        DB::transaction(function () use ($request, $produto, $data) {
 
-            // Remove a imagem antiga
-            if ($produto->imagem) {
+            // 🧠 Preenche todos os campos tratados de uma vez no modelo
+            $produto->fill($data);
+
+            // 🖼️ Upload de imagem
+            if ($request->hasFile('imagem') && $request->file('imagem')->isValid()) {
+
+                // Remove imagem antiga
+                if ($produto->imagem) {
                     $imagemAntiga = public_path($produto->imagem);
 
                     if (file_exists($imagemAntiga)) {
@@ -422,32 +268,37 @@ class ProdutoController extends Controller
 
                 // Gera nome único
                 $arquivo = $request->file('imagem');
-                $nomeArquivo = time() . '_' . preg_replace('/[^A-Za-z0-9\.\-_]/', '_', $arquivo->getClientOriginalName());
+                $nomeArquivo = time() . '_' . preg_replace(
+                    '/[^A-Za-z0-9\.\-_]/',
+                    '_',
+                    $arquivo->getClientOriginalName()
+                );
 
-                // Garante que a pasta exista
+                // Pasta destino
                 $destino = public_path('image/produtos');
 
                 if (!file_exists($destino)) {
                     mkdir($destino, 0755, true);
                 }
 
-                // Move o arquivo
+                // Move arquivo
                 $arquivo->move($destino, $nomeArquivo);
 
-                // Salva o caminho no banco
                 $produto->imagem = 'image/produtos/' . $nomeArquivo;
             }
 
-            // --- Libera o bloqueio de edição ---
+            // 🔓 Libera bloqueio de edição
             if ($produto->editando_por == auth()->id()) {
                 $produto->editando_por = null;
-                $produto->editando_em  = null;
+                $produto->editando_em = null;
             }
 
+            // 💾 Persistência definitiva no banco de dados
             $produto->save();
         });
 
-        return redirect()->route('produtos.index')
+        return redirect()
+            ->route('produtos.index')
             ->with('success', 'Produto atualizado com sucesso!');
     }
 
@@ -618,6 +469,7 @@ class ProdutoController extends Controller
             'fornecedor_id' => 'required|exists:fornecedores,id',
             'unidade_medida_id' => 'required|exists:unidades_medida,id',
             'marca_id' => 'required|exists:marcas,id',
+            'localizacao_estoque_id' => 'nullable|exists:localizacoes_estoque,id',
             'validade_produto' => 'nullable|date',
             'imagem' => 'nullable|image|max:2048',
         ];

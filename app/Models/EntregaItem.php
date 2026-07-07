@@ -40,6 +40,11 @@ class EntregaItem extends Model
         return $this->belongsTo(ItemOrcamento::class, 'item_orcamento_id');
     }
 
+    public function produto()
+    {
+        return $this->belongsTo(Produto::class, 'produto_id');
+    }
+
     public function getSaldoAttribute()
     {
         return max(0, $this->quantidade_prevista - $this->quantidade_entregue);

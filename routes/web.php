@@ -45,6 +45,7 @@ use App\Http\Controllers\{
     BackupController,
     RomaneioController,
     ExpedicaoController,
+    LocalizacaoEstoqueController,
 };
 
 // ===============================
@@ -569,10 +570,10 @@ Route::prefix('romaneios')->name('romaneios.')->group(function () {
     Route::get('/criar', [RomaneioController::class, 'create'])->name('create');
     Route::post('/', [RomaneioController::class, 'store'])->name('store');
 
-    Route::get('/{romaneio}', [RomaneioController::class, 'show'])->name('show');
     Route::get('/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('imprimir');
-
     Route::post('/{romaneio}/cancelar', [RomaneioController::class, 'cancelar'])->name('cancelar');
+
+    Route::get('/{romaneio}', [RomaneioController::class, 'show'])->name('show');
 });
 
 // EXPEDIÇÃO
@@ -596,3 +597,15 @@ Route::prefix('expedicao')->name('expedicao.')->group(function () {
     Route::post('/romaneio/{romaneio}/liberar-rota', [ExpedicaoController::class, 'liberarRota'])
         ->name('liberar-rota');
 });
+
+// LOCALIZAÇÕES DE ESTOQUE
+Route::prefix('localizacoes-estoque')
+    ->name('localizacoes-estoque.')
+    ->group(function () {
+        Route::get('/', [LocalizacaoEstoqueController::class, 'index'])->name('index');
+        Route::get('/criar', [LocalizacaoEstoqueController::class, 'create'])->name('create');
+        Route::post('/', [LocalizacaoEstoqueController::class, 'store'])->name('store');
+        Route::get('/{localizacaoEstoque}/editar', [LocalizacaoEstoqueController::class, 'edit'])->name('edit');
+        Route::put('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'update'])->name('update');
+        Route::delete('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'destroy'])->name('destroy');
+    });

@@ -91,8 +91,8 @@
                         Cancelado
                     </span>
                 @elseif ($orcamento->status === 'Aguardando Estoque')
-                    <span class="badge bg-secondary" style="font-size: 14px;">
-                        Aguardando Estoque
+                    <span class="badge bg-warning text-dark" style="font-size: 12px;">
+                        Aguardando Aprovacao / Estoque Parcial
                     </span>
                  @elseif ($orcamento->status === 'Faturado')
                     <span class="badge bg-success" style="font-size: 14px;">
@@ -105,7 +105,7 @@
             <td>{{ $orcamento->codigo_orcamento }}</td>
             <td>
                 <!-- Aguardando Aprovação -->
-                @if ($orcamento->status === 'Aguardando Aprovacao' )
+                @if(in_array($orcamento->status, ['Aguardando Aprovacao', 'Aguardando Estoque']))
                
                     <a href="{{ route('orcamentos.edit', $orcamento->id) }}" class="btn btn-sm btn-warning">Editar</a>
                     
@@ -130,9 +130,10 @@
 
                 <!-- 'Aguardando Estoque -->
                 @if ($orcamento->status === 'Aguardando Estoque' )
-                    <a href="{{ route('orcamentos.edit', $orcamento->id) }}" class="btn btn-sm btn-warning">Editar</a>
-                    
+                    <!-- <a href="{{ route('orcamentos.edit', $orcamento->id) }}" class="btn btn-sm btn-warning">Editar</a> -->
+                                       
                 @endif
+
                 <!-- Expirado -->
                 @if ($orcamento->status === 'Expirado' )
                     <form method="POST" action="{{ route('orcamentos.reativar', $orcamento->id) }}" style="display:inline;">

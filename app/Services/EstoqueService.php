@@ -335,14 +335,44 @@ class EstoqueService
     /**
      * STATUS DO ORÇAMENTO
      */
+    // private function atualizarStatusOrcamento(array $ids): void
+    // {
+    //     foreach ($ids as $id) {
+
+    //         $orcamento = Orcamento::find($id);
+
+    //         // 🚨 REGRA DE OURO: nunca mexer em cancelados
+    //         if (!$orcamento || $orcamento->status === 'Cancelado') {
+    //             continue;
+    //         }
+
+    //         $temPendente = ItemOrcamento::where('orcamento_id', $id)
+    //             ->where('quantidade_pendente', '>', 0)
+    //             ->exists();
+
+    //         $orcamento->update([
+    //             'status' => $temPendente
+    //                 ? 'Aguardando Estoque'
+    //                 : 'Aguardando Aprovacao'
+    //         ]);
+    //     }
+    // }
+
     private function atualizarStatusOrcamento(array $ids): void
     {
         foreach ($ids as $id) {
 
             $orcamento = Orcamento::find($id);
 
-            // 🚨 REGRA DE OURO: nunca mexer em cancelados
-            if (!$orcamento || $orcamento->status === 'Cancelado') {
+            if (!$orcamento) {
+                continue;
+            }
+
+            // REGRA FIXA:
+            // Cancelado = arquivo morto
+            // Faturado  = já passou pelo PDV
+            // Entrada de lote não pode reativar nenhum dos dois.
+            if (in_array($orcamento->status, ['Cancelado', 'Faturado'], true)) {
                 continue;
             }
 
@@ -353,8 +383,9 @@ class EstoqueService
             $orcamento->update([
                 'status' => $temPendente
                     ? 'Aguardando Estoque'
-                    : 'Aguardando Aprovacao'
+                    : 'Aguardando Aprovacao',
             ]);
         }
     }
+
 }

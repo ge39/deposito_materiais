@@ -212,13 +212,6 @@ class VendaController extends Controller
         $orcamentoId = $request->input('orcamento_id');
         $orcamentoId = $orcamentoId ? (int) $orcamentoId : null;
 
-        // return response()->json([
-        //     'debug' => true,
-        //     'etapa' => 'ENTRADA DO CONTROLLER',
-        //     'orcamento_id' => $request->input('orcamento_id'),
-        //     'payload' => $request->all(),
-        // ], 200);
-
         DB::beginTransaction();
 
         try {
@@ -326,8 +319,20 @@ class VendaController extends Controller
                     throw new \Exception("Orçamento #{$orcamentoId} não encontrado.");
                 }
 
-                if ($orcamento->status !== 'Aprovado') {
-                    throw new \Exception("Orçamento #{$orcamentoId} está com status '{$orcamento->status}', esperado: Aprovado.");
+                // if ($orcamento->status !== 'Aprovado') {
+                //     throw new \Exception("Orçamento #{$orcamentoId} está com status '{$orcamento->status}', esperado: Aprovado.");
+                // }
+                
+                $statusPermitidos = ['Aprovado'];
+
+                if ($orcamento->tipo_entrega === 'entrega') {
+                    $statusPermitidos[] = 'Aguardando Estoque';
+                }
+
+                if (!in_array($orcamento->status, $statusPermitidos, true)) {
+                    throw new \Exception(
+                        "Orçamento #{$orcamentoId} está com status '{$orcamento->status}', esperado: " . implode(' ou ', $statusPermitidos) . "."
+                    );
                 }
 
                 $orcamento->update([
