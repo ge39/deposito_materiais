@@ -76,18 +76,27 @@ class RomaneioService
         });
     }
 
-    private function buscarItensParaRomaneio(array $entregasIds, array $entregaItensIds)
+   private function buscarItensParaRomaneio(array $entregasIds, array $entregaItensIds)
     {
-        if (! empty($entregaItensIds)) {
-            return EntregaItem::with(['entrega', 'produto'])
-                ->whereIn('id', $entregaItensIds)
-                ->lockForUpdate()
-                ->get();
+        $query = EntregaItem::with([
+            'entrega',
+            'produto',
+            'vendaItem.produto',
+            'itemOrcamento.produto',
+        ])->lockForUpdate();
+
+        if (!empty($entregaItensIds)) {
+            $query->whereIn('id', $entregaItensIds);
+        } else {
+            $query->whereIn('entrega_id', $entregasIds);
         }
 
-        return EntregaItem::with(['entrega', 'produto'])
-            ->whereIn('entrega_id', $entregasIds)
-            ->lockForUpdate()
+        return $query
+            ->whereNotIn('status', ['Entregue', 'Cancelado', 'Devolvido'])
+            ->where(function ($q) {
+                $q->where('quantidade_prevista', '>', 0)
+                ->orWhere('quantidade_entregue', '>', 0);
+            })
             ->get();
     }
 

@@ -321,7 +321,7 @@
 
     {{-- TABELA --}}
     <div class="card shadow-sm mb-3">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
             <strong><i class="bi bi-list-check me-2"></i>Operações de Entrega</strong>
 
             <div class="d-flex gap-1 flex-wrap">
