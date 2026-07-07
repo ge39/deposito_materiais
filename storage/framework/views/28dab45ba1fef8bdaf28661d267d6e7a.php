@@ -14,7 +14,7 @@
 
         $badgeStatus = match($status) {
             'Gerado' => 'primary',
-            'Pendente' => 'warning',
+            'Pendente' => 'warning' ,
             'Em separação', 'Separando' => 'info',
             'Carregando' => 'info',
             'Carregado' => 'success',

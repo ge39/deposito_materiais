@@ -1,312 +1,293 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Romaneio {{ $romaneio->codigo_romaneio ?? $romaneio->id }}</title>
 
-@section('content')
+    <style>
+        @page {
+            size: A4;
+            margin: 12mm;
+        }
 
-<style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #000;
+            margin: 0;
+        }
 
-@media print{
+        .no-print {
+            margin-bottom: 12px;
+        }
 
-    .no-print{
-        display:none !important;
-    }
+        .pagina-romaneio {
+            min-height: 270mm;
+            page-break-after: always;
+            position: relative;
+        }
 
-    body{
-        background:#FFF;
-    }
+        .pagina-romaneio:last-child {
+            page-break-after: auto;
+        }
 
-    .page-break{
-        page-break-after:always;
-    }
+        .cabecalho {
+            border: 2px solid #000;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
 
-}
+        .titulo {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
 
-.table td,
-.table th{
-    vertical-align:middle;
-}
+        .subtitulo {
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
 
-.assinatura{
-    margin-top:70px;
-    text-align:center;
-}
+        .linha {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
 
-.assinatura hr{
-    border:1px solid #000;
-    margin-bottom:4px;
-}
+        .box {
+            border: 1px solid #000;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
 
-</style>
+        .box-title {
+            font-weight: bold;
+            background: #eee;
+            border-bottom: 1px solid #000;
+            margin: -8px -8px 8px -8px;
+            padding: 5px 8px;
+            text-transform: uppercase;
+        }
 
-<div class="container-fluid">
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+        }
 
-<div class="d-flex justify-content-between mb-4 no-print">
+        th, td {
+            border: 1px solid #000;
+            padding: 5px;
+            vertical-align: top;
+        }
 
-    <a href="{{ route('romaneios.show',$romaneio->id) }}"
-       class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i>
-        Voltar
-    </a>
+        th {
+            background: #eee;
+            font-weight: bold;
+            text-align: left;
+        }
 
-    <button
-        onclick="window.print();"
-        class="btn btn-primary">
+        .text-center {
+            text-align: center;
+        }
 
-        <i class="bi bi-printer"></i>
-        Imprimir
+        .text-end {
+            text-align: right;
+        }
 
-    </button>
+        .assinaturas {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 35px;
+        }
 
+        .assinatura {
+            width: 33%;
+            text-align: center;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+            font-weight: bold;
+        }
+
+        .rodape {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="no-print">
+    <button onclick="window.print()">Imprimir Romaneio</button>
 </div>
-
-@for($via=1;$via<=2;$via++)
-
-<div class="card mb-5">
-
-<div class="card-body">
-
-<div class="row">
-
-<div class="col-8">
-
-<h3 class="fw-bold">
-
-{{ config('app.name') }}
-
-</h3>
-
-<h5>
-
-ROMANEIO DE SEPARAÇÃO
-
-</h5>
-
-</div>
-
-<div class="col-4 text-end">
-
-<strong>Via:</strong>
-
-@if($via==1)
-
-Expedição
-
-@else
-
-Motorista
-
-@endif
-
-<br>
-
-<strong>Romaneio:</strong>
-
-{{ $romaneio->codigo_romaneio }}
-
-<br>
-
-<strong>Data:</strong>
-
-{{ \Carbon\Carbon::parse($romaneio->data_emissao)->format('d/m/Y H:i') }}
-
-</div>
-
-</div>
-
-<hr>
-
-<div class="row mb-3">
-
-<div class="col-md-6">
-
-<strong>Cliente</strong><br>
-
-{{ optional($romaneio->entrega)->cliente->nome ?? '-' }}
-
-</div>
-
-<div class="col-md-3">
-
-<strong>Entrega</strong><br>
-
-#{{ $romaneio->entrega_id }}
-
-</div>
-
-<div class="col-md-3">
-
-<strong>Status</strong><br>
-
-{{ $romaneio->status }}
-
-</div>
-
-</div>
-
-<div class="row mb-3">
-
-<div class="col-md-6">
-
-<strong>Motorista</strong><br>
-
-{{ optional($romaneio->motorista)->nome ?? 'Não definido' }}
-
-</div>
-
-<div class="col-md-6">
-
-<strong>Veículo</strong><br>
-
-{{ optional($romaneio->veiculo)->placa ?? 'Não definido' }}
-
-</div>
-
-</div>
-
-<table class="table table-bordered table-sm">
-
-<thead class="table-dark">
-
-<tr>
-
-<th width="8%">Ordem</th>
-
-<th width="14%">Localização</th>
-
-<th>Produto</th>
-
-<th width="10%">Un.</th>
-
-<th width="10%">Qtde</th>
-
-<th width="10%">Separado</th>
-
-<th width="10%">Conferido</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-@foreach($romaneio->itens as $indice=>$item)
 
 @php
+    $entrega = $romaneio->entrega;
+    $orcamento = $entrega->orcamento ?? null;
+    $venda = $entrega->venda ?? null;
+    $cliente = $entrega->cliente ?? $orcamento->cliente ?? null;
 
-$produto =
-$item->entregaItem->produto
-?? $item->entregaItem->vendaItem->produto
-?? $item->entregaItem->itemOrcamento->produto;
+    $codigoRomaneio = $romaneio->codigo_romaneio ?? 'ROM-' . $romaneio->id;
 
+    $vias = [
+        'VIA 1 - EXPEDIÇÃO',
+        'VIA 2 - MOTORISTA / CLIENTE',
+    ];
 @endphp
 
-<tr>
+@foreach($vias as $indexVia => $via)
+    <section class="pagina-romaneio">
 
-<td class="text-center">
+        <div class="cabecalho">
+            <div class="titulo">ROMANEIO DE ENTREGA</div>
+            <div class="subtitulo">{{ $via }}</div>
 
-{{ $indice+1 }}
+            <div class="linha">
+                <div><strong>Romaneio:</strong> {{ $codigoRomaneio }}</div>
+                <div><strong>Página:</strong> {{ $indexVia + 1 }} de {{ count($vias) }}</div>
+            </div>
 
-</td>
+            <div class="linha">
+                <div><strong>Emissão:</strong> {{ optional($romaneio->data_emissao ?? $romaneio->created_at)->format('d/m/Y H:i') }}</div>
+                <div><strong>Status:</strong> {{ $romaneio->status ?? 'Gerado' }}</div>
+            </div>
+        </div>
 
-<td>
+        <div class="box">
+            <div class="box-title">Documentos Vinculados</div>
 
-{{ optional($produto->localizacaoEstoque)->codigo ?? '---' }}
+            <div class="linha">
+                <div><strong>Venda:</strong> {{ $entrega && $entrega->venda_id ? 'VEN-' . $entrega->venda_id : '—' }}</div>
+                <div><strong>Entrega:</strong> {{ $entrega ? 'ENT-' . $entrega->id : '—' }}</div>
+                <div><strong>Orçamento:</strong> {{ $orcamento ? 'ORÇ-' . $orcamento->id : ($entrega->orcamento_id ?? '—') }}</div>
+            </div>
+        </div>
 
-</td>
+        <div class="box">
+            <div class="box-title">Cliente e Destino</div>
 
-<td>
+            <div><strong>Cliente:</strong> {{ $cliente->nome ?? 'Cliente não informado' }}</div>
+            <div><strong>Endereço:</strong> {{ $entrega->endereco_entrega ?? $entrega->endereco_entrega_concatenado ?? 'Endereço não informado' }}</div>
+            <div><strong>Período:</strong> {{ $entrega->periodo_entrega ?? 'Não informado' }}</div>
+            <div><strong>Observação:</strong> {{ $entrega->observacao_entrega ?? $romaneio->observacao ?? '—' }}</div>
+        </div>
 
-{{ $produto->nome }}
+        <div class="box">
+            <div class="box-title">Veículo e Responsáveis</div>
 
-</td>
+            <div class="linha">
+                <div><strong>Motorista:</strong> {{ $romaneio->motorista->name ?? $romaneio->motorista->nome ?? 'Não definido' }}</div>
+                <div><strong>Veículo:</strong> {{ $romaneio->veiculo->placa ?? 'Não definido' }}</div>
+            </div>
 
-<td class="text-center">
+            <div class="linha">
+                <div><strong>Início Separação:</strong> {{ optional($romaneio->data_inicio_separacao)->format('d/m/Y H:i') ?? '—' }}</div>
+                <div><strong>Saída:</strong> {{ optional($romaneio->data_saida)->format('d/m/Y H:i') ?? '—' }}</div>
+            </div>
+        </div>
 
-{{ optional($produto->unidadeMedida)->sigla }}
+        <div class="box">
+            <div class="box-title">Itens para Separação / Carregamento</div>
 
-</td>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%;" class="text-center">#</th>
+                        <th style="width: 38%;">Produto</th>
+                        <th style="width: 18%;">Localização</th>
+                        <th style="width: 13%;" class="text-end">Prevista</th>
+                        <th style="width: 13%;" class="text-end">Carregada</th>
+                        <th style="width: 13%;" class="text-center">Conferência</th>
+                    </tr>
+                </thead>
 
-<td class="text-center">
+                <tbody>
+                    @forelse($romaneio->itens as $i => $item)
+                        @php
+                            $entregaItem = $item->entregaItem;
 
-{{ number_format($item->quantidade_prevista,2,',','.') }}
+                            $produto = $entregaItem->produto
+                                ?? $entregaItem->vendaItem->produto
+                                ?? $entregaItem->itemOrcamento->produto
+                                ?? null;
 
-</td>
+                            $localizacao = $produto->localizacao_estoque ?? '—';
+                        @endphp
 
-<td></td>
+                        <tr>
+                            <td class="text-center">{{ $i + 1 }}</td>
 
-<td></td>
+                            <td>
+                                <strong>{{ $produto->nome ?? 'Produto não identificado' }}</strong><br>
+                                <small>Cód.: {{ $produto->id ?? '—' }}</small>
+                            </td>
 
-</tr>
+                            <td>{{ $localizacao }}</td>
 
+                            <td class="text-end">
+                                {{ number_format((float) ($item->quantidade_prevista ?? 0), 2, ',', '.') }}
+                            </td>
+
+                            <td class="text-end">
+                                {{ number_format((float) ($item->quantidade_carregada ?? 0), 2, ',', '.') }}
+                            </td>
+
+                            <td class="text-center">[ &nbsp;&nbsp; ]</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center">
+                                Nenhum item encontrado para este romaneio.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="assinaturas">
+            <div class="assinatura">Expedição</div>
+            <div class="assinatura">Motorista</div>
+            <div class="assinatura">Cliente</div>
+        </div>
+
+        <div class="rodape">
+            <span>{{ $codigoRomaneio }}</span>
+            <span>{{ $via }}</span>
+            <span>Página {{ $indexVia + 1 }} de {{ count($vias) }}</span>
+        </div>
+
+    </section>
 @endforeach
 
-</tbody>
+<script>
+    window.onload = function () {
+        window.print();
+    };
+</script>
 
-</table>
-
-<div class="row mt-4">
-
-<div class="col-12">
-
-<strong>Observações</strong>
-
-<div style="height:80px;border:1px solid #000;"></div>
-
-</div>
-
-</div>
-
-<div class="row mt-5">
-
-<div class="col-4">
-
-<div class="assinatura">
-
-<hr>
-
-Separado por
-
-</div>
-
-</div>
-
-<div class="col-4">
-
-<div class="assinatura">
-
-<hr>
-
-Conferido por
-
-</div>
-
-</div>
-
-<div class="col-4">
-
-<div class="assinatura">
-
-<hr>
-
-Motorista
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-@if($via==1)
-
-<div class="page-break"></div>
-
-@endif
-
-@endfor
-
-</div>
-
-@endsection
+</body>
+</html>

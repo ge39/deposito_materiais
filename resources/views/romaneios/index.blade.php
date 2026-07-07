@@ -348,33 +348,42 @@
                                 </td>
 
                                 <td class="text-end">
-                                    <div class="btn-group btn-group-sm">
-                                        @if(Route::has('romaneios.show'))
-                                            <a href="{{ route('romaneios.show', $romaneio->id) }}"
-                                               class="btn btn-outline-primary"
-                                               title="Visualizar romaneio">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                        @endif
+    <div class="btn-group btn-group-sm">
 
-                                        @if(Route::has('romaneios.print'))
-                                            <a href="{{ route('romaneios.print', $romaneio->id) }}"
-                                               class="btn btn-outline-dark"
-                                               target="_blank"
-                                               title="Imprimir romaneio">
-                                                <i class="bi bi-printer"></i>
-                                            </a>
-                                        @endif
+        @if(Route::has('romaneios.show'))
+            <a href="{{ route('romaneios.show', $romaneio->id) }}"
+               class="btn btn-outline-primary"
+               title="Visualizar romaneio">
+                <i class="bi bi-eye"></i>
+            </a>
+        @endif
 
-                                        @if(Route::has('expedicao.show'))
-                                            <a href="{{ route('expedicao.show', $romaneio->id) }}"
-                                               class="btn btn-outline-success"
-                                               title="Abrir expedição">
-                                                <i class="bi bi-box-arrow-right"></i>
-                                            </a>
-                                        @endif
-                                    </div>
-                                </td>
+        @if(Route::has('romaneios.imprimir'))
+            <a href="{{ route('romaneios.imprimir', $romaneio->id) }}"
+               class="btn btn-outline-dark"
+               target="_blank"
+               title="Imprimir romaneio">
+                <i class="bi bi-printer"></i>
+            </a>
+        @elseif(Route::has('romaneios.print'))
+            <a href="{{ route('romaneios.print', $romaneio->id) }}"
+               class="btn btn-outline-dark"
+               target="_blank"
+               title="Imprimir romaneio">
+                <i class="bi bi-printer"></i>
+            </a>
+        @endif
+
+        @if(Route::has('expedicao.show'))
+            <a href="{{ route('expedicao.show', $romaneio->id) }}"
+               class="btn btn-outline-success"
+               title="Abrir expedição">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        @endif
+
+    </div>
+</td>
                             </tr>
                         @empty
                             <tr>

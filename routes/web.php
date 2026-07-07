@@ -608,4 +608,5 @@ Route::prefix('localizacoes-estoque')
         Route::get('/{localizacaoEstoque}/editar', [LocalizacaoEstoqueController::class, 'edit'])->name('edit');
         Route::put('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'update'])->name('update');
         Route::delete('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'destroy'])->name('destroy');
+        Route::get('/romaneios/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('romaneios.imprimir');
     });

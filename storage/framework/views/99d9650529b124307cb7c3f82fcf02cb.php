@@ -364,33 +364,42 @@
                                 </td>
 
                                 <td class="text-end">
-                                    <div class="btn-group btn-group-sm">
-                                        <?php if(Route::has('romaneios.show')): ?>
-                                            <a href="<?php echo e(route('romaneios.show', $romaneio->id)); ?>"
-                                               class="btn btn-outline-primary"
-                                               title="Visualizar romaneio">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                        <?php endif; ?>
+    <div class="btn-group btn-group-sm">
 
-                                        <?php if(Route::has('romaneios.print')): ?>
-                                            <a href="<?php echo e(route('romaneios.print', $romaneio->id)); ?>"
-                                               class="btn btn-outline-dark"
-                                               target="_blank"
-                                               title="Imprimir romaneio">
-                                                <i class="bi bi-printer"></i>
-                                            </a>
-                                        <?php endif; ?>
+        <?php if(Route::has('romaneios.show')): ?>
+            <a href="<?php echo e(route('romaneios.show', $romaneio->id)); ?>"
+               class="btn btn-outline-primary"
+               title="Visualizar romaneio">
+                <i class="bi bi-eye"></i>
+            </a>
+        <?php endif; ?>
 
-                                        <?php if(Route::has('expedicao.show')): ?>
-                                            <a href="<?php echo e(route('expedicao.show', $romaneio->id)); ?>"
-                                               class="btn btn-outline-success"
-                                               title="Abrir expedição">
-                                                <i class="bi bi-box-arrow-right"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
+        <?php if(Route::has('romaneios.imprimir')): ?>
+            <a href="<?php echo e(route('romaneios.imprimir', $romaneio->id)); ?>"
+               class="btn btn-outline-dark"
+               target="_blank"
+               title="Imprimir romaneio">
+                <i class="bi bi-printer"></i>
+            </a>
+        <?php elseif(Route::has('romaneios.print')): ?>
+            <a href="<?php echo e(route('romaneios.print', $romaneio->id)); ?>"
+               class="btn btn-outline-dark"
+               target="_blank"
+               title="Imprimir romaneio">
+                <i class="bi bi-printer"></i>
+            </a>
+        <?php endif; ?>
+
+        <?php if(Route::has('expedicao.show')): ?>
+            <a href="<?php echo e(route('expedicao.show', $romaneio->id)); ?>"
+               class="btn btn-outline-success"
+               title="Abrir expedição">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        <?php endif; ?>
+
+    </div>
+</td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
