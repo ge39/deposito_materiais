@@ -8,7 +8,7 @@ use App\Models\ItemVenda;
 use App\Models\Orcamento;
 use App\Models\Venda;
 use App\Models\Funcionario;
-use App\Models\Frota;
+use App\Models\Veiculo;
 use App\Models\Romaneio;
 use App\Models\RomaneioItem;
 
@@ -243,7 +243,7 @@ class EntregaService
                 ->where('ativo', 1)
                 ->firstOrFail();
 
-            $veiculo = Frota::where('id', $veiculoId)
+            $veiculo = Veiculo::where('id', $veiculoId)
                 ->where('ativo', 1)
                 ->firstOrFail();
 

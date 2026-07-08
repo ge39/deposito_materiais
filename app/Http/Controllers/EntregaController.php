@@ -6,7 +6,7 @@ use Illuminate\Validation\ValidationException;
 
 use App\Models\Entrega;
 use App\Models\Funcionario;
-use App\Models\Frota;
+use App\Models\Veiculo;
 use App\Services\Entregas\EntregaService;
 
 use Throwable;
@@ -189,50 +189,6 @@ class EntregaController extends Controller
         }
     }
 
-    
-    public function atribuirEquipe(Entrega $entrega)
-    {
-        $motoristas = Funcionario::motoristas()
-            ->ativos()
-            ->orderBy('nome')
-            ->get();
-
-        $veiculos = Frota::where('ativo', 1)
-            ->whereIn('status', ['disponivel', 'reservado'])
-            ->orderBy('placa')
-            ->get();
-
-        return view('entregas.atribuir-equipe', compact('entrega', 'motoristas', 'veiculos'));
-    }
-
-   public function salvarEquipe(Request $request, Entrega $entrega)
-    {
-        $dados = $request->validate([
-            'motorista_id' => ['required', 'exists:funcionarios,id'],
-            'veiculo_id' => ['required', 'exists:frotas,id'],
-        ]);
-
-        Funcionario::where('id', $dados['motorista_id'])
-            ->where('funcao', 'motorista')
-            ->where('ativo', 1)
-            ->firstOrFail();
-
-        Frota::where('id', $dados['veiculo_id'])
-            ->where('ativo', 1)
-            ->firstOrFail();
-
-        $this->entregaService->atribuirEquipe(
-            $entrega,
-            $dados['motorista_id'],
-            $dados['veiculo_id']
-        );
-
-        return redirect()
-            ->route('entregas.show', $entrega->id)
-            ->with('success', 'Motorista e veículo atribuídos com sucesso.');
-    }
-
-
     public function cancelar(Request $request, Entrega $entrega)
     {
         $dados = $request->validate([
@@ -256,6 +212,50 @@ class EntregaController extends Controller
                 ->back()
                 ->with('error', 'Erro ao cancelar entrega: ' . $e->getMessage());
         }
+    }
+      
+    public function atribuirEquipe(Entrega $entrega)
+    {
+        $motoristas = Funcionario::motoristas()
+            ->ativos()
+            ->orderBy('nome')
+            ->get();
+
+        $veiculos = Veiculo::where('ativo', 1)
+            ->where('status', 'Ativo')
+            ->whereIn('disponibilidade', ['Disponivel', 'Reservado'])
+            ->orderBy('placa')
+            ->get();
+
+        return view('entregas.atribuir-equipe', compact('entrega', 'motoristas', 'veiculos'));
+    }
+
+    public function salvarEquipe(Request $request, Entrega $entrega)
+    {
+        $dados = $request->validate([
+            'motorista_id' => ['required', 'exists:funcionarios,id'],
+            'veiculo_id' => ['required', 'exists:veiculos,id'],
+        ]);
+
+        Funcionario::where('id', $dados['motorista_id'])
+            ->where('funcao', 'motorista')
+            ->where('ativo', 1)
+            ->firstOrFail();
+
+        Veiculo::where('id', $dados['veiculo_id'])
+            ->where('ativo', 1)
+            ->where('status', 'Ativo')
+            ->firstOrFail();
+
+        $this->entregaService->atribuirEquipe(
+            $entrega,
+            $dados['motorista_id'],
+            $dados['veiculo_id']
+        );
+
+        return redirect()
+            ->route('entregas.show', $entrega->id)
+            ->with('success', 'Motorista e veículo atribuídos com sucesso.');
     }
 
     private function alterarStatusComRetorno(Entrega $entrega, string $status, string $mensagem)

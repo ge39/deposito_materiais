@@ -397,6 +397,7 @@
                                 </td>
 
                                 <td class="text-end">
+
                                     <div class="d-flex justify-content-end gap-1 flex-wrap " >
                                         @if(Route::has('romaneios.show'))
                                             <a href="{{ route('romaneios.show', $romaneio->id) }}"

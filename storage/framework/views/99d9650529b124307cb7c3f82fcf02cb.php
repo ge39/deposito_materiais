@@ -412,7 +412,8 @@
                                 </td>
 
                                 <td class="text-end">
-                                    <div class="d-flex justify-content-end gap-1 flex-wrap">
+
+                                    <div class="d-flex justify-content-end gap-1 flex-wrap " >
                                         <?php if(Route::has('romaneios.show')): ?>
                                             <a href="<?php echo e(route('romaneios.show', $romaneio->id)); ?>"
                                                class="btn btn-outline-primary btn-sm acao-btn"

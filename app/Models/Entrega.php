@@ -53,7 +53,7 @@ class Entrega extends Model
 
     public function veiculo()
     {
-        return $this->belongsTo(Frota::class, 'veiculo_id');
+        return $this->belongsTo(Veiculo::class, 'veiculo_id');
     }
 
     public function romaneio()

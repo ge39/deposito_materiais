@@ -132,23 +132,6 @@ class RomaneioController extends Controller
         return view('romaneios.show', compact('romaneio'));
     }
 
-    // public function imprimir(Romaneio $romaneio)
-    // {
-    //     $romaneio->load([
-    //         'motorista',
-    //         'veiculo',
-    //         'entrega.cliente',
-    //         'entrega.orcamento',
-    //         'entrega.venda',
-    //         'itens.entregaItem.entrega.cliente',
-    //         'itens.entregaItem.produto',
-    //         'itens.entregaItem.vendaItem.produto',
-    //         'itens.entregaItem.itemOrcamento.produto',
-    //     ]);
-
-    //     return view('romaneios.imprimir', compact('romaneio'));
-    // }
-
     public function cancelar(Request $request, Romaneio $romaneio)
     {
         $request->validate([
@@ -191,5 +174,51 @@ class RomaneioController extends Controller
         );
 
         return view('romaneios.imprimir', compact('romaneio'));
+    }
+
+    public function atribuirEquipe(Romaneio $romaneio)
+    {
+        $romaneio->load([
+            'motorista',
+            'veiculo',
+            'entrega.orcamento.cliente',
+            'entrega.cliente',
+        ]);
+
+        $motoristas = Funcionario::where('funcao', 'motorista')
+            ->where(function ($query) {
+                $query->where('ativo', 1)->orWhereNull('ativo');
+            })
+            ->orderBy('nome')
+            ->get();
+
+        $veiculos = Frota::where(function ($query) {
+                $query->where('ativo', 1)->orWhereNull('ativo');
+            })
+            ->orderBy('observacoes')
+            ->get();
+
+        return view('expedicao.atribuir-equipe', compact(
+            'romaneio',
+            'motoristas',
+            'veiculos'
+        ));
+    }
+
+    public function salvarEquipe(Request $request, Romaneio $romaneio)
+    {
+        $request->validate([
+            'motorista_id' => ['required', 'integer', 'exists:funcionarios,id'],
+            'veiculo_id' => ['required', 'integer', 'exists:frotas,id'],
+        ]);
+
+        $romaneio->update([
+            'motorista_id' => $request->motorista_id,
+            'veiculo_id' => $request->veiculo_id,
+        ]);
+
+       return redirect()
+        ->route('romaneios.show', $romaneio->id)
+        ->with('success', 'Equipe atribuída ao romaneio com sucesso.');
     }
 }

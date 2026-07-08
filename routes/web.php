@@ -578,9 +578,17 @@ Route::prefix('romaneios')->name('romaneios.')->group(function () {
 
 // EXPEDIÇÃO
 Route::prefix('expedicao')->name('expedicao.')->group(function () {
-    Route::get('/', [ExpedicaoController::class, 'index'])->name('index');
+    Route::get('/', [ExpedicaoController::class, 'index'])
+        ->name('index');
 
-    Route::get('/romaneio/{romaneio}', [ExpedicaoController::class, 'show'])->name('show');
+    Route::get('/romaneio/{romaneio}', [ExpedicaoController::class, 'show'])
+        ->name('show');
+
+    Route::get('/romaneio/{romaneio}/atribuir-equipe', [ExpedicaoController::class, 'atribuirEquipe'])
+        ->name('atribuir-equipe');
+
+    Route::put('/romaneio/{romaneio}/salvar-equipe', [ExpedicaoController::class, 'salvarEquipe'])
+        ->name('salvar-equipe');
 
     Route::get('/romaneio/{romaneio}/operacao', [ExpedicaoController::class, 'operacao'])
         ->name('operacao');
