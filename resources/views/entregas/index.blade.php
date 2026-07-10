@@ -128,7 +128,7 @@
                 <i class="bi bi-truck me-2"></i>Gerenciamento de Entregas
             </h4>
             <small class="text-muted">
-                Controle operacional de separação, carregamento, rota e confirmação das entregas.
+                Controle operacional e acompanhamento das entregas, prazos, destinos, prioridades e situação junto ao cliente.
             </small>
         </div>
 

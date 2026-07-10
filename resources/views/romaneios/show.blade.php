@@ -113,13 +113,23 @@
                 <i class="bi bi-arrow-left me-1"></i>Voltar
             </a>
 
-            @if(Route::has('romaneios.imprimir'))
-                <a href="{{ route('romaneios.imprimir', $romaneio->id) }}"
-                   target="_blank"
-                   class="btn btn-outline-dark btn-sm">
-                    <i class="bi bi-printer me-1"></i>Imprimir
+           <div class="d-flex flex-wrap gap-2">
+
+                <a href="{{ route('romaneios.separacao', $romaneio) }}"
+                target="_blank"
+                class="btn btn-warning">
+                    <i class="bi bi-box-seam"></i>
+                    Folha de Separação
                 </a>
-            @endif
+
+                <a href="{{ route('romaneios.imprimir', $romaneio) }}"
+                target="_blank"
+                class="btn btn-primary">
+                    <i class="bi bi-printer"></i>
+                    Romaneio de Entrega
+                </a>
+
+            </div>
 
             @if(Route::has('expedicao.show'))
                 <a href="{{ route('expedicao.show', $romaneio->id) }}"

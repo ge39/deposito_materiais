@@ -14,7 +14,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
-    <style>
+    <!-- <style>
         html,
         body {
             min-height: 100%;
@@ -54,7 +54,9 @@
             pointer-events: none;
             opacity: .55;
         }
-    </style>
+    </style> -->
+
+    @stack('styles')
 </head>
 
 <body>
@@ -249,6 +251,12 @@
                                     <a class="dropdown-item {{ !$canAccessAdmin ? 'disabled' : '' }}"
                                        href="{{ $canAccessAdmin ? route('funcionarios.index') : '#' }}">
                                         <i class="bi bi-person-badge me-2"></i>Funcionários
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('veiculos.index') }}">
+                                        <i class="bi bi-truck-front me-2"></i>
+                                        Veículos
                                     </a>
                                 </li>
                             </ul>

@@ -79,7 +79,7 @@
                 <i class="bi bi-clipboard-check me-2"></i>Gerenciamento de Romaneios
             </h4>
             <small class="text-muted">
-                Painel operacional para separação, conferência, impressão e expedição.
+                Painel operacional para separação das cargas, agrupamento de entregas, definição de equipe, veículo e emissão do romaneio.
             </small>
         </div>
 

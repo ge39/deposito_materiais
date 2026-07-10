@@ -46,6 +46,7 @@ use App\Http\Controllers\{
     RomaneioController,
     ExpedicaoController,
     LocalizacaoEstoqueController,
+    VeiculoController,
 };
 
 // ===============================
@@ -561,53 +562,44 @@ Route::middleware(['auth'])
             Route::get('/{entrega}/atribuir-equipe', [EntregaController::class, 'atribuirEquipe']) ->name('atribuir-equipe');
             Route::put('/{entrega}/atribuir-equipe', [EntregaController::class, 'salvarEquipe'])->name('salvar-equipe');
             Route::resource('pedidos', PedidoCompraController::class);
-        });
+    });
 
    
-// ROMANEIOS
-Route::prefix('romaneios')->name('romaneios.')->group(function () {
-    Route::get('/', [RomaneioController::class, 'index'])->name('index');
-    Route::get('/criar', [RomaneioController::class, 'create'])->name('create');
-    Route::post('/', [RomaneioController::class, 'store'])->name('store');
+  
 
-    Route::get('/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('imprimir');
-    Route::post('/{romaneio}/cancelar', [RomaneioController::class, 'cancelar'])->name('cancelar');
+    // EXPEDIÇÃO
+    Route::prefix('expedicao')->name('expedicao.')->group(function () {
+        Route::get('/', [ExpedicaoController::class, 'index'])
+            ->name('index');
 
-    Route::get('/{romaneio}', [RomaneioController::class, 'show'])->name('show');
-});
+        Route::get('/romaneio/{romaneio}', [ExpedicaoController::class, 'show'])
+            ->name('show');
 
-// EXPEDIÇÃO
-Route::prefix('expedicao')->name('expedicao.')->group(function () {
-    Route::get('/', [ExpedicaoController::class, 'index'])
-        ->name('index');
+        Route::get('/romaneio/{romaneio}/atribuir-equipe', [ExpedicaoController::class, 'atribuirEquipe'])
+            ->name('atribuir-equipe');
 
-    Route::get('/romaneio/{romaneio}', [ExpedicaoController::class, 'show'])
-        ->name('show');
+        Route::put('/romaneio/{romaneio}/salvar-equipe', [ExpedicaoController::class, 'salvarEquipe'])
+            ->name('salvar-equipe');
 
-    Route::get('/romaneio/{romaneio}/atribuir-equipe', [ExpedicaoController::class, 'atribuirEquipe'])
-        ->name('atribuir-equipe');
+        Route::get('/romaneio/{romaneio}/operacao', [ExpedicaoController::class, 'operacao'])
+            ->name('operacao');
 
-    Route::put('/romaneio/{romaneio}/salvar-equipe', [ExpedicaoController::class, 'salvarEquipe'])
-        ->name('salvar-equipe');
+        Route::post('/romaneio/{romaneio}/iniciar-separacao', [ExpedicaoController::class, 'iniciarSeparacao'])
+            ->name('iniciar-separacao');
 
-    Route::get('/romaneio/{romaneio}/operacao', [ExpedicaoController::class, 'operacao'])
-        ->name('operacao');
+        Route::post('/romaneio/{romaneio}/iniciar-carregamento', [ExpedicaoController::class, 'iniciarCarregamento'])
+            ->name('iniciar-carregamento');
 
-    Route::post('/romaneio/{romaneio}/iniciar-separacao', [ExpedicaoController::class, 'iniciarSeparacao'])
-        ->name('iniciar-separacao');
+        Route::post('/romaneio/{romaneio}/finalizar-carregamento', [ExpedicaoController::class, 'finalizarCarregamento'])
+            ->name('finalizar-carregamento');
 
-    Route::post('/romaneio/{romaneio}/iniciar-carregamento', [ExpedicaoController::class, 'iniciarCarregamento'])
-        ->name('iniciar-carregamento');
+        Route::post('/romaneio/{romaneio}/liberar-rota', [ExpedicaoController::class, 'liberarRota'])
+            ->name('liberar-rota');
+    });
 
-    Route::post('/romaneio/{romaneio}/finalizar-carregamento', [ExpedicaoController::class, 'finalizarCarregamento'])
-        ->name('finalizar-carregamento');
-
-    Route::post('/romaneio/{romaneio}/liberar-rota', [ExpedicaoController::class, 'liberarRota'])
-        ->name('liberar-rota');
-});
-
-// LOCALIZAÇÕES DE ESTOQUE
-Route::prefix('localizacoes-estoque')
+    // LOCALIZAÇÕES DE ESTOQUE
+    Route::prefix('localizacoes-estoque')
+    
     ->name('localizacoes-estoque.')
     ->group(function () {
         Route::get('/', [LocalizacaoEstoqueController::class, 'index'])->name('index');
@@ -618,3 +610,49 @@ Route::prefix('localizacoes-estoque')
         Route::delete('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'destroy'])->name('destroy');
         Route::get('/romaneios/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('romaneios.imprimir');
     });
+
+    // Veiculos
+    Route::prefix('veiculos')->name('veiculos.')->group(function () {
+        Route::get('/', [VeiculoController::class, 'index'])->name('index');
+        Route::get('/create', [VeiculoController::class, 'create'])->name('create');
+        Route::post('/', [VeiculoController::class, 'store'])->name('store');
+        Route::get('/{veiculo}', [VeiculoController::class, 'show'])->name('show');
+        Route::get('/{veiculo}/edit', [VeiculoController::class, 'edit'])->name('edit');
+        Route::put('/{veiculo}', [VeiculoController::class, 'update'])->name('update');
+        Route::delete('/{veiculo}', [VeiculoController::class, 'destroy'])->name('destroy');
+    });
+
+        Route::resource('veiculos', VeiculoController::class);
+  
+        // Frota
+        Route::prefix('frota')
+            ->name('frota.')
+            ->group(function () {
+
+                Route::get(
+                    'classes/{tipoVeiculo}',
+                    [FrotaController::class, 'classesPorTipo']
+                )->name('classes');
+
+                Route::get(
+                    'carrocerias/{classeVeiculo}',
+                    [FrotaController::class, 'carroceriasPorClasse']
+                )->name('carrocerias');
+
+        });
+        
+    // ROMANEIOS
+    Route::prefix('romaneios')->name('romaneios.')->group(function () {
+        Route::get('/', [RomaneioController::class, 'index'])->name('index');
+        Route::get('/criar', [RomaneioController::class, 'create'])->name('create');
+        Route::post('/', [RomaneioController::class, 'store'])->name('store');
+
+        Route::get('/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('imprimir');
+        Route::post('/{romaneio}/cancelar', [RomaneioController::class, 'cancelar'])->name('cancelar');
+
+        Route::get('/{romaneio}', [RomaneioController::class, 'show'])->name('show');
+        // Rota para separação de romaneio
+       Route::get('/{romaneio}/separacao', [RomaneioController::class, 'separacao'])->name('separacao');
+    });
+        
+

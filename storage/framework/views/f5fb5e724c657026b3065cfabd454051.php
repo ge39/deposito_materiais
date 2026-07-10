@@ -341,7 +341,7 @@
                             </td>
 
                             <td>
-                                <?php echo e($cliente->nome ?? 'Cliente não informado'); ?>
+                                <?php echo e($entrega?->orcamento?->cliente->nome ?? 'Cliente não informado'); ?>
 
                             </td>
 
@@ -354,7 +354,7 @@
 
                             <td>
                                 <div class="fw-semibold">
-                                    <?php echo e($produto->nome ?? 'Produto não informado'); ?>
+                                   <?php echo e($item->entregaItem?->itemOrcamento?->produto?->nome ?? 'Produto não informado'); ?>
 
                                 </div>
 

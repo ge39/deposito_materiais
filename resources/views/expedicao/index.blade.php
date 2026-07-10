@@ -12,7 +12,7 @@
                 Painel da Expedição
             </h4>
             <small class="text-muted">
-                Visão operacional das entregas aguardando separação, romaneios, doca e carregamento.
+                Visão operacional de separação, conferência, carregamento, doca e liberação dos veículos.
             </small>
         </div>
 

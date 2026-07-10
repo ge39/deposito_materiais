@@ -332,7 +332,7 @@
                             </td>
 
                             <td>
-                                {{ $cliente->nome ?? 'Cliente não informado' }}
+                                {{ $entrega?->orcamento?->cliente->nome ?? 'Cliente não informado' }}
                             </td>
 
                             <td>
@@ -343,7 +343,7 @@
 
                             <td>
                                 <div class="fw-semibold">
-                                    {{ $produto->nome ?? 'Produto não informado' }}
+                                   {{ $item->entregaItem?->itemOrcamento?->produto?->nome ?? 'Produto não informado' }}
                                 </div>
 
                                 <small class="text-muted">

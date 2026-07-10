@@ -2,59 +2,49 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Frota;
-use Illuminate\Http\Request;
+use App\Models\ClasseVeiculo;
+use Illuminate\Http\JsonResponse;
 
 class FrotaController extends Controller
 {
-    public function index()
+    /**
+     * Retorna as classes pertencentes ao tipo de veículo.
+     */
+    public function classesPorTipo(int $tipoVeiculoId): JsonResponse
     {
-        $frotas = Frota::all();
-        return view('frotas.index', compact('frotas'));
+        $classes = ClasseVeiculo::where('tipo_veiculo_id', $tipoVeiculoId)
+            ->where('ativo', true)
+            ->orderBy('descricao')
+            ->get([
+                'id',
+                'descricao',
+            ]);
+
+        return response()->json($classes);
     }
 
-    public function create()
+    /**
+     * Retorna as carrocerias compatíveis com a classe do veículo.
+     */
+    public function carroceriasPorClasse(int $classeVeiculoId): JsonResponse
     {
-        return view('frotas.create');
-    }
+        $classe = ClasseVeiculo::with([
+            'carrocerias' => function ($query) {
 
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'veiculo' => 'required|string|max:255',
-            'placa' => 'nullable|string|max:20',
-            'capacidade' => 'nullable|integer',
-        ]);
+                $query->where('tipos_carroceria.ativo', true)
+                    ->wherePivot('ativo', true)
+                    ->orderBy('tipos_carroceria.descricao');
 
-        Frota::create($data);
-        return redirect()->route('frotas.index')->with('success', 'Frota criada com sucesso.');
-    }
+            }
+        ])->findOrFail($classeVeiculoId);
 
-    public function show(Frota $frota)
-    {
-        return view('frotas.show', compact('frota'));
-    }
-
-    public function edit(Frota $frota)
-    {
-        return view('frotas.edit', compact('frota'));
-    }
-
-    public function update(Request $request, Frota $frota)
-    {
-        $data = $request->validate([
-            'veiculo' => 'required|string|max:255',
-            'placa' => 'nullable|string|max:20',
-            'capacidade' => 'nullable|integer',
-        ]);
-
-        $frota->update($data);
-        return redirect()->route('frotas.index')->with('success', 'Frota atualizada com sucesso.');
-    }
-
-    public function destroy(Frota $frota)
-    {
-        $frota->delete();
-        return redirect()->route('frotas.index')->with('success', 'Frota removida com sucesso.');
+        return response()->json(
+            $classe->carrocerias->map(function ($carroceria) {
+                return [
+                    'id' => $carroceria->id,
+                    'descricao' => $carroceria->descricao,
+                ];
+            })
+        );
     }
 }

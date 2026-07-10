@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Entrega;
-use App\Models\Frota;
+use App\Models\Veiculo;
 use App\Models\Funcionario;
 use App\Models\Romaneio;
 use App\Services\Expedicao\RomaneioService;
@@ -66,10 +66,10 @@ class RomaneioController extends Controller
             ->orderBy('nome')
             ->get();
 
-        $veiculos = Frota::where(function ($query) {
+        $veiculos = Veiculo::where(function ($query) {
                 $query->where('ativo', 1)->orWhereNull('ativo');
             })
-            ->orderBy('observacoes')
+            ->orderBy('observacao')
             ->get();
 
         return view('romaneios.create', compact(
@@ -192,7 +192,7 @@ class RomaneioController extends Controller
             ->orderBy('nome')
             ->get();
 
-        $veiculos = Frota::where(function ($query) {
+        $veiculos = Veiculo::where(function ($query) {
                 $query->where('ativo', 1)->orWhereNull('ativo');
             })
             ->orderBy('observacoes')
@@ -221,4 +221,35 @@ class RomaneioController extends Controller
         ->route('romaneios.show', $romaneio->id)
         ->with('success', 'Equipe atribuída ao romaneio com sucesso.');
     }
+
+    public function separacao(Romaneio $romaneio)
+{
+    $romaneio->load([
+        'motorista',
+        'veiculo',
+        'entrega.cliente',
+        'entrega.orcamento',
+        'entrega.orcamento.cliente',
+        'entrega.venda',
+        'entrega.venda.cliente',
+        'itens.entregaItem.entrega.cliente',
+        'itens.entregaItem.produto',
+        'itens.entregaItem.vendaItem.produto',
+        'itens.entregaItem.itemOrcamento.produto',
+    ]);
+
+    $romaneio->setRelation(
+        'itens',
+        $romaneio->itens
+            ->sortBy(function ($item) {
+                return $item->entregaItem?->produto?->localizacao_estoque
+                    ?? $item->entregaItem?->vendaItem?->produto?->localizacao_estoque
+                    ?? $item->entregaItem?->itemOrcamento?->produto?->localizacao_estoque
+                    ?? 'ZZZ';
+            })
+            ->values()
+    );
+
+    return view('romaneios.separacao', compact('romaneio'));
+}
 }
