@@ -39,8 +39,50 @@ class RomaneioController extends Controller
         return view('romaneios.index', compact('romaneios'));
     }
 
-    public function create()
+    // public function create()
+    // {
+    //     $entregasDisponiveis = Entrega::with([
+    //             'cliente',
+    //             'orcamento.cliente',
+    //             'venda.cliente',
+    //             'itens.produto',
+    //             'itens.vendaItem.produto',
+    //             'itens.itemOrcamento.produto',
+    //         ])
+    //         ->whereIn('status', [
+    //             'Aguardando_separacao',
+    //             'aguardando_separacao',
+    //             'Separando',
+    //             'separando',
+    //         ])
+    //         ->orderBy('data_prevista_entrega')
+    //         ->orderBy('id')
+    //         ->get();
+
+    //     $motoristas = Funcionario::where('funcao', 'motorista')
+    //         ->where(function ($query) {
+    //             $query->where('ativo', 1)->orWhereNull('ativo');
+    //         })
+    //         ->orderBy('nome')
+    //         ->get();
+
+    //     $veiculos = Veiculo::where(function ($query) {
+    //             $query->where('ativo', 1)->orWhereNull('ativo');
+    //         })
+    //         ->orderBy('observacao')
+    //         ->get();
+
+    //     return view('romaneios.create', compact(
+    //         'entregasDisponiveis',
+    //         'motoristas',
+    //         'veiculos'
+    //     ));
+    // }
+
+    public function create(Request $request)
     {
+        $entregaId = $request->integer('entrega_id');
+
         $entregasDisponiveis = Entrega::with([
                 'cliente',
                 'orcamento.cliente',
@@ -55,19 +97,33 @@ class RomaneioController extends Controller
                 'Separando',
                 'separando',
             ])
-            ->orderBy('data_prevista_entrega')
+            ->when($entregaId, function ($query) use ($entregaId) {
+                $query->where('id', $entregaId);
+            })
+            ->orderBy('data_prevista')
             ->orderBy('id')
             ->get();
 
+        if ($entregaId && $entregasDisponiveis->isEmpty()) {
+            return redirect()
+                ->route('entregas.index')
+                ->with(
+                    'error',
+                    'A entrega selecionada não está disponível para geração de romaneio.'
+                );
+        }
+
         $motoristas = Funcionario::where('funcao', 'motorista')
             ->where(function ($query) {
-                $query->where('ativo', 1)->orWhereNull('ativo');
+                $query->where('ativo', 1)
+                    ->orWhereNull('ativo');
             })
             ->orderBy('nome')
             ->get();
 
         $veiculos = Veiculo::where(function ($query) {
-                $query->where('ativo', 1)->orWhereNull('ativo');
+                $query->where('ativo', 1)
+                    ->orWhereNull('ativo');
             })
             ->orderBy('observacao')
             ->get();
@@ -75,43 +131,133 @@ class RomaneioController extends Controller
         return view('romaneios.create', compact(
             'entregasDisponiveis',
             'motoristas',
-            'veiculos'
+            'veiculos',
+            'entregaId'
         ));
     }
 
+    // public function store(Request $request)
+    // {
+    //     $request->validate([
+    //         'entregas' => ['nullable', 'array'],
+    //         'entregas.*' => ['nullable', 'integer', 'exists:entregas,id'],
+
+    //         'entrega_itens' => ['nullable', 'array'],
+    //         'entrega_itens.*' => ['nullable', 'integer', 'exists:entrega_itens,id'],
+
+    //         'motorista_id' => ['nullable', 'integer', 'exists:funcionarios,id'],
+    //         'veiculo_id' => ['nullable', 'integer', 'exists:frotas,id'],
+    //         'observacao' => ['nullable', 'string', 'max:1000'],
+    //     ]);
+
+    //     if (
+    //         empty($request->input('entregas', [])) &&
+    //         empty($request->input('entrega_itens', []))
+    //     ) {
+    //         return back()
+    //             ->withInput()
+    //             ->with('error', 'Selecione pelo menos uma entrega ou item para criar o romaneio.');
+    //     }
+
+    //     try {
+    //         $romaneio = $this->romaneioService->criarRomaneio($request->all());
+
+    //         return redirect()
+    //             ->route('romaneios.show', $romaneio->id)
+    //             ->with('success', 'Romaneio criado com sucesso. Agora ele já pode ser impresso para coleta física do estoque.');
+    //     } catch (Throwable $e) {
+    //         return back()
+    //             ->withInput()
+    //             ->with('error', 'Erro ao criar romaneio: ' . $e->getMessage());
+    //     }
+    // }
+
     public function store(Request $request)
     {
-        $request->validate([
-            'entregas' => ['nullable', 'array'],
-            'entregas.*' => ['nullable', 'integer', 'exists:entregas,id'],
+        $dadosValidados = $request->validate(
+            [
+                'entregas' => ['nullable', 'array'],
+                'entregas.*' => [
+                    'nullable',
+                    'integer',
+                    'exists:entregas,id',
+                ],
 
-            'entrega_itens' => ['nullable', 'array'],
-            'entrega_itens.*' => ['nullable', 'integer', 'exists:entrega_itens,id'],
+                'entrega_itens' => ['nullable', 'array'],
+                'entrega_itens.*' => [
+                    'nullable',
+                    'integer',
+                    'exists:entrega_itens,id',
+                ],
 
-            'motorista_id' => ['nullable', 'integer', 'exists:funcionarios,id'],
-            'veiculo_id' => ['nullable', 'integer', 'exists:frotas,id'],
-            'observacao' => ['nullable', 'string', 'max:1000'],
-        ]);
+                'motorista_id' => [
+                    'nullable',
+                    'integer',
+                    'exists:funcionarios,id',
+                ],
+
+                'veiculo_id' => [
+                    'nullable',
+                    'integer',
+                    'exists:veiculos,id',
+                ],
+
+                'observacao' => [
+                    'nullable',
+                    'string',
+                    'max:1000',
+                ],
+            ],
+            [
+                'entregas.array' => 'A seleção de entregas é inválida.',
+                'entregas.*.integer' => 'Uma das entregas selecionadas é inválida.',
+                'entregas.*.exists' => 'Uma das entregas selecionadas não foi encontrada.',
+
+                'entrega_itens.array' => 'A seleção de itens é inválida.',
+                'entrega_itens.*.integer' => 'Um dos itens selecionados é inválido.',
+                'entrega_itens.*.exists' => 'Um dos itens selecionados não foi encontrado.',
+
+                'motorista_id.integer' => 'O motorista selecionado é inválido.',
+                'motorista_id.exists' => 'O motorista selecionado não foi encontrado.',
+
+                'veiculo_id.integer' => 'O veículo selecionado é inválido.',
+                'veiculo_id.exists' => 'O veículo selecionado não foi encontrado.',
+
+                'observacao.string' => 'A observação deve ser um texto.',
+                'observacao.max' => 'A observação pode ter no máximo 1000 caracteres.',
+            ]
+        );
 
         if (
-            empty($request->input('entregas', [])) &&
-            empty($request->input('entrega_itens', []))
+            empty($dadosValidados['entregas'] ?? []) &&
+            empty($dadosValidados['entrega_itens'] ?? [])
         ) {
             return back()
                 ->withInput()
-                ->with('error', 'Selecione pelo menos uma entrega ou item para criar o romaneio.');
+                ->with(
+                    'error',
+                    'Selecione pelo menos uma entrega ou item para criar o romaneio.'
+                );
         }
 
         try {
-            $romaneio = $this->romaneioService->criarRomaneio($request->all());
+            $romaneio = $this->romaneioService->criarRomaneio(
+                $dadosValidados
+            );
 
             return redirect()
                 ->route('romaneios.show', $romaneio->id)
-                ->with('success', 'Romaneio criado com sucesso. Agora ele já pode ser impresso para coleta física do estoque.');
+                ->with(
+                    'success',
+                    'Romaneio criado com sucesso. Agora ele já pode ser impresso para coleta física do estoque.'
+                );
         } catch (Throwable $e) {
             return back()
                 ->withInput()
-                ->with('error', 'Erro ao criar romaneio: ' . $e->getMessage());
+                ->with(
+                    'error',
+                    'Erro ao criar romaneio: ' . $e->getMessage()
+                );
         }
     }
 
@@ -205,51 +351,93 @@ class RomaneioController extends Controller
         ));
     }
 
-    public function salvarEquipe(Request $request, Romaneio $romaneio)
-    {
-        $request->validate([
-            'motorista_id' => ['required', 'integer', 'exists:funcionarios,id'],
-            'veiculo_id' => ['required', 'integer', 'exists:frotas,id'],
-        ]);
+    // public function salvarEquipe(Request $request, Romaneio $romaneio)
+    // {
+    //     $request->validate([
+    //         'motorista_id' => ['required', 'integer', 'exists:funcionarios,id'],
+    //         'veiculo_id' => ['required', 'integer', 'exists:frotas,id'],
+    //     ]);
+
+    //     $romaneio->update([
+    //         'motorista_id' => $request->motorista_id,
+    //         'veiculo_id' => $request->veiculo_id,
+    //     ]);
+
+    //    return redirect()
+    //     ->route('romaneios.show', $romaneio->id)
+    //     ->with('success', 'Equipe atribuída ao romaneio com sucesso.');
+    // }
+
+    public function salvarEquipe(
+            Request $request,
+            Romaneio $romaneio
+        ) {
+        $dadosValidados = $request->validate(
+            [
+                'motorista_id' => [
+                    'required',
+                    'integer',
+                    'exists:funcionarios,id',
+                ],
+
+                'veiculo_id' => [
+                    'required',
+                    'integer',
+                    'exists:veiculos,id',
+                ],
+            ],
+            [
+                'motorista_id.required' => 'Selecione o motorista.',
+                'motorista_id.integer' => 'O motorista selecionado é inválido.',
+                'motorista_id.exists' => 'O motorista selecionado não foi encontrado.',
+
+                'veiculo_id.required' => 'Selecione o veículo.',
+                'veiculo_id.integer' => 'O veículo selecionado é inválido.',
+                'veiculo_id.exists' => 'O veículo selecionado não foi encontrado.',
+            ]
+        );
 
         $romaneio->update([
-            'motorista_id' => $request->motorista_id,
-            'veiculo_id' => $request->veiculo_id,
+            'motorista_id' => $dadosValidados['motorista_id'],
+            'veiculo_id' => $dadosValidados['veiculo_id'],
         ]);
 
-       return redirect()
-        ->route('romaneios.show', $romaneio->id)
-        ->with('success', 'Equipe atribuída ao romaneio com sucesso.');
+        return redirect()
+            ->route('romaneios.show', $romaneio->id)
+            ->with(
+                'success',
+                'Equipe atribuída ao romaneio com sucesso.'
+            );
     }
 
     public function separacao(Romaneio $romaneio)
-{
-    $romaneio->load([
-        'motorista',
-        'veiculo',
-        'entrega.cliente',
-        'entrega.orcamento',
-        'entrega.orcamento.cliente',
-        'entrega.venda',
-        'entrega.venda.cliente',
-        'itens.entregaItem.entrega.cliente',
-        'itens.entregaItem.produto',
-        'itens.entregaItem.vendaItem.produto',
-        'itens.entregaItem.itemOrcamento.produto',
-    ]);
+    {
+        $romaneio->load([
+            'motorista',
+            'veiculo',
+            'entrega.cliente',
+            'entrega.orcamento',
+            'entrega.orcamento.cliente',
+            'entrega.venda',
+            'entrega.venda.cliente',
+            'itens.entregaItem.entrega.cliente',
+            'itens.entregaItem.produto',
+            'itens.entregaItem.vendaItem.produto',
+            'itens.entregaItem.itemOrcamento.produto',
+        ]);
 
-    $romaneio->setRelation(
-        'itens',
-        $romaneio->itens
-            ->sortBy(function ($item) {
-                return $item->entregaItem?->produto?->localizacao_estoque
-                    ?? $item->entregaItem?->vendaItem?->produto?->localizacao_estoque
-                    ?? $item->entregaItem?->itemOrcamento?->produto?->localizacao_estoque
-                    ?? 'ZZZ';
-            })
-            ->values()
-    );
+        $romaneio->setRelation(
+            'itens',
+            $romaneio->itens
+                ->sortBy(function ($item) {
+                    return $item->entregaItem?->produto?->localizacao_estoque
+                        ?? $item->entregaItem?->vendaItem?->produto?->localizacao_estoque
+                        ?? $item->entregaItem?->itemOrcamento?->produto?->localizacao_estoque
+                        ?? 'ZZZ';
+                })
+                ->values()
+        );
 
-    return view('romaneios.separacao', compact('romaneio'));
-}
+        return view('romaneios.separacao', compact('romaneio'));
+    }
 }

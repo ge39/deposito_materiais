@@ -57,8 +57,13 @@ class EntregaController extends Controller
 
     public function index(Request $request)
     {
-        $query = Entrega::with(['venda', 'orcamento', 'itens'])
-            ->orderByDesc('id');
+        $query = Entrega::with([
+            'venda',
+            'orcamento',
+            'itens',
+            'itens.vendaItem.produto',
+            'itens.itemOrcamento.produto',
+        ])->orderByDesc('id');
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
