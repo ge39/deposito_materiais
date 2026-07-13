@@ -642,15 +642,65 @@ Route::middleware(['auth'])
         });
         
     // ROMANEIOS
-    Route::prefix('romaneios')->name('romaneios.')->group(function () {
-        Route::get('/', [RomaneioController::class, 'index'])->name('index');
-        Route::get('/criar', [RomaneioController::class, 'create'])->name('create');
-        Route::post('/', [RomaneioController::class, 'store'])->name('store');
-        Route::get('/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('imprimir');
-        Route::post('/{romaneio}/cancelar', [RomaneioController::class, 'cancelar'])->name('cancelar');
-        Route::get('/{romaneio}/separacao', [RomaneioController::class, 'separacao'])->name('separacao');
-        Route::put('/{romaneio}/operacao', [RomaneioController::class, 'atualizarOperacao'])->name('operacao.update');
-        Route::get('/{romaneio}', [RomaneioController::class, 'show'])->name('show');
+    // Route::prefix('romaneios')->name('romaneios.')->group(function () {
+    //     Route::get('/', [RomaneioController::class, 'index'])->name('index');
+    //     Route::get('/criar', [RomaneioController::class, 'create'])->name('create');
+    //     Route::post('/', [RomaneioController::class, 'store'])->name('store');
+    //     Route::get('/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('imprimir');
+    //     Route::post('/{romaneio}/cancelar', [RomaneioController::class, 'cancelar'])->name('cancelar');
+    //     Route::get('/{romaneio}/separacao', [RomaneioController::class, 'separacao'])->name('separacao');
+    //     Route::put('/{romaneio}/operacao', [RomaneioController::class, 'atualizarOperacao'])->name('operacao.update');
+    //     Route::get('/{romaneio}', [RomaneioController::class, 'show'])->name('show');
+    // });
+
+    // ROMANEIOS
+Route::prefix('romaneios')
+    ->name('romaneios.')
+    ->group(function () {
+        Route::get(
+            '/',
+            [RomaneioController::class, 'index']
+        )->name('index');
+
+        Route::get(
+            '/criar',
+            [RomaneioController::class, 'create']
+        )->name('create');
+
+        Route::post(
+            '/',
+            [RomaneioController::class, 'store']
+        )->name('store');
+
+        Route::post(
+            '/{romaneio}/registrar-impressao',
+            [RomaneioController::class, 'registrarImpressao']
+        )->name('registrar-impressao');
+
+        Route::get(
+            '/{romaneio}/imprimir',
+            [RomaneioController::class, 'imprimir']
+        )->name('imprimir');
+
+        Route::post(
+            '/{romaneio}/cancelar',
+            [RomaneioController::class, 'cancelar']
+        )->name('cancelar');
+
+        Route::get(
+            '/{romaneio}/separacao',
+            [RomaneioController::class, 'separacao']
+        )->name('separacao');
+
+        Route::put(
+            '/{romaneio}/operacao',
+            [RomaneioController::class, 'atualizarOperacao']
+        )->name('operacao.update');
+
+        Route::get(
+            '/{romaneio}',
+            [RomaneioController::class, 'show']
+        )->name('show');
     });
             
 

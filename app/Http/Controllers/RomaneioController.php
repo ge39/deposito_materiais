@@ -276,11 +276,39 @@ class RomaneioController extends Controller
                 ->with('error', 'Erro ao cancelar romaneio: ' . $e->getMessage());
         }
     }
+    // public function imprimir(Romaneio $romaneio)
+    // {
+    //     $romaneio->load([
+    //         'motorista',
+    //         'veiculo',
+    //         'entrega.cliente',
+    //         'entrega.orcamento',
+    //         'entrega.venda',
+    //         'itens.entregaItem.entrega.cliente',
+    //         'itens.entregaItem.produto',
+    //         'itens.entregaItem.vendaItem.produto',
+    //         'itens.entregaItem.itemOrcamento.produto',
+    //     ]);
+
+    //     $romaneio->setRelation(
+    //         'itens',
+    //         $romaneio->itens->sortBy(function ($item) {
+    //             return $item->entregaItem->produto->localizacao_estoque
+    //                 ?? $item->entregaItem->vendaItem->produto->localizacao_estoque
+    //                 ?? $item->entregaItem->itemOrcamento->produto->localizacao_estoque
+    //                 ?? 'ZZZ';
+    //         })->values()
+    //     );
+
+    //     return view('romaneios.imprimir', compact('romaneio'));
+    // }
+
     public function imprimir(Romaneio $romaneio)
     {
         $romaneio->load([
             'motorista',
             'veiculo',
+            'impressor',
             'entrega.cliente',
             'entrega.orcamento',
             'entrega.venda',
@@ -292,15 +320,20 @@ class RomaneioController extends Controller
 
         $romaneio->setRelation(
             'itens',
-            $romaneio->itens->sortBy(function ($item) {
-                return $item->entregaItem->produto->localizacao_estoque
-                    ?? $item->entregaItem->vendaItem->produto->localizacao_estoque
-                    ?? $item->entregaItem->itemOrcamento->produto->localizacao_estoque
-                    ?? 'ZZZ';
-            })->values()
+            $romaneio->itens
+                ->sortBy(function ($item) {
+                    return $item->entregaItem?->produto?->localizacao_estoque
+                        ?? $item->entregaItem?->vendaItem?->produto?->localizacao_estoque
+                        ?? $item->entregaItem?->itemOrcamento?->produto?->localizacao_estoque
+                        ?? 'ZZZ';
+                })
+                ->values()
         );
 
-        return view('romaneios.imprimir', compact('romaneio'));
+        return view(
+            'romaneios.imprimir',
+            compact('romaneio')
+        );
     }
 
     public function atribuirEquipe(Romaneio $romaneio)
@@ -420,6 +453,66 @@ class RomaneioController extends Controller
         return view('romaneios.separacao', compact('romaneio'));
     }
 
+    // public function atualizarOperacao(Request $request, Romaneio $romaneio)
+    // {
+    //     $dadosValidados = $request->validate(
+    //         [
+    //             'acao' => [
+    //                 'required',
+    //                 'string',
+    //                 'in:salvar_andamento,finalizar_separacao,finalizar_carregamento,concluir_conferencia,liberar_veiculo',
+    //             ],
+    //         ],
+    //         [
+    //             'acao.required' => 'A ação operacional não foi informada.',
+    //             'acao.in' => 'A ação operacional informada é inválida.',
+    //         ]
+    //     );
+
+    //     try {
+    //         $romaneio = $this->romaneioService->atualizarOperacao(
+    //             $romaneio,
+    //             $dadosValidados['acao'],
+    //             $request->all()
+    //         );
+
+    //         $mensagem = match ($dadosValidados['acao']) {
+    //             'salvar_andamento' =>
+    //                 'Andamento salvo com sucesso.',
+
+    //             'finalizar_separacao' =>
+    //                 'Separação finalizada. O romaneio avançou para Carregamento.',
+
+    //             'finalizar_carregamento' =>
+    //                 'Carregamento finalizado. O romaneio avançou para Conferência.',
+
+    //             'concluir_conferencia' =>
+    //                 'Conferência concluída. O romaneio avançou para Liberação.',
+
+    //             'liberar_veiculo' =>
+    //                 'Veículo liberado com sucesso.',
+
+    //             default =>
+    //                 'Operação atualizada com sucesso.',
+    //         };
+
+    //         return redirect()
+    //             ->route('romaneios.create', [
+    //                 'entrega_id' => $romaneio->entrega_id,
+    //             ])
+    //             ->with('success', $mensagem);
+
+    //     } catch (Throwable $e) {
+    //         return back()
+    //             ->withInput()
+    //             ->with(
+    //                 'error',
+    //                 'Erro ao atualizar operação do romaneio: ' .
+    //                 $e->getMessage()
+    //             );
+    //     }
+    // }
+
     public function atualizarOperacao(Request $request, Romaneio $romaneio)
     {
         $dadosValidados = $request->validate(
@@ -427,21 +520,97 @@ class RomaneioController extends Controller
                 'acao' => [
                     'required',
                     'string',
-                    'in:salvar_andamento,finalizar_separacao,finalizar_carregamento,concluir_conferencia,liberar_veiculo',
+                    'in:salvar_andamento,finalizar_separacao,finalizar_carregamento,concluir_conferencia,liberar_veiculo,voltar_etapa',
+                ],
+
+                'motivo_retorno' => [
+                    'nullable',
+                    'required_if:acao,voltar_etapa',
+                    'string',
+                    'min:5',
+                    'max:500',
+                ],
+
+                'itens' => [
+                    'nullable',
+                    'array',
+                ],
+
+                'itens.*.entrega_item_id' => [
+                    'required_with:itens',
+                    'integer',
+                    'exists:entrega_itens,id',
+                ],
+
+                'itens.*.romaneio_item_id' => [
+                    'nullable',
+                    'integer',
+                    'exists:romaneio_itens,id',
+                ],
+
+                'itens.*.quantidade' => [
+                    'nullable',
+                    'numeric',
+                    'min:0',
+                ],
+
+                'itens.*.quantidade_separada' => [
+                    'nullable',
+                    'numeric',
+                    'min:0',
+                ],
+
+                'itens.*.quantidade_carregada' => [
+                    'nullable',
+                    'numeric',
+                    'min:0',
+                ],
+
+                'itens.*.status' => [
+                    'nullable',
+                    'string',
                 ],
             ],
             [
-                'acao.required' => 'A ação operacional não foi informada.',
-                'acao.in' => 'A ação operacional informada é inválida.',
+                'acao.required' =>
+                    'A ação operacional não foi informada.',
+
+                'acao.in' =>
+                    'A ação operacional informada é inválida.',
+
+                'motivo_retorno.required_if' =>
+                    'Informe o motivo do retorno da etapa.',
+
+                'motivo_retorno.min' =>
+                    'O motivo do retorno deve possuir pelo menos 5 caracteres.',
+
+                'motivo_retorno.max' =>
+                    'O motivo do retorno pode possuir no máximo 500 caracteres.',
+
+                'itens.*.entrega_item_id.required_with' =>
+                    'Não foi possível identificar um dos itens da entrega.',
+
+                'itens.*.entrega_item_id.exists' =>
+                    'Um dos itens da entrega não foi encontrado.',
+
+                'itens.*.romaneio_item_id.exists' =>
+                    'Um dos itens do romaneio não foi encontrado.',
+
+                'itens.*.quantidade_separada.numeric' =>
+                    'A quantidade separada deve ser numérica.',
+
+                'itens.*.quantidade_carregada.numeric' =>
+                    'A quantidade carregada deve ser numérica.',
             ]
         );
 
         try {
-            $romaneio = $this->romaneioService->atualizarOperacao(
-                $romaneio,
-                $dadosValidados['acao'],
-                $request->all()
-            );
+            $romaneio = $this->romaneioService
+                ->atualizarOperacao(
+                    $romaneio,
+                    $dadosValidados['acao'],
+                    $request->all()
+                );
 
             $mensagem = match ($dadosValidados['acao']) {
                 'salvar_andamento' =>
@@ -458,6 +627,9 @@ class RomaneioController extends Controller
 
                 'liberar_veiculo' =>
                     'Veículo liberado com sucesso.',
+
+                'voltar_etapa' =>
+                    'O romaneio retornou para a etapa anterior.',
 
                 default =>
                     'Operação atualizada com sucesso.',
@@ -479,6 +651,44 @@ class RomaneioController extends Controller
                 );
         }
     }
+
+    public function registrarImpressao(Romaneio $romaneio) 
+    {
+        try {
+            $statusAtual = strtolower(
+                trim((string) $romaneio->status)
+            );
+
+            if (! in_array($statusAtual, [
+                'conferido',
+                'aguardando_liberacao',
+            ], true)) {
+                return back()->with(
+                    'error',
+                    'O romaneio somente pode ser impresso para liberação após a conclusão da conferência.'
+                );
+            }
+
+            $romaneio->update([
+                'impresso_em' => now(),
+                'impresso_por' => auth()->id(),
+            ]);
+
+            return redirect()
+                ->route(
+                    'romaneios.imprimir',
+                    $romaneio->id
+                );
+
+        } catch (Throwable $e) {
+            return back()->with(
+                'error',
+                'Erro ao registrar a impressão do romaneio: ' .
+                $e->getMessage()
+            );
+        }
+    }
+
 
 
 

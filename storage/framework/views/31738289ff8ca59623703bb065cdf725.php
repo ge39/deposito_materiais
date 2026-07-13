@@ -715,54 +715,88 @@
             </div>
 
             <div class="operation-banner <?php echo e($etapaAtual); ?> mb-3">
-                <div>
-                    <div class="operation-title">
-                        <?php switch($etapaAtual):
-                            case ('montagem'): ?>
-                                Monte o romaneio e confirme as quantidades.
-                                <?php break; ?>
+    <div>
+        <div class="operation-title">
+            <?php switch($etapaAtual):
+                case ('montagem'): ?>
+                    Monte o romaneio e confirme as quantidades.
+                    <?php break; ?>
 
-                            <?php case ('separacao'): ?>
-                                Registre a separação física dos produtos.
-                                <?php break; ?>
+                <?php case ('separacao'): ?>
+                    Registre a separação física dos produtos.
+                    <?php break; ?>
 
-                            <?php case ('carregamento'): ?>
-                                Confirme os itens colocados no veículo.
-                                <?php break; ?>
+                <?php case ('carregamento'): ?>
+                    Confirme os itens colocados no veículo.
+                    <?php break; ?>
 
-                            <?php case ('conferencia'): ?>
-                                Valide a carga e registre divergências.
-                                <?php break; ?>
+                <?php case ('conferencia'): ?>
+                    Valide a carga e registre divergências.
+                    <?php break; ?>
 
-                            <?php case ('liberacao'): ?>
-                                Revise as informações e libere o veículo.
-                                <?php break; ?>
-                        <?php endswitch; ?>
-                    </div>
+                <?php case ('liberacao'): ?>
+                    Imprima o romaneio antes de liberar o veículo.
+                    <?php break; ?>
+            <?php endswitch; ?>
+        </div>
 
-                    <div class="operation-description">
-                        <?php switch($etapaAtual):
-                            case ('montagem'): ?>
-                                A criação do romaneio inicia o fluxo operacional da expedição.
-                                <?php break; ?>
+            <div class="operation-description">
+                    <?php switch($etapaAtual):
+                        case ('montagem'): ?>
+                            A criação do romaneio inicia o fluxo operacional da expedição.
+                            <?php break; ?>
 
-                            <?php case ('separacao'): ?>
-                                Todos os itens precisam ser separados ou justificados antes do avanço.
-                                <?php break; ?>
+                        <?php case ('separacao'): ?>
+                            Todos os itens precisam ser separados ou justificados antes do avanço.
+                            <?php break; ?>
 
-                            <?php case ('carregamento'): ?>
-                                Confirme a quantidade efetivamente carregada para cada produto.
-                                <?php break; ?>
+                        <?php case ('carregamento'): ?>
+                            Confirme a quantidade efetivamente carregada para cada produto.
+                            <?php break; ?>
 
-                            <?php case ('conferencia'): ?>
-                                Divergências poderão gerar saldo pendente para uma entrega posterior.
-                                <?php break; ?>
+                        <?php case ('conferencia'): ?>
+                            Divergências poderão gerar saldo pendente para uma entrega posterior.
+                            <?php break; ?>
 
-                            <?php case ('liberacao'): ?>
-                                Após a liberação, o romaneio seguirá para rota.
-                                <?php break; ?>
-                        <?php endswitch; ?>
-                    </div>
+                        <?php case ('liberacao'): ?>
+                            O botão Liberar Veículo será habilitado somente após a impressão do romaneio.
+                            <?php break; ?>
+                    <?php endswitch; ?>
+                </div>
+
+                    <?php if(
+                        !$criandoRomaneio &&
+                        $etapaAtual === 'liberacao'
+                    ): ?>
+                        <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
+                            <button type="submit"
+                                    form="formImprimirRomaneio"
+                                    class="btn btn-outline-dark btn-sm"
+                                    id="btnImprimirRomaneio">
+
+                                <i class="bi bi-printer me-1"></i>
+
+                                <?php echo e($romaneioAtivo?->impresso_em
+                                    ? 'Reimprimir Romaneio'
+                                    : 'Imprimir Romaneio'); ?>
+
+                            </button>
+
+                            <?php if($romaneioAtivo?->impresso_em): ?>
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    Impresso em
+                                    <?php echo e($romaneioAtivo->impresso_em->format('d/m/Y H:i')); ?>
+
+                                </span>
+                            <?php else: ?>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Impressão pendente
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <i class="bi <?php echo e($etapas[$etapaAtual]['icone']); ?> fs-2"></i>
@@ -1585,7 +1619,7 @@ unset($__errorArgs, $__bag); ?>"
                         <?php if(!$criandoRomaneio && $etapaAtual !== 'liberacao'): ?>
                             <button type="submit"
                                     name="acao"
-                                    value="salvar"
+                                    value="salvar_andamento"
                                     class="btn btn-outline-primary btn-sm">
                                 <i class="bi bi-floppy me-1"></i>
                                 Salvar Andamento
@@ -1637,18 +1671,18 @@ unset($__errorArgs, $__bag); ?>"
                                     Concluir Conferência
                                 </button>
                                 <?php break; ?>
-
-                            <?php case ('liberacao'): ?>
+                                <?php case ('liberacao'): ?>
                                 <button type="submit"
                                         name="acao"
                                         value="liberar_veiculo"
                                         class="btn btn-success btn-sm action-primary"
-                                        id="btnPrincipal">
+                                        id="btnPrincipal"
+                                        <?php if(empty($romaneioAtivo?->impresso_em)): echo 'disabled'; endif; ?>>
+
                                     <i class="bi bi-sign-turn-right me-1"></i>
                                     Liberar Veículo
                                 </button>
                                 <?php break; ?>
-
                         <?php endswitch; ?>
 
                     </div>
@@ -1656,8 +1690,21 @@ unset($__errorArgs, $__bag); ?>"
             </div>
 
         </form>
-    <?php endif; ?>
-</div>
+
+        <?php if(
+            !$criandoRomaneio &&
+                $etapaAtual === 'liberacao'
+            ): ?>
+                <form id="formImprimirRomaneio"
+                    method="POST"
+                    action="<?php echo e(route('romaneios.registrar-impressao', $romaneioAtivo)); ?>"
+                    target="_blank"
+                    class="d-none">
+                    <?php echo csrf_field(); ?>
+                </form>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
 

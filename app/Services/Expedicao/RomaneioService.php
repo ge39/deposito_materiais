@@ -406,7 +406,98 @@ class RomaneioService
             ->values();
     }
 
-    public function atualizarOperacao( Romaneio $romaneio,string $acao, array $dados = []): Romaneio 
+    // public function atualizarOperacao( Romaneio $romaneio,string $acao, array $dados = []): Romaneio 
+    // {
+    //     return DB::transaction(function () use (
+    //         $romaneio,
+    //         $acao,
+    //         $dados
+    //     ) {
+    //         $romaneio = Romaneio::query()
+    //             ->with([
+    //                 'entrega',
+    //                 'itens.entregaItem.entrega',
+    //             ])
+    //             ->lockForUpdate()
+    //             ->findOrFail($romaneio->id);
+
+    //         $this->validarAcaoPermitida(
+    //             $romaneio,
+    //             $acao
+    //         );
+
+    //         $this->salvarDadosOperacionais(
+    //             $romaneio,
+    //             $dados
+    //         );
+
+    //         if ($acao === 'salvar_andamento') {
+    //             return $romaneio->fresh([
+    //                 'motorista',
+    //                 'veiculo',
+    //                 'entrega',
+    //                 'itens.entregaItem',
+    //             ]);
+    //         }
+
+    //         [$statusRomaneio, $statusEntrega] = match ($acao) {
+    //             'finalizar_separacao' => [
+    //                 'Separado',
+    //                 'Aguardando_carregamento',
+    //             ],
+
+    //             'finalizar_carregamento' => [
+    //                 'Carregado',
+    //                 'Aguardando_conferencia',
+    //             ],
+
+    //             'concluir_conferencia' => [
+    //                 'Conferido',
+    //                 'Aguardando_liberacao',
+    //             ],
+
+    //             'liberar_veiculo' => [
+    //                 'Liberado',
+    //                 'Em_rota',
+    //             ],
+
+    //             default => throw ValidationException::withMessages([
+    //                 'acao' => 'A ação operacional informada é inválida.',
+    //             ]),
+    //         };
+
+    //         $romaneio->update([
+    //             'status' => $statusRomaneio,
+    //         ]);
+
+    //         $entregasAfetadas = $romaneio->itens
+    //             ->pluck('entregaItem')
+    //             ->filter()
+    //             ->pluck('entrega')
+    //             ->filter()
+    //             ->push($romaneio->entrega)
+    //             ->filter()
+    //             ->unique('id');
+
+    //         foreach ($entregasAfetadas as $entrega) {
+    //             $entrega->update([
+    //                 'status' => $statusEntrega,
+    //             ]);
+    //         }
+
+    //         return $romaneio->fresh([
+    //             'motorista',
+    //             'veiculo',
+    //             'entrega.cliente',
+    //             'itens.entregaItem.entrega',
+    //             'itens.entregaItem.produto',
+    //             'itens.entregaItem.vendaItem.produto',
+    //             'itens.entregaItem.itemOrcamento.produto',
+    //         ]);
+    //     });
+    // }
+
+    public function atualizarOperacao(Romaneio $romaneio, string $acao, array $dados = []): Romaneio 
     {
         return DB::transaction(function () use (
             $romaneio,
@@ -426,10 +517,24 @@ class RomaneioService
                 $acao
             );
 
+            if ($acao === 'voltar_etapa') {
+                return $this->retornarEtapaAnterior(
+                    $romaneio,
+                    $dados
+                );
+            }
+
             $this->salvarDadosOperacionais(
                 $romaneio,
                 $dados
             );
+
+            $romaneio->refresh();
+
+            $romaneio->load([
+                'entrega',
+                'itens.entregaItem.entrega',
+            ]);
 
             if ($acao === 'salvar_andamento') {
                 return $romaneio->fresh([
@@ -439,6 +544,11 @@ class RomaneioService
                     'itens.entregaItem',
                 ]);
             }
+
+            $this->validarConclusaoDaEtapa(
+                $romaneio,
+                $acao
+            );
 
             [$statusRomaneio, $statusEntrega] = match ($acao) {
                 'finalizar_separacao' => [
@@ -462,7 +572,8 @@ class RomaneioService
                 ],
 
                 default => throw ValidationException::withMessages([
-                    'acao' => 'A ação operacional informada é inválida.',
+                    'acao' =>
+                        'A ação operacional informada é inválida.',
                 ]),
             };
 
@@ -497,9 +608,61 @@ class RomaneioService
         });
     }
 
-    private function validarAcaoPermitida(Romaneio $romaneio, string $acao): void
+    // private function validarAcaoPermitida(Romaneio $romaneio, string $acao): void
+    // {
+    //     $statusAtual = strtolower(trim((string) $romaneio->status));
+
+    //     $acoesPermitidas = match ($statusAtual) {
+    //         'gerado',
+    //         'separando',
+    //         'em_separacao' => [
+    //             'salvar_andamento',
+    //             'finalizar_separacao',
+    //         ],
+
+    //         'separado',
+    //         'aguardando_carregamento',
+    //         'carregando',
+    //         'em_carregamento' => [
+    //             'salvar_andamento',
+    //             'finalizar_carregamento',
+    //         ],
+
+    //         'carregado',
+    //         'aguardando_conferencia',
+    //         'conferindo',
+    //         'em_conferencia' => [
+    //             'salvar_andamento',
+    //             'concluir_conferencia',
+    //         ],
+
+    //         'conferido',
+    //         'aguardando_liberacao' => [
+    //             'liberar_veiculo',
+    //         ],
+
+    //         'liberado',
+    //         'em_rota',
+    //         'finalizado',
+    //         'cancelado' => [],
+
+    //         default => throw ValidationException::withMessages([
+    //             'status' => "O status atual do romaneio ({$romaneio->status}) não corresponde a uma etapa operacional válida.",
+    //         ]),
+    //     };
+
+    //     if (! in_array($acao, $acoesPermitidas, true)) {
+    //         throw ValidationException::withMessages([
+    //             'acao' => "A ação {$acao} não é permitida para o status atual do romaneio ({$romaneio->status}).",
+    //         ]);
+    //     }
+    // }
+
+    private function validarAcaoPermitida(Romaneio $romaneio, string $acao): void 
     {
-        $statusAtual = strtolower(trim((string) $romaneio->status));
+        $statusAtual = strtolower(
+            trim((string) $romaneio->status)
+        );
 
         $acoesPermitidas = match ($statusAtual) {
             'gerado',
@@ -515,6 +678,7 @@ class RomaneioService
             'em_carregamento' => [
                 'salvar_andamento',
                 'finalizar_carregamento',
+                'voltar_etapa',
             ],
 
             'carregado',
@@ -523,11 +687,13 @@ class RomaneioService
             'em_conferencia' => [
                 'salvar_andamento',
                 'concluir_conferencia',
+                'voltar_etapa',
             ],
 
             'conferido',
             'aguardando_liberacao' => [
                 'liberar_veiculo',
+                'voltar_etapa',
             ],
 
             'liberado',
@@ -536,64 +702,534 @@ class RomaneioService
             'cancelado' => [],
 
             default => throw ValidationException::withMessages([
-                'status' => "O status atual do romaneio ({$romaneio->status}) não corresponde a uma etapa operacional válida.",
+                'status' =>
+                    "O status atual do romaneio ({$romaneio->status}) não corresponde a uma etapa operacional válida.",
             ]),
         };
 
         if (! in_array($acao, $acoesPermitidas, true)) {
             throw ValidationException::withMessages([
-                'acao' => "A ação {$acao} não é permitida para o status atual do romaneio ({$romaneio->status}).",
+                'acao' =>
+                    "A ação {$acao} não é permitida para o status atual do romaneio ({$romaneio->status}).",
             ]);
         }
     }
-    
-    private function salvarDadosOperacionais(Romaneio $romaneio, array $dados): void 
+        
+    // private function salvarDadosOperacionais(Romaneio $romaneio, array $dados): void 
+    // {
+    //     if (array_key_exists('observacao', $dados)) {
+    //         $romaneio->update([
+    //             'observacao' => $dados['observacao'] ?: null,
+    //         ]);
+    //     }
+
+    //     $itensRecebidos = collect(
+    //         $dados['itens'] ?? []
+    //     );
+
+    //     foreach ($romaneio->itens as $romaneioItem) {
+    //         $dadosItem = $itensRecebidos->get(
+    //             $romaneioItem->id
+    //         );
+
+    //         if (! is_array($dadosItem)) {
+    //             continue;
+    //         }
+
+    //         $atualizacao = [];
+
+    //         if (array_key_exists('quantidade', $dadosItem)) {
+    //             $atualizacao['quantidade_carregada'] = round(
+    //                 (float) $dadosItem['quantidade'],
+    //                 2
+    //             );
+    //         }
+
+    //         if (
+    //             array_key_exists('status', $dadosItem) &&
+    //             ! empty($dadosItem['status'])
+    //         ) {
+    //             $atualizacao['status'] =
+    //                 $dadosItem['status'];
+    //         }
+
+    //         if (array_key_exists('observacao', $dadosItem)) {
+    //             $atualizacao['observacao'] =
+    //                 $dadosItem['observacao'] ?: null;
+    //         }
+
+    //         if (! empty($atualizacao)) {
+    //             $romaneioItem->update($atualizacao);
+    //         }
+    //     }
+    // }
+
+    private function salvarDadosOperacionais( Romaneio $romaneio, array $dados): void 
     {
         if (array_key_exists('observacao', $dados)) {
             $romaneio->update([
-                'observacao' => $dados['observacao'] ?: null,
+                'observacao' =>
+                    $dados['observacao'] ?: null,
             ]);
         }
+
+        $etapaAtual = $this->resolverEtapaAtual(
+            $romaneio
+        );
 
         $itensRecebidos = collect(
             $dados['itens'] ?? []
         );
 
         foreach ($romaneio->itens as $romaneioItem) {
-            $dadosItem = $itensRecebidos->get(
-                $romaneioItem->id
+            $dadosItem = $itensRecebidos->first(
+                function ($item) use ($romaneioItem) {
+                    if (! is_array($item)) {
+                        return false;
+                    }
+
+                    $entregaItemId = (int) (
+                        $item['entrega_item_id'] ?? 0
+                    );
+
+                    $romaneioItemId = (int) (
+                        $item['romaneio_item_id'] ?? 0
+                    );
+
+                    return $entregaItemId ===
+                            (int) $romaneioItem->entrega_item_id
+                        || $romaneioItemId ===
+                            (int) $romaneioItem->id;
+                }
             );
 
             if (! is_array($dadosItem)) {
                 continue;
             }
 
+            $quantidadePrevista = round(
+                (float) $romaneioItem->quantidade_prevista,
+                2
+            );
+
+            $quantidadeSeparadaAtual = round(
+                (float) $romaneioItem->quantidade_separada,
+                2
+            );
+
+            $quantidadeCarregadaAtual = round(
+                (float) $romaneioItem->quantidade_carregada,
+                2
+            );
+
             $atualizacao = [];
 
-            if (array_key_exists('quantidade', $dadosItem)) {
-                $atualizacao['quantidade_carregada'] = round(
-                    (float) $dadosItem['quantidade'],
+            if ($etapaAtual === 'separacao') {
+                $quantidadeSeparada = round(
+                    (float) (
+                        $dadosItem['quantidade_separada']
+                        ?? $quantidadeSeparadaAtual
+                    ),
                     2
                 );
+
+                if ($quantidadeSeparada > $quantidadePrevista) {
+                    throw ValidationException::withMessages([
+                        'itens' =>
+                            "A quantidade separada do item #{$romaneioItem->entrega_item_id} excede a quantidade prevista.",
+                    ]);
+                }
+
+                $atualizacao['quantidade_separada'] =
+                    $quantidadeSeparada;
+
+                $atualizacao['status'] = match (true) {
+                    $quantidadeSeparada <= 0 =>
+                        'Pendente',
+
+                    $quantidadeSeparada < $quantidadePrevista =>
+                        'Parcial',
+
+                    default =>
+                        'Separado',
+                };
             }
 
-            if (
-                array_key_exists('status', $dadosItem) &&
-                ! empty($dadosItem['status'])
-            ) {
-                $atualizacao['status'] =
-                    $dadosItem['status'];
+            if ($etapaAtual === 'carregamento') {
+                $quantidadeCarregada = round(
+                    (float) (
+                        $dadosItem['quantidade_carregada']
+                        ?? $quantidadeCarregadaAtual
+                    ),
+                    2
+                );
+
+                if (
+                    $quantidadeCarregada >
+                    $quantidadeSeparadaAtual
+                ) {
+                    throw ValidationException::withMessages([
+                        'itens' =>
+                            "A quantidade carregada do item #{$romaneioItem->entrega_item_id} não pode exceder a quantidade separada.",
+                    ]);
+                }
+
+                $atualizacao['quantidade_carregada'] =
+                    $quantidadeCarregada;
+
+                $atualizacao['carregado_por'] =
+                    Auth::id();
+
+                $atualizacao['status'] = match (true) {
+                    $quantidadeCarregada <= 0 =>
+                        'Pendente',
+
+                    $quantidadeCarregada <
+                        $quantidadeSeparadaAtual =>
+                        'Parcial',
+
+                    default =>
+                        'Carregado',
+                };
             }
 
-            if (array_key_exists('observacao', $dadosItem)) {
-                $atualizacao['observacao'] =
-                    $dadosItem['observacao'] ?: null;
+            if ($etapaAtual === 'conferencia') {
+                $statusInformado = strtolower(
+                    trim(
+                        (string) (
+                            $dadosItem['status'] ?? ''
+                        )
+                    )
+                );
+
+                $atualizacao['status'] = match ($statusInformado) {
+                    'concluido',
+                    'conferido',
+                    'carregado' =>
+                        'Conferido',
+
+                    'divergente',
+                    'parcial' =>
+                        'Divergente',
+
+                    default =>
+                        $romaneioItem->status,
+                };
+
+                if (
+                    $atualizacao['status'] ===
+                    'Conferido'
+                ) {
+                    $atualizacao['conferido_por'] =
+                        Auth::id();
+
+                    $atualizacao['conferido_em'] =
+                        now();
+                }
             }
 
             if (! empty($atualizacao)) {
-                $romaneioItem->update($atualizacao);
+                $romaneioItem->update(
+                    $atualizacao
+                );
             }
         }
+    }
+
+    // private function validarConclusaoDaEtapa(Romaneio $romaneio, string $acao): void 
+    // {
+    //     if ($romaneio->itens->isEmpty()) {
+    //         throw ValidationException::withMessages([
+    //             'itens' =>
+    //                 'O romaneio não possui itens para operação.',
+    //         ]);
+    //     }
+
+    //     foreach ($romaneio->itens as $item) {
+    //         $prevista = round(
+    //             (float) $item->quantidade_prevista,
+    //             2
+    //         );
+
+    //         $separada = round(
+    //             (float) $item->quantidade_separada,
+    //             2
+    //         );
+
+    //         $carregada = round(
+    //             (float) $item->quantidade_carregada,
+    //             2
+    //         );
+
+    //         if (
+    //             $acao === 'finalizar_separacao' &&
+    //             $separada !== $prevista
+    //         ) {
+    //             throw ValidationException::withMessages([
+    //                 'itens' =>
+    //                     "O item #{$item->entrega_item_id} ainda não foi totalmente separado.",
+    //             ]);
+    //         }
+
+    //         if (
+    //             $acao === 'finalizar_carregamento' &&
+    //             (
+    //                 $carregada !== $separada ||
+    //                 $carregada !== $prevista
+    //             )
+    //         ) {
+    //             throw ValidationException::withMessages([
+    //                 'itens' =>
+    //                     "O item #{$item->entrega_item_id} ainda não foi totalmente carregado.",
+    //             ]);
+    //         }
+
+    //         if (
+    //             $acao === 'concluir_conferencia' &&
+    //             (
+    //                 $carregada !== $prevista ||
+    //                 strtolower((string) $item->status) !==
+    //                     'conferido'
+    //             )
+    //         ) {
+    //             throw ValidationException::withMessages([
+    //                 'itens' =>
+    //                     "O item #{$item->entrega_item_id} possui divergência ou ainda não foi conferido.",
+    //             ]);
+    //         }
+
+    //         if (
+    //             $acao === 'liberar_veiculo' &&
+    //             (
+    //                 $carregada !== $prevista ||
+    //                 strtolower((string) $item->status) !==
+    //                     'conferido'
+    //             )
+    //         ) {
+    //             throw ValidationException::withMessages([
+    //                 'itens' =>
+    //                     "O item #{$item->entrega_item_id} impede a liberação do veículo.",
+    //             ]);
+    //         }
+    //     }
+
+    //     if ($acao === 'liberar_veiculo') {
+    //         if (empty($romaneio->motorista_id)) {
+    //             throw ValidationException::withMessages([
+    //                 'motorista_id' =>
+    //                     'Defina o motorista antes de liberar o veículo.',
+    //             ]);
+    //         }
+
+    //         if (empty($romaneio->veiculo_id)) {
+    //             throw ValidationException::withMessages([
+    //                 'veiculo_id' =>
+    //                     'Defina o veículo antes de realizar a liberação.',
+    //             ]);
+    //         }
+    //     }
+    // }
+
+    private function validarConclusaoDaEtapa(Romaneio $romaneio, string $acao): void 
+    {
+        if ($romaneio->itens->isEmpty()) {
+            throw ValidationException::withMessages([
+                'itens' =>
+                    'O romaneio não possui itens para operação.',
+            ]);
+        }
+
+        foreach ($romaneio->itens as $item) {
+            $prevista = round(
+                (float) $item->quantidade_prevista,
+                2
+            );
+
+            $separada = round(
+                (float) $item->quantidade_separada,
+                2
+            );
+
+            $carregada = round(
+                (float) $item->quantidade_carregada,
+                2
+            );
+
+            if (
+                $acao === 'finalizar_separacao' &&
+                $separada !== $prevista
+            ) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        "O item #{$item->entrega_item_id} ainda não foi totalmente separado.",
+                ]);
+            }
+
+            if (
+                $acao === 'finalizar_carregamento' &&
+                (
+                    $carregada !== $separada ||
+                    $carregada !== $prevista
+                )
+            ) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        "O item #{$item->entrega_item_id} ainda não foi totalmente carregado.",
+                ]);
+            }
+
+            if (
+                $acao === 'concluir_conferencia' &&
+                (
+                    $carregada !== $prevista ||
+                    strtolower((string) $item->status) !==
+                        'conferido'
+                )
+            ) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        "O item #{$item->entrega_item_id} possui divergência ou ainda não foi conferido.",
+                ]);
+            }
+
+            if ($acao === 'liberar_veiculo') {
+                if (
+                    $carregada !== $prevista ||
+                    strtolower((string) $item->status) !==
+                        'conferido'
+                ) {
+                    throw ValidationException::withMessages([
+                        'itens' =>
+                            "O item #{$item->entrega_item_id} impede a liberação do veículo.",
+                    ]);
+                }
+            }
+        }
+
+        if ($acao !== 'liberar_veiculo') {
+            return;
+        }
+
+        if (empty($romaneio->motorista_id)) {
+            throw ValidationException::withMessages([
+                'motorista_id' =>
+                    'Defina o motorista antes de liberar o veículo.',
+            ]);
+        }
+
+        if (empty($romaneio->veiculo_id)) {
+            throw ValidationException::withMessages([
+                'veiculo_id' =>
+                    'Defina o veículo antes de realizar a liberação.',
+            ]);
+        }
+
+        if (empty($romaneio->impresso_em)) {
+            throw ValidationException::withMessages([
+                'romaneio' =>
+                    'Imprima o romaneio antes de liberar o veículo.',
+            ]);
+        }
+
+        if (empty($romaneio->impresso_por)) {
+            throw ValidationException::withMessages([
+                'romaneio' =>
+                    'Não foi possível identificar o responsável pela impressão do romaneio.',
+            ]);
+        }
+    }
+
+    private function retornarEtapaAnterior( Romaneio $romaneio,array $dados): Romaneio 
+    {
+        $motivo = trim(
+            (string) (
+                $dados['motivo_retorno'] ?? ''
+            )
+        );
+
+        if (mb_strlen($motivo) < 5) {
+            throw ValidationException::withMessages([
+                'motivo_retorno' =>
+                    'Informe o motivo do retorno da etapa.',
+            ]);
+        }
+
+        $statusAtual = strtolower(
+            trim((string) $romaneio->status)
+        );
+
+        [$statusRomaneio, $statusEntrega] = match ($statusAtual) {
+            'conferido',
+            'aguardando_liberacao' => [
+                'Carregado',
+                'Aguardando_conferencia',
+            ],
+
+            'carregado',
+            'aguardando_conferencia',
+            'conferindo',
+            'em_conferencia' => [
+                'Separado',
+                'Aguardando_carregamento',
+            ],
+
+            'separado',
+            'aguardando_carregamento',
+            'carregando',
+            'em_carregamento' => [
+                'Gerado',
+                'Separando',
+            ],
+
+            default => throw ValidationException::withMessages([
+                'acao' =>
+                    'O romaneio não pode retornar para uma etapa anterior no status atual.',
+            ]),
+        };
+
+        $registroRetorno =
+            '[' . now()->format('d/m/Y H:i') . '] ' .
+            'Retorno de etapa solicitado por usuário #' .
+            (Auth::id() ?? 'sistema') .
+            '. Motivo: ' .
+            $motivo;
+
+        $observacaoAtual = trim(
+            (string) $romaneio->observacao
+        );
+
+        $romaneio->update([
+            'status' => $statusRomaneio,
+
+            'observacao' => $observacaoAtual
+                ? $observacaoAtual . PHP_EOL . $registroRetorno
+                : $registroRetorno,
+        ]);
+
+        $entregasAfetadas = $romaneio->itens
+            ->pluck('entregaItem')
+            ->filter()
+            ->pluck('entrega')
+            ->filter()
+            ->push($romaneio->entrega)
+            ->filter()
+            ->unique('id');
+
+        foreach ($entregasAfetadas as $entrega) {
+            $entrega->update([
+                'status' => $statusEntrega,
+            ]);
+        }
+
+        return $romaneio->fresh([
+            'motorista',
+            'veiculo',
+            'entrega.cliente',
+            'itens.entregaItem.entrega',
+            'itens.entregaItem.produto',
+            'itens.entregaItem.vendaItem.produto',
+            'itens.entregaItem.itemOrcamento.produto',
+        ]);
     }
 
     private function resolverEtapaAtual(Romaneio $romaneio): string 
@@ -675,10 +1311,8 @@ class RomaneioService
         }
     }
 
-    public function cancelar(
-            Romaneio $romaneio,
-            string $motivo
-        ): void {
+    public function cancelar(Romaneio $romaneio, string $motivo): void 
+    {
         DB::transaction(function () use (
             $romaneio,
             $motivo

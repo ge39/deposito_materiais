@@ -23,6 +23,8 @@ class Romaneio extends Model
         'conferido_por',
         'finalizado_por',
         'data_emissao',
+        'impresso_em',
+        'impresso_por',
         'data_inicio_separacao',
         'data_fim_separacao',
         'data_inicio_carregamento',
@@ -38,6 +40,7 @@ class Romaneio extends Model
 
     protected $casts = [
         'data_emissao' => 'datetime',
+        'impresso_em' => 'datetime',
         'data_inicio_separacao' => 'datetime',
         'data_fim_separacao' => 'datetime',
         'data_inicio_carregamento' => 'datetime',
@@ -50,62 +53,105 @@ class Romaneio extends Model
 
     public function entrega()
     {
-        return $this->belongsTo(Entrega::class, 'entrega_id');
+        return $this->belongsTo(
+            Entrega::class,
+            'entrega_id'
+        );
     }
 
     public function itens()
     {
-        return $this->hasMany(RomaneioItem::class, 'romaneio_id');
+        return $this->hasMany(
+            RomaneioItem::class,
+            'romaneio_id'
+        );
     }
 
     public function veiculo()
     {
-        return $this->belongsTo(Veiculo::class, 'veiculo_id');
+        return $this->belongsTo(
+            Veiculo::class,
+            'veiculo_id'
+        );
     }
 
     public function motorista()
     {
-        return $this->belongsTo(Funcionario::class, 'motorista_id');
+        return $this->belongsTo(
+            Funcionario::class,
+            'motorista_id'
+        );
     }
 
     public function criador()
     {
-        return $this->belongsTo(Funcionario::class, 'criado_por');
+        return $this->belongsTo(
+            Funcionario::class,
+            'criado_por'
+        );
     }
 
     public function iniciador()
     {
-        return $this->belongsTo(Funcionario::class, 'iniciado_por');
+        return $this->belongsTo(
+            Funcionario::class,
+            'iniciado_por'
+        );
     }
 
     public function carregador()
     {
-        return $this->belongsTo(Funcionario::class, 'carregado_por');
+        return $this->belongsTo(
+            Funcionario::class,
+            'carregado_por'
+        );
     }
 
     public function conferente()
     {
-        return $this->belongsTo(Funcionario::class, 'conferido_por');
+        return $this->belongsTo(
+            Funcionario::class,
+            'conferido_por'
+        );
     }
 
     public function finalizador()
     {
-        return $this->belongsTo(Funcionario::class, 'finalizado_por');
+        return $this->belongsTo(
+            Funcionario::class,
+            'finalizado_por'
+        );
+    }
+
+    public function impressor()
+    {
+        return $this->belongsTo(
+            Funcionario::class,
+            'impresso_por'
+        );
     }
 
     public function cancelador()
     {
-        return $this->belongsTo(Funcionario::class, 'cancelado_por');
+        return $this->belongsTo(
+            Funcionario::class,
+            'cancelado_por'
+        );
     }
-    
+
     public function equipes()
     {
-        return $this->hasMany(RomaneioEquipe::class, 'romaneio_id');
+        return $this->hasMany(
+            RomaneioEquipe::class,
+            'romaneio_id'
+        );
     }
 
     public function equipeAtiva()
     {
-        return $this->hasOne(RomaneioEquipe::class, 'romaneio_id')
-            ->where('status', 'Ativa');
+        return $this->hasOne(
+            RomaneioEquipe::class,
+            'romaneio_id'
+        )->where('status', 'Ativa');
     }
 }

@@ -12,6 +12,7 @@ class RomaneioItem extends Model
         'romaneio_id',
         'entrega_item_id',
         'quantidade_prevista',
+        'quantidade_separada',
         'quantidade_carregada',
         'status',
         'carregado_por',
@@ -22,27 +23,40 @@ class RomaneioItem extends Model
 
     protected $casts = [
         'quantidade_prevista' => 'decimal:2',
+        'quantidade_separada' => 'decimal:2',
         'quantidade_carregada' => 'decimal:2',
         'conferido_em' => 'datetime',
     ];
 
     public function romaneio()
     {
-        return $this->belongsTo(Romaneio::class, 'romaneio_id');
+        return $this->belongsTo(
+            Romaneio::class,
+            'romaneio_id'
+        );
     }
 
     public function entregaItem()
     {
-        return $this->belongsTo(EntregaItem::class, 'entrega_item_id');
+        return $this->belongsTo(
+            EntregaItem::class,
+            'entrega_item_id'
+        );
     }
 
     public function carregador()
     {
-        return $this->belongsTo(Funcionario::class, 'carregado_por');
+        return $this->belongsTo(
+            Funcionario::class,
+            'carregado_por'
+        );
     }
 
     public function conferente()
     {
-        return $this->belongsTo(Funcionario::class, 'conferido_por');
+        return $this->belongsTo(
+            Funcionario::class,
+            'conferido_por'
+        );
     }
 }

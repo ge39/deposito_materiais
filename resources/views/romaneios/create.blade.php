@@ -708,54 +708,86 @@
             </div>
 
             <div class="operation-banner {{ $etapaAtual }} mb-3">
-                <div>
-                    <div class="operation-title">
-                        @switch($etapaAtual)
-                            @case('montagem')
-                                Monte o romaneio e confirme as quantidades.
-                                @break
+    <div>
+        <div class="operation-title">
+            @switch($etapaAtual)
+                @case('montagem')
+                    Monte o romaneio e confirme as quantidades.
+                    @break
 
-                            @case('separacao')
-                                Registre a separação física dos produtos.
-                                @break
+                @case('separacao')
+                    Registre a separação física dos produtos.
+                    @break
 
-                            @case('carregamento')
-                                Confirme os itens colocados no veículo.
-                                @break
+                @case('carregamento')
+                    Confirme os itens colocados no veículo.
+                    @break
 
-                            @case('conferencia')
-                                Valide a carga e registre divergências.
-                                @break
+                @case('conferencia')
+                    Valide a carga e registre divergências.
+                    @break
 
-                            @case('liberacao')
-                                Revise as informações e libere o veículo.
-                                @break
-                        @endswitch
-                    </div>
+                @case('liberacao')
+                    Imprima o romaneio antes de liberar o veículo.
+                    @break
+            @endswitch
+        </div>
 
-                    <div class="operation-description">
-                        @switch($etapaAtual)
-                            @case('montagem')
-                                A criação do romaneio inicia o fluxo operacional da expedição.
-                                @break
+            <div class="operation-description">
+                    @switch($etapaAtual)
+                        @case('montagem')
+                            A criação do romaneio inicia o fluxo operacional da expedição.
+                            @break
 
-                            @case('separacao')
-                                Todos os itens precisam ser separados ou justificados antes do avanço.
-                                @break
+                        @case('separacao')
+                            Todos os itens precisam ser separados ou justificados antes do avanço.
+                            @break
 
-                            @case('carregamento')
-                                Confirme a quantidade efetivamente carregada para cada produto.
-                                @break
+                        @case('carregamento')
+                            Confirme a quantidade efetivamente carregada para cada produto.
+                            @break
 
-                            @case('conferencia')
-                                Divergências poderão gerar saldo pendente para uma entrega posterior.
-                                @break
+                        @case('conferencia')
+                            Divergências poderão gerar saldo pendente para uma entrega posterior.
+                            @break
 
-                            @case('liberacao')
-                                Após a liberação, o romaneio seguirá para rota.
-                                @break
-                        @endswitch
-                    </div>
+                        @case('liberacao')
+                            O botão Liberar Veículo será habilitado somente após a impressão do romaneio.
+                            @break
+                    @endswitch
+                </div>
+
+                    @if(
+                        !$criandoRomaneio &&
+                        $etapaAtual === 'liberacao'
+                    )
+                        <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
+                            <button type="submit"
+                                    form="formImprimirRomaneio"
+                                    class="btn btn-outline-dark btn-sm"
+                                    id="btnImprimirRomaneio">
+
+                                <i class="bi bi-printer me-1"></i>
+
+                                {{ $romaneioAtivo?->impresso_em
+                                    ? 'Reimprimir Romaneio'
+                                    : 'Imprimir Romaneio' }}
+                            </button>
+
+                            @if($romaneioAtivo?->impresso_em)
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    Impresso em
+                                    {{ $romaneioAtivo->impresso_em->format('d/m/Y H:i') }}
+                                </span>
+                            @else
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Impressão pendente
+                                </span>
+                            @endif
+                        </div>
+                    @endif
                 </div>
 
                 <i class="bi {{ $etapas[$etapaAtual]['icone'] }} fs-2"></i>
@@ -1528,7 +1560,7 @@
                         @if(!$criandoRomaneio && $etapaAtual !== 'liberacao')
                             <button type="submit"
                                     name="acao"
-                                    value="salvar"
+                                    value="salvar_andamento"
                                     class="btn btn-outline-primary btn-sm">
                                 <i class="bi bi-floppy me-1"></i>
                                 Salvar Andamento
@@ -1580,18 +1612,18 @@
                                     Concluir Conferência
                                 </button>
                                 @break
-
-                            @case('liberacao')
+                                @case('liberacao')
                                 <button type="submit"
                                         name="acao"
                                         value="liberar_veiculo"
                                         class="btn btn-success btn-sm action-primary"
-                                        id="btnPrincipal">
+                                        id="btnPrincipal"
+                                        @disabled(empty($romaneioAtivo?->impresso_em))>
+
                                     <i class="bi bi-sign-turn-right me-1"></i>
                                     Liberar Veículo
                                 </button>
                                 @break
-
                         @endswitch
 
                     </div>
@@ -1599,8 +1631,21 @@
             </div>
 
         </form>
-    @endif
-</div>
+
+        @if(
+            !$criandoRomaneio &&
+                $etapaAtual === 'liberacao'
+            )
+                <form id="formImprimirRomaneio"
+                    method="POST"
+                    action="{{ route('romaneios.registrar-impressao', $romaneioAtivo) }}"
+                    target="_blank"
+                    class="d-none">
+                    @csrf
+                </form>
+            @endif
+        @endif
+    </div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
 
