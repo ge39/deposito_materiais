@@ -20,177 +20,6 @@ class VendaController extends Controller
      * Store da venda (PDV)
      * Responsabilidade TOTAL do backend
      */
-    // public function finalizar(Request $request, CreditoService $creditoService, EntregaService $entregaService)
-    // {
-    //     $limparNumero = function ($valor) {
-    //         if (is_numeric($valor)) {
-    //             return (float) $valor;
-    //         }
-
-    //         $stringLimpa = preg_replace('/[^\d,.]/', '', $valor);
-
-    //         return (float) (
-    //             strpos($stringLimpa, ',') !== false && strpos($stringLimpa, '.') !== false
-    //                 ? str_replace(',', '', $stringLimpa)
-    //                 : str_replace(',', '.', $stringLimpa)
-    //         );
-    //     };
-
-    //     $orcamentoId = $request->input('orcamento_id');
-
-    //     $tipoEntrega = $request->input('tipo_entrega');
-    //     $cobrarFrete = (bool) $request->input('cobrar_frete', false);
-    //     $valorFrete  = (float) $request->input('valor_frete', 0);
-
-    //     $orcamentoId = $orcamentoId ? (int) $orcamentoId : null;
-      
-    //     DB::beginTransaction();
-
-    //     try {
-    //         $clienteId = $this->buscarOuDefinirCliente($request->input('cliente_id'));
-    //         $caixaId = (int) $request->input('caixa_id');
-    //         $orcamentoId = $request->input('orcamento_id');
-
-    //         $funcionarioId = auth()->id()
-    //             ?? $request->input('funcionario_id')
-    //             ?? $request->input('funciona_id')
-    //             ?? 0;
-
-    //         $itensOriginais = $request->input('itens', []);
-    //         $itensTratados = [];
-
-    //         foreach ($itensOriginais as $item) {
-    //             if (!isset($item['produto_id'])) {
-    //                 continue;
-    //             }
-
-    //             $precoDefinido = $item['valor_unitario']
-    //                 ?? $item['preco_unitario']
-    //                 ?? $item['preco']
-    //                 ?? 0;
-
-    //             $qtdDefinida = $item['quantidade'] ?? $item['qtd'] ?? 1;
-
-    //             $item['valor_unitario'] = $precoDefinido;
-    //             $item['preco_unitario'] = $precoDefinido;
-    //             $item['preco'] = $precoDefinido;
-    //             $item['quantidade'] = $qtdDefinida;
-    //             $item['qtd'] = $qtdDefinida;
-
-    //             $itensTratados[] = $item;
-    //         }
-
-    //         $venda = Venda::create([
-    //             'cliente_id'     => $clienteId,
-    //             'funcionario_id' => $funcionarioId,
-    //             'caixa_id'       => $caixaId,
-    //             'status'         => 'aberta',
-    //             'total'          => 0,
-    //             'data_venda'     => $request->dataVenda ?? now(),
-    //         ]);
-
-    //         $valorTotal = $this->processarItensVenda($venda, $itensTratados, $limparNumero);
-
-    //         $venda->update([
-    //             'total' => $valorTotal,
-    //         ]);
-
-    //         $itensVendaCriados = collect();
-
-    //         foreach ($itensTratados as $item) {
-    //             $precoFinal = $limparNumero($item['preco_unitario']);
-
-    //             if ($precoFinal <= 0) {
-    //                 $precoBase = DB::table('produtos')
-    //                     ->where('id', $item['produto_id'])
-    //                     ->value('preco_venda');
-
-    //                 $precoFinal = $precoBase ? (float) $precoBase : 0.00;
-    //             }
-
-    //             $itemVenda = \App\Models\ItemVenda::create([
-    //                 'venda_id'       => $venda->id,
-    //                 'produto_id'     => $item['produto_id'],
-    //                 'lote_id'        => (
-    //                     empty($item['lote_id']) || $item['lote_id'] === 'SEM_LOTE'
-    //                 ) ? null : (int) $item['lote_id'],
-    //                 'quantidade'     => $limparNumero($item['quantidade']),
-    //                 'preco_unitario' => $precoFinal,
-    //                 'desconto'       => $limparNumero($item['desconto'] ?? 0),
-    //             ]);
-
-    //             $itensVendaCriados->push($itemVenda);
-    //         }
-
-    //         $userId = auth()->id() ?? $request->input('user_id', 1);
-
-    //         $pagamentos = $this->pagamentos_venda(
-    //             $venda->id,
-    //             $request,
-    //             $userId,
-    //             $limparNumero
-    //         );
-
-    //         $this->finalizarFluxoFinanceiro(
-    //             $venda,
-    //             $pagamentos,
-    //             $caixaId,
-    //             $creditoService
-    //         );
-
-    //         $venda->update([
-    //             'status' => 'finalizada',
-    //         ]);
-    //         if ($orcamentoId) {
-    //             $orcamento = \App\Models\Orcamento::with('itens')
-    //                 ->where('id', $orcamentoId)
-    //                 ->where('status', 'Aprovado')
-    //                 ->lockForUpdate()
-    //                 ->first();
-
-    //                 dd('CHEGUEI NO ORÇAMENTO', $orcamentoId, $orcamento);
-                   
-    //                 dd([
-    //                     'orcamento_id' => $orcamentoId,
-    //                     'orcamento_encontrado' => (bool) $orcamento,
-    //                     'status' => $orcamento?->status,
-    //                 ]);
-
-    //             if (!$orcamento) {
-    //                 throw new \Exception("Orçamento #{$orcamentoId} não encontrado ou não está Aprovado.");
-    //             }
-
-    //             // 1. Primeiro fatura o orçamento
-    //             $orcamento->update([
-    //                 'status'       => 'Faturado',
-    //                 'editando_por' => auth()->id() ?? $funcionarioId,
-    //                 'editando_em'  => now(),
-    //             ]);
-
-    //             // 2. Depois cria/fatura a entrega
-    //             $entregaService->faturarEntregaDoOrcamento(
-    //                 $orcamento,
-    //                 $venda,
-    //                 $itensVendaCriados
-    //             );
-    //         }
-
-    //         DB::commit();
-
-    //         return response()->json([
-    //             'success'  => true,
-    //             'venda_id' => $venda->id,
-    //         ], 200);
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-
-    //         return response()->json([
-    //             'success' => false,
-    //             'erro'    => $e->getMessage(),
-    //         ], 422);
-    //     }
-    // }
 
     public function finalizar(Request $request, CreditoService $creditoService, EntregaService $entregaService)
     {
@@ -247,10 +76,11 @@ class VendaController extends Controller
                 $itensTratados[] = $item;
             }
 
-            $venda = Venda::create([
+           $venda = Venda::create([
                 'cliente_id'     => $clienteId,
                 'funcionario_id' => $funcionarioId,
                 'caixa_id'       => $caixaId,
+                'orcamento_id'   => $orcamentoId,
                 'status'         => 'aberta',
                 'total'          => 0,
                 'data_venda'     => $request->dataVenda ?? now(),
@@ -431,9 +261,9 @@ class VendaController extends Controller
             $totalBruto = $qtd * ($precoCobrado ?: $produto->preco_venda);
             $descPerc = ($totalBruto > 0) ? ($descInformado / $totalBruto) * 100 : 0;
 
-            if ($descPerc > $maxDesc) {
-                throw new \Exception("Desconto excede o máximo de {$maxDesc}%");
-            }
+            // if ($descPerc > $maxDesc) {
+            //     throw new \Exception("Desconto excede o máximo de {$maxDesc}%");
+            // }
 
             // =======================================================================
             // 3. Baixa de estoque por lote com FIFO
@@ -615,65 +445,195 @@ class VendaController extends Controller
     /**
      * Gera os dados do cupom de forma estática e segura para impressão ou reimpressão.
      */
-     public function cupom($id) 
-    { 
-        // 1. Carrega a venda pai com os relacionamentos de primeiro nível
-        $venda = Venda::with(['cliente', 'funcionario'])->findOrFail($id); 
+    // public function cupom($id) 
+    // { 
+    //     // 1. Carrega a venda pai com os relacionamentos de primeiro nível
+    //     $venda = Venda::with(['cliente', 'funcionario'])->findOrFail($id); 
 
-        // 🚀 CARREGAMENTO CIRÚRGICO: Busca os itens diretamente partindo de ItemVenda
-        // Isso anula qualquer falha de mapeamento ou chave estrangeira invertida do Eloquent
-        $itensReais = \App\Models\ItemVenda::with(['produto.unidadeMedida', 'lote'])
-            ->where('venda_id', $id)
-            ->get();
+    //     // 🚀 CARREGAMENTO CIRÚRGICO: Busca os itens diretamente partindo de ItemVenda
+    //     // Isso anula qualquer falha de mapeamento ou chave estrangeira invertida do Eloquent
+    //     $itensReais = \App\Models\ItemVenda::with(['produto.unidadeMedida', 'lote'])
+    //         ->where('venda_id', $id)
+    //         ->get();
 
-        // Injeta os itens carregados diretamente na relação da Venda
-        $venda->setRelation('itens', $itensReais);
+    //     // Injeta os itens carregados diretamente na relação da Venda
+    //     $venda->setRelation('itens', $itensReais);
 
-        // Busca o histórico real de pagamentos gravado no banco de dados
-        $pagamentosDaVenda = \Illuminate\Support\Facades\DB::table('pagamentos_venda')
-            ->where('venda_id', $id)
-            ->get();
+    //     // Busca o histórico real de pagamentos gravado no banco de dados
+    //     $pagamentosDaVenda = \Illuminate\Support\Facades\DB::table('pagamentos_venda')
+    //         ->where('venda_id', $id)
+    //         ->get();
 
-        // 2. Busca os dados cadastrais da empresa ativa
-        $empresa = \App\Models\Empresa::where('ativo', 1)->first();
+    //     // 2. Busca os dados cadastrais da empresa ativa
+    //     $empresa = \App\Models\Empresa::where('ativo', 1)->first();
 
-        // 3. Agrega os subtotais e descontos em memória
-        $descontoTotal = $venda->itens->sum('desconto'); 
+    //     // 3. Agrega os subtotais e descontos em memória
+    //     $descontoTotal = $venda->itens->sum('desconto'); 
         
-        // 🎯 AJUSTE CIRÚRGICO EXATO: Busca apenas o terminal_id numérico que está dentro da tabela caixas
-        // Isso elimina o JOIN com a tabela terminais e mata o erro 1054 de vez
-        $terminalId = \Illuminate\Support\Facades\DB::table('caixas')
+    //     // 🎯 AJUSTE CIRÚRGICO EXATO: Busca apenas o terminal_id numérico que está dentro da tabela caixas
+    //     // Isso elimina o JOIN com a tabela terminais e mata o erro 1054 de vez
+    //     $terminalId = \Illuminate\Support\Facades\DB::table('caixas')
+    //         ->where('id', $venda->caixa_id)
+    //         ->value('terminal_id') ?? 0;
+
+    //     // 🎯 RECUPERAÇÃO SEGURA DO TROCO HISTÓRICO
+    //     // Busca o registro de dinheiro se ele existir nessa venda
+    //     $pagamentoDinheiro = $pagamentosDaVenda->where('forma_pagamento', 'dinheiro')->first();
+        
+    //     // Se houver dinheiro, extrai o troco gravado na nova coluna. Caso contrário, assume 0
+    //     $troco = $pagamentoDinheiro ? (float)$pagamentoDinheiro->troco : 0;
+        
+    //     // O dinheiro contábil líquido gravado no banco
+    //     $valorLiquidoDinheiro = $pagamentoDinheiro ? (float)$pagamentoDinheiro->valor : 0;
+
+    //     // Soma o troco de volta ao valor apenas na view para imprimir o Bruto entregue (ex: 350 + 150 = 500)
+    //     $pagoEmDinheiro = $valorLiquidoDinheiro + $troco; 
+
+    //     // Injeta a coleção na venda para o Blade renderizar o loop sem dar novas queries
+    //     $venda->setRelation('pagamentos', $pagamentosDaVenda);
+
+    //     // 4. Proteção de caminhos para compatibilidade de pastas
+    //     $caminhoView = view()->exists('vendas.cupom') ? 'vendas.cupom' : 'venda.cupom';  
+
+    //     // 5. Devolve o template com todas as variáveis preenchidas
+    //     return view($caminhoView, compact( 
+    //         'venda', 
+    //         'empresa', 
+    //         'descontoTotal', 
+    //         'pagoEmDinheiro', 
+    //         'troco',
+    //         'terminalId' // 🎯 Passa a variável numérica limpa para a sua View
+    //     )); 
+    // }
+
+     /**
+     * Gera os dados históricos do cupom para impressão ou reimpressão.
+     */
+    public function cupom($id)
+    {
+        $venda = Venda::with([
+            'cliente',
+            'funcionario',
+        ])->findOrFail($id);
+
+        $itensReais = \App\Models\ItemVenda::with([
+            'produto.unidadeMedida',
+            'lote',
+        ])
+            ->where('venda_id', $venda->id)
+            ->get();
+
+        $venda->setRelation(
+            'itens',
+            $itensReais
+        );
+
+        $pagamentosDaVenda = \Illuminate\Support\Facades\DB::table(
+            'pagamentos_venda'
+        )
+            ->where('venda_id', $venda->id)
+            ->get();
+
+        $venda->setRelation(
+            'pagamentos',
+            $pagamentosDaVenda
+        );
+
+        $empresa = \App\Models\Empresa::query()
+            ->where('ativo', 1)
+            ->first();
+
+        $terminalId = \Illuminate\Support\Facades\DB::table(
+            'caixas'
+        )
             ->where('id', $venda->caixa_id)
             ->value('terminal_id') ?? 0;
 
-        // 🎯 RECUPERAÇÃO SEGURA DO TROCO HISTÓRICO
-        // Busca o registro de dinheiro se ele existir nessa venda
-        $pagamentoDinheiro = $pagamentosDaVenda->where('forma_pagamento', 'dinheiro')->first();
-        
-        // Se houver dinheiro, extrai o troco gravado na nova coluna. Caso contrário, assume 0
-        $troco = $pagamentoDinheiro ? (float)$pagamentoDinheiro->troco : 0;
-        
-        // O dinheiro contábil líquido gravado no banco
-        $valorLiquidoDinheiro = $pagamentoDinheiro ? (float)$pagamentoDinheiro->valor : 0;
+        $pagamentoDinheiro = $pagamentosDaVenda
+            ->first(function ($pagamento) {
+                return strtolower(
+                    trim(
+                        (string) $pagamento->forma_pagamento
+                    )
+                ) === 'dinheiro';
+            });
 
-        // Soma o troco de volta ao valor apenas na view para imprimir o Bruto entregue (ex: 350 + 150 = 500)
-        $pagoEmDinheiro = $valorLiquidoDinheiro + $troco; 
+        $troco = $pagamentoDinheiro
+            ? (float) ($pagamentoDinheiro->troco ?? 0)
+            : 0;
 
-        // Injeta a coleção na venda para o Blade renderizar o loop sem dar novas queries
-        $venda->setRelation('pagamentos', $pagamentosDaVenda);
+        $valorLiquidoDinheiro = $pagamentoDinheiro
+            ? (float) ($pagamentoDinheiro->valor ?? 0)
+            : 0;
 
-        // 4. Proteção de caminhos para compatibilidade de pastas
-        $caminhoView = view()->exists('vendas.cupom') ? 'vendas.cupom' : 'venda.cupom';  
+        $pagoEmDinheiro =
+            $valorLiquidoDinheiro + $troco;
 
-        // 5. Devolve o template com todas as variáveis preenchidas
-        return view($caminhoView, compact( 
-            'venda', 
-            'empresa', 
-            'descontoTotal', 
-            'pagoEmDinheiro', 
-            'troco',
-            'terminalId' // 🎯 Passa a variável numérica limpa para a sua View
-        )); 
+        $descontoTotal = round(
+            (float) $itensReais->sum(function ($item) {
+                return (float) ($item->desconto ?? 0);
+            }),
+            2
+        );
+
+        $totalLiquidoVenda = round(
+            (float) $venda->total,
+            2
+        );
+
+        $totalBrutoVenda = round(
+            $totalLiquidoVenda + $descontoTotal,
+            2
+        );
+
+        /*
+        * Quando a venda veio de orçamento, usa o desconto
+        * comercial homologado e persistido no orçamento.
+        */
+        if (! empty($venda->orcamento_id)) {
+            $descontoOrcamento = round(
+                (float) \Illuminate\Support\Facades\DB::table(
+                    'item_orcamentos'
+                )
+                    ->where(
+                        'orcamento_id',
+                        $venda->orcamento_id
+                    )
+                    ->sum('valor_desconto'),
+                2
+            );
+
+            if ($descontoOrcamento > 0) {
+                $descontoTotal =
+                    $descontoOrcamento;
+
+                $totalBrutoVenda = round(
+                    $totalLiquidoVenda +
+                    $descontoTotal,
+                    2
+                );
+            }
+        }
+
+        $caminhoView = view()->exists(
+            'vendas.cupom'
+        )
+            ? 'vendas.cupom'
+            : 'venda.cupom';
+
+        return view(
+            $caminhoView,
+            compact(
+                'venda',
+                'empresa',
+                'descontoTotal',
+                'totalBrutoVenda',
+                'totalLiquidoVenda',
+                'pagoEmDinheiro',
+                'troco',
+                'terminalId'
+            )
+        );
     }
 
     /**

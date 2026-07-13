@@ -815,20 +815,7 @@ document.addEventListener('DOMContentLoaded', function () {
             btnFinalizar.innerHTML = 'Finalizar Venda';
         }
     }
-        // =====================================================
-    // EVENTOS FINALIZAÇÃO
-    // =====================================================
-    // btnFinalizar.addEventListener('keydown', function (e) {
-    //     if (e.key === 'Enter') {
-    //         // 🎯 GATILHO CHAVE: Garante que os dados finais da memória estejam gravados 
-    //         // no LocalStorage no milissegundo anterior ao disparo do fetch
-    //         if (typeof PdvStorage !== 'undefined' && window.carrinho) {
-    //             PdvStorage.salvarCarrinho(window.carrinho);
-    //         }
-
-    //         finalizarVenda(e);
-    //     }
-    // });
+     
     // =====================================================
     // EVENTOS FINALIZAÇÃO
     // =====================================================

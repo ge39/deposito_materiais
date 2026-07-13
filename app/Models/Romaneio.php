@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Romaneio extends Model
 {
@@ -11,7 +14,6 @@ class Romaneio extends Model
     protected $fillable = [
         'entrega_id',
         'criado_por',
-        'codigo',
         'codigo_romaneio',
         'token_abertura',
         'token_fechamento',
@@ -51,7 +53,7 @@ class Romaneio extends Model
         'percentual_carregado' => 'decimal:2',
     ];
 
-    public function entrega()
+    public function entrega(): BelongsTo
     {
         return $this->belongsTo(
             Entrega::class,
@@ -59,7 +61,7 @@ class Romaneio extends Model
         );
     }
 
-    public function itens()
+    public function itens(): HasMany
     {
         return $this->hasMany(
             RomaneioItem::class,
@@ -67,7 +69,7 @@ class Romaneio extends Model
         );
     }
 
-    public function veiculo()
+    public function veiculo(): BelongsTo
     {
         return $this->belongsTo(
             Veiculo::class,
@@ -75,7 +77,7 @@ class Romaneio extends Model
         );
     }
 
-    public function motorista()
+    public function motorista(): BelongsTo
     {
         return $this->belongsTo(
             Funcionario::class,
@@ -83,63 +85,63 @@ class Romaneio extends Model
         );
     }
 
-    public function criador()
+    public function criador(): BelongsTo
     {
         return $this->belongsTo(
-            Funcionario::class,
+            User::class,
             'criado_por'
         );
     }
 
-    public function iniciador()
+    public function iniciador(): BelongsTo
     {
         return $this->belongsTo(
-            Funcionario::class,
+            User::class,
             'iniciado_por'
         );
     }
 
-    public function carregador()
+    public function carregador(): BelongsTo
     {
         return $this->belongsTo(
-            Funcionario::class,
+            User::class,
             'carregado_por'
         );
     }
 
-    public function conferente()
+    public function conferente(): BelongsTo
     {
         return $this->belongsTo(
-            Funcionario::class,
+            User::class,
             'conferido_por'
         );
     }
 
-    public function finalizador()
+    public function finalizador(): BelongsTo
     {
         return $this->belongsTo(
-            Funcionario::class,
+            User::class,
             'finalizado_por'
         );
     }
 
-    public function impressor()
+    public function impressor(): BelongsTo
     {
         return $this->belongsTo(
-            Funcionario::class,
+            User::class,
             'impresso_por'
         );
     }
 
-    public function cancelador()
+    public function cancelador(): BelongsTo
     {
         return $this->belongsTo(
-            Funcionario::class,
+            User::class,
             'cancelado_por'
         );
     }
 
-    public function equipes()
+    public function equipes(): HasMany
     {
         return $this->hasMany(
             RomaneioEquipe::class,
@@ -147,11 +149,14 @@ class Romaneio extends Model
         );
     }
 
-    public function equipeAtiva()
+    public function equipeAtiva(): HasOne
     {
         return $this->hasOne(
             RomaneioEquipe::class,
             'romaneio_id'
-        )->where('status', 'Ativa');
+        )->where(
+            'status',
+            'Ativa'
+        );
     }
 }

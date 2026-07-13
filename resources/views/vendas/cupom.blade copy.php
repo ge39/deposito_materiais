@@ -263,9 +263,6 @@
     </div>
 </div>
 
-
-
-
 {{-- DISPARO COM LEITURA
     DO HISTÓRICO EM SEGUNDO PLANO --}}
 

@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ========================================================
     document.addEventListener('keydown', function(event) {
         
-        // Captura a combinação ALT + P
+        // Captura a combinação ALT + P Alt+P
 
         if (event.altKey && (event.key === 'p' || event.key === 'P' || event.code === 'KeyP')) {
             
@@ -176,16 +176,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const modal = document.getElementById('modalOrcamento');
             if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
         }
-
-        //  if (e.code === 'F6') {
-        //     // Se já existe um modal aberto, NÃO faz nada
-        //     if (document.querySelector('.modal.show')) {
-        //         return;
-        //     }
-        //     e.preventDefault();
-        //     abrirModalFinalizar();
-        // }
-
         // F6 - FINALIZAR VENDA
         if (e.code === 'F6') {
             if (document.querySelector('.modal.show')) return;
