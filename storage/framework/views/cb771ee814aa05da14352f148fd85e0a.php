@@ -756,111 +756,115 @@
                                 </td>
 
                                 <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                    <?php
+                                        $statusEntrega = strtolower(trim((string) $entrega->status));
 
+                                        $acaoOperacional = match ($statusEntrega) {
+                                            'aguardando_separacao' => [
+                                                'titulo' => 'Montar romaneio para esta entrega',
+                                                'icone' => 'bi-clipboard-plus',
+                                                'classe' => 'btn-outline-secondary',
+                                            ],
+
+                                            'separando' => [
+                                                'titulo' => 'Continuar separação',
+                                                'icone' => 'bi-box-seam',
+                                                'classe' => 'btn-outline-warning',
+                                            ],
+
+                                            'aguardando_carregamento',
+                                            'carregando' => [
+                                                'titulo' => 'Continuar carregamento',
+                                                'icone' => 'bi-truck-front',
+                                                'classe' => 'btn-outline-info',
+                                            ],
+
+                                            'aguardando_conferencia',
+                                            'conferindo' => [
+                                                'titulo' => 'Continuar conferência',
+                                                'icone' => 'bi-clipboard-check',
+                                                'classe' => 'btn-outline-primary',
+                                            ],
+
+                                            'aguardando_liberacao' => [
+                                                'titulo' => 'Continuar liberação do veículo',
+                                                'icone' => 'bi-sign-turn-right',
+                                                'classe' => 'btn-outline-success',
+                                            ],
+
+                                            'em_rota',
+                                            'parcial' => [
+                                                'titulo' => 'Confirmar entrega',
+                                                'icone' => 'bi-check2-circle',
+                                                'classe' => 'btn-outline-success',
+                                            ],
+
+                                            default => null,
+                                        };
+
+                                        $podeCancelar = !in_array(
+                                            $statusEntrega,
+                                            ['entregue', 'cancelado', 'devolvido'],
+                                            true
+                                        );
+                                    ?>
+
+                                    <div class="d-flex justify-content-center gap-1 flex-nowrap">
+
+                                        
                                         <a href="<?php echo e(route('entregas.show', $entrega->id)); ?>"
-                                           class="btn btn-outline-primary btn-sm acao-btn"
-                                           title="Visualizar entrega">
+                                        class="btn btn-outline-primary btn-sm acao-btn"
+                                        title="Visualizar entrega">
 
                                             <i class="bi bi-eye"></i>
                                         </a>
 
-                                        <?php if(in_array(
-                                            strtolower($entrega->status),
-                                            ['aguardando_separacao', 'separando'],
-                                            true
-                                        )): ?>
-                                            <a href="<?php echo e(route('romaneios.create', ['entrega_id' => $entrega->id])); ?>"
-                                               class="btn btn-outline-secondary btn-sm acao-btn"
-                                               title="Gerar romaneio para esta entrega">
-
-                                                <i class="bi bi-clipboard-plus"></i>
-                                            </a>
-                                        <?php endif; ?>
-
-                                        <?php if($entrega->status === 'aguardando_separacao'): ?>
+                                        
+                                        <?php if(in_array($statusEntrega, ['em_rota', 'parcial'], true)): ?>
                                             <form method="POST"
-                                                  action="<?php echo e(route('entregas.separar', $entrega->id)); ?>">
+                                                action="<?php echo e(route('entregas.confirmar', $entrega->id)); ?>">
 
                                                 <?php echo csrf_field(); ?>
                                                 <?php echo method_field('PATCH'); ?>
 
                                                 <button type="submit"
-                                                        class="btn btn-outline-warning btn-sm acao-btn"
-                                                        title="Iniciar separação">
-
-                                                    <i class="bi bi-box-seam"></i>
-                                                </button>
-                                            </form>
-                                        <?php endif; ?>
-
-                                        <?php if($entrega->status === 'separando'): ?>
-                                            <form method="POST"
-                                                  action="<?php echo e(route('entregas.carregar', $entrega->id)); ?>">
-
-                                                <?php echo csrf_field(); ?>
-                                                <?php echo method_field('PATCH'); ?>
-
-                                                <button type="submit"
-                                                        class="btn btn-outline-info btn-sm acao-btn"
-                                                        title="Marcar como carregada">
-
-                                                    <i class="bi bi-truck-front"></i>
-                                                </button>
-                                            </form>
-                                        <?php endif; ?>
-
-                                        <?php if($entrega->status === 'carregado'): ?>
-                                            <form method="POST"
-                                                  action="<?php echo e(route('entregas.rota', $entrega->id)); ?>">
-
-                                                <?php echo csrf_field(); ?>
-                                                <?php echo method_field('PATCH'); ?>
-
-                                                <button type="submit"
-                                                        class="btn btn-outline-dark btn-sm acao-btn"
-                                                        title="Enviar para rota">
-
-                                                    <i class="bi bi-geo-alt"></i>
-                                                </button>
-                                            </form>
-                                        <?php endif; ?>
-
-                                        <?php if(in_array(
-                                            $entrega->status,
-                                            ['em_rota', 'parcial'],
-                                            true
-                                        )): ?>
-                                            <form method="POST"
-                                                  action="<?php echo e(route('entregas.confirmar', $entrega->id)); ?>">
-
-                                                <?php echo csrf_field(); ?>
-                                                <?php echo method_field('PATCH'); ?>
-
-                                                <button type="submit"
-                                                        class="btn btn-outline-success btn-sm acao-btn"
-                                                        title="Confirmar entrega"
+                                                        class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
+                                                        title="<?php echo e($acaoOperacional['titulo']); ?>"
                                                         onclick="return confirm('Confirmar esta entrega como concluída?')">
 
-                                                    <i class="bi bi-check2-circle"></i>
+                                                    <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
                                                 </button>
                                             </form>
+
+                                        <?php elseif($acaoOperacional): ?>
+                                            <a href="<?php echo e(route('romaneios.create', ['entrega_id' => $entrega->id])); ?>"
+                                            class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
+                                            title="<?php echo e($acaoOperacional['titulo']); ?>">
+
+                                                <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
+                                            </a>
+
+                                        <?php else: ?>
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary btn-sm acao-btn"
+                                                    title="Nenhuma operação disponível para este status"
+                                                    disabled>
+
+                                                <i class="bi bi-clipboard-x"></i>
+                                            </button>
                                         <?php endif; ?>
 
-                                        <?php if(!in_array(
-                                            $entrega->status,
-                                            ['entregue', 'cancelado', 'devolvido'],
-                                            true
-                                        )): ?>
+                                        
+                                        <?php if($podeCancelar): ?>
                                             <form method="POST"
-                                                  action="<?php echo e(route('entregas.cancelar', $entrega->id)); ?>">
+                                                action="<?php echo e(route('entregas.cancelar', $entrega->id)); ?>">
 
                                                 <?php echo csrf_field(); ?>
                                                 <?php echo method_field('PATCH'); ?>
 
                                                 <input type="hidden"
-                                                       name="motivo"
-                                                       value="Cancelada pelo painel de entregas.">
+                                                    name="motivo"
+                                                    value="Cancelada pelo painel de entregas.">
 
                                                 <button type="submit"
                                                         class="btn btn-outline-danger btn-sm acao-btn"
@@ -870,17 +874,16 @@
                                                     <i class="bi bi-x-circle"></i>
                                                 </button>
                                             </form>
-                                        <?php endif; ?>
-
-                                        <?php if($entrega->status === 'entregue'): ?>
+                                        <?php else: ?>
                                             <button type="button"
-                                                    class="btn btn-outline-secondary btn-sm acao-btn"
-                                                    title="Impressão disponível em fase futura"
+                                                    class="btn btn-outline-danger btn-sm acao-btn"
+                                                    title="Cancelamento indisponível para este status"
                                                     disabled>
 
-                                                <i class="bi bi-printer"></i>
+                                                <i class="bi bi-x-circle"></i>
                                             </button>
                                         <?php endif; ?>
+
                                     </div>
                                 </td>
                             </tr>

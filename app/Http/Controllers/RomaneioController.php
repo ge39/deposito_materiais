@@ -79,9 +79,26 @@ class RomaneioController extends Controller
     //     ));
     // }
 
-    public function create(Request $request)
+   public function create(Request $request)
     {
         $entregaId = $request->integer('entrega_id');
+
+        $statusOperacionais = [
+            'Aguardando_separacao',
+            'aguardando_separacao',
+            'Separando',
+            'separando',
+            'Aguardando_carregamento',
+            'aguardando_carregamento',
+            'Carregando',
+            'carregando',
+            'Aguardando_conferencia',
+            'aguardando_conferencia',
+            'Conferindo',
+            'conferindo',
+            'Aguardando_liberacao',
+            'aguardando_liberacao',
+        ];
 
         $entregasDisponiveis = Entrega::with([
                 'cliente',
@@ -90,13 +107,13 @@ class RomaneioController extends Controller
                 'itens.produto',
                 'itens.vendaItem.produto',
                 'itens.itemOrcamento.produto',
+                // 'romaneioAtivo.motorista',
+                // 'romaneioAtivo.veiculo',
+                // 'romaneioAtivo.itens.entregaItem.produto',
+                // 'romaneioAtivo.itens.entregaItem.vendaItem.produto',
+                // 'romaneioAtivo.itens.entregaItem.itemOrcamento.produto',
             ])
-            ->whereIn('status', [
-                'Aguardando_separacao',
-                'aguardando_separacao',
-                'Separando',
-                'separando',
-            ])
+            ->whereIn('status', $statusOperacionais)
             ->when($entregaId, function ($query) use ($entregaId) {
                 $query->where('id', $entregaId);
             })
@@ -109,7 +126,7 @@ class RomaneioController extends Controller
                 ->route('entregas.index')
                 ->with(
                     'error',
-                    'A entrega selecionada não está disponível para geração de romaneio.'
+                    'A entrega selecionada não está disponível para operação do romaneio.'
                 );
         }
 
@@ -135,42 +152,6 @@ class RomaneioController extends Controller
             'entregaId'
         ));
     }
-
-    // public function store(Request $request)
-    // {
-    //     $request->validate([
-    //         'entregas' => ['nullable', 'array'],
-    //         'entregas.*' => ['nullable', 'integer', 'exists:entregas,id'],
-
-    //         'entrega_itens' => ['nullable', 'array'],
-    //         'entrega_itens.*' => ['nullable', 'integer', 'exists:entrega_itens,id'],
-
-    //         'motorista_id' => ['nullable', 'integer', 'exists:funcionarios,id'],
-    //         'veiculo_id' => ['nullable', 'integer', 'exists:frotas,id'],
-    //         'observacao' => ['nullable', 'string', 'max:1000'],
-    //     ]);
-
-    //     if (
-    //         empty($request->input('entregas', [])) &&
-    //         empty($request->input('entrega_itens', []))
-    //     ) {
-    //         return back()
-    //             ->withInput()
-    //             ->with('error', 'Selecione pelo menos uma entrega ou item para criar o romaneio.');
-    //     }
-
-    //     try {
-    //         $romaneio = $this->romaneioService->criarRomaneio($request->all());
-
-    //         return redirect()
-    //             ->route('romaneios.show', $romaneio->id)
-    //             ->with('success', 'Romaneio criado com sucesso. Agora ele já pode ser impresso para coleta física do estoque.');
-    //     } catch (Throwable $e) {
-    //         return back()
-    //             ->withInput()
-    //             ->with('error', 'Erro ao criar romaneio: ' . $e->getMessage());
-    //     }
-    // }
 
     public function store(Request $request)
     {
@@ -368,10 +349,8 @@ class RomaneioController extends Controller
     //     ->with('success', 'Equipe atribuída ao romaneio com sucesso.');
     // }
 
-    public function salvarEquipe(
-            Request $request,
-            Romaneio $romaneio
-        ) {
+    public function salvarEquipe( Request $request, Romaneio $romaneio) 
+    {
         $dadosValidados = $request->validate(
             [
                 'motorista_id' => [
@@ -440,4 +419,67 @@ class RomaneioController extends Controller
 
         return view('romaneios.separacao', compact('romaneio'));
     }
+
+    public function atualizarOperacao(Request $request, Romaneio $romaneio)
+    {
+        $dadosValidados = $request->validate(
+            [
+                'acao' => [
+                    'required',
+                    'string',
+                    'in:salvar_andamento,finalizar_separacao,finalizar_carregamento,concluir_conferencia,liberar_veiculo',
+                ],
+            ],
+            [
+                'acao.required' => 'A ação operacional não foi informada.',
+                'acao.in' => 'A ação operacional informada é inválida.',
+            ]
+        );
+
+        try {
+            $romaneio = $this->romaneioService->atualizarOperacao(
+                $romaneio,
+                $dadosValidados['acao'],
+                $request->all()
+            );
+
+            $mensagem = match ($dadosValidados['acao']) {
+                'salvar_andamento' =>
+                    'Andamento salvo com sucesso.',
+
+                'finalizar_separacao' =>
+                    'Separação finalizada. O romaneio avançou para Carregamento.',
+
+                'finalizar_carregamento' =>
+                    'Carregamento finalizado. O romaneio avançou para Conferência.',
+
+                'concluir_conferencia' =>
+                    'Conferência concluída. O romaneio avançou para Liberação.',
+
+                'liberar_veiculo' =>
+                    'Veículo liberado com sucesso.',
+
+                default =>
+                    'Operação atualizada com sucesso.',
+            };
+
+            return redirect()
+                ->route('romaneios.create', [
+                    'entrega_id' => $romaneio->entrega_id,
+                ])
+                ->with('success', $mensagem);
+
+        } catch (Throwable $e) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Erro ao atualizar operação do romaneio: ' .
+                    $e->getMessage()
+                );
+        }
+    }
+
+
+
 }

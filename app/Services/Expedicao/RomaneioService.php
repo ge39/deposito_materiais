@@ -177,10 +177,8 @@ class RomaneioService
         });
     }
 
-    private function buscarItensParaRomaneio(
-        array $entregasIds,
-        array $entregaItensIds
-    ): EloquentCollection {
+    private function buscarItensParaRomaneio( array $entregasIds, array $entregaItensIds): EloquentCollection 
+    {
         $entregasIds = collect($entregasIds)
             ->map(fn ($id) => (int) $id)
             ->filter(fn ($id) => $id > 0)
@@ -244,9 +242,8 @@ class RomaneioService
             ->get();
     }
 
-    private function validarEntregasDosItens(
-        Collection $entregaItens
-    ): void {
+    private function validarEntregasDosItens(Collection $entregaItens): void 
+    {
         $entregas = $entregaItens
             ->pluck('entrega')
             ->filter()
@@ -277,10 +274,8 @@ class RomaneioService
         }
     }
 
-    private function prepararItensDoRomaneio(
-        Collection $entregaItens,
-        Collection $itensComQuantidade
-    ): Collection {
+    private function prepararItensDoRomaneio(Collection $entregaItens, Collection $itensComQuantidade): Collection 
+    {
         $quantidadesInformadas = $itensComQuantidade
             ->keyBy('entrega_item_id');
 
@@ -411,10 +406,279 @@ class RomaneioService
             ->values();
     }
 
+    public function atualizarOperacao( Romaneio $romaneio,string $acao, array $dados = []): Romaneio 
+    {
+        return DB::transaction(function () use (
+            $romaneio,
+            $acao,
+            $dados
+        ) {
+            $romaneio = Romaneio::query()
+                ->with([
+                    'entrega',
+                    'itens.entregaItem.entrega',
+                ])
+                ->lockForUpdate()
+                ->findOrFail($romaneio->id);
+
+            $this->validarAcaoPermitida(
+                $romaneio,
+                $acao
+            );
+
+            $this->salvarDadosOperacionais(
+                $romaneio,
+                $dados
+            );
+
+            if ($acao === 'salvar_andamento') {
+                return $romaneio->fresh([
+                    'motorista',
+                    'veiculo',
+                    'entrega',
+                    'itens.entregaItem',
+                ]);
+            }
+
+            [$statusRomaneio, $statusEntrega] = match ($acao) {
+                'finalizar_separacao' => [
+                    'Separado',
+                    'Aguardando_carregamento',
+                ],
+
+                'finalizar_carregamento' => [
+                    'Carregado',
+                    'Aguardando_conferencia',
+                ],
+
+                'concluir_conferencia' => [
+                    'Conferido',
+                    'Aguardando_liberacao',
+                ],
+
+                'liberar_veiculo' => [
+                    'Liberado',
+                    'Em_rota',
+                ],
+
+                default => throw ValidationException::withMessages([
+                    'acao' => 'A ação operacional informada é inválida.',
+                ]),
+            };
+
+            $romaneio->update([
+                'status' => $statusRomaneio,
+            ]);
+
+            $entregasAfetadas = $romaneio->itens
+                ->pluck('entregaItem')
+                ->filter()
+                ->pluck('entrega')
+                ->filter()
+                ->push($romaneio->entrega)
+                ->filter()
+                ->unique('id');
+
+            foreach ($entregasAfetadas as $entrega) {
+                $entrega->update([
+                    'status' => $statusEntrega,
+                ]);
+            }
+
+            return $romaneio->fresh([
+                'motorista',
+                'veiculo',
+                'entrega.cliente',
+                'itens.entregaItem.entrega',
+                'itens.entregaItem.produto',
+                'itens.entregaItem.vendaItem.produto',
+                'itens.entregaItem.itemOrcamento.produto',
+            ]);
+        });
+    }
+
+    private function validarAcaoPermitida(Romaneio $romaneio, string $acao): void
+    {
+        $statusAtual = strtolower(trim((string) $romaneio->status));
+
+        $acoesPermitidas = match ($statusAtual) {
+            'gerado',
+            'separando',
+            'em_separacao' => [
+                'salvar_andamento',
+                'finalizar_separacao',
+            ],
+
+            'separado',
+            'aguardando_carregamento',
+            'carregando',
+            'em_carregamento' => [
+                'salvar_andamento',
+                'finalizar_carregamento',
+            ],
+
+            'carregado',
+            'aguardando_conferencia',
+            'conferindo',
+            'em_conferencia' => [
+                'salvar_andamento',
+                'concluir_conferencia',
+            ],
+
+            'conferido',
+            'aguardando_liberacao' => [
+                'liberar_veiculo',
+            ],
+
+            'liberado',
+            'em_rota',
+            'finalizado',
+            'cancelado' => [],
+
+            default => throw ValidationException::withMessages([
+                'status' => "O status atual do romaneio ({$romaneio->status}) não corresponde a uma etapa operacional válida.",
+            ]),
+        };
+
+        if (! in_array($acao, $acoesPermitidas, true)) {
+            throw ValidationException::withMessages([
+                'acao' => "A ação {$acao} não é permitida para o status atual do romaneio ({$romaneio->status}).",
+            ]);
+        }
+    }
+    
+    private function salvarDadosOperacionais(Romaneio $romaneio, array $dados): void 
+    {
+        if (array_key_exists('observacao', $dados)) {
+            $romaneio->update([
+                'observacao' => $dados['observacao'] ?: null,
+            ]);
+        }
+
+        $itensRecebidos = collect(
+            $dados['itens'] ?? []
+        );
+
+        foreach ($romaneio->itens as $romaneioItem) {
+            $dadosItem = $itensRecebidos->get(
+                $romaneioItem->id
+            );
+
+            if (! is_array($dadosItem)) {
+                continue;
+            }
+
+            $atualizacao = [];
+
+            if (array_key_exists('quantidade', $dadosItem)) {
+                $atualizacao['quantidade_carregada'] = round(
+                    (float) $dadosItem['quantidade'],
+                    2
+                );
+            }
+
+            if (
+                array_key_exists('status', $dadosItem) &&
+                ! empty($dadosItem['status'])
+            ) {
+                $atualizacao['status'] =
+                    $dadosItem['status'];
+            }
+
+            if (array_key_exists('observacao', $dadosItem)) {
+                $atualizacao['observacao'] =
+                    $dadosItem['observacao'] ?: null;
+            }
+
+            if (! empty($atualizacao)) {
+                $romaneioItem->update($atualizacao);
+            }
+        }
+    }
+
+    private function resolverEtapaAtual(Romaneio $romaneio): string 
+    {
+        $status = strtolower(
+            trim((string) $romaneio->status)
+        );
+
+        return match ($status) {
+            'gerado',
+            'separando',
+            'em_separacao' =>
+                'separacao',
+
+            'separado',
+            'aguardando_carregamento',
+            'carregando',
+            'em_carregamento' =>
+                'carregamento',
+
+            'carregado',
+            'aguardando_conferencia',
+            'conferindo',
+            'em_conferencia' =>
+                'conferencia',
+
+            'conferido',
+            'aguardando_liberacao' =>
+                'liberacao',
+
+            'liberado',
+            'em_rota',
+            'finalizado' =>
+                'finalizado',
+
+            default => throw ValidationException::withMessages([
+                'status' =>
+                    "O status atual do romaneio ({$romaneio->status}) não corresponde a uma etapa operacional válida.",
+            ]),
+        };
+    }
+
+    private function validarAcaoDaEtapa(string $etapaAtual, string $acao): void 
+    {
+        $acoesPermitidas = [
+            'separacao' => [
+                'salvar_andamento',
+                'finalizar_separacao',
+            ],
+
+            'carregamento' => [
+                'salvar_andamento',
+                'finalizar_carregamento',
+            ],
+
+            'conferencia' => [
+                'salvar_andamento',
+                'concluir_conferencia',
+            ],
+
+            'liberacao' => [
+                'liberar_veiculo',
+            ],
+
+            'finalizado' => [],
+        ];
+
+        if (
+            ! in_array(
+                $acao,
+                $acoesPermitidas[$etapaAtual] ?? [],
+                true
+            )
+        ) {
+            throw ValidationException::withMessages([
+                'acao' =>
+                    "A ação {$acao} não é permitida durante a etapa {$etapaAtual}.",
+            ]);
+        }
+    }
+
     public function cancelar(
-        Romaneio $romaneio,
-        string $motivo
-    ): void {
+            Romaneio $romaneio,
+            string $motivo
+        ): void {
         DB::transaction(function () use (
             $romaneio,
             $motivo

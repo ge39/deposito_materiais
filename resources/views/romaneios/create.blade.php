@@ -106,12 +106,12 @@
     $somenteLeituraEquipe = !$criandoRomaneio;
 
     $formAction = $criandoRomaneio
-        ? route('romaneios.store')
-        : (
-            \Illuminate\Support\Facades\Route::has('romaneios.update')
-                ? route('romaneios.update', $romaneioAtivo)
-                : route('romaneios.store')
-        );
+    ? route('romaneios.store')
+    : route('romaneios.operacao.update', $romaneioAtivo);
+
+    $formMethod = $criandoRomaneio
+        ? 'POST'
+        : 'PUT';
 
     $statusClasses = [
         'montagem' => 'bg-secondary',
@@ -658,7 +658,11 @@
 
             @csrf
 
-            @if(!$criandoRomaneio && \Illuminate\Support\Facades\Route::has('romaneios.update'))
+            <!-- @if(!$criandoRomaneio && \Illuminate\Support\Facades\Route::has('romaneios.update'))
+                @method('PUT')
+             @endif -->
+
+             @if(!$criandoRomaneio)
                 @method('PUT')
             @endif
 
@@ -1511,6 +1515,16 @@
                             Cancelar
                         </a>
 
+                        <!-- @if(!$criandoRomaneio && $etapaAtual !== 'liberacao')
+                            <button type="submit"
+                                    name="acao"
+                                    value="salvar"
+                                    class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-floppy me-1"></i>
+                                Salvar Andamento
+                            </button>
+                        @endif -->
+
                         @if(!$criandoRomaneio && $etapaAtual !== 'liberacao')
                             <button type="submit"
                                     name="acao"
@@ -1886,30 +1900,35 @@
             });
 
         });
-
         form.addEventListener('submit', function (e) {
-
             atualizarResumo();
 
-            if (
-                btnPrincipal &&
-                btnPrincipal.disabled
-            ) {
+            const botaoAcionado = e.submitter;
 
+            if (!botaoAcionado) {
                 e.preventDefault();
-
                 return;
             }
 
-            if (btnPrincipal) {
-
-                btnPrincipal.disabled = true;
-
-                btnPrincipal.innerHTML =
-                    '<span class="spinner-border spinner-border-sm me-2"></span>Processando...';
-
+            if (botaoAcionado.disabled) {
+                e.preventDefault();
+                return;
             }
 
+            let inputAcao = form.querySelector('input[name="acao"]');
+
+            if (!inputAcao) {
+                inputAcao = document.createElement('input');
+                inputAcao.type = 'hidden';
+                inputAcao.name = 'acao';
+                form.appendChild(inputAcao);
+            }
+
+            inputAcao.value = botaoAcionado.value;
+
+            botaoAcionado.disabled = true;
+            botaoAcionado.innerHTML =
+                '<span class="spinner-border spinner-border-sm me-2"></span>Processando...';
         });
 
         atualizarResumo();
