@@ -337,7 +337,7 @@
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
                             <small class="text-muted d-block">Logística</small>
-                            <span class="fw-semibold d-block mb-1">Em rota</span>
+                            <span class="fw-semibold d-block mb-1 ">Em rota</span>
                             <h3>{{ $resumo['em_rota'] ?? 0 }}</h3>
                         </div>
 

@@ -932,7 +932,7 @@
 
                             <button type="submit"
                                     form="formImprimirRomaneio"
-                                    class="btn btn-outline-dark btn-sm">
+                                    class="btn btn-outline-dark btn-sm" formtarget="_blank">
 
                                 <i class="bi bi-printer me-1"></i>
 
@@ -964,19 +964,37 @@
 
             </div>
 
-           <div class="section-card mb-3">
+            <div class="section-card mb-3">
+
+                <?php
+                    $podeEditarEquipe = $criandoRomaneio
+                        || in_array(
+                            $statusOriginal,
+                            [
+                                'gerado',
+                                'em_separacao',
+                            ],
+                            true
+                        );
+                ?>
 
                 <div class="section-header">
+
                     <span>
                         <i class="bi bi-person-badge me-2"></i>
                         Equipe e Veículo
                     </span>
 
-                    <?php if(! $criandoRomaneio): ?>
+                    <?php if($podeEditarEquipe): ?>
+                        <span class="badge bg-warning text-dark">
+                            Definição operacional
+                        </span>
+                    <?php else: ?>
                         <span class="badge bg-light text-dark">
                             Dados definidos
                         </span>
                     <?php endif; ?>
+
                 </div>
 
                 <div class="card-body p-3">
@@ -987,10 +1005,13 @@
 
                             <label for="motorista_id"
                                 class="form-label">
+
                                 Motorista
-                                <?php if($criandoRomaneio): ?>
+
+                                <?php if($podeEditarEquipe): ?>
                                     <span class="text-danger">*</span>
                                 <?php endif; ?>
+
                             </label>
 
                             <select id="motorista_id"
@@ -1004,23 +1025,29 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>"
-                                    <?php echo e(! $criandoRomaneio ? 'disabled' : 'required'); ?>>
+                                    <?php echo e($podeEditarEquipe ? 'required' : 'disabled'); ?>>
 
                                 <option value="">
                                     Selecione o motorista
                                 </option>
 
                                 <?php $__currentLoopData = $motoristas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $motorista): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+
                                     <option value="<?php echo e($motorista->id); ?>"
                                         <?php if(
                                             (string) old(
                                                 'motorista_id',
                                                 $motoristaSelecionado
                                             ) === (string) $motorista->id
-                                        ): echo 'selected'; endif; ?>>
+                                        ): ?>
+                                            selected
+                                        <?php endif; ?>>
+
                                         <?php echo e($motorista->nome); ?>
 
+
                                     </option>
+
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                             </select>
@@ -1039,7 +1066,7 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
 
-                            <?php if(! $criandoRomaneio): ?>
+                            <?php if(! $podeEditarEquipe): ?>
                                 <input type="hidden"
                                     name="motorista_id"
                                     value="<?php echo e($motoristaSelecionado); ?>">
@@ -1051,10 +1078,13 @@ unset($__errorArgs, $__bag); ?>
 
                             <label for="veiculo_id"
                                 class="form-label">
+
                                 Veículo
-                                <?php if($criandoRomaneio): ?>
+
+                                <?php if($podeEditarEquipe): ?>
                                     <span class="text-danger">*</span>
                                 <?php endif; ?>
+
                             </label>
 
                             <select id="veiculo_id"
@@ -1068,20 +1098,23 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>"
-                                    <?php echo e(! $criandoRomaneio ? 'disabled' : 'required'); ?>>
+                                    <?php echo e($podeEditarEquipe ? 'required' : 'disabled'); ?>>
 
                                 <option value="">
                                     Selecione o veículo
                                 </option>
 
                                 <?php $__currentLoopData = $veiculos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $veiculo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+
                                     <option value="<?php echo e($veiculo->id); ?>"
                                         <?php if(
                                             (string) old(
                                                 'veiculo_id',
                                                 $veiculoSelecionado
                                             ) === (string) $veiculo->id
-                                        ): echo 'selected'; endif; ?>>
+                                        ): ?>
+                                            selected
+                                        <?php endif; ?>>
 
                                         <?php echo e($veiculo->descricao
                                             ?? $veiculo->nome
@@ -1095,6 +1128,7 @@ unset($__errorArgs, $__bag); ?>"
                                         <?php endif; ?>
 
                                     </option>
+
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                             </select>
@@ -1113,7 +1147,7 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
 
-                            <?php if(! $criandoRomaneio): ?>
+                            <?php if(! $podeEditarEquipe): ?>
                                 <input type="hidden"
                                     name="veiculo_id"
                                     value="<?php echo e($veiculoSelecionado); ?>">
@@ -1166,7 +1200,9 @@ unset($__errorArgs, $__bag); ?>
                         </div>
 
                     </div>
+
                 </div>
+
             </div>
 
             <div class="row g-3">
@@ -1485,7 +1521,7 @@ unset($__errorArgs, $__bag); ?>
                                                                                value="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>"
                                                                                min="0.01"
                                                                                max="<?php echo e(number_format($quantidadePrevista, 2, '.', '')); ?>"
-                                                                               step="0.01"
+                                                                               step="1"
                                                                                class="form-control form-control-sm quantity-input"
                                                                                data-quantity-romaneio>
 
@@ -1513,27 +1549,26 @@ unset($__errorArgs, $__bag); ?>
 
                                                                     <td class="text-center">
 
-                                                                        <?php if($criandoRomaneio): ?>
+                                                                        <?php if($statusOriginal === 'em_separacao'): ?>
 
                                                                             <input type="number"
-                                                                                name="itens[<?php echo e($item->id); ?>][quantidade]"
+                                                                                name="itens[<?php echo e($item->id); ?>][quantidade_separada]"
                                                                                 value="<?php echo e(number_format(
+                                                                                    $quantidadeSeparada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                )); ?>"
+                                                                                min="0"
+                                                                                max="<?php echo e(number_format(
                                                                                     $quantidadeRomaneio,
                                                                                     2,
                                                                                     '.',
                                                                                     ''
                                                                                 )); ?>"
-                                                                                min="0.01"
-                                                                                max="<?php echo e(number_format(
-                                                                                    $quantidadePrevista,
-                                                                                    2,
-                                                                                    '.',
-                                                                                    ''
-                                                                                )); ?>"
-                                                                                step="0.01"
-                                                                                required
+                                                                                step="1"
                                                                                 class="form-control form-control-sm quantity-input
-                                                                                    <?php $__errorArgs = ["itens.{$item->id}.quantidade"];
+                                                                                    <?php $__errorArgs = ["itens.{$item->id}.quantidade_separada"];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
@@ -1541,9 +1576,9 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>"
-                                                                                data-quantity-romaneio>
+                                                                                data-quantity-separated>
 
-                                                                            <?php $__errorArgs = ["itens.{$item->id}.quantidade"];
+                                                                            <?php $__errorArgs = ["itens.{$item->id}.quantidade_separada"];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
@@ -1561,7 +1596,7 @@ unset($__errorArgs, $__bag); ?>
 
                                                                             <strong>
                                                                                 <?php echo e(number_format(
-                                                                                    $quantidadeRomaneio,
+                                                                                    $quantidadeSeparada,
                                                                                     2,
                                                                                     ',',
                                                                                     '.'
@@ -1570,9 +1605,9 @@ unset($__errorArgs, $__bag); ?>
                                                                             </strong>
 
                                                                             <input type="hidden"
-                                                                                name="itens[<?php echo e($item->id); ?>][quantidade]"
+                                                                                name="itens[<?php echo e($item->id); ?>][quantidade_separada]"
                                                                                 value="<?php echo e(number_format(
-                                                                                    $quantidadeRomaneio,
+                                                                                    $quantidadeSeparada,
                                                                                     2,
                                                                                     '.',
                                                                                     ''
@@ -1587,13 +1622,45 @@ unset($__errorArgs, $__bag); ?>
                                                                         <?php if($statusOriginal === 'carregando'): ?>
 
                                                                             <input type="number"
-                                                                                   name="itens[<?php echo e($item->id); ?>][quantidade_carregada]"
-                                                                                   value="<?php echo e(number_format($quantidadeCarregada, 2, '.', '')); ?>"
-                                                                                   min="0"
-                                                                                   max="<?php echo e(number_format($quantidadeSeparada, 2, '.', '')); ?>"
-                                                                                   step="0.01"
-                                                                                   class="form-control form-control-sm quantity-input"
-                                                                                   data-quantity-loaded>
+                                                                                name="itens[<?php echo e($item->id); ?>][quantidade_carregada]"
+                                                                                value="<?php echo e(number_format(
+                                                                                    $quantidadeCarregada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                )); ?>"
+                                                                                min="0"
+                                                                                max="<?php echo e(number_format(
+                                                                                    $quantidadeSeparada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                )); ?>"
+                                                                                step="1"
+                                                                                class="form-control form-control-sm quantity-input
+                                                                                    <?php $__errorArgs = ["itens.{$item->id}.quantidade_carregada"];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                                                                data-quantity-loaded>
+
+                                                                            <?php $__errorArgs = ["itens.{$item->id}.quantidade_carregada"];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                                                                <div class="invalid-feedback">
+                                                                                    <?php echo e($message); ?>
+
+                                                                                </div>
+                                                                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                                                                         <?php else: ?>
 
@@ -1608,8 +1675,13 @@ unset($__errorArgs, $__bag); ?>
                                                                             </strong>
 
                                                                             <input type="hidden"
-                                                                                   name="itens[<?php echo e($item->id); ?>][quantidade_carregada]"
-                                                                                   value="<?php echo e(number_format($quantidadeCarregada, 2, '.', '')); ?>">
+                                                                                name="itens[<?php echo e($item->id); ?>][quantidade_carregada]"
+                                                                                value="<?php echo e(number_format(
+                                                                                    $quantidadeCarregada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                )); ?>">
 
                                                                         <?php endif; ?>
 
@@ -2618,12 +2690,9 @@ unset($__errorArgs, $__bag); ?>
         });
 
     form.addEventListener('submit', event => {
-        const botaoSubmit =
-            event.submitter;
+        const botaoSubmit = event.submitter;
 
-        const acao =
-            botaoSubmit?.value
-            ?? '';
+        const acao = botaoSubmit?.value ?? '';
 
         if (
             acao === 'finalizar_separacao' ||
@@ -2666,6 +2735,24 @@ unset($__errorArgs, $__bag); ?>
                 );
 
                 return;
+            }
+        }
+
+        if (acao) {
+            const inputAcaoExistente = form.querySelector(
+                'input[type="hidden"][name="acao"]'
+            );
+
+            if (inputAcaoExistente) {
+                inputAcaoExistente.value = acao;
+            } else {
+                const inputAcao = document.createElement('input');
+
+                inputAcao.type = 'hidden';
+                inputAcao.name = 'acao';
+                inputAcao.value = acao;
+
+                form.appendChild(inputAcao);
             }
         }
 
@@ -2721,4 +2808,5 @@ unset($__errorArgs, $__bag); ?>
 </script>
 
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/romaneios/create.blade.php ENDPATH**/ ?>

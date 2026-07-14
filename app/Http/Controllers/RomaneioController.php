@@ -586,7 +586,7 @@ class RomaneioController extends Controller
         );
     }
 
-    public function atualizarOperacao(Request $request, Romaneio $romaneio)
+    public function atualizarOperacao( Request $request, Romaneio $romaneio) 
     {
         $acoesPermitidas = [
             'salvar_andamento',
@@ -606,9 +606,7 @@ class RomaneioController extends Controller
                 'acao' => [
                     'required',
                     'string',
-                    Rule::in(
-                        $acoesPermitidas
-                    ),
+                    Rule::in($acoesPermitidas),
                 ],
 
                 'motivo_retorno' => [
@@ -617,6 +615,18 @@ class RomaneioController extends Controller
                     'string',
                     'min:5',
                     'max:500',
+                ],
+
+                'motorista_id' => [
+                    'nullable',
+                    'integer',
+                    'exists:funcionarios,id',
+                ],
+
+                'veiculo_id' => [
+                    'nullable',
+                    'integer',
+                    'exists:veiculos,id',
                 ],
 
                 'observacao' => [
@@ -697,6 +707,18 @@ class RomaneioController extends Controller
                 'motivo_retorno.max' =>
                     'O motivo do retorno pode possuir no máximo 500 caracteres.',
 
+                'motorista_id.integer' =>
+                    'O motorista informado é inválido.',
+
+                'motorista_id.exists' =>
+                    'O motorista selecionado não foi encontrado.',
+
+                'veiculo_id.integer' =>
+                    'O veículo informado é inválido.',
+
+                'veiculo_id.exists' =>
+                    'O veículo selecionado não foi encontrado.',
+
                 'observacao.max' =>
                     'A observação pode possuir no máximo 1000 caracteres.',
 
@@ -730,17 +752,14 @@ class RomaneioController extends Controller
         );
 
         try {
-            $romaneio =
-                $this->romaneioService
-                    ->atualizarOperacao(
-                        $romaneio,
-                        $dadosValidados['acao'],
-                        $dadosValidados
-                    );
+            $romaneio = $this->romaneioService
+                ->atualizarOperacao(
+                    $romaneio,
+                    $dadosValidados['acao'],
+                    $dadosValidados
+                );
 
-            $mensagem = match (
-                $dadosValidados['acao']
-            ) {
+            $mensagem = match ($dadosValidados['acao']) {
                 'salvar_andamento' =>
                     'Andamento salvo com sucesso.',
 
@@ -779,14 +798,10 @@ class RomaneioController extends Controller
                 ->route(
                     'romaneios.create',
                     [
-                        'entrega_id' =>
-                            $romaneio->entrega_id,
+                        'entrega_id' => $romaneio->entrega_id,
                     ]
                 )
-                ->with(
-                    'success',
-                    $mensagem
-                );
+                ->with('success', $mensagem);
 
         } catch (Throwable $e) {
             return back()
@@ -799,9 +814,8 @@ class RomaneioController extends Controller
         }
     }
 
-    public function registrarImpressao(
-        Romaneio $romaneio
-    ) {
+    public function registrarImpressao(Romaneio $romaneio) 
+    {
         try {
             $statusAtual = strtolower(
                 trim(
@@ -846,9 +860,8 @@ class RomaneioController extends Controller
         }
     }
 
-    public function imprimir(
-        Romaneio $romaneio
-    ) {
+    public function imprimir( Romaneio $romaneio) 
+    {
         $romaneio->load([
             'motorista',
             'veiculo',
@@ -889,10 +902,8 @@ class RomaneioController extends Controller
         );
     }
 
-    public function cancelar(
-        Request $request,
-        Romaneio $romaneio
-    ) {
+    public function cancelar( Request $request, Romaneio $romaneio) 
+    {
         $dadosValidados = $request->validate(
             [
                 'motivo_cancelamento' => [

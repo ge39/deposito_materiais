@@ -107,23 +107,30 @@ class EntregaController extends Controller
     }
 
    public function show(Entrega $entrega)
-    {
-        $entrega->load([
-            'motorista',
-            'veiculo',
-            'venda',
-            'venda.cliente',
-            'venda.itens.produto',
-            'orcamento',
-            'orcamento.cliente',
-            'orcamento.itens.produto',
-            'itens',
-            'itens.vendaItem.produto',
-            'itens.itemOrcamento.produto',
-        ]);
+{
+    $entrega->load([
+        'motorista',
+        'veiculo',
 
-        return view('entregas.show', compact('entrega'));
-    }
+        'romaneio',
+        'romaneio.motorista',
+        'romaneio.veiculo',
+
+        'venda',
+        'venda.cliente',
+        'venda.itens.produto',
+
+        'orcamento',
+        'orcamento.cliente',
+        'orcamento.itens.produto',
+
+        'itens',
+        'itens.vendaItem.produto',
+        'itens.itemOrcamento.produto',
+    ]);
+
+    return view('entregas.show', compact('entrega'));
+}
 
     public function separar(Entrega $entrega)
     {

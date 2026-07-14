@@ -921,7 +921,7 @@
 
                             <button type="submit"
                                     form="formImprimirRomaneio"
-                                    class="btn btn-outline-dark btn-sm">
+                                    class="btn btn-outline-dark btn-sm" formtarget="_blank">
 
                                 <i class="bi bi-printer me-1"></i>
 
@@ -952,19 +952,37 @@
 
             </div>
 
-           <div class="section-card mb-3">
+            <div class="section-card mb-3">
+
+                @php
+                    $podeEditarEquipe = $criandoRomaneio
+                        || in_array(
+                            $statusOriginal,
+                            [
+                                'gerado',
+                                'em_separacao',
+                            ],
+                            true
+                        );
+                @endphp
 
                 <div class="section-header">
+
                     <span>
                         <i class="bi bi-person-badge me-2"></i>
                         Equipe e Veículo
                     </span>
 
-                    @if(! $criandoRomaneio)
+                    @if($podeEditarEquipe)
+                        <span class="badge bg-warning text-dark">
+                            Definição operacional
+                        </span>
+                    @else
                         <span class="badge bg-light text-dark">
                             Dados definidos
                         </span>
                     @endif
+
                 </div>
 
                 <div class="card-body p-3">
@@ -975,32 +993,41 @@
 
                             <label for="motorista_id"
                                 class="form-label">
+
                                 Motorista
-                                @if($criandoRomaneio)
+
+                                @if($podeEditarEquipe)
                                     <span class="text-danger">*</span>
                                 @endif
+
                             </label>
 
                             <select id="motorista_id"
                                     name="motorista_id"
                                     class="form-select form-select-sm
                                         @error('motorista_id') is-invalid @enderror"
-                                    {{ ! $criandoRomaneio ? 'disabled' : 'required' }}>
+                                    {{ $podeEditarEquipe ? 'required' : 'disabled' }}>
 
                                 <option value="">
                                     Selecione o motorista
                                 </option>
 
                                 @foreach($motoristas as $motorista)
+
                                     <option value="{{ $motorista->id }}"
-                                        @selected(
+                                        @if(
                                             (string) old(
                                                 'motorista_id',
                                                 $motoristaSelecionado
                                             ) === (string) $motorista->id
-                                        )>
+                                        )
+                                            selected
+                                        @endif>
+
                                         {{ $motorista->nome }}
+
                                     </option>
+
                                 @endforeach
 
                             </select>
@@ -1011,7 +1038,7 @@
                                 </div>
                             @enderror
 
-                            @if(! $criandoRomaneio)
+                            @if(! $podeEditarEquipe)
                                 <input type="hidden"
                                     name="motorista_id"
                                     value="{{ $motoristaSelecionado }}">
@@ -1023,30 +1050,36 @@
 
                             <label for="veiculo_id"
                                 class="form-label">
+
                                 Veículo
-                                @if($criandoRomaneio)
+
+                                @if($podeEditarEquipe)
                                     <span class="text-danger">*</span>
                                 @endif
+
                             </label>
 
                             <select id="veiculo_id"
                                     name="veiculo_id"
                                     class="form-select form-select-sm
                                         @error('veiculo_id') is-invalid @enderror"
-                                    {{ ! $criandoRomaneio ? 'disabled' : 'required' }}>
+                                    {{ $podeEditarEquipe ? 'required' : 'disabled' }}>
 
                                 <option value="">
                                     Selecione o veículo
                                 </option>
 
                                 @foreach($veiculos as $veiculo)
+
                                     <option value="{{ $veiculo->id }}"
-                                        @selected(
+                                        @if(
                                             (string) old(
                                                 'veiculo_id',
                                                 $veiculoSelecionado
                                             ) === (string) $veiculo->id
-                                        )>
+                                        )
+                                            selected
+                                        @endif>
 
                                         {{ $veiculo->descricao
                                             ?? $veiculo->nome
@@ -1058,6 +1091,7 @@
                                         @endif
 
                                     </option>
+
                                 @endforeach
 
                             </select>
@@ -1068,7 +1102,7 @@
                                 </div>
                             @enderror
 
-                            @if(! $criandoRomaneio)
+                            @if(! $podeEditarEquipe)
                                 <input type="hidden"
                                     name="veiculo_id"
                                     value="{{ $veiculoSelecionado }}">
@@ -1105,7 +1139,9 @@
                         </div>
 
                     </div>
+
                 </div>
+
             </div>
 
             <div class="row g-3">
@@ -1411,7 +1447,7 @@
                                                                                value="{{ number_format($quantidadeRomaneio, 2, '.', '') }}"
                                                                                min="0.01"
                                                                                max="{{ number_format($quantidadePrevista, 2, '.', '') }}"
-                                                                               step="0.01"
+                                                                               step="1"
                                                                                class="form-control form-control-sm quantity-input"
                                                                                data-quantity-romaneio>
 
@@ -1438,30 +1474,29 @@
 
                                                                     <td class="text-center">
 
-                                                                        @if($criandoRomaneio)
+                                                                        @if($statusOriginal === 'em_separacao')
 
                                                                             <input type="number"
-                                                                                name="itens[{{ $item->id }}][quantidade]"
+                                                                                name="itens[{{ $item->id }}][quantidade_separada]"
                                                                                 value="{{ number_format(
+                                                                                    $quantidadeSeparada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                ) }}"
+                                                                                min="0"
+                                                                                max="{{ number_format(
                                                                                     $quantidadeRomaneio,
                                                                                     2,
                                                                                     '.',
                                                                                     ''
                                                                                 ) }}"
-                                                                                min="0.01"
-                                                                                max="{{ number_format(
-                                                                                    $quantidadePrevista,
-                                                                                    2,
-                                                                                    '.',
-                                                                                    ''
-                                                                                ) }}"
-                                                                                step="0.01"
-                                                                                required
+                                                                                step="1"
                                                                                 class="form-control form-control-sm quantity-input
-                                                                                    @error("itens.{$item->id}.quantidade") is-invalid @enderror"
-                                                                                data-quantity-romaneio>
+                                                                                    @error("itens.{$item->id}.quantidade_separada") is-invalid @enderror"
+                                                                                data-quantity-separated>
 
-                                                                            @error("itens.{$item->id}.quantidade")
+                                                                            @error("itens.{$item->id}.quantidade_separada")
                                                                                 <div class="invalid-feedback">
                                                                                     {{ $message }}
                                                                                 </div>
@@ -1471,7 +1506,7 @@
 
                                                                             <strong>
                                                                                 {{ number_format(
-                                                                                    $quantidadeRomaneio,
+                                                                                    $quantidadeSeparada,
                                                                                     2,
                                                                                     ',',
                                                                                     '.'
@@ -1479,9 +1514,9 @@
                                                                             </strong>
 
                                                                             <input type="hidden"
-                                                                                name="itens[{{ $item->id }}][quantidade]"
+                                                                                name="itens[{{ $item->id }}][quantidade_separada]"
                                                                                 value="{{ number_format(
-                                                                                    $quantidadeRomaneio,
+                                                                                    $quantidadeSeparada,
                                                                                     2,
                                                                                     '.',
                                                                                     ''
@@ -1496,13 +1531,30 @@
                                                                         @if($statusOriginal === 'carregando')
 
                                                                             <input type="number"
-                                                                                   name="itens[{{ $item->id }}][quantidade_carregada]"
-                                                                                   value="{{ number_format($quantidadeCarregada, 2, '.', '') }}"
-                                                                                   min="0"
-                                                                                   max="{{ number_format($quantidadeSeparada, 2, '.', '') }}"
-                                                                                   step="0.01"
-                                                                                   class="form-control form-control-sm quantity-input"
-                                                                                   data-quantity-loaded>
+                                                                                name="itens[{{ $item->id }}][quantidade_carregada]"
+                                                                                value="{{ number_format(
+                                                                                    $quantidadeCarregada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                ) }}"
+                                                                                min="0"
+                                                                                max="{{ number_format(
+                                                                                    $quantidadeSeparada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                ) }}"
+                                                                                step="1"
+                                                                                class="form-control form-control-sm quantity-input
+                                                                                    @error("itens.{$item->id}.quantidade_carregada") is-invalid @enderror"
+                                                                                data-quantity-loaded>
+
+                                                                            @error("itens.{$item->id}.quantidade_carregada")
+                                                                                <div class="invalid-feedback">
+                                                                                    {{ $message }}
+                                                                                </div>
+                                                                            @enderror
 
                                                                         @else
 
@@ -1516,8 +1568,13 @@
                                                                             </strong>
 
                                                                             <input type="hidden"
-                                                                                   name="itens[{{ $item->id }}][quantidade_carregada]"
-                                                                                   value="{{ number_format($quantidadeCarregada, 2, '.', '') }}">
+                                                                                name="itens[{{ $item->id }}][quantidade_carregada]"
+                                                                                value="{{ number_format(
+                                                                                    $quantidadeCarregada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                ) }}">
 
                                                                         @endif
 
@@ -2514,12 +2571,9 @@
         });
 
     form.addEventListener('submit', event => {
-        const botaoSubmit =
-            event.submitter;
+        const botaoSubmit = event.submitter;
 
-        const acao =
-            botaoSubmit?.value
-            ?? '';
+        const acao = botaoSubmit?.value ?? '';
 
         if (
             acao === 'finalizar_separacao' ||
@@ -2562,6 +2616,24 @@
                 );
 
                 return;
+            }
+        }
+
+        if (acao) {
+            const inputAcaoExistente = form.querySelector(
+                'input[type="hidden"][name="acao"]'
+            );
+
+            if (inputAcaoExistente) {
+                inputAcaoExistente.value = acao;
+            } else {
+                const inputAcao = document.createElement('input');
+
+                inputAcao.type = 'hidden';
+                inputAcao.name = 'acao';
+                inputAcao.value = acao;
+
+                form.appendChild(inputAcao);
             }
         }
 

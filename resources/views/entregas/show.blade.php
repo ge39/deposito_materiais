@@ -171,7 +171,7 @@
             )
 
             <a href="{{ route('entregas.atribuir-equipe', $entrega->id) }}"
-            class="btn btn-primary btn-sm">
+                class="btn btn-primary btn-sm">
 
                 <i class="bi bi-truck me-1"></i>
 
@@ -459,117 +459,220 @@
                                 </tr>
                             </thead>
 
-                            <tbody>
+                           <tbody>
                                 @php
                                     $itensBase = collect();
+                                    $origemItens = '-';
 
-                                    if ($entrega->venda_id && $entrega->venda && $entrega->venda->itens) {
-                                        $itensBase = $entrega->venda->itens;
+                                    if (
+                                        $entrega->venda_id &&
+                                        $entrega->venda &&
+                                        $entrega->venda->itens
+                                    ) {
+                                        $itensBase = collect($entrega->venda->itens);
                                         $origemItens = 'Venda';
-                                    } elseif ($entrega->orcamento_id && $entrega->orcamento && $entrega->orcamento->itens) {
-                                        $itensBase = $entrega->orcamento->itens;
+                                    } elseif (
+                                        $entrega->orcamento_id &&
+                                        $entrega->orcamento &&
+                                        $entrega->orcamento->itens
+                                    ) {
+                                        $itensBase = collect($entrega->orcamento->itens);
                                         $origemItens = 'Orçamento';
-                                    } else {
-                                        $origemItens = '-';
                                     }
 
-                                    $itensOperacionais = $entrega->itens ?? collect();
+                                    $itensOperacionais = collect($entrega->itens ?? []);
 
                                     $statusItemClasses = [
-                                        'pendente'  => 'bg-secondary',
-                                        'separado'  => 'bg-primary',
-                                        'carregado' => 'bg-info text-dark',
-                                        'entregue'  => 'bg-success',
-                                        'parcial'   => 'bg-warning text-dark',
-                                        'devolvido' => 'bg-danger',
-                                        'cancelado' => 'bg-danger',
+                                        'pendente'   => 'bg-secondary',
+                                        'separando'  => 'bg-warning text-dark',
+                                        'separado'   => 'bg-primary',
+                                        'carregando' => 'bg-info text-dark',
+                                        'carregado'  => 'bg-info text-dark',
+                                        'conferido'  => 'bg-success',
+                                        'divergente' => 'bg-warning text-dark',
+                                        'entregue'   => 'bg-success',
+                                        'parcial'    => 'bg-warning text-dark',
+                                        'devolvido'  => 'bg-danger',
+                                        'cancelado'  => 'bg-danger',
                                     ];
                                 @endphp
 
                                 @forelse($itensBase as $itemBase)
+
                                     @php
                                         $entregaItem = null;
 
                                         if ($origemItens === 'Venda') {
                                             $entregaItem = $itensOperacionais
-                                                ->where('venda_item_id', $itemBase->id)
-                                                ->first();
+                                                ->first(function ($itemOperacional) use ($itemBase) {
+                                                    return (int) $itemOperacional->venda_item_id
+                                                        === (int) $itemBase->id;
+                                                });
                                         }
 
-                                        if (!$entregaItem && $origemItens === 'Orçamento') {
+                                        if (
+                                            ! $entregaItem &&
+                                            $origemItens === 'Orçamento'
+                                        ) {
                                             $entregaItem = $itensOperacionais
-                                                ->where('item_orcamento_id', $itemBase->id)
-                                                ->first();
+                                                ->first(function ($itemOperacional) use ($itemBase) {
+                                                    return (int) $itemOperacional->item_orcamento_id
+                                                        === (int) $itemBase->id;
+                                                });
                                         }
 
                                         $produtoNome =
-                                            $itemBase->produto->nome
-                                            ?? $itemBase->produto_nome
-                                            ?? $itemBase->descricao
-                                            ?? $itemBase->nome_produto
+                                            $itemBase?->produto?->nome
+                                            ?? $itemBase?->produto_nome
+                                            ?? $itemBase?->descricao
+                                            ?? $itemBase?->nome_produto
                                             ?? 'Produto não identificado';
 
-                                        $quantidadeBase =
-                                            $itemBase->quantidade
-                                            ?? $itemBase->qtd
-                                            ?? $itemBase->quantidade_vendida
-                                            ?? $itemBase->quantidade_orcada
-                                            ?? 0;
+                                        $quantidadeBase = (float) (
+                                            $itemBase?->quantidade
+                                            ?? $itemBase?->qtd
+                                            ?? $itemBase?->quantidade_vendida
+                                            ?? $itemBase?->quantidade_orcada
+                                            ?? 0
+                                        );
 
-                                        $quantidadePrevista = $entregaItem->quantidade_prevista ?? $quantidadeBase;
-                                        $quantidadeEntregue = $entregaItem->quantidade_entregue ?? 0;
-                                        $saldo = max($quantidadePrevista - $quantidadeEntregue, 0);
+                                        $quantidadePrevista = (float) (
+                                            $entregaItem?->quantidade_prevista
+                                            ?? $quantidadeBase
+                                        );
 
-                                        $statusItem = strtolower($entregaItem->status ?? 'pendente');
+                                        $quantidadeEntregue = (float) (
+                                            $entregaItem?->quantidade_entregue
+                                            ?? 0
+                                        );
+
+                                        $saldo = max(
+                                            $quantidadePrevista - $quantidadeEntregue,
+                                            0
+                                        );
+
+                                        $statusItem = strtolower(
+                                            trim(
+                                                str_replace(
+                                                    ' ',
+                                                    '_',
+                                                    (string) (
+                                                        $entregaItem?->status
+                                                        ?? 'pendente'
+                                                    )
+                                                )
+                                            )
+                                        );
+
+                                        $statusItemLabel = ucfirst(
+                                            str_replace('_', ' ', $statusItem)
+                                        );
+
+                                        $observacaoItem =
+                                            $entregaItem?->observacao
+                                            ?? '-';
                                     @endphp
 
                                     <tr>
-                                        <td class="text-center">{{ $loop->iteration }}</td>
+
+                                        <td class="text-center">
+                                            {{ $loop->iteration }}
+                                        </td>
 
                                         <td class="fw-semibold">
                                             {{ $produtoNome }}
                                         </td>
 
                                         <td class="text-center">
-                                            <span class="badge {{ $origemItens === 'Venda' ? 'bg-success' : 'bg-secondary' }}">
+
+                                            <span class="badge {{ $origemItens === 'Venda'
+                                                ? 'bg-success'
+                                                : 'bg-secondary' }}">
+
                                                 {{ $origemItens }}
+
                                             </span>
+
                                         </td>
 
                                         <td class="text-center">
-                                            {{ number_format($quantidadeBase, 2, ',', '.') }}
+                                            {{ number_format(
+                                                $quantidadeBase,
+                                                2,
+                                                ',',
+                                                '.'
+                                            ) }}
                                         </td>
 
                                         <td class="text-center">
-                                            {{ number_format($quantidadePrevista, 2, ',', '.') }}
+                                            {{ number_format(
+                                                $quantidadePrevista,
+                                                2,
+                                                ',',
+                                                '.'
+                                            ) }}
                                         </td>
 
                                         <td class="text-center">
-                                            {{ number_format($quantidadeEntregue, 2, ',', '.') }}
+                                            {{ number_format(
+                                                $quantidadeEntregue,
+                                                2,
+                                                ',',
+                                                '.'
+                                            ) }}
                                         </td>
 
                                         <td class="text-center">
-                                            {{ number_format($saldo, 2, ',', '.') }}
-                                        </td>
 
-                                        <td class="text-center">
-                                            <span class="badge {{ $statusItemClasses[$statusItem] ?? 'bg-secondary' }}">
-                                                {{ ucfirst(str_replace('_', ' ', $entregaItem->status ?? 'pendente')) }}
+                                            <span class="{{ $saldo > 0
+                                                ? 'text-danger fw-bold'
+                                                : 'text-success fw-bold' }}">
+
+                                                {{ number_format(
+                                                    $saldo,
+                                                    2,
+                                                    ',',
+                                                    '.'
+                                                ) }}
+
                                             </span>
+
+                                        </td>
+
+                                        <td class="text-center">
+
+                                            <span class="badge {{ $statusItemClasses[$statusItem]
+                                                ?? 'bg-secondary' }}">
+
+                                                {{ $statusItemLabel }}
+
+                                            </span>
+
                                         </td>
 
                                         <td>
-                                            {{ $entregaItem->observacao ?? '-' }}
+                                            {{ $observacaoItem }}
                                         </td>
+
                                     </tr>
+
                                 @empty
+
                                     <tr>
-                                        <td colspan="9" class="text-center text-muted py-4">
+
+                                        <td colspan="9"
+                                            class="text-center text-muted py-4">
+
                                             <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+
                                             Nenhum item encontrado na venda ou no orçamento desta entrega.
+
                                         </td>
+
                                     </tr>
+
                                 @endforelse
+
                             </tbody>
                         </table>
                     </div>
@@ -609,33 +712,151 @@
                 </div>
             </div>
 
-            {{-- FLUXO --}}
+           {{-- FLUXO --}}
+            @php
+                $romaneioEntrega = $entrega->romaneio;
+
+                $statusRomaneio = strtolower(
+                    trim(
+                        str_replace(
+                            ' ',
+                            '_',
+                            (string) ($romaneioEntrega?->status ?? '')
+                        )
+                    )
+                );
+
+                $ordemStatusRomaneio = [
+                    'montagem'                => 0,
+                    'rascunho'                => 0,
+                    'pendente'                => 0,
+                    'gerado'                  => 1,
+                    'aguardando_separacao'    => 1,
+                    'em_separacao'            => 2,
+                    'separando'               => 2,
+                    'separado'                => 3,
+                    'na_doca'                 => 4,
+                    'aguardando_carregamento' => 4,
+                    'carregando'              => 5,
+                    'carregado'               => 6,
+                    'aguardando_conferencia'  => 6,
+                    'conferindo'              => 7,
+                    'conferido'               => 7,
+                    'aguardando_liberacao'    => 8,
+                    'liberado'                => 8,
+                    'saiu_para_entrega'       => 9,
+                    'em_rota'                 => 9,
+                    'entregue'                => 10,
+                    'parcial'                 => 10,
+                    'devolvido'               => 10,
+                    'cancelado'               => 10,
+                ];
+
+                $ordemAtualRomaneio =
+                    $ordemStatusRomaneio[$statusRomaneio] ?? 0;
+
+                $etapasFluxoEntrega = [
+                    [
+                        'titulo' => 'Entrega criada',
+                        'concluida' => ! empty($entrega->id),
+                    ],
+                    [
+                        'titulo' => 'Venda faturada',
+                        'concluida' => ! empty($entrega->venda_id),
+                    ],
+                    [
+                        'titulo' => 'Separação iniciada',
+                        'concluida' => $ordemAtualRomaneio >= 2,
+                    ],
+                    [
+                        'titulo' => 'Carga preparada',
+                        'concluida' => $ordemAtualRomaneio >= 6,
+                    ],
+                    [
+                        'titulo' => 'Saiu para entrega',
+                        'concluida' => $ordemAtualRomaneio >= 9,
+                    ],
+                    [
+                        'titulo' => 'Entrega concluída',
+                        'concluida' => in_array(
+                            $statusRomaneio,
+                            [
+                                'entregue',
+                                'parcial',
+                                'devolvido',
+                            ],
+                            true
+                        ),
+                    ],
+                ];
+            @endphp
+
             <div class="card shadow-sm mb-3">
+
                 <div class="card-header bg-secondary text-white">
-                    <strong><i class="bi bi-diagram-3 me-2"></i>Fluxo da Entrega</strong>
+                    <strong>
+                        <i class="bi bi-diagram-3 me-2"></i>
+                        Fluxo da Entrega
+                    </strong>
                 </div>
 
                 <div class="card-body">
+
+                    @if(! $romaneioEntrega)
+                        <div class="alert alert-warning py-2 mb-3">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Esta entrega ainda não possui romaneio relacionado.
+                        </div>
+                    @endif
+
                     <div class="timeline-entrega">
-                        @foreach($etapas as $etapa => $statusValidos)
+
+                        @foreach($etapasFluxoEntrega as $etapaFluxo)
+
                             @php
-                                $concluida = in_array($statusAtual, $statusValidos);
-                                $classeIcone = $concluida ? 'bg-success text-white' : 'bg-light border text-muted';
-                                $icone = $concluida ? 'bi-check' : 'bi-circle';
+                                $concluida = (bool) $etapaFluxo['concluida'];
+
+                                $classeIcone = $concluida
+                                    ? 'bg-success text-white'
+                                    : 'bg-light border text-muted';
+
+                                $icone = $concluida
+                                    ? 'bi-check'
+                                    : 'bi-circle';
                             @endphp
 
                             <div class="timeline-item">
+
                                 <div class="timeline-icon {{ $classeIcone }}">
                                     <i class="bi {{ $icone }}"></i>
                                 </div>
 
-                                <div class="{{ $concluida ? 'fw-semibold' : 'text-muted' }}">
-                                    {{ $etapa }}
+                                <div class="{{ $concluida
+                                    ? 'fw-semibold text-success'
+                                    : 'text-muted' }}">
+
+                                    {{ $etapaFluxo['titulo'] }}
+
                                 </div>
+
                             </div>
+
                         @endforeach
+
                     </div>
+
+                    <div class="border-top pt-2 mt-2 small text-muted">
+
+                        Status atual do romaneio:
+
+                        <strong>
+                            {{ $romaneioEntrega?->status ?? 'Não localizado' }}
+                        </strong>
+
+                    </div>
+
                 </div>
+
             </div>
 
             {{-- HISTÓRICO SIMPLES --}}
