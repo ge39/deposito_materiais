@@ -266,21 +266,6 @@ Route::middleware('auth')->group(function () {
         // ========================================================
     // ROTAS DE VENDAS E CUPOM TÉRMICO (ORGANIZADO E FILTRADO)
     // ========================================================
-    
-    // 🎯 ATALHO ALT + P: Aponta para o controlador correto (VendaController) e fica no topo
-    // Route::get('/pdv/ultima-venda-id', [\App\Http\Controllers\VendaController::class, 'obterUltimaVendaId']);
-
-    // // Rotas de processamento e fechamento da venda
-    // Route::post('/vendas', [\App\Http\Controllers\VendaController::class, 'store'])->name('vendas.store');
-    // Route::post('/vendas/finalizar', [\App\Http\Controllers\VendaController::class, 'finalizar']);
-    
-    // // Rota do Cupom com parâmetro {id} (Fica abaixo das rotas fixas)
-    // Route::get('/venda/{id}/cupom', [\App\Http\Controllers\VendaController::class, 'cupom'])->name('venda.cupom');
-
-    //  //Vendas
-    // Route::post('/vendas', [VendaController::class, 'store'])->name('vendas.store');
-    // Route::post('/vendas/finalizar', [VendaController::class, 'finalizar']);
-    // Route::get('/venda/{id}/cupom', [VendaController::class, 'cupom'])->name('venda.cupom');
 
     // 1️⃣ Rota específica de finalização (DEVE FICAR ACIMA DO RESOURCE)
     Route::post('/vendas/finalizar', [\App\Http\Controllers\VendaController::class, 'finalizar']);
@@ -557,16 +542,13 @@ Route::middleware(['auth'])
             Route::patch('/{entrega}/separar', [EntregaController::class, 'separar'])->name('separar');
             Route::patch('/{entrega}/carregar', [EntregaController::class, 'carregar'])->name('carregar');
             Route::patch('/{entrega}/rota', [EntregaController::class, 'enviarParaRota'])->name('rota');
-            Route::patch('/{entrega}/confirmar', [EntregaController::class, 'confirmar'])->name('confirmar');
+            Route::get('/{entrega}/retorno', [EntregaController::class, 'retorno'])->name('retorno');
+            Route::patch('/{entrega}/retorno', [EntregaController::class, 'registrarRetorno'])->name('registrar-retorno');
             Route::patch('/{entrega}/cancelar', [EntregaController::class, 'cancelar'])->name('cancelar');
             Route::get('/{entrega}/atribuir-equipe', [EntregaController::class, 'atribuirEquipe']) ->name('atribuir-equipe');
             Route::put('/{entrega}/atribuir-equipe', [EntregaController::class, 'salvarEquipe'])->name('salvar-equipe');
             Route::resource('pedidos', PedidoCompraController::class);
     });
-
-   
-  
-
     // EXPEDIÇÃO
     Route::prefix('expedicao')->name('expedicao.')->group(function () {
         Route::get('/', [ExpedicaoController::class, 'index'])
@@ -608,7 +590,7 @@ Route::middleware(['auth'])
         Route::get('/{localizacaoEstoque}/editar', [LocalizacaoEstoqueController::class, 'edit'])->name('edit');
         Route::put('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'update'])->name('update');
         Route::delete('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'destroy'])->name('destroy');
-        Route::get('/romaneios/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('romaneios.imprimir');
+        // Route::get('/romaneios/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('romaneios.imprimir');
     });
 
     // Veiculos
@@ -641,66 +623,19 @@ Route::middleware(['auth'])
 
         });
         
-    // ROMANEIOS
-    // Route::prefix('romaneios')->name('romaneios.')->group(function () {
-    //     Route::get('/', [RomaneioController::class, 'index'])->name('index');
-    //     Route::get('/criar', [RomaneioController::class, 'create'])->name('create');
-    //     Route::post('/', [RomaneioController::class, 'store'])->name('store');
-    //     Route::get('/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('imprimir');
-    //     Route::post('/{romaneio}/cancelar', [RomaneioController::class, 'cancelar'])->name('cancelar');
-    //     Route::get('/{romaneio}/separacao', [RomaneioController::class, 'separacao'])->name('separacao');
-    //     Route::put('/{romaneio}/operacao', [RomaneioController::class, 'atualizarOperacao'])->name('operacao.update');
-    //     Route::get('/{romaneio}', [RomaneioController::class, 'show'])->name('show');
-    // });
-
-    // ROMANEIOS
-Route::prefix('romaneios')
-    ->name('romaneios.')
-    ->group(function () {
-        Route::get(
-            '/',
-            [RomaneioController::class, 'index']
-        )->name('index');
-
-        Route::get(
-            '/criar',
-            [RomaneioController::class, 'create']
-        )->name('create');
-
-        Route::post(
-            '/',
-            [RomaneioController::class, 'store']
-        )->name('store');
-
-        Route::post(
-            '/{romaneio}/registrar-impressao',
-            [RomaneioController::class, 'registrarImpressao']
-        )->name('registrar-impressao');
-
-        Route::get(
-            '/{romaneio}/imprimir',
-            [RomaneioController::class, 'imprimir']
-        )->name('imprimir');
-
-        Route::post(
-            '/{romaneio}/cancelar',
-            [RomaneioController::class, 'cancelar']
-        )->name('cancelar');
-
-        Route::get(
-            '/{romaneio}/separacao',
-            [RomaneioController::class, 'separacao']
-        )->name('separacao');
-
-        Route::put(
-            '/{romaneio}/operacao',
-            [RomaneioController::class, 'atualizarOperacao']
-        )->name('operacao.update');
-
-        Route::get(
-            '/{romaneio}',
-            [RomaneioController::class, 'show']
-        )->name('show');
+    // ===============================
+    // ROMANEIOS — FASE 3
+    // ===============================
+    Route::prefix('romaneios')->name('romaneios.')->group(function () {
+        Route::get('/', [RomaneioController::class, 'index'])->name('index');
+        Route::get('/criar', [RomaneioController::class, 'create'])->name('create');
+        Route::post('/', [RomaneioController::class, 'store'])->name('store');
+        Route::post('/{romaneio}/registrar-impressao', [RomaneioController::class, 'registrarImpressao'])->name('registrar-impressao');
+        Route::get('/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('imprimir');
+        Route::get('/{romaneio}/separacao', [RomaneioController::class, 'separacao'])->name('separacao');
+        Route::put('/{romaneio}/operacao', [RomaneioController::class, 'atualizarOperacao'])->name('operacao.update');
+        Route::post('/{romaneio}/cancelar', [RomaneioController::class, 'cancelar'])->name('cancelar');
+        Route::get('/{romaneio}', [RomaneioController::class, 'show'])->name('show');
     });
-            
+        
 

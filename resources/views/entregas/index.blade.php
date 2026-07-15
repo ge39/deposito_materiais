@@ -406,24 +406,44 @@
                             Pendente Pagamento
                         </option>
 
+                        <option value="aguardando_faturamento"
+                            @selected(request('status') === 'aguardando_faturamento')>
+                            Aguardando Faturamento
+                        </option>
+
                         <option value="aguardando_separacao"
                             @selected(request('status') === 'aguardando_separacao')>
                             Aguardando Separação
                         </option>
 
-                        <option value="separando"
-                            @selected(request('status') === 'separando')>
-                            Separando
+                        <option value="em_preparacao"
+                            @selected(request('status') === 'em_preparacao')>
+                            Em Preparação
                         </option>
 
-                        <option value="carregado"
-                            @selected(request('status') === 'carregado')>
-                            Carregado
+                        <option value="pronta_para_carregamento"
+                            @selected(request('status') === 'pronta_para_carregamento')>
+                            Pronta para Carregamento
+                        </option>
+
+                        <option value="carregada"
+                            @selected(request('status') === 'carregada')>
+                            Carregada
+                        </option>
+
+                        <option value="liberada"
+                            @selected(request('status') === 'liberada')>
+                            Liberada
                         </option>
 
                         <option value="em_rota"
                             @selected(request('status') === 'em_rota')>
-                            Em rota
+                            Em Rota
+                        </option>
+
+                        <option value="no_destino"
+                            @selected(request('status') === 'no_destino')>
+                            No Destino
                         </option>
 
                         <option value="entregue"
@@ -431,19 +451,34 @@
                             Entregue
                         </option>
 
-                        <option value="parcial"
-                            @selected(request('status') === 'parcial')>
-                            Parcial
+                        <option value="entregue_parcial"
+                            @selected(request('status') === 'entregue_parcial')>
+                            Entregue Parcial
                         </option>
 
-                        <option value="devolvido"
-                            @selected(request('status') === 'devolvido')>
-                            Devolvido
+                        <option value="nao_entregue"
+                            @selected(request('status') === 'nao_entregue')>
+                            Não Entregue
                         </option>
 
-                        <option value="cancelado"
-                            @selected(request('status') === 'cancelado')>
-                            Cancelado
+                        <option value="recusada"
+                            @selected(request('status') === 'recusada')>
+                            Recusada
+                        </option>
+
+                        <option value="reagendada"
+                            @selected(request('status') === 'reagendada')>
+                            Reagendada
+                        </option>
+
+                        <option value="devolvida"
+                            @selected(request('status') === 'devolvida')>
+                            Devolvida
+                        </option>
+
+                        <option value="cancelada"
+                            @selected(request('status') === 'cancelada')>
+                            Cancelada
                         </option>
                     </select>
                 </div>
@@ -737,7 +772,6 @@
                                         </button>
                                     </div>
                                 </td>
-
                                 <td class="text-center">
                                     @php
                                         $statusEntrega = strtolower(trim((string) $entrega->status));
@@ -747,47 +781,74 @@
                                                 'titulo' => 'Montar romaneio para esta entrega',
                                                 'icone' => 'bi-clipboard-plus',
                                                 'classe' => 'btn-outline-secondary',
+                                                'tipo' => 'romaneio',
                                             ],
 
-                                            'separando' => [
+                                            'em_preparacao' => [
                                                 'titulo' => 'Continuar separação',
                                                 'icone' => 'bi-box-seam',
                                                 'classe' => 'btn-outline-warning',
+                                                'tipo' => 'romaneio',
                                             ],
 
-                                            'aguardando_carregamento',
-                                            'carregando' => [
+                                            'pronta_para_carregamento' => [
                                                 'titulo' => 'Continuar carregamento',
                                                 'icone' => 'bi-truck-front',
                                                 'classe' => 'btn-outline-info',
+                                                'tipo' => 'romaneio',
                                             ],
 
-                                            'aguardando_conferencia',
-                                            'conferindo' => [
-                                                'titulo' => 'Continuar conferência',
+                                            'carregada' => [
+                                                'titulo' => 'Continuar conferência de saída',
                                                 'icone' => 'bi-clipboard-check',
                                                 'classe' => 'btn-outline-primary',
+                                                'tipo' => 'romaneio',
                                             ],
 
-                                            'aguardando_liberacao' => [
-                                                'titulo' => 'Continuar liberação do veículo',
+                                            'liberada' => [
+                                                'titulo' => 'Registrar saída do veículo',
                                                 'icone' => 'bi-sign-turn-right',
                                                 'classe' => 'btn-outline-success',
+                                                'tipo' => 'romaneio',
                                             ],
 
                                             'em_rota',
-                                            'parcial' => [
-                                                'titulo' => 'Confirmar entrega',
+                                            'no_destino' => [
+                                                'titulo' => 'Registrar retorno e resultado da entrega',
                                                 'icone' => 'bi-check2-circle',
                                                 'classe' => 'btn-outline-success',
+                                                'tipo' => 'retorno',
+                                            ],
+
+                                            'entregue_parcial',
+                                            'nao_entregue',
+                                            'recusada',
+                                            'reagendada',
+                                            'devolvida' => [
+                                                'titulo' => 'Consultar tratativa da entrega',
+                                                'icone' => 'bi-clipboard-pulse',
+                                                'classe' => 'btn-outline-warning',
+                                                'tipo' => 'visualizar',
                                             ],
 
                                             default => null,
                                         };
 
-                                        $podeCancelar = !in_array(
+                                        $tipoAcaoOperacional = $acaoOperacional['tipo'] ?? null;
+
+                                        $podeCancelar = ! in_array(
                                             $statusEntrega,
-                                            ['entregue', 'cancelado', 'devolvido'],
+                                            [
+                                                'em_rota',
+                                                'no_destino',
+                                                'entregue',
+                                                'entregue_parcial',
+                                                'nao_entregue',
+                                                'recusada',
+                                                'reagendada',
+                                                'devolvida',
+                                                'cancelada',
+                                            ],
                                             true
                                         );
                                     @endphp
@@ -800,27 +861,37 @@
                                         title="Visualizar entrega">
 
                                             <i class="bi bi-eye"></i>
+                                    
                                         </a>
 
+                                       
                                         {{-- SLOT 2: Ação operacional --}}
-                                        @if(in_array($statusEntrega, ['em_rota', 'parcial'], true))
-                                            <form method="POST"
-                                                action="{{ route('entregas.confirmar', $entrega->id) }}">
-
-                                                @csrf
-                                                @method('PATCH')
-
-                                                <button type="submit"
-                                                        class="btn {{ $acaoOperacional['classe'] }} btn-sm acao-btn"
-                                                        title="{{ $acaoOperacional['titulo'] }}"
-                                                        onclick="return confirm('Confirmar esta entrega como concluída?')">
-
-                                                    <i class="bi {{ $acaoOperacional['icone'] }}"></i>
-                                                </button>
-                                            </form>
-
-                                        @elseif($acaoOperacional)
+                                        @if($tipoAcaoOperacional === 'romaneio')
                                             <a href="{{ route('romaneios.create', ['entrega_id' => $entrega->id]) }}"
+                                            class="btn {{ $acaoOperacional['classe'] }} btn-sm acao-btn"
+                                            title="{{ $acaoOperacional['titulo'] }}">
+
+                                                <i class="bi {{ $acaoOperacional['icone'] }}"></i>
+                                            </a>
+                                         
+                                        {{-- SLOT 1: Visualizar --}}
+                                        <a href="{{ route('entregas.show', $entrega->id) }}"
+                                            class="btn btn-outline-primary btn-sm acao-btn"
+                                            title="Visualizar rota">
+
+                                            <i class="bi bi-geo-alt"></i>
+                                        </a>
+                                        
+                                        @elseif($tipoAcaoOperacional === 'retorno')
+                                            <a href="{{ route('entregas.retorno', $entrega->id) }}"
+                                            class="btn {{ $acaoOperacional['classe'] }} btn-sm acao-btn"
+                                            title="{{ $acaoOperacional['titulo'] }}">
+
+                                                <i class="bi {{ $acaoOperacional['icone'] }}"></i>
+                                            </a>
+
+                                        @elseif($tipoAcaoOperacional === 'visualizar')
+                                            <a href="{{ route('entregas.show', $entrega->id) }}"
                                             class="btn {{ $acaoOperacional['classe'] }} btn-sm acao-btn"
                                             title="{{ $acaoOperacional['titulo'] }}">
 
@@ -837,7 +908,7 @@
                                             </button>
                                         @endif
 
-                                        {{-- SLOT 3: Cancelar ou ação indisponível --}}
+                                        {{-- SLOT 3: Cancelar --}}
                                         @if($podeCancelar)
                                             <form method="POST"
                                                 action="{{ route('entregas.cancelar', $entrega->id) }}">
@@ -870,7 +941,6 @@
                                     </div>
                                 </td>
                             </tr>
-
                             <tr class="collapse linha-itens"
                                 id="itens-entrega-{{ $entrega->id }}">
 

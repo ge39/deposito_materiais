@@ -3,10 +3,7 @@
 <?php $__env->startSection('content'); ?>
 
 <?php
-    $entregas = collect($entregasDisponiveis ?? [])
-        ->filter()
-        ->values();
-
+    $entregas = collect($entregasDisponiveis ?? [])->filter()->values();
     $entregaPrincipal = $entregas->first();
 
     $romaneioAtivo = $romaneioAtivo
@@ -23,7 +20,6 @@
                 '_',
                 (string) (
                     $romaneioAtivo?->status
-                    ?? $entregaPrincipal?->status
                     ?? 'montagem'
                 )
             )
@@ -31,37 +27,39 @@
     );
 
     $etapaAtual = match ($statusOriginal) {
-        'montagem',
-        'aguardando_separacao',
-        'rascunho',
-        'pendente' =>
+        'montagem' =>
             'montagem',
 
-        'gerado',
-        'em_separacao',
-        'separando' =>
+        'aguardando_separacao',
+        'em_separacao' =>
             'separacao',
 
-        'separado',
-        'na_doca',
-        'carregando',
-        'aguardando_carregamento' =>
+        'aguardando_conferencia_separacao',
+        'em_conferencia_separacao',
+        'separacao_conferida' =>
+            'conferencia_separacao',
+
+        'aguardando_carregamento',
+        'carregando' =>
             'carregamento',
 
-        'carregado',
-        'aguardando_conferencia',
-        'conferindo' =>
-            'conferencia',
+        'aguardando_conferencia_saida',
+        'em_conferencia_saida' =>
+            'conferencia_saida',
 
-        'conferido',
         'aguardando_liberacao',
-        'liberado',
-        'saiu_para_entrega',
-        'em_rota',
-        'entregue',
-        'parcial',
-        'devolvido' =>
+        'liberado' =>
             'liberacao',
+
+        'em_rota',
+        'retornando',
+        'aguardando_conferencia_retorno',
+        'em_conferencia_retorno',
+        'aguardando_prestacao_contas',
+        'em_prestacao_contas',
+        'aguardando_fechamento',
+        'fechado' =>
+            'em_rota',
 
         default =>
             $criandoRomaneio
@@ -82,36 +80,45 @@
             'ordem' => 2,
         ],
 
-        'carregamento' => [
-            'label' => 'Carregamento',
-            'icone' => 'bi-truck-front',
+        'conferencia_separacao' => [
+            'label' => 'Conf. Separação',
+            'icone' => 'bi-clipboard2-check',
             'ordem' => 3,
         ],
 
-        'conferencia' => [
-            'label' => 'Conferência',
-            'icone' => 'bi-clipboard-data',
+        'carregamento' => [
+            'label' => 'Carregamento',
+            'icone' => 'bi-truck-front',
             'ordem' => 4,
+        ],
+
+        'conferencia_saida' => [
+            'label' => 'Conf. Saída',
+            'icone' => 'bi-clipboard-data',
+            'ordem' => 5,
         ],
 
         'liberacao' => [
             'label' => 'Liberação',
+            'icone' => 'bi-shield-check',
+            'ordem' => 6,
+        ],
+
+        'em_rota' => [
+            'label' => 'Em Rota',
             'icone' => 'bi-sign-turn-right',
-            'ordem' => 5,
+            'ordem' => 7,
         ],
     ];
 
     $ordemAtual = $etapas[$etapaAtual]['ordem'];
 
-    $progressoWorkflow = (
-        ($ordemAtual - 1)
-        / (count($etapas) - 1)
-    ) * 100;
+    $progressoWorkflow = count($etapas) > 1
+        ? (($ordemAtual - 1) / (count($etapas) - 1)) * 100
+        : 0;
 
     $codigoRomaneio =
         $romaneioAtivo?->codigo_romaneio
-        ?? $romaneioAtivo?->codigo
-        ?? $romaneioAtivo?->numero
         ?? null;
 
     $motoristaSelecionado = old(
@@ -141,20 +148,13 @@
         : 'PUT';
 
     $statusClasses = [
-        'montagem' =>
-            'bg-secondary',
-
-        'separacao' =>
-            'bg-warning text-dark',
-
-        'carregamento' =>
-            'bg-primary',
-
-        'conferencia' =>
-            'bg-info text-dark',
-
-        'liberacao' =>
-            'bg-success',
+        'montagem' => 'bg-secondary',
+        'separacao' => 'bg-warning text-dark',
+        'conferencia_separacao' => 'bg-info text-dark',
+        'carregamento' => 'bg-primary',
+        'conferencia_saida' => 'bg-info text-dark',
+        'liberacao' => 'bg-success',
+        'em_rota' => 'bg-dark',
     ];
 
     $formatarData = function ($data, bool $comHora = false) {
@@ -193,36 +193,30 @@
         );
     };
 
-    $resolverItemRomaneio = function ($item) use (
-        $romaneioAtivo
-    ) {
+    $resolverItemRomaneio = function ($item) use ($romaneioAtivo) {
         if (! $romaneioAtivo) {
             return null;
         }
 
         return collect($romaneioAtivo->itens ?? [])
-            ->first(function ($itemRomaneio) use ($item) {
-                return (int) $itemRomaneio->entrega_item_id
-                    === (int) $item->id;
-            });
+            ->first(
+                fn ($itemRomaneio) =>
+                    (int) $itemRomaneio->entrega_item_id
+                    === (int) $item->id
+            );
     };
 
-    $totalEntregas = $entregas->count();
-
-    $totalItens = $entregas->sum(function ($entrega) {
-        return collect(
-            $entrega?->itens ?? []
-        )->count();
-    });
-
-    $statusRomaneio = $romaneioAtivo?->status;
+    $funcionariosOperacionais = collect(
+        $funcionariosOperacionais ?? []
+    );
 
     $podeSalvarAndamento = in_array(
         $statusOriginal,
         [
-            'gerado',
             'em_separacao',
+            'em_conferencia_separacao',
             'carregando',
+            'em_conferencia_saida',
         ],
         true
     );
@@ -230,28 +224,109 @@
     $podeVoltarEtapa = in_array(
         $statusOriginal,
         [
-            'separado',
-            'na_doca',
+            'aguardando_conferencia_separacao',
+            'em_conferencia_separacao',
+            'aguardando_carregamento',
             'carregando',
-            'carregado',
-            'conferido',
+            'aguardando_conferencia_saida',
+            'em_conferencia_saida',
+            'aguardando_liberacao',
             'liberado',
         ],
         true
     );
 
-    $operacaoFinalizada = in_array(
+    $operacaoInternaFinalizada = in_array(
         $statusOriginal,
         [
-            'saiu_para_entrega',
             'em_rota',
-            'entregue',
-            'parcial',
-            'devolvido',
+            'retornando',
+            'aguardando_conferencia_retorno',
+            'em_conferencia_retorno',
+            'aguardando_prestacao_contas',
+            'em_prestacao_contas',
+            'aguardando_fechamento',
+            'fechado',
             'cancelado',
         ],
         true
     );
+
+    $podeEditarEquipe = $criandoRomaneio || ! in_array(
+        $statusOriginal,
+        [
+            'liberado',
+            'em_rota',
+            'retornando',
+            'aguardando_conferencia_retorno',
+            'em_conferencia_retorno',
+            'aguardando_prestacao_contas',
+            'em_prestacao_contas',
+            'aguardando_fechamento',
+            'fechado',
+            'cancelado',
+        ],
+        true
+    );
+
+    $campoQuantidadeAtiva = match ($statusOriginal) {
+        'em_separacao' =>
+            'quantidade_separada',
+
+        'em_conferencia_separacao' =>
+            'quantidade_conferida_separacao',
+
+        'carregando' =>
+            'quantidade_carregada',
+
+        'em_conferencia_saida' =>
+            'quantidade_conferida_saida',
+
+        default =>
+            null,
+    };
+
+    $descricaoEtapa = match ($statusOriginal) {
+        'montagem' =>
+            'Monte o romaneio, defina motorista, veículo e quantidades.',
+
+        'aguardando_separacao' =>
+            'O romaneio está pronto para iniciar a separação física.',
+
+        'em_separacao' =>
+            'Registre as quantidades separadas de cada item.',
+
+        'aguardando_conferencia_separacao' =>
+            'A separação terminou e aguarda conferência antes do carregamento.',
+
+        'em_conferencia_separacao' =>
+            'Confira fisicamente cada quantidade separada.',
+
+        'separacao_conferida',
+        'aguardando_carregamento' =>
+            'A separação foi conferida e o carregamento pode começar.',
+
+        'carregando' =>
+            'Registre as quantidades efetivamente colocadas no veículo.',
+
+        'aguardando_conferencia_saida' =>
+            'O carregamento terminou e aguarda a conferência final de saída.',
+
+        'em_conferencia_saida' =>
+            'Confira a carga no veículo antes da liberação.',
+
+        'aguardando_liberacao' =>
+            'A carga está conferida. Imprima o romaneio e libere o veículo.',
+
+        'liberado' =>
+            'O veículo está liberado e aguarda o registro da saída física.',
+
+        'em_rota' =>
+            'O veículo está em rota. O retorno será tratado na tela de Entregas.',
+
+        default =>
+            'Acompanhe a operação do romaneio.',
+    };
 ?>
 
 <style>
@@ -297,12 +372,14 @@
     }
 
     .workflow-card {
+        overflow-x: auto;
         padding: 1rem;
     }
 
     .workflow {
         display: grid;
-        grid-template-columns: repeat(5, minmax(120px, 1fr));
+        grid-template-columns: repeat(7, minmax(110px, 1fr));
+        min-width: 820px;
         position: relative;
     }
 
@@ -310,9 +387,9 @@
         background: #d9dee3;
         content: "";
         height: 4px;
-        left: 10%;
+        left: 7%;
         position: absolute;
-        right: 10%;
+        right: 7%;
         top: 19px;
         z-index: 0;
     }
@@ -320,8 +397,8 @@
     .workflow-progress {
         background: #198754;
         height: 4px;
-        left: 10%;
-        max-width: 80%;
+        left: 7%;
+        max-width: 86%;
         position: absolute;
         top: 19px;
         transition: width .25s ease;
@@ -362,7 +439,7 @@
     .workflow-label {
         color: #6c757d;
         display: block;
-        font-size: .74rem;
+        font-size: .72rem;
         font-weight: 700;
         margin-top: .42rem;
     }
@@ -388,19 +465,25 @@
         border-color: #ffda6a;
     }
 
+    .operation-banner.conferencia_separacao,
+    .operation-banner.conferencia_saida {
+        background: var(--erp-info-soft);
+        border-color: #9eeaf9;
+    }
+
     .operation-banner.carregamento {
         background: var(--erp-primary-soft);
         border-color: #9ec5fe;
     }
 
-    .operation-banner.conferencia {
-        background: var(--erp-info-soft);
-        border-color: #9eeaf9;
-    }
-
     .operation-banner.liberacao {
         background: var(--erp-success-soft);
         border-color: #75b798;
+    }
+
+    .operation-banner.em_rota {
+        background: #e9ecef;
+        border-color: #adb5bd;
     }
 
     .operation-title {
@@ -445,9 +528,9 @@
 
     .delivery-item {
         background: #fff;
-        border: 1px solid #ccd2d8;
+        border: 1px solid #dfe3e7;
         border-radius: 7px;
-        margin-bottom: .75rem;
+        margin-bottom: .7rem;
         overflow: hidden;
     }
 
@@ -456,64 +539,34 @@
     }
 
     .delivery-button {
-        background: #e9ecef;
-        border: 0;
-        box-shadow: none !important;
-        color: #212529;
-        padding: .8rem .9rem;
-    }
-
-    .delivery-button:not(.collapsed) {
-        background: #dde2e6;
-        color: #212529;
-    }
-
-    .delivery-button::after {
-        display: none;
+        background: #f8f9fa;
+        font-size: .82rem;
+        padding: .75rem;
     }
 
     .delivery-code {
-        font-size: .93rem;
-        font-weight: 850;
+        font-size: .78rem;
+        font-weight: 800;
     }
 
     .delivery-client {
-        color: #495057;
-        font-size: .78rem;
-        font-weight: 650;
-    }
-
-    .toggle-icon {
-        align-items: center;
-        border: 1px solid #adb5bd;
-        border-radius: 5px;
-        display: inline-flex;
-        flex: 0 0 auto;
-        height: 30px;
-        justify-content: center;
-        width: 30px;
-    }
-
-    .toggle-icon i {
-        transition: transform .2s ease;
-    }
-
-    .delivery-button:not(.collapsed) .toggle-icon i {
-        transform: rotate(180deg);
+        color: #6c757d;
+        font-size: .72rem;
     }
 
     .items-table th {
         background: var(--erp-dark);
         color: #fff;
-        font-size: .7rem;
+        font-size: .67rem;
         font-weight: 800;
         text-align: center;
         text-transform: uppercase;
         vertical-align: middle;
+        white-space: nowrap;
     }
 
     .items-table td {
-        font-size: .79rem;
+        font-size: .77rem;
         vertical-align: middle;
     }
 
@@ -528,18 +581,8 @@
     }
 
     .quantity-input {
-        min-width: 85px;
+        min-width: 88px;
         text-align: right;
-    }
-
-    .balance-value.pending {
-        color: #dc3545;
-        font-weight: 800;
-    }
-
-    .balance-value.complete {
-        color: #198754;
-        font-weight: 800;
     }
 
     .summary-card {
@@ -582,42 +625,6 @@
         border-color: #75b798;
     }
 
-    .control-panel {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 7px;
-        margin-top: .8rem;
-        padding: .75rem;
-    }
-
-    .control-grid {
-        display: grid;
-        gap: .5rem;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .control-item {
-        background: #fff;
-        border: 1px solid #e2e6e9;
-        border-radius: 6px;
-        padding: .55rem;
-    }
-
-    .control-item-label {
-        color: #6c757d;
-        display: block;
-        font-size: .65rem;
-        font-weight: 800;
-        text-transform: uppercase;
-    }
-
-    .control-item-value {
-        display: block;
-        font-size: .76rem;
-        font-weight: 750;
-        margin-top: .15rem;
-    }
-
     .footer-actions {
         align-items: center;
         display: flex;
@@ -627,14 +634,13 @@
     }
 
     @media (max-width: 991.98px) {
-        .workflow {
-            gap: .5rem;
-            grid-template-columns: repeat(5, minmax(95px, 1fr));
-            overflow-x: auto;
-        }
-
         .summary-card {
             position: static;
+        }
+
+        .footer-actions {
+            align-items: stretch;
+            flex-direction: column;
         }
     }
 </style>
@@ -642,7 +648,6 @@
 <div class="container-fluid romaneio-page py-3">
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-
         <div>
             <h1 class="romaneio-title">
                 <i class="bi bi-truck me-2"></i>
@@ -650,12 +655,11 @@
             </h1>
 
             <div class="romaneio-subtitle">
-                Montagem, separação, carregamento, conferência e liberação.
+                Montagem, separação, conferência, carregamento, liberação e saída.
             </div>
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-
             <?php if($codigoRomaneio): ?>
                 <span class="badge bg-dark fs-6">
                     <?php echo e($codigoRomaneio); ?>
@@ -674,7 +678,6 @@
                 <i class="bi bi-arrow-left me-1"></i>
                 Voltar
             </a>
-
         </div>
     </div>
 
@@ -707,13 +710,10 @@
     <?php endif; ?>
 
     <?php if($entregas->isEmpty()): ?>
-
         <div class="alert alert-warning">
             Nenhuma entrega disponível para operação.
         </div>
-
     <?php else: ?>
-
         <form id="formRomaneio"
               method="POST"
               action="<?php echo e($formAction); ?>">
@@ -735,15 +735,12 @@
             <?php endif; ?>
 
             <div class="section-card workflow-card mb-3">
-
                 <div class="workflow">
-
                     <div class="workflow-progress"
                          style="width: <?php echo e($progressoWorkflow); ?>%;">
                     </div>
 
                     <?php $__currentLoopData = $etapas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $chave => $etapa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-
                         <?php
                             $classeEtapa = '';
 
@@ -755,7 +752,6 @@
                         ?>
 
                         <div class="workflow-step <?php echo e($classeEtapa); ?>">
-
                             <div class="workflow-circle">
                                 <i class="bi <?php echo e($etapa['icone']); ?>"></i>
                             </div>
@@ -764,103 +760,43 @@
                                 <?php echo e($etapa['label']); ?>
 
                             </span>
-
                         </div>
-
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-
                 </div>
             </div>
 
             <div class="operation-banner <?php echo e($etapaAtual); ?> mb-3">
-
                 <div>
-
                     <div class="operation-title">
-
-                        <?php if($criandoRomaneio): ?>
-                            Monte o romaneio e confirme as quantidades.
-
-                        <?php elseif($statusOriginal === 'gerado'): ?>
-                            O romaneio foi criado e aguarda o início da separação.
-
-                        <?php elseif($statusOriginal === 'em_separacao'): ?>
-                            A separação física está em andamento.
-
-                        <?php elseif($statusOriginal === 'separado'): ?>
-                            A separação terminou. Encaminhe o romaneio para a doca.
-
-                        <?php elseif($statusOriginal === 'na_doca'): ?>
-                            O romaneio está na doca e aguarda o início do carregamento.
-
-                        <?php elseif($statusOriginal === 'carregando'): ?>
-                            Registre os produtos colocados no veículo.
-
-                        <?php elseif($statusOriginal === 'carregado'): ?>
-                            O carregamento terminou e aguarda conferência.
-
-                        <?php elseif($statusOriginal === 'conferido'): ?>
-                            Imprima o romaneio e libere o veículo.
-
-                        <?php elseif($statusOriginal === 'liberado'): ?>
-                            O romaneio foi liberado. Registre a saída física.
-
-                        <?php elseif(in_array($statusOriginal, ['saiu_para_entrega', 'em_rota'], true)): ?>
-                            O veículo saiu para entrega.
-
-                        <?php elseif($statusOriginal === 'entregue'): ?>
-                            A entrega foi concluída.
-
-                        <?php else: ?>
-                            Acompanhe a operação do romaneio.
-                        <?php endif; ?>
+                        <?php echo e($descricaoEtapa); ?>
 
                     </div>
 
                     <div class="operation-description">
-
                         <?php if($criandoRomaneio): ?>
-                            A criação gera o romaneio, mas não inicia automaticamente a separação.
-
-                        <?php elseif($statusOriginal === 'gerado'): ?>
-                            O início registrará o responsável e a data de início da separação.
-
+                            A criação prepara o documento, mas não inicia automaticamente a separação.
                         <?php elseif($statusOriginal === 'em_separacao'): ?>
-                            Todos os itens precisam ser separados antes da finalização.
-
-                        <?php elseif($statusOriginal === 'separado'): ?>
-                            O envio para doca registra a movimentação operacional antes do carregamento.
-
-                        <?php elseif($statusOriginal === 'na_doca'): ?>
-                            O início do carregamento registrará o responsável e o horário.
-
+                            Todos os itens devem ser separados antes da conclusão.
+                        <?php elseif($statusOriginal === 'em_conferencia_separacao'): ?>
+                            A quantidade conferida deve corresponder à quantidade separada.
                         <?php elseif($statusOriginal === 'carregando'): ?>
-                            O percentual carregado será atualizado conforme as quantidades informadas.
-
-                        <?php elseif($statusOriginal === 'carregado'): ?>
-                            Valide todos os itens antes da conclusão da conferência.
-
-                        <?php elseif($statusOriginal === 'conferido'): ?>
-                            A liberação somente será permitida após o registro da impressão.
-
-                        <?php elseif($statusOriginal === 'liberado'): ?>
-                            A liberação não coloca a entrega em rota. A saída é um evento separado.
-
-                        <?php elseif(in_array($statusOriginal, ['saiu_para_entrega', 'em_rota'], true)): ?>
-                            A data de saída e a situação em rota foram registradas.
-
+                            A quantidade carregada deve corresponder à separação já conferida.
+                        <?php elseif($statusOriginal === 'em_conferencia_saida'): ?>
+                            A quantidade conferida deve corresponder à carga presente no veículo.
+                        <?php elseif($statusOriginal === 'aguardando_liberacao'): ?>
+                            A impressão é obrigatória antes da liberação.
+                        <?php elseif($statusOriginal === 'em_rota'): ?>
+                            O resultado da entrega será informado pelo botão Confirmar entrega.
                         <?php endif; ?>
-
                     </div>
 
                     <?php if($romaneioAtivo): ?>
-
                         <div class="operation-meta">
-
                             <span class="badge bg-light text-dark border">
                                 <i class="bi bi-person me-1"></i>
                                 Criado por:
-                                <?php echo e($romaneioAtivo?->criador?->nome
+                                <?php echo e($romaneioAtivo?->criador?->name
+                                    ?? $romaneioAtivo?->criador?->nome
                                     ?? $romaneioAtivo?->criado_por
                                     ?? 'Não registrado'); ?>
 
@@ -878,7 +814,7 @@
 
                             <?php if($romaneioAtivo?->data_inicio_separacao): ?>
                                 <span class="badge bg-warning text-dark">
-                                    Separação iniciada:
+                                    Separação:
                                     <?php echo e($formatarData(
                                         $romaneioAtivo->data_inicio_separacao,
                                         true
@@ -887,9 +823,20 @@
                                 </span>
                             <?php endif; ?>
 
+                            <?php if($romaneioAtivo?->data_inicio_conferencia_separacao): ?>
+                                <span class="badge bg-info text-dark">
+                                    Conf. separação:
+                                    <?php echo e($formatarData(
+                                        $romaneioAtivo->data_inicio_conferencia_separacao,
+                                        true
+                                    )); ?>
+
+                                </span>
+                            <?php endif; ?>
+
                             <?php if($romaneioAtivo?->data_inicio_carregamento): ?>
                                 <span class="badge bg-primary">
-                                    Carga iniciada:
+                                    Carga:
                                     <?php echo e($formatarData(
                                         $romaneioAtivo->data_inicio_carregamento,
                                         true
@@ -898,11 +845,11 @@
                                 </span>
                             <?php endif; ?>
 
-                            <?php if($romaneioAtivo?->impresso_em): ?>
-                                <span class="badge bg-success">
-                                    Impresso:
+                            <?php if($romaneioAtivo?->data_inicio_conferencia_saida): ?>
+                                <span class="badge bg-info text-dark">
+                                    Conf. saída:
                                     <?php echo e($formatarData(
-                                        $romaneioAtivo->impresso_em,
+                                        $romaneioAtivo->data_inicio_conferencia_saida,
                                         true
                                     )); ?>
 
@@ -919,303 +866,217 @@
 
                                 </span>
                             <?php endif; ?>
-
-                        </div>
-
-                    <?php endif; ?>
-
-                    <?php if(
-                        ! $criandoRomaneio &&
-                        $statusOriginal === 'conferido'
-                    ): ?>
-                        <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
-
-                            <button type="submit"
-                                    form="formImprimirRomaneio"
-                                    class="btn btn-outline-dark btn-sm" formtarget="_blank">
-
-                                <i class="bi bi-printer me-1"></i>
-
-                                <?php echo e($romaneioAtivo?->impresso_em
-                                    ? 'Reimprimir Romaneio'
-                                    : 'Imprimir Romaneio'); ?>
-
-
-                            </button>
-
-                            <?php if($romaneioAtivo?->impresso_em): ?>
-                                <span class="badge bg-success">
-                                    <i class="bi bi-check-circle me-1"></i>
-                                    Impressão registrada
-                                </span>
-                            <?php else: ?>
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>
-                                    Impressão pendente
-                                </span>
-                            <?php endif; ?>
-
                         </div>
                     <?php endif; ?>
-
                 </div>
-
-                <i class="bi <?php echo e($etapas[$etapaAtual]['icone']); ?> fs-2"></i>
-
             </div>
 
             <div class="section-card mb-3">
-
-                <?php
-                    $podeEditarEquipe = $criandoRomaneio
-                        || in_array(
-                            $statusOriginal,
-                            [
-                                'gerado',
-                                'em_separacao',
-                            ],
-                            true
-                        );
-                ?>
-
                 <div class="section-header">
-
                     <span>
-                        <i class="bi bi-person-badge me-2"></i>
-                        Equipe e Veículo
+                        <i class="bi bi-person-badge me-1"></i>
+                        Equipe e orientações
                     </span>
-
-                    <?php if($podeEditarEquipe): ?>
-                        <span class="badge bg-warning text-dark">
-                            Definição operacional
-                        </span>
-                    <?php else: ?>
-                        <span class="badge bg-light text-dark">
-                            Dados definidos
-                        </span>
-                    <?php endif; ?>
-
                 </div>
 
-                <div class="card-body p-3">
-
+                <div class="p-3">
                     <div class="row g-3">
-
-                        <div class="col-lg-4">
-
+                        <div class="col-lg-3">
                             <label for="motorista_id"
-                                class="form-label">
-
+                                   class="form-label">
                                 Motorista
-
-                                <?php if($podeEditarEquipe): ?>
-                                    <span class="text-danger">*</span>
-                                <?php endif; ?>
-
                             </label>
 
                             <select id="motorista_id"
                                     name="motorista_id"
-                                    class="form-select form-select-sm
-                                        <?php $__errorArgs = ['motorista_id'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                    <?php echo e($podeEditarEquipe ? 'required' : 'disabled'); ?>>
-
-                                <option value="">
-                                    Selecione o motorista
-                                </option>
+                                    class="form-select form-select-sm"
+                                    <?php echo e($podeEditarEquipe ? '' : 'disabled'); ?>>
+                                <option value="">Selecione...</option>
 
                                 <?php $__currentLoopData = $motoristas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $motorista): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-
                                     <option value="<?php echo e($motorista->id); ?>"
                                         <?php if(
-                                            (string) old(
-                                                'motorista_id',
-                                                $motoristaSelecionado
-                                            ) === (string) $motorista->id
-                                        ): ?>
-                                            selected
-                                        <?php endif; ?>>
-
+                                            (int) $motoristaSelecionado
+                                            === (int) $motorista->id
+                                        ): echo 'selected'; endif; ?>>
                                         <?php echo e($motorista->nome); ?>
 
-
                                     </option>
-
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-
                             </select>
-
-                            <?php $__errorArgs = ['motorista_id'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                <div class="invalid-feedback">
-                                    <?php echo e($message); ?>
-
-                                </div>
-                            <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
 
                             <?php if(! $podeEditarEquipe): ?>
                                 <input type="hidden"
-                                    name="motorista_id"
-                                    value="<?php echo e($motoristaSelecionado); ?>">
+                                       name="motorista_id"
+                                       value="<?php echo e($motoristaSelecionado); ?>">
                             <?php endif; ?>
-
                         </div>
 
-                        <div class="col-lg-4">
-
+                        <div class="col-lg-3">
                             <label for="veiculo_id"
-                                class="form-label">
-
+                                   class="form-label">
                                 Veículo
-
-                                <?php if($podeEditarEquipe): ?>
-                                    <span class="text-danger">*</span>
-                                <?php endif; ?>
-
                             </label>
 
                             <select id="veiculo_id"
                                     name="veiculo_id"
-                                    class="form-select form-select-sm
-                                        <?php $__errorArgs = ['veiculo_id'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                    <?php echo e($podeEditarEquipe ? 'required' : 'disabled'); ?>>
-
-                                <option value="">
-                                    Selecione o veículo
-                                </option>
+                                    class="form-select form-select-sm"
+                                    <?php echo e($podeEditarEquipe ? '' : 'disabled'); ?>>
+                                <option value="">Selecione...</option>
 
                                 <?php $__currentLoopData = $veiculos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $veiculo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-
                                     <option value="<?php echo e($veiculo->id); ?>"
                                         <?php if(
-                                            (string) old(
-                                                'veiculo_id',
-                                                $veiculoSelecionado
-                                            ) === (string) $veiculo->id
-                                        ): ?>
-                                            selected
-                                        <?php endif; ?>>
-
-                                        <?php echo e($veiculo->descricao
-                                            ?? $veiculo->nome
-                                            ?? $veiculo->modelo
+                                            (int) $veiculoSelecionado
+                                            === (int) $veiculo->id
+                                        ): echo 'selected'; endif; ?>>
+                                        <?php echo e($veiculo->placa
+                                            ?? $veiculo->descricao
+                                            ?? $veiculo->observacao
                                             ?? 'Veículo #' . $veiculo->id); ?>
 
-
-                                        <?php if(! empty($veiculo->placa)): ?>
-                                            - <?php echo e($veiculo->placa); ?>
-
-                                        <?php endif; ?>
-
                                     </option>
-
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-
                             </select>
-
-                            <?php $__errorArgs = ['veiculo_id'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                <div class="invalid-feedback">
-                                    <?php echo e($message); ?>
-
-                                </div>
-                            <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
 
                             <?php if(! $podeEditarEquipe): ?>
                                 <input type="hidden"
-                                    name="veiculo_id"
-                                    value="<?php echo e($veiculoSelecionado); ?>">
+                                       name="veiculo_id"
+                                       value="<?php echo e($veiculoSelecionado); ?>">
                             <?php endif; ?>
-
                         </div>
 
-                        <div class="col-lg-4">
+                        <?php if($statusOriginal === 'em_separacao'): ?>
+                            <div class="col-lg-3">
+                                <label for="separado_por"
+                                       class="form-label">
+                                    Separador
+                                </label>
 
+                                <select id="separado_por"
+                                        name="separado_por"
+                                        class="form-select form-select-sm">
+                                    <option value="">Selecione...</option>
+
+                                    <?php $__currentLoopData = $funcionariosOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $funcionario): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($funcionario->id); ?>"
+                                            <?php if(
+                                                (int) old('separado_por')
+                                                === (int) $funcionario->id
+                                            ): echo 'selected'; endif; ?>>
+                                            <?php echo e($funcionario->nome); ?>
+
+                                        </option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </select>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if($statusOriginal === 'aguardando_conferencia_separacao'): ?>
+                            <div class="col-lg-3">
+                                <label for="conferencia_separacao_por"
+                                       class="form-label">
+                                    Conferente da separação
+                                </label>
+
+                                <select id="conferencia_separacao_por"
+                                        name="conferencia_separacao_por"
+                                        class="form-select form-select-sm">
+                                    <option value="">Selecione...</option>
+
+                                    <?php $__currentLoopData = $funcionariosOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $funcionario): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($funcionario->id); ?>"
+                                            <?php if(
+                                                (int) old('conferencia_separacao_por')
+                                                === (int) $funcionario->id
+                                            ): echo 'selected'; endif; ?>>
+                                            <?php echo e($funcionario->nome); ?>
+
+                                        </option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </select>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if($statusOriginal === 'aguardando_carregamento'): ?>
+                            <div class="col-lg-3">
+                                <label for="carregado_por"
+                                       class="form-label">
+                                    Responsável pelo carregamento
+                                </label>
+
+                                <select id="carregado_por"
+                                        name="carregado_por"
+                                        class="form-select form-select-sm">
+                                    <option value="">Selecione...</option>
+
+                                    <?php $__currentLoopData = $funcionariosOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $funcionario): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($funcionario->id); ?>"
+                                            <?php if(
+                                                (int) old('carregado_por')
+                                                === (int) $funcionario->id
+                                            ): echo 'selected'; endif; ?>>
+                                            <?php echo e($funcionario->nome); ?>
+
+                                        </option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </select>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if($statusOriginal === 'aguardando_conferencia_saida'): ?>
+                            <div class="col-lg-3">
+                                <label for="conferencia_saida_por"
+                                       class="form-label">
+                                    Conferente de saída
+                                </label>
+
+                                <select id="conferencia_saida_por"
+                                        name="conferencia_saida_por"
+                                        class="form-select form-select-sm">
+                                    <option value="">Selecione...</option>
+
+                                    <?php $__currentLoopData = $funcionariosOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $funcionario): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($funcionario->id); ?>"
+                                            <?php if(
+                                                (int) old('conferencia_saida_por')
+                                                === (int) $funcionario->id
+                                            ): echo 'selected'; endif; ?>>
+                                            <?php echo e($funcionario->nome); ?>
+
+                                        </option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </select>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="col-lg-3">
                             <label for="observacao"
-                                class="form-label">
-                                Observação do romaneio
+                                   class="form-label">
+                                Observação
                             </label>
 
                             <input type="text"
-                                id="observacao"
-                                name="observacao"
-                                class="form-control form-control-sm
-                                    <?php $__errorArgs = ['observacao'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                value="<?php echo e(old(
-                                    'observacao',
-                                    $observacaoRomaneio
-                                )); ?>"
-                                maxlength="1000"
-                                <?php echo e($operacaoFinalizada ? 'readonly' : ''); ?>
+                                   id="observacao"
+                                   name="observacao"
+                                   class="form-control form-control-sm"
+                                   maxlength="1000"
+                                   value="<?php echo e($observacaoRomaneio); ?>"
+                                   <?php echo e($operacaoInternaFinalizada ? 'readonly' : ''); ?>
 
-                                placeholder="Orientação de carga, acesso, prioridade ou rota...">
-
-                            <?php $__errorArgs = ['observacao'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                <div class="invalid-feedback">
-                                    <?php echo e($message); ?>
-
-                                </div>
-                            <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-
+                                   placeholder="Orientação de carga, acesso ou prioridade...">
                         </div>
-
                     </div>
-
                 </div>
-
             </div>
 
             <div class="row g-3">
-
                 <div class="col-xl-9">
-
                     <div class="delivery-list section-card">
-
                         <div class="accordion"
                              id="accordionEntregas">
 
                             <?php $__currentLoopData = $entregas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $indiceEntrega => $entrega): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-
                                 <?php
                                     $cliente = $resolverCliente($entrega);
 
@@ -1231,18 +1092,12 @@ unset($__errorArgs, $__bag); ?>
 
                                     $enderecoEntrega =
                                         $entrega?->endereco_entrega
-                                        ?? $entrega?->endereco_completo
                                         ?? 'Endereço não informado';
 
                                     $dataPrevista = $formatarData(
                                         $entrega?->data_prevista_entrega
                                         ?? $entrega?->data_prevista
                                     );
-
-                                    $periodoEntrega =
-                                        $entrega?->periodo_entrega
-                                        ?? $entrega?->periodo
-                                        ?? 'Não informado';
 
                                     $itensEntrega = collect(
                                         $entrega?->itens ?? []
@@ -1254,7 +1109,6 @@ unset($__errorArgs, $__bag); ?>
                                 ?>
 
                                 <div class="delivery-item">
-
                                     <h2 class="accordion-header"
                                         id="headingEntrega<?php echo e($entrega->id); ?>">
 
@@ -1264,38 +1118,22 @@ unset($__errorArgs, $__bag); ?>
                                                 data-bs-target="#collapseEntrega<?php echo e($entrega->id); ?>">
 
                                             <div class="d-flex justify-content-between align-items-center gap-3 w-100 me-2">
+                                                <div>
+                                                    <div class="delivery-code">
+                                                        <?php echo e($codigoEntrega); ?>
 
-                                                <div class="d-flex align-items-center gap-3">
-
-                                                    <span class="toggle-icon">
-                                                        <i class="bi bi-chevron-down"></i>
-                                                    </span>
-
-                                                    <div>
-                                                        <div class="delivery-code">
-                                                            <?php echo e($codigoEntrega); ?>
-
-                                                        </div>
-
-                                                        <div class="delivery-client">
-                                                            <?php echo e($clienteNome); ?>
-
-                                                        </div>
                                                     </div>
 
+                                                    <div class="delivery-client">
+                                                        <?php echo e($clienteNome); ?>
+
+                                                    </div>
                                                 </div>
 
-                                                <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
-
+                                                <div class="d-flex flex-wrap gap-2">
                                                     <span class="badge bg-light text-dark border">
                                                         <i class="bi bi-calendar3 me-1"></i>
                                                         <?php echo e($dataPrevista); ?>
-
-                                                    </span>
-
-                                                    <span class="badge bg-light text-dark border">
-                                                        <i class="bi bi-clock me-1"></i>
-                                                        <?php echo e($periodoEntrega); ?>
 
                                                     </span>
 
@@ -1304,11 +1142,8 @@ unset($__errorArgs, $__bag); ?>
 
                                                         item(ns)
                                                     </span>
-
                                                 </div>
-
                                             </div>
-
                                         </button>
                                     </h2>
 
@@ -1317,11 +1152,8 @@ unset($__errorArgs, $__bag); ?>
                                          data-bs-parent="#accordionEntregas">
 
                                         <div class="accordion-body p-0">
-
                                             <div class="p-3 border-bottom">
-
                                                 <div class="row g-3">
-
                                                     <div class="col-lg-3">
                                                         <span class="info-label">
                                                             Cliente
@@ -1365,63 +1197,33 @@ unset($__errorArgs, $__bag); ?>
 
                                                         </div>
                                                     </div>
-
                                                 </div>
                                             </div>
 
                                             <div class="table-responsive">
-
                                                 <table class="table table-bordered items-table mb-0">
-
                                                     <thead>
                                                         <tr>
                                                             <th class="text-start">
                                                                 Produto
                                                             </th>
 
-                                                            <th style="width: 100px;">
-                                                                Local
-                                                            </th>
-
-                                                            <th style="width: 95px;">
-                                                                Prevista
-                                                            </th>
-
-                                                            <th style="width: 110px;">
-                                                                Romaneio
-                                                            </th>
-
-                                                            <?php if(! $criandoRomaneio): ?>
-                                                                <th style="width: 110px;">
-                                                                    Separada
-                                                                </th>
-
-                                                                <th style="width: 110px;">
-                                                                    Carregada
-                                                                </th>
-                                                            <?php endif; ?>
-
-                                                            <th style="width: 95px;">
-                                                                Saldo
-                                                            </th>
-
-                                                            <th style="width: 130px;">
-                                                                Situação
-                                                            </th>
-
-                                                            <th style="width: 65px;">
-                                                                Unid.
-                                                            </th>
+                                                            <th>Local</th>
+                                                            <th>Prevista</th>
+                                                            <th>Romaneio</th>
+                                                            <th>Separada</th>
+                                                            <th>Conf. Separação</th>
+                                                            <th>Carregada</th>
+                                                            <th>Conf. Saída</th>
+                                                            <th>Situação</th>
+                                                            <th>Unid.</th>
                                                         </tr>
                                                     </thead>
 
                                                     <tbody>
-
                                                         <?php $__empty_1 = true; $__currentLoopData = $itensEntrega; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-
                                                             <?php
                                                                 $produto = $resolverProduto($item);
-
                                                                 $itemRomaneio = $resolverItemRomaneio($item);
 
                                                                 $quantidadePrevista =
@@ -1439,18 +1241,22 @@ unset($__errorArgs, $__bag); ?>
                                                                         ?? 0
                                                                 );
 
+                                                                $quantidadeConferidaSeparacao = (float) old(
+                                                                    "itens.{$item->id}.quantidade_conferida_separacao",
+                                                                    $itemRomaneio?->quantidade_conferida_separacao
+                                                                        ?? 0
+                                                                );
+
                                                                 $quantidadeCarregada = (float) old(
                                                                     "itens.{$item->id}.quantidade_carregada",
                                                                     $itemRomaneio?->quantidade_carregada
                                                                         ?? 0
                                                                 );
 
-                                                                $statusItem = strtolower(
-                                                                    (string) old(
-                                                                        "itens.{$item->id}.status",
-                                                                        $itemRomaneio?->status
-                                                                            ?? 'pendente'
-                                                                    )
+                                                                $quantidadeConferidaSaida = (float) old(
+                                                                    "itens.{$item->id}.quantidade_conferida_saida",
+                                                                    $itemRomaneio?->quantidade_conferida_saida
+                                                                        ?? 0
                                                                 );
 
                                                                 $unidade =
@@ -1465,11 +1271,9 @@ unset($__errorArgs, $__bag); ?>
                                                             ?>
 
                                                             <tr class="item-row"
-                                                                data-prevista="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>"
-                                                                data-romaneio="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>">
+                                                                data-prevista="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>">
 
                                                                 <td>
-
                                                                     <input type="hidden"
                                                                            name="itens[<?php echo e($item->id); ?>][entrega_item_id]"
                                                                            value="<?php echo e($item->id); ?>">
@@ -1494,7 +1298,6 @@ unset($__errorArgs, $__bag); ?>
                                                                             ?? '-'); ?>
 
                                                                     </div>
-
                                                                 </td>
 
                                                                 <td class="text-center">
@@ -1513,20 +1316,16 @@ unset($__errorArgs, $__bag); ?>
                                                                 </td>
 
                                                                 <td class="text-center">
-
                                                                     <?php if($criandoRomaneio): ?>
-
                                                                         <input type="number"
                                                                                name="itens[<?php echo e($item->id); ?>][quantidade]"
                                                                                value="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>"
-                                                                               min="0.01"
+                                                                               min="1"
                                                                                max="<?php echo e(number_format($quantidadePrevista, 2, '.', '')); ?>"
                                                                                step="1"
                                                                                class="form-control form-control-sm quantity-input"
-                                                                               data-quantity-romaneio>
-
+                                                                               data-active-quantity>
                                                                     <?php else: ?>
-
                                                                         <strong>
                                                                             <?php echo e(number_format(
                                                                                 $quantidadeRomaneio,
@@ -1540,306 +1339,162 @@ unset($__errorArgs, $__bag); ?>
                                                                         <input type="hidden"
                                                                                name="itens[<?php echo e($item->id); ?>][quantidade]"
                                                                                value="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>">
-
                                                                     <?php endif; ?>
-
-                                                                </td>
-
-                                                                <?php if(! $criandoRomaneio): ?>
-
-                                                                    <td class="text-center">
-
-                                                                        <?php if($statusOriginal === 'em_separacao'): ?>
-
-                                                                            <input type="number"
-                                                                                name="itens[<?php echo e($item->id); ?>][quantidade_separada]"
-                                                                                value="<?php echo e(number_format(
-                                                                                    $quantidadeSeparada,
-                                                                                    2,
-                                                                                    '.',
-                                                                                    ''
-                                                                                )); ?>"
-                                                                                min="0"
-                                                                                max="<?php echo e(number_format(
-                                                                                    $quantidadeRomaneio,
-                                                                                    2,
-                                                                                    '.',
-                                                                                    ''
-                                                                                )); ?>"
-                                                                                step="1"
-                                                                                class="form-control form-control-sm quantity-input
-                                                                                    <?php $__errorArgs = ["itens.{$item->id}.quantidade_separada"];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                                                                data-quantity-separated>
-
-                                                                            <?php $__errorArgs = ["itens.{$item->id}.quantidade_separada"];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                                                                <div class="invalid-feedback">
-                                                                                    <?php echo e($message); ?>
-
-                                                                                </div>
-                                                                            <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-
-                                                                        <?php else: ?>
-
-                                                                            <strong>
-                                                                                <?php echo e(number_format(
-                                                                                    $quantidadeSeparada,
-                                                                                    2,
-                                                                                    ',',
-                                                                                    '.'
-                                                                                )); ?>
-
-                                                                            </strong>
-
-                                                                            <input type="hidden"
-                                                                                name="itens[<?php echo e($item->id); ?>][quantidade_separada]"
-                                                                                value="<?php echo e(number_format(
-                                                                                    $quantidadeSeparada,
-                                                                                    2,
-                                                                                    '.',
-                                                                                    ''
-                                                                                )); ?>">
-
-                                                                        <?php endif; ?>
-
-                                                                    </td>
-
-                                                                    <td class="text-center">
-
-                                                                        <?php if($statusOriginal === 'carregando'): ?>
-
-                                                                            <input type="number"
-                                                                                name="itens[<?php echo e($item->id); ?>][quantidade_carregada]"
-                                                                                value="<?php echo e(number_format(
-                                                                                    $quantidadeCarregada,
-                                                                                    2,
-                                                                                    '.',
-                                                                                    ''
-                                                                                )); ?>"
-                                                                                min="0"
-                                                                                max="<?php echo e(number_format(
-                                                                                    $quantidadeSeparada,
-                                                                                    2,
-                                                                                    '.',
-                                                                                    ''
-                                                                                )); ?>"
-                                                                                step="1"
-                                                                                class="form-control form-control-sm quantity-input
-                                                                                    <?php $__errorArgs = ["itens.{$item->id}.quantidade_carregada"];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                                                                data-quantity-loaded>
-
-                                                                            <?php $__errorArgs = ["itens.{$item->id}.quantidade_carregada"];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                                                                <div class="invalid-feedback">
-                                                                                    <?php echo e($message); ?>
-
-                                                                                </div>
-                                                                            <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-
-                                                                        <?php else: ?>
-
-                                                                            <strong>
-                                                                                <?php echo e(number_format(
-                                                                                    $quantidadeCarregada,
-                                                                                    2,
-                                                                                    ',',
-                                                                                    '.'
-                                                                                )); ?>
-
-                                                                            </strong>
-
-                                                                            <input type="hidden"
-                                                                                name="itens[<?php echo e($item->id); ?>][quantidade_carregada]"
-                                                                                value="<?php echo e(number_format(
-                                                                                    $quantidadeCarregada,
-                                                                                    2,
-                                                                                    '.',
-                                                                                    ''
-                                                                                )); ?>">
-
-                                                                        <?php endif; ?>
-
-                                                                    </td>
-
-                                                                <?php endif; ?>
-
-                                                                <td class="text-end">
-                                                                    <span class="balance-value"
-                                                                          data-balance>
-                                                                        0,00
-                                                                    </span>
                                                                 </td>
 
                                                                 <td class="text-center">
-
-                                                                    <?php if($statusOriginal === 'carregado'): ?>
-
-                                                                        <select name="itens[<?php echo e($item->id); ?>][status]"
-                                                                                class="form-select form-select-sm"
-                                                                                data-status-item>
-
-                                                                            <option value="conferido"
-                                                                                <?php if($statusItem === 'conferido'): echo 'selected'; endif; ?>>
-                                                                                Conferido
-                                                                            </option>
-
-                                                                            <option value="divergente"
-                                                                                <?php if(in_array(
-                                                                                    $statusItem,
-                                                                                    ['divergente', 'parcial'],
-                                                                                    true
-                                                                                )): echo 'selected'; endif; ?>>
-                                                                                Divergente
-                                                                            </option>
-
-                                                                        </select>
-
+                                                                    <?php if($campoQuantidadeAtiva === 'quantidade_separada'): ?>
+                                                                        <input type="number"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_separada]"
+                                                                               value="<?php echo e(number_format($quantidadeSeparada, 2, '.', '')); ?>"
+                                                                               min="0"
+                                                                               max="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>"
+                                                                               step="1"
+                                                                               class="form-control form-control-sm quantity-input"
+                                                                               data-active-quantity>
                                                                     <?php else: ?>
-
-                                                                        <?php
-                                                                            $classeStatus = match ($statusItem) {
-                                                                                'separado',
-                                                                                'carregado',
-                                                                                'conferido' =>
-                                                                                    'bg-success',
-
-                                                                                'parcial',
-                                                                                'divergente' =>
-                                                                                    'bg-warning text-dark',
-
-                                                                                'cancelado' =>
-                                                                                    'bg-danger',
-
-                                                                                default =>
-                                                                                    'bg-secondary',
-                                                                            };
-                                                                        ?>
-
-                                                                        <span class="badge <?php echo e($classeStatus); ?>">
-                                                                            <?php echo e(ucfirst(
-                                                                                str_replace(
-                                                                                    '_',
-                                                                                    ' ',
-                                                                                    $statusItem
-                                                                                )
+                                                                        <strong>
+                                                                            <?php echo e(number_format(
+                                                                                $quantidadeSeparada,
+                                                                                2,
+                                                                                ',',
+                                                                                '.'
                                                                             )); ?>
 
-                                                                        </span>
+                                                                        </strong>
 
                                                                         <input type="hidden"
-                                                                               name="itens[<?php echo e($item->id); ?>][status]"
-                                                                               value="<?php echo e($statusItem); ?>">
-
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_separada]"
+                                                                               value="<?php echo e(number_format($quantidadeSeparada, 2, '.', '')); ?>">
                                                                     <?php endif; ?>
+                                                                </td>
 
+                                                                <td class="text-center">
+                                                                    <?php if($campoQuantidadeAtiva === 'quantidade_conferida_separacao'): ?>
+                                                                        <input type="number"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_conferida_separacao]"
+                                                                               value="<?php echo e(number_format($quantidadeConferidaSeparacao, 2, '.', '')); ?>"
+                                                                               min="0"
+                                                                               max="<?php echo e(number_format($quantidadeSeparada, 2, '.', '')); ?>"
+                                                                               step="1"
+                                                                               class="form-control form-control-sm quantity-input"
+                                                                               data-active-quantity>
+                                                                    <?php else: ?>
+                                                                        <strong>
+                                                                            <?php echo e(number_format(
+                                                                                $quantidadeConferidaSeparacao,
+                                                                                2,
+                                                                                ',',
+                                                                                '.'
+                                                                            )); ?>
+
+                                                                        </strong>
+
+                                                                        <input type="hidden"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_conferida_separacao]"
+                                                                               value="<?php echo e(number_format($quantidadeConferidaSeparacao, 2, '.', '')); ?>">
+                                                                    <?php endif; ?>
+                                                                </td>
+
+                                                                <td class="text-center">
+                                                                    <?php if($campoQuantidadeAtiva === 'quantidade_carregada'): ?>
+                                                                        <input type="number"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_carregada]"
+                                                                               value="<?php echo e(number_format($quantidadeCarregada, 2, '.', '')); ?>"
+                                                                               min="0"
+                                                                               max="<?php echo e(number_format($quantidadeConferidaSeparacao, 2, '.', '')); ?>"
+                                                                               step="1"
+                                                                               class="form-control form-control-sm quantity-input"
+                                                                               data-active-quantity>
+                                                                    <?php else: ?>
+                                                                        <strong>
+                                                                            <?php echo e(number_format(
+                                                                                $quantidadeCarregada,
+                                                                                2,
+                                                                                ',',
+                                                                                '.'
+                                                                            )); ?>
+
+                                                                        </strong>
+
+                                                                        <input type="hidden"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_carregada]"
+                                                                               value="<?php echo e(number_format($quantidadeCarregada, 2, '.', '')); ?>">
+                                                                    <?php endif; ?>
+                                                                </td>
+
+                                                                <td class="text-center">
+                                                                    <?php if($campoQuantidadeAtiva === 'quantidade_conferida_saida'): ?>
+                                                                        <input type="number"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_conferida_saida]"
+                                                                               value="<?php echo e(number_format($quantidadeConferidaSaida, 2, '.', '')); ?>"
+                                                                               min="0"
+                                                                               max="<?php echo e(number_format($quantidadeCarregada, 2, '.', '')); ?>"
+                                                                               step="1"
+                                                                               class="form-control form-control-sm quantity-input"
+                                                                               data-active-quantity>
+                                                                    <?php else: ?>
+                                                                        <strong>
+                                                                            <?php echo e(number_format(
+                                                                                $quantidadeConferidaSaida,
+                                                                                2,
+                                                                                ',',
+                                                                                '.'
+                                                                            )); ?>
+
+                                                                        </strong>
+
+                                                                        <input type="hidden"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_conferida_saida]"
+                                                                               value="<?php echo e(number_format($quantidadeConferidaSaida, 2, '.', '')); ?>">
+                                                                    <?php endif; ?>
+                                                                </td>
+
+                                                                <td class="text-center">
+                                                                    <span class="badge bg-light text-dark border">
+                                                                        <?php echo e($itemRomaneio?->status
+                                                                            ?? 'Pendente'); ?>
+
+                                                                    </span>
                                                                 </td>
 
                                                                 <td class="text-center">
                                                                     <?php echo e($unidade); ?>
 
                                                                 </td>
-
                                                             </tr>
-
                                                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-
                                                             <tr>
-                                                                <td colspan="9"
+                                                                <td colspan="10"
                                                                     class="text-center text-muted py-4">
                                                                     Nenhum item encontrado.
                                                                 </td>
                                                             </tr>
-
                                                         <?php endif; ?>
-
                                                     </tbody>
                                                 </table>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-
                         </div>
                     </div>
                 </div>
 
                 <div class="col-xl-3">
-
                     <div class="section-card summary-card">
-
                         <div class="section-header">
                             <span>
-                                <i class="bi bi-clipboard-data me-2"></i>
-                                Resumo Operacional
+                                <i class="bi bi-graph-up me-1"></i>
+                                Resumo
                             </span>
                         </div>
 
-                        <div class="card-body p-3">
-
+                        <div class="p-3">
                             <div class="summary-row">
                                 <span class="summary-label">
-                                    Romaneio
-                                </span>
-
-                                <span class="summary-value">
-                                    <?php echo e($codigoRomaneio ?? 'Novo'); ?>
-
-                                </span>
-                            </div>
-
-                            <div class="summary-row">
-                                <span class="summary-label">
-                                    Entregas
-                                </span>
-
-                                <span class="summary-value">
-                                    <?php echo e($totalEntregas); ?>
-
-                                </span>
-                            </div>
-
-                            <div class="summary-row">
-                                <span class="summary-label">
-                                    Itens
-                                </span>
-
-                                <span class="summary-value">
-                                    <?php echo e($totalItens); ?>
-
-                                </span>
-                            </div>
-
-                            <div class="summary-row">
-                                <span class="summary-label">
-                                    Quantidade prevista
+                                    Total previsto
                                 </span>
 
                                 <span class="summary-value"
@@ -1850,7 +1505,7 @@ unset($__errorArgs, $__bag); ?>
 
                             <div class="summary-row">
                                 <span class="summary-label">
-                                    Quantidade realizada
+                                    Total informado
                                 </span>
 
                                 <span class="summary-value"
@@ -1861,19 +1516,17 @@ unset($__errorArgs, $__bag); ?>
 
                             <div class="summary-row">
                                 <span class="summary-label">
-                                    Pendências
+                                    Pendente
                                 </span>
 
-                                <span class="summary-value text-danger"
+                                <span class="summary-value"
                                       id="summaryPending">
-                                    0
+                                    0,00
                                 </span>
                             </div>
 
                             <div class="mt-3">
-
                                 <div class="d-flex justify-content-between mb-1">
-
                                     <span class="summary-label">
                                         Progresso
                                     </span>
@@ -1882,336 +1535,198 @@ unset($__errorArgs, $__bag); ?>
                                           id="summaryPercent">
                                         0%
                                     </span>
-
                                 </div>
 
                                 <div class="progress summary-progress">
-
-                                    <div class="progress-bar"
-                                         id="summaryProgress"
-                                         role="progressbar"
+                                    <div id="summaryProgress"
+                                         class="progress-bar"
                                          style="width: 0%;">
                                     </div>
-
                                 </div>
                             </div>
 
-                            <div class="next-step mt-3"
-                                 id="nextStep">
-
-                                <div class="fw-bold small mb-1"
+                            <div id="nextStep"
+                                 class="next-step mt-3">
+                                <div class="fw-bold small"
                                      id="nextStepTitle">
-                                    Verificando operação
+                                    Preencha as quantidades.
                                 </div>
 
-                                <div class="text-muted small"
-                                     id="nextStepText">
-                                    Aguarde o cálculo dos itens.
+                                <div class="small text-muted mt-1">
+                                    A etapa só poderá ser finalizada quando todas as quantidades estiverem conciliadas.
                                 </div>
-
                             </div>
 
                             <?php if($romaneioAtivo): ?>
+                                <hr>
 
-                                <div class="control-panel">
+                                <div class="small text-muted">
+                                    <div class="mb-2">
+                                        <i class="bi bi-person-badge me-1"></i>
+                                        Motorista:
 
-                                    <div class="fw-bold small mb-2">
-                                        Controles registrados
+                                        <strong>
+                                            <?php echo e($romaneioAtivo?->motorista?->nome
+                                                ?? 'A definir'); ?>
+
+                                        </strong>
                                     </div>
 
-                                    <div class="control-grid">
+                                    <div>
+                                        <i class="bi bi-truck me-1"></i>
+                                        Veículo:
 
-                                        <div class="control-item">
-                                            <span class="control-item-label">
-                                                Início separação
-                                            </span>
+                                        <strong>
+                                            <?php echo e($romaneioAtivo?->veiculo?->placa
+                                                ?? $romaneioAtivo?->veiculo?->descricao
+                                                ?? 'A definir'); ?>
 
-                                            <span class="control-item-value">
-                                                <?php echo e($formatarData(
-                                                    $romaneioAtivo?->data_inicio_separacao,
-                                                    true
-                                                )); ?>
-
-                                            </span>
-                                        </div>
-
-                                        <div class="control-item">
-                                            <span class="control-item-label">
-                                                Fim separação
-                                            </span>
-
-                                            <span class="control-item-value">
-                                                <?php echo e($formatarData(
-                                                    $romaneioAtivo?->data_fim_separacao,
-                                                    true
-                                                )); ?>
-
-                                            </span>
-                                        </div>
-
-                                        <div class="control-item">
-                                            <span class="control-item-label">
-                                                Início carga
-                                            </span>
-
-                                            <span class="control-item-value">
-                                                <?php echo e($formatarData(
-                                                    $romaneioAtivo?->data_inicio_carregamento,
-                                                    true
-                                                )); ?>
-
-                                            </span>
-                                        </div>
-
-                                        <div class="control-item">
-                                            <span class="control-item-label">
-                                                Fim carga
-                                            </span>
-
-                                            <span class="control-item-value">
-                                                <?php echo e($formatarData(
-                                                    $romaneioAtivo?->data_fim_carregamento,
-                                                    true
-                                                )); ?>
-
-                                            </span>
-                                        </div>
-
-                                        <div class="control-item">
-                                            <span class="control-item-label">
-                                                Percentual
-                                            </span>
-
-                                            <span class="control-item-value">
-                                                <?php echo e(number_format(
-                                                    (float) $romaneioAtivo?->percentual_carregado,
-                                                    2,
-                                                    ',',
-                                                    '.'
-                                                )); ?>%
-                                            </span>
-                                        </div>
-
-                                        <div class="control-item">
-                                            <span class="control-item-label">
-                                                Saída
-                                            </span>
-
-                                            <span class="control-item-value">
-                                                <?php echo e($formatarData(
-                                                    $romaneioAtivo?->data_saida,
-                                                    true
-                                                )); ?>
-
-                                            </span>
-                                        </div>
-
+                                        </strong>
                                     </div>
                                 </div>
-
                             <?php endif; ?>
-
-                            <hr>
-
-                            <div class="small text-muted">
-
-                                <div class="mb-2">
-                                    <i class="bi bi-person-badge me-1"></i>
-                                    Motorista:
-
-                                    <strong>
-                                        <?php echo e($romaneioAtivo?->motorista?->nome
-                                            ?? 'A definir'); ?>
-
-                                    </strong>
-                                </div>
-
-                                <div>
-                                    <i class="bi bi-truck me-1"></i>
-                                    Veículo:
-
-                                    <strong>
-                                        <?php echo e($romaneioAtivo?->veiculo?->placa
-                                            ?? $romaneioAtivo?->veiculo?->descricao
-                                            ?? 'A definir'); ?>
-
-                                    </strong>
-                                </div>
-
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="section-card mt-3">
-
                 <div class="footer-actions">
-
                     <div class="small text-muted">
-
-                        <?php if($criandoRomaneio): ?>
-                            A criação prepara o romaneio para o início da separação.
-
-                        <?php elseif($statusOriginal === 'gerado'): ?>
-                            Inicie a separação para registrar operador e horário.
-
-                        <?php elseif($statusOriginal === 'em_separacao'): ?>
-                            Salve o andamento ou finalize a separação.
-
-                        <?php elseif($statusOriginal === 'separado'): ?>
-                            Encaminhe o romaneio para a doca.
-
-                        <?php elseif($statusOriginal === 'na_doca'): ?>
-                            Inicie o carregamento do veículo.
-
-                        <?php elseif($statusOriginal === 'carregando'): ?>
-                            Salve o andamento ou finalize o carregamento.
-
-                        <?php elseif($statusOriginal === 'carregado'): ?>
-                            Confira todos os itens da carga.
-
-                        <?php elseif($statusOriginal === 'conferido'): ?>
-                            Imprima e libere o romaneio.
-
-                        <?php elseif($statusOriginal === 'liberado'): ?>
-                            Registre a saída física do veículo.
-
-                        <?php elseif(in_array($statusOriginal, ['saiu_para_entrega', 'em_rota'], true)): ?>
-                            Veículo em rota de entrega.
-
-                        <?php endif; ?>
+                        <?php echo e($descricaoEtapa); ?>
 
                     </div>
 
                     <div class="d-flex flex-wrap gap-2">
-
                         <a href="<?php echo e(route('entregas.index')); ?>"
                            class="btn btn-outline-secondary btn-sm">
                             <i class="bi bi-x-circle me-1"></i>
                             Fechar
                         </a>
 
-                        <?php if(
-                            ! $criandoRomaneio &&
-                            $podeVoltarEtapa
-                        ): ?>
+                        <?php if(! $criandoRomaneio && $podeVoltarEtapa): ?>
                             <button type="button"
-                                    class="btn btn-outline-danger btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#modalVoltarEtapa">
+                                class="btn btn-outline-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalNavegarEtapa">
 
-                                <i class="bi bi-arrow-counterclockwise me-1"></i>
-                                Voltar Etapa
-
-                            </button>
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>
+                            Alterar Etapa
+                        </button>
                         <?php endif; ?>
 
-                        <?php if(
-                            ! $criandoRomaneio &&
-                            $podeSalvarAndamento
-                        ): ?>
+                        <?php if(! $criandoRomaneio && $podeSalvarAndamento): ?>
                             <button type="submit"
                                     name="acao"
                                     value="salvar_andamento"
                                     class="btn btn-outline-primary btn-sm">
-
                                 <i class="bi bi-floppy me-1"></i>
                                 Salvar Andamento
-
                             </button>
                         <?php endif; ?>
 
                         <?php if($criandoRomaneio): ?>
-
                             <button type="submit"
                                     class="btn btn-primary btn-sm"
                                     id="btnPrincipal">
-
                                 <i class="bi bi-check-circle me-1"></i>
                                 Criar Romaneio
-
                             </button>
 
-                        <?php elseif($statusOriginal === 'gerado'): ?>
-
+                        <?php elseif($statusOriginal === 'aguardando_separacao'): ?>
                             <button type="submit"
                                     name="acao"
                                     value="iniciar_separacao"
                                     class="btn btn-warning btn-sm"
                                     id="btnPrincipal">
-
                                 <i class="bi bi-play-circle me-1"></i>
                                 Iniciar Separação
-
                             </button>
 
                         <?php elseif($statusOriginal === 'em_separacao'): ?>
-
                             <button type="submit"
                                     name="acao"
                                     value="finalizar_separacao"
                                     class="btn btn-warning btn-sm"
                                     id="btnPrincipal">
-
                                 <i class="bi bi-box-seam me-1"></i>
                                 Finalizar Separação
-
                             </button>
 
-                        <?php elseif($statusOriginal === 'separado'): ?>
-
+                        <?php elseif($statusOriginal === 'aguardando_conferencia_separacao'): ?>
                             <button type="submit"
                                     name="acao"
-                                    value="enviar_para_doca"
-                                    class="btn btn-primary btn-sm"
+                                    value="iniciar_conferencia_separacao"
+                                    class="btn btn-info btn-sm"
                                     id="btnPrincipal">
-
-                                <i class="bi bi-arrow-right-circle me-1"></i>
-                                Enviar para Doca
-
+                                <i class="bi bi-clipboard2-check me-1"></i>
+                                Iniciar Conferência
                             </button>
 
-                        <?php elseif($statusOriginal === 'na_doca'): ?>
+                        <?php elseif($statusOriginal === 'em_conferencia_separacao'): ?>
+                            <button type="submit"
+                                    name="acao"
+                                    value="finalizar_conferencia_separacao"
+                                    class="btn btn-info btn-sm"
+                                    id="btnPrincipal">
+                                <i class="bi bi-check2-all me-1"></i>
+                                Finalizar Conferência
+                            </button>
 
+                        <?php elseif(in_array(
+                            $statusOriginal,
+                            [
+                                'separacao_conferida',
+                                'aguardando_carregamento',
+                            ],
+                            true
+                        )): ?>
                             <button type="submit"
                                     name="acao"
                                     value="iniciar_carregamento"
                                     class="btn btn-primary btn-sm"
                                     id="btnPrincipal">
-
                                 <i class="bi bi-play-circle me-1"></i>
                                 Iniciar Carregamento
-
                             </button>
 
                         <?php elseif($statusOriginal === 'carregando'): ?>
-
                             <button type="submit"
                                     name="acao"
                                     value="finalizar_carregamento"
                                     class="btn btn-primary btn-sm"
                                     id="btnPrincipal">
-
                                 <i class="bi bi-truck-front me-1"></i>
                                 Finalizar Carregamento
-
                             </button>
 
-                        <?php elseif($statusOriginal === 'carregado'): ?>
-
+                        <?php elseif($statusOriginal === 'aguardando_conferencia_saida'): ?>
                             <button type="submit"
                                     name="acao"
-                                    value="concluir_conferencia"
+                                    value="iniciar_conferencia_saida"
                                     class="btn btn-info btn-sm"
                                     id="btnPrincipal">
-
-                                <i class="bi bi-clipboard-check me-1"></i>
-                                Concluir Conferência
-
+                                <i class="bi bi-clipboard-data me-1"></i>
+                                Iniciar Conf. Saída
                             </button>
 
-                        <?php elseif($statusOriginal === 'conferido'): ?>
+                        <?php elseif($statusOriginal === 'em_conferencia_saida'): ?>
+                            <button type="submit"
+                                    name="acao"
+                                    value="finalizar_conferencia_saida"
+                                    class="btn btn-info btn-sm"
+                                    id="btnPrincipal">
+                                <i class="bi bi-check2-all me-1"></i>
+                                Finalizar Conf. Saída
+                            </button>
+
+                        <?php elseif($statusOriginal === 'aguardando_liberacao'): ?>
+                            <button type="submit"
+                                    form="formImprimirRomaneio"
+                                    class="btn btn-outline-dark btn-sm">
+                                <i class="bi bi-printer me-1"></i>
+                                Imprimir
+                            </button>
 
                             <button type="submit"
                                     name="acao"
@@ -2223,51 +1738,36 @@ unset($__errorArgs, $__bag); ?>
                                             $romaneioAtivo?->impresso_em
                                         )
                                     ): echo 'disabled'; endif; ?>>
-
                                 <i class="bi bi-shield-check me-1"></i>
-                                Liberar Romaneio
-
+                                Liberar Veículo
                             </button>
 
                         <?php elseif($statusOriginal === 'liberado'): ?>
-
                             <button type="submit"
                                     name="acao"
                                     value="registrar_saida"
                                     class="btn btn-dark btn-sm"
                                     id="btnPrincipal">
-
                                 <i class="bi bi-truck me-1"></i>
                                 Registrar Saída
-
                             </button>
 
-                        <?php elseif(in_array(
-                            $statusOriginal,
-                            ['saiu_para_entrega', 'em_rota'],
-                            true
-                        )): ?>
-
+                        <?php elseif($statusOriginal === 'em_rota'): ?>
                             <button type="button"
-                                    class="btn btn-success btn-sm"
+                                    class="btn btn-dark btn-sm"
                                     disabled>
-
-                                <i class="bi bi-check-circle me-1"></i>
+                                <i class="bi bi-sign-turn-right me-1"></i>
                                 Veículo em Rota
-
                             </button>
-
                         <?php endif; ?>
-
                     </div>
                 </div>
             </div>
-
         </form>
 
         <?php if(
-            ! $criandoRomaneio &&
-            $statusOriginal === 'conferido'
+            ! $criandoRomaneio
+            && $statusOriginal === 'aguardando_liberacao'
         ): ?>
             <form id="formImprimirRomaneio"
                   method="POST"
@@ -2280,533 +1780,718 @@ unset($__errorArgs, $__bag); ?>
             </form>
         <?php endif; ?>
 
-        <?php if(
-            ! $criandoRomaneio &&
-            $podeVoltarEtapa
-        ): ?>
-            <div class="modal fade"
-                 id="modalVoltarEtapa"
-                 tabindex="-1"
-                 aria-hidden="true">
+       <?php if(! $criandoRomaneio && $podeVoltarEtapa): ?>
+    <div class="modal fade"
+         id="modalNavegarEtapa"
+         tabindex="-1"
+         aria-labelledby="modalNavegarEtapaLabel"
+         aria-hidden="true">
 
-                <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
 
-                    <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"
+                        id="modalNavegarEtapaLabel">
 
-                        <div class="modal-header">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>
+                        Alterar etapa operacional
+                    </h5>
 
-                            <h5 class="modal-title">
-                                Retornar etapa
-                            </h5>
-
-                            <button type="button"
-                                    class="btn-close"
-                                    data-bs-dismiss="modal">
-                            </button>
-
-                        </div>
-
-                        <div class="modal-body">
-
-                            <label for="motivo_retorno"
-                                   class="form-label">
-                                Motivo do retorno
-                            </label>
-
-                            <textarea id="motivo_retorno"
-                                      class="form-control"
-                                      rows="4"
-                                      maxlength="500"
-                                      placeholder="Informe por que o romaneio precisa retornar de etapa."></textarea>
-
-                        </div>
-
-                        <div class="modal-footer">
-
-                            <button type="button"
-                                    class="btn btn-outline-secondary"
-                                    data-bs-dismiss="modal">
-                                Cancelar
-                            </button>
-
-                            <button type="button"
-                                    class="btn btn-danger"
-                                    id="btnConfirmarRetorno">
-
-                                <i class="bi bi-arrow-counterclockwise me-1"></i>
-                                Confirmar Retorno
-
-                            </button>
-
-                        </div>
-
-                    </div>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Fechar">
+                    </button>
                 </div>
+
+                <div class="modal-body">
+
+                    <div class="alert alert-warning py-2">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        A alteração será registrada no histórico auditável do romaneio.
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="etapa_destino_modal"
+                               class="form-label fw-semibold">
+                            Etapa de destino
+                        </label>
+
+                        <select id="etapa_destino_modal"
+                                class="form-select">
+
+                            <option value="">
+                                Selecione a etapa
+                            </option>
+
+                            <?php $__currentLoopData = $etapas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $chaveEtapa => $configuracaoEtapa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php if(
+                                    $configuracaoEtapa['ordem'] < $ordemAtual
+                                    && $chaveEtapa !== 'em_rota'
+                                ): ?>
+                                    <option value="<?php echo e($chaveEtapa); ?>">
+                                        <?php echo e($configuracaoEtapa['label']); ?>
+
+                                    </option>
+                                <?php endif; ?>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </select>
+
+                        <div class="invalid-feedback">
+                            Selecione a etapa de destino.
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="motivo_movimentacao_modal"
+                               class="form-label fw-semibold">
+                            Motivo da alteração
+                        </label>
+
+                        <textarea id="motivo_movimentacao_modal"
+                                  class="form-control"
+                                  rows="4"
+                                  maxlength="1000"
+                                  placeholder="Informe por que o romaneio precisa retornar para outra etapa."></textarea>
+
+                        <div class="invalid-feedback">
+                            Informe um motivo com pelo menos 5 caracteres.
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-danger"
+                            id="btnConfirmarNavegacao">
+
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>
+                        Confirmar alteração
+                    </button>
+                </div>
+
             </div>
-        <?php endif; ?>
-
+        </div>
+    </div>
+<?php endif; ?>
     <?php endif; ?>
-
 </div>
 
-<script>
+<!-- <script>
     document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('formRomaneio');
+        const form = document.getElementById('formRomaneio');
 
-    if (!form) {
-        return;
-    }
-
-    const etapaAtual =
-        document.querySelector('[name="etapa_atual"]')?.value
-        ?? 'montagem';
-
-    const statusOriginal = <?php echo json_encode($statusOriginal, 15, 512) ?>;
-
-    const rows = [
-        ...document.querySelectorAll('.item-row')
-    ];
-
-    const summaryExpected =
-        document.getElementById('summaryExpected');
-
-    const summaryCompleted =
-        document.getElementById('summaryCompleted');
-
-    const summaryPending =
-        document.getElementById('summaryPending');
-
-    const summaryPercent =
-        document.getElementById('summaryPercent');
-
-    const summaryProgress =
-        document.getElementById('summaryProgress');
-
-    const nextStep =
-        document.getElementById('nextStep');
-
-    const nextStepTitle =
-        document.getElementById('nextStepTitle');
-
-    const nextStepText =
-        document.getElementById('nextStepText');
-
-    const btnPrincipal =
-        document.getElementById('btnPrincipal');
-
-    function numero(valor) {
-        if (
-            valor === null ||
-            valor === undefined ||
-            valor === ''
-        ) {
-            return 0;
+        if (!form) {
+            return;
         }
 
-        return parseFloat(
-            String(valor).replace(',', '.')
-        ) || 0;
-    }
+        const rows = [
+            ...document.querySelectorAll('.item-row')
+        ];
 
-    function formatarNumero(valor) {
-        return Number(valor).toLocaleString(
-            'pt-BR',
-            {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }
-        );
-    }
+        const summaryExpected =
+            document.getElementById('summaryExpected');
 
-    function quantidadeRomaneio(row) {
-        const input = row.querySelector(
-            '[data-quantity-romaneio]'
-        );
+        const summaryCompleted =
+            document.getElementById('summaryCompleted');
 
-        if (input) {
-            return numero(input.value);
-        }
+        const summaryPending =
+            document.getElementById('summaryPending');
 
-        return numero(row.dataset.romaneio);
-    }
+        const summaryPercent =
+            document.getElementById('summaryPercent');
 
-    function quantidadeSeparada(row) {
-        const input = row.querySelector(
-            '[data-quantity-separated]'
-        );
+        const summaryProgress =
+            document.getElementById('summaryProgress');
 
-        if (input) {
-            return numero(input.value);
-        }
+        const nextStep =
+            document.getElementById('nextStep');
 
-        const hidden = row.querySelector(
-            'input[name$="[quantidade_separada]"]'
-        );
+        const nextStepTitle =
+            document.getElementById('nextStepTitle');
 
-        return hidden
-            ? numero(hidden.value)
-            : 0;
-    }
+        const btnPrincipal =
+            document.getElementById('btnPrincipal');
 
-    function quantidadeCarregada(row) {
-        const input = row.querySelector(
-            '[data-quantity-loaded]'
-        );
+        const parseNumber = value => {
+            const parsed = Number.parseFloat(value);
 
-        if (input) {
-            return numero(input.value);
-        }
-
-        const hidden = row.querySelector(
-            'input[name$="[quantidade_carregada]"]'
-        );
-
-        return hidden
-            ? numero(hidden.value)
-            : 0;
-    }
-
-    function quantidadeEtapa(row) {
-        if (etapaAtual === 'montagem') {
-            return quantidadeRomaneio(row);
-        }
-
-        if (statusOriginal === 'gerado') {
-            return 0;
-        }
-
-        if (
-            etapaAtual === 'separacao' ||
-            statusOriginal === 'separado' ||
-            statusOriginal === 'na_doca'
-        ) {
-            return quantidadeSeparada(row);
-        }
-
-        return quantidadeCarregada(row);
-    }
-
-    function atualizarLinha(row) {
-        const prevista =
-            numero(row.dataset.prevista);
-
-        const realizada =
-            quantidadeEtapa(row);
-
-        const saldo = Math.max(
-            0,
-            prevista - realizada
-        );
-
-        const saldoSpan = row.querySelector(
-            '[data-balance]'
-        );
-
-        if (saldoSpan) {
-            saldoSpan.textContent =
-                formatarNumero(saldo);
-
-            saldoSpan.classList.toggle(
-                'pending',
-                saldo > 0.0001
-            );
-
-            saldoSpan.classList.toggle(
-                'complete',
-                saldo <= 0.0001
-            );
-        }
-
-        return {
-            prevista,
-            realizada,
-            saldo
+            return Number.isFinite(parsed)
+                ? parsed
+                : 0;
         };
-    }
 
-    function atualizarResumo() {
-        let prevista = 0;
-        let realizada = 0;
-        let pendentes = 0;
+        const formatNumber = value => {
+            return value.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+        };
 
-        rows.forEach(row => {
-            const dados = atualizarLinha(row);
+        const atualizarResumo = () => {
+            let previsto = 0;
+            let informado = 0;
 
-            prevista += dados.prevista;
-            realizada += dados.realizada;
-
-            if (dados.saldo > 0.0001) {
-                pendentes++;
-            }
-        });
-
-        const percentual = prevista > 0
-            ? Math.min(
-                100,
-                (realizada / prevista) * 100
-            )
-            : 0;
-
-        if (summaryExpected) {
-            summaryExpected.textContent =
-                formatarNumero(prevista);
-        }
-
-        if (summaryCompleted) {
-            summaryCompleted.textContent =
-                formatarNumero(realizada);
-        }
-
-        if (summaryPending) {
-            summaryPending.textContent =
-                String(pendentes);
-        }
-
-        if (summaryPercent) {
-            summaryPercent.textContent =
-                Math.round(percentual) + '%';
-        }
-
-        if (summaryProgress) {
-            summaryProgress.style.width =
-                percentual + '%';
-        }
-
-        if (nextStep) {
-            nextStep.classList.toggle(
-                'ready',
-                pendentes === 0
-            );
-        }
-
-        if (
-            !nextStepTitle ||
-            !nextStepText
-        ) {
-            return;
-        }
-
-        if (statusOriginal === 'gerado') {
-            nextStepTitle.textContent =
-                'Aguardando início da separação';
-
-            nextStepText.textContent =
-                'Clique em Iniciar Separação para registrar a operação.';
-
-            return;
-        }
-
-        if (statusOriginal === 'separado') {
-            nextStepTitle.textContent =
-                'Separação finalizada';
-
-            nextStepText.textContent =
-                'O próximo evento é o envio para a doca.';
-
-            return;
-        }
-
-        if (statusOriginal === 'na_doca') {
-            nextStepTitle.textContent =
-                'Romaneio na doca';
-
-            nextStepText.textContent =
-                'O veículo já pode iniciar o carregamento.';
-
-            return;
-        }
-
-        if (statusOriginal === 'carregado') {
-            nextStepTitle.textContent =
-                'Carga concluída';
-
-            nextStepText.textContent =
-                'Confira a situação de todos os itens.';
-
-            return;
-        }
-
-        if (statusOriginal === 'conferido') {
-            nextStepTitle.textContent =
-                'Conferência concluída';
-
-            nextStepText.textContent =
-                'Imprima o romaneio antes de liberar.';
-
-            return;
-        }
-
-        if (statusOriginal === 'liberado') {
-            nextStepTitle.textContent =
-                'Romaneio liberado';
-
-            nextStepText.textContent =
-                'Registre a saída física do veículo.';
-
-            return;
-        }
-
-        if (
-            statusOriginal === 'saiu_para_entrega' ||
-            statusOriginal === 'em_rota'
-        ) {
-            nextStepTitle.textContent =
-                'Veículo em rota';
-
-            nextStepText.textContent =
-                'A saída foi registrada com sucesso.';
-
-            return;
-        }
-
-        nextStepTitle.textContent =
-            pendentes === 0
-                ? 'Etapa concluída'
-                : 'Etapa em andamento';
-
-        nextStepText.textContent =
-            pendentes === 0
-                ? 'A operação pode avançar.'
-                : 'Ainda existem itens pendentes.';
-    }
-
-    document
-        .querySelectorAll(
-            '[data-quantity-romaneio], ' +
-            '[data-quantity-separated], ' +
-            '[data-quantity-loaded], ' +
-            '[data-status-item]'
-        )
-        .forEach(elemento => {
-            elemento.addEventListener(
-                'input',
-                atualizarResumo
-            );
-
-            elemento.addEventListener(
-                'change',
-                atualizarResumo
-            );
-        });
-
-    form.addEventListener('submit', event => {
-        const botaoSubmit = event.submitter;
-
-        const acao = botaoSubmit?.value ?? '';
-
-        if (
-            acao === 'finalizar_separacao' ||
-            acao === 'finalizar_carregamento'
-        ) {
-            const possuiPendencia = rows.some(
-                row => atualizarLinha(row).saldo > 0.0001
-            );
-
-            if (possuiPendencia) {
-                event.preventDefault();
-
-                window.alert(
-                    'Existem itens pendentes. ' +
-                    'Conclua todas as quantidades antes de avançar.'
+            rows.forEach(row => {
+                previsto += parseNumber(
+                    row.dataset.prevista
                 );
 
-                return;
+                const inputAtivo =
+                    row.querySelector(
+                        '[data-active-quantity]'
+                    );
+
+                if (inputAtivo) {
+                    informado += parseNumber(
+                        inputAtivo.value
+                    );
+                } else {
+                    informado += parseNumber(
+                        row.dataset.prevista
+                    );
+                }
+            });
+
+            const pendente = Math.max(
+                previsto - informado,
+                0
+            );
+
+            const percentual = previsto > 0
+                ? Math.min(
+                    (informado / previsto) * 100,
+                    100
+                )
+                : 0;
+
+            if (summaryExpected) {
+                summaryExpected.textContent =
+                    formatNumber(previsto);
             }
-        }
 
-        if (acao === 'concluir_conferencia') {
-            const possuiDivergencia = rows.some(row => {
-                const select = row.querySelector(
-                    '[data-status-item]'
+            if (summaryCompleted) {
+                summaryCompleted.textContent =
+                    formatNumber(informado);
+            }
+
+            if (summaryPending) {
+                summaryPending.textContent =
+                    formatNumber(pendente);
+            }
+
+            if (summaryPercent) {
+                summaryPercent.textContent =
+                    `${percentual.toFixed(0)}%`;
+            }
+
+            if (summaryProgress) {
+                summaryProgress.style.width =
+                    `${percentual}%`;
+            }
+
+            const concluido =
+                Math.abs(previsto - informado) < 0.001;
+
+            if (nextStep) {
+                nextStep.classList.toggle(
+                    'ready',
+                    concluido
                 );
+            }
 
-                return (
-                    select &&
-                    select.value !== 'conferido'
+            if (nextStepTitle) {
+                nextStepTitle.textContent = concluido
+                    ? 'Etapa pronta para conclusão.'
+                    : 'Existem quantidades pendentes.';
+            }
+
+            if (btnPrincipal) {
+                const acao = btnPrincipal.value ?? '';
+
+                const exigeQuantidadeCompleta = [
+                    'finalizar_separacao',
+                    'finalizar_conferencia_separacao',
+                    'finalizar_carregamento',
+                    'finalizar_conferencia_saida',
+                ].includes(acao);
+
+                if (exigeQuantidadeCompleta) {
+                    btnPrincipal.disabled = ! concluido;
+                }
+            }
+        };
+
+        document
+            .querySelectorAll('[data-active-quantity]')
+            .forEach(input => {
+                input.addEventListener(
+                    'input',
+                    atualizarResumo
                 );
             });
 
-            if (possuiDivergencia) {
-                event.preventDefault();
+        /*
+        |--------------------------------------------------------------------------
+        | Navegação auditável entre etapas
+        |--------------------------------------------------------------------------
+        */
 
-                window.alert(
-                    'Existem itens divergentes. ' +
-                    'Todos precisam estar conferidos.'
-                );
-
-                return;
-            }
-        }
-
-        if (acao) {
-            const inputAcaoExistente = form.querySelector(
-                'input[type="hidden"][name="acao"]'
+        const modalNavegarElemento =
+            document.getElementById(
+                'modalNavegarEtapa'
             );
 
-            if (inputAcaoExistente) {
-                inputAcaoExistente.value = acao;
-            } else {
-                const inputAcao = document.createElement('input');
+       const etapaDestino =
+            document.getElementById('etapa_destino_modal');
 
-                inputAcao.type = 'hidden';
-                inputAcao.name = 'acao';
-                inputAcao.value = acao;
+        const motivoMovimentacao =
+            document.getElementById('motivo_movimentacao_modal');
 
-                form.appendChild(inputAcao);
-            }
-        }
+        const btnConfirmarNavegacao =
 
-        if (btnPrincipal) {
-            btnPrincipal.disabled = true;
-        }
+    document.getElementById('btnConfirmarNavegacao');
+
+        const motivoMovimentacao =
+            document.getElementById(
+                'motivoMovimentacao'
+            );
+
+        const btnConfirmarNavegacao =
+            document.getElementById(
+                'btnConfirmarNavegacao'
+            );
+
+        let etapaDestinoSelecionada = null;
+
+        const removerCamposNavegacaoAnteriores = () => {
+            form
+                .querySelectorAll(
+                    '[data-campo-navegacao="true"]'
+                )
+                .forEach(input => input.remove());
+        };
+
+        document
+            .querySelectorAll(
+                '.workflow-navigation-button'
+            )
+            .forEach(button => {
+                button.addEventListener(
+                    'click',
+                    () => {
+                        etapaDestinoSelecionada =
+                            button.dataset.etapaDestino;
+
+                        if (etapaDestinoLabel) {
+                            etapaDestinoLabel.value =
+                                button.dataset.etapaLabel
+                                ?? '';
+                        }
+
+                        if (motivoMovimentacao) {
+                            motivoMovimentacao.value = '';
+
+                            motivoMovimentacao
+                                .classList
+                                .remove('is-invalid');
+                        }
+
+                        if (!modalNavegarElemento) {
+                            return;
+                        }
+
+                        bootstrap.Modal
+                            .getOrCreateInstance(
+                                modalNavegarElemento
+                            )
+                            .show();
+                    }
+                );
+            });
+
+        btnConfirmarNavegacao
+            ?.addEventListener(
+                'click',
+                () => {
+                    const motivo =
+                        motivoMovimentacao
+                            ?.value
+                            .trim()
+                        ?? '';
+
+                    if (
+                        !etapaDestinoSelecionada
+                        || motivo.length < 5
+                    ) {
+                        motivoMovimentacao
+                            ?.classList
+                            .add('is-invalid');
+
+                        motivoMovimentacao?.focus();
+
+                        return;
+                    }
+
+                    motivoMovimentacao
+                        ?.classList
+                        .remove('is-invalid');
+
+                    removerCamposNavegacaoAnteriores();
+
+                    const campos = {
+                        acao: 'navegar_etapa',
+                        etapa_destino:
+                            etapaDestinoSelecionada,
+                        motivo_movimentacao:
+                            motivo,
+                    };
+
+                    Object.entries(campos)
+                        .forEach(
+                            ([nome, valor]) => {
+                                const input =
+                                    document.createElement(
+                                        'input'
+                                    );
+
+                                input.type = 'hidden';
+                                input.name = nome;
+                                input.value = valor;
+
+                                input.dataset
+                                    .campoNavegacao =
+                                    'true';
+
+                                form.appendChild(input);
+                            }
+                        );
+
+                    btnConfirmarNavegacao.disabled =
+                        true;
+
+                    form.submit();
+                }
+            );
+
+        atualizarResumo();
     });
+</script> -->
 
-    const btnConfirmarRetorno =
-        document.getElementById(
-            'btnConfirmarRetorno'
-        );
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form =
+            document.getElementById('formRomaneio');
 
-    btnConfirmarRetorno?.addEventListener(
-        'click',
-        () => {
-            const motivo = document
-                .getElementById('motivo_retorno')
-                ?.value
-                ?.trim();
+        if (!form) {
+            return;
+        }
 
-            if (!motivo || motivo.length < 5) {
-                window.alert(
-                    'Informe um motivo com pelo menos 5 caracteres.'
+        const rows = [
+            ...document.querySelectorAll('.item-row')
+        ];
+
+        const summaryExpected =
+            document.getElementById('summaryExpected');
+
+        const summaryCompleted =
+            document.getElementById('summaryCompleted');
+
+        const summaryPending =
+            document.getElementById('summaryPending');
+
+        const summaryPercent =
+            document.getElementById('summaryPercent');
+
+        const summaryProgress =
+            document.getElementById('summaryProgress');
+
+        const nextStep =
+            document.getElementById('nextStep');
+
+        const nextStepTitle =
+            document.getElementById('nextStepTitle');
+
+        const btnPrincipal =
+            document.getElementById('btnPrincipal');
+
+        const modalNavegarElemento =
+            document.getElementById('modalNavegarEtapa');
+
+        const etapaDestino =
+            document.getElementById('etapa_destino_modal');
+
+        const motivoMovimentacao =
+            document.getElementById(
+                'motivo_movimentacao_modal'
+            );
+
+        const btnConfirmarNavegacao =
+            document.getElementById(
+                'btnConfirmarNavegacao'
+            );
+
+        const parseNumber = value => {
+            const parsed =
+                Number.parseFloat(value);
+
+            return Number.isFinite(parsed)
+                ? parsed
+                : 0;
+        };
+
+        const formatNumber = value => {
+            return value.toLocaleString(
+                'pt-BR',
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                }
+            );
+        };
+
+        const atualizarResumo = () => {
+            let previsto = 0;
+            let informado = 0;
+
+            rows.forEach(row => {
+                previsto += parseNumber(
+                    row.dataset.prevista
                 );
 
-                return;
+                const inputAtivo =
+                    row.querySelector(
+                        '[data-active-quantity]'
+                    );
+
+                if (inputAtivo) {
+                    informado += parseNumber(
+                        inputAtivo.value
+                    );
+                } else {
+                    informado += parseNumber(
+                        row.dataset.prevista
+                    );
+                }
+            });
+
+            const pendente = Math.max(
+                previsto - informado,
+                0
+            );
+
+            const percentual = previsto > 0
+                ? Math.min(
+                    (informado / previsto) * 100,
+                    100
+                )
+                : 0;
+
+            if (summaryExpected) {
+                summaryExpected.textContent =
+                    formatNumber(previsto);
             }
 
-            const inputAcao =
+            if (summaryCompleted) {
+                summaryCompleted.textContent =
+                    formatNumber(informado);
+            }
+
+            if (summaryPending) {
+                summaryPending.textContent =
+                    formatNumber(pendente);
+            }
+
+            if (summaryPercent) {
+                summaryPercent.textContent =
+                    `${percentual.toFixed(0)}%`;
+            }
+
+            if (summaryProgress) {
+                summaryProgress.style.width =
+                    `${percentual}%`;
+            }
+
+            const concluido =
+                Math.abs(
+                    previsto - informado
+                ) < 0.001;
+
+            if (nextStep) {
+                nextStep.classList.toggle(
+                    'ready',
+                    concluido
+                );
+            }
+
+            if (nextStepTitle) {
+                nextStepTitle.textContent =
+                    concluido
+                        ? 'Etapa pronta para conclusão.'
+                        : 'Existem quantidades pendentes.';
+            }
+
+            if (btnPrincipal) {
+                const acao =
+                    btnPrincipal.value ?? '';
+
+                const exigeQuantidadeCompleta = [
+                    'finalizar_separacao',
+                    'finalizar_conferencia_separacao',
+                    'finalizar_carregamento',
+                    'finalizar_conferencia_saida',
+                ].includes(acao);
+
+                if (exigeQuantidadeCompleta) {
+                    btnPrincipal.disabled =
+                        ! concluido;
+                }
+            }
+        };
+
+        document
+            .querySelectorAll(
+                '[data-active-quantity]'
+            )
+            .forEach(input => {
+                input.addEventListener(
+                    'input',
+                    atualizarResumo
+                );
+            });
+
+        const removerCamposNavegacao = () => {
+            form
+                .querySelectorAll(
+                    '[data-campo-navegacao="true"]'
+                )
+                .forEach(input => {
+                    input.remove();
+                });
+        };
+
+        const criarCampoNavegacao = (
+            nome,
+            valor
+        ) => {
+            const input =
                 document.createElement('input');
 
-            inputAcao.type = 'hidden';
-            inputAcao.name = 'acao';
-            inputAcao.value = 'voltar_etapa';
+            input.type = 'hidden';
+            input.name = nome;
+            input.value = valor;
 
-            const inputMotivo =
-                document.createElement('input');
+            input.dataset.campoNavegacao =
+                'true';
 
-            inputMotivo.type = 'hidden';
-            inputMotivo.name = 'motivo_retorno';
-            inputMotivo.value = motivo;
+            form.appendChild(input);
+        };
 
-            form.appendChild(inputAcao);
-            form.appendChild(inputMotivo);
+        btnConfirmarNavegacao
+            ?.addEventListener(
+                'click',
+                () => {
+                    const destino =
+                        etapaDestino?.value ?? '';
 
-            form.submit();
-        }
-    );
+                    const motivo =
+                        motivoMovimentacao
+                            ?.value
+                            .trim()
+                        ?? '';
 
-    atualizarResumo();
-});
+                    let valido = true;
+
+                    etapaDestino
+                        ?.classList
+                        .remove('is-invalid');
+
+                    motivoMovimentacao
+                        ?.classList
+                        .remove('is-invalid');
+
+                    if (!destino) {
+                        etapaDestino
+                            ?.classList
+                            .add('is-invalid');
+
+                        valido = false;
+                    }
+
+                    if (motivo.length < 5) {
+                        motivoMovimentacao
+                            ?.classList
+                            .add('is-invalid');
+
+                        valido = false;
+                    }
+
+                    if (!valido) {
+                        return;
+                    }
+
+                    removerCamposNavegacao();
+
+                    criarCampoNavegacao(
+                        'acao',
+                        'navegar_etapa'
+                    );
+
+                    criarCampoNavegacao(
+                        'etapa_destino',
+                        destino
+                    );
+
+                    criarCampoNavegacao(
+                        'motivo_movimentacao',
+                        motivo
+                    );
+
+                    btnConfirmarNavegacao.disabled =
+                        true;
+
+                    form.submit();
+                }
+            );
+
+        modalNavegarElemento
+            ?.addEventListener(
+                'hidden.bs.modal',
+                () => {
+                    if (etapaDestino) {
+                        etapaDestino.value = '';
+
+                        etapaDestino
+                            .classList
+                            .remove('is-invalid');
+                    }
+
+                    if (motivoMovimentacao) {
+                        motivoMovimentacao.value = '';
+
+                        motivoMovimentacao
+                            .classList
+                            .remove('is-invalid');
+                    }
+
+                    if (btnConfirmarNavegacao) {
+                        btnConfirmarNavegacao.disabled =
+                            false;
+                    }
+                }
+            );
+
+        atualizarResumo();
+    });
 </script>
 
 <?php $__env->stopSection(); ?>
-
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/romaneios/create.blade.php ENDPATH**/ ?>

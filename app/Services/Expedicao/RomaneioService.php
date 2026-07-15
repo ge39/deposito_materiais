@@ -15,19 +15,32 @@ use Illuminate\Validation\ValidationException;
 
 class RomaneioService
 {
-    private const STATUS_GERADO = 'Gerado';
+    private const STATUS_MONTAGEM = 'Montagem';
+    private const STATUS_AGUARDANDO_SEPARACAO = 'Aguardando_separacao';
     private const STATUS_EM_SEPARACAO = 'Em_separacao';
-    private const STATUS_SEPARADO = 'Separado';
-    private const STATUS_NA_DOCA = 'Na_doca';
+    private const STATUS_AGUARDANDO_CONFERENCIA_SEPARACAO = 'Aguardando_conferencia_separacao';
+    private const STATUS_EM_CONFERENCIA_SEPARACAO = 'Em_conferencia_separacao';
+    private const STATUS_SEPARACAO_CONFERIDA = 'Separacao_conferida';
+    private const STATUS_AGUARDANDO_CARREGAMENTO = 'Aguardando_carregamento';
     private const STATUS_CARREGANDO = 'Carregando';
-    private const STATUS_CARREGADO = 'Carregado';
-    private const STATUS_CONFERIDO = 'Conferido';
+    private const STATUS_AGUARDANDO_CONFERENCIA_SAIDA = 'Aguardando_conferencia_saida';
+    private const STATUS_EM_CONFERENCIA_SAIDA = 'Em_conferencia_saida';
+    private const STATUS_AGUARDANDO_LIBERACAO = 'Aguardando_liberacao';
     private const STATUS_LIBERADO = 'Liberado';
-    private const STATUS_SAIU_PARA_ENTREGA = 'Saiu_para_entrega';
-    private const STATUS_ENTREGUE = 'Entregue';
-    private const STATUS_PARCIAL = 'Parcial';
-    private const STATUS_DEVOLVIDO = 'Devolvido';
+    private const STATUS_EM_ROTA = 'Em_rota';
+    private const STATUS_RETORNANDO = 'Retornando';
+    private const STATUS_AGUARDANDO_CONFERENCIA_RETORNO = 'Aguardando_conferencia_retorno';
+    private const STATUS_EM_CONFERENCIA_RETORNO = 'Em_conferencia_retorno';
+    private const STATUS_AGUARDANDO_PRESTACAO_CONTAS = 'Aguardando_prestacao_contas';
+    private const STATUS_EM_PRESTACAO_CONTAS = 'Em_prestacao_contas';
+    private const STATUS_AGUARDANDO_FECHAMENTO = 'Aguardando_fechamento';
+    private const STATUS_FECHADO = 'Fechado';
     private const STATUS_CANCELADO = 'Cancelado';
+
+    public function __construct(
+        private readonly RomaneioEventoService $eventoService
+    ) {
+    }
 
     public function criarRomaneio(array $dados): Romaneio
     {
@@ -47,26 +60,23 @@ class RomaneioService
             $itensComQuantidade = collect($dados['itens'] ?? [])
                 ->filter(function ($item) {
                     return is_array($item)
-                        && isset($item['entrega_item_id'])
-                        && (int) $item['entrega_item_id'] > 0
+                        && (int) ($item['entrega_item_id'] ?? 0) > 0
                         && (float) ($item['quantidade'] ?? 0) > 0;
                 })
                 ->map(function ($item) {
                     return [
                         'entrega_item_id' => (int) $item['entrega_item_id'],
                         'quantidade' => round(
-                            (float) ($item['quantidade'] ?? 0),
+                            (float) $item['quantidade'],
                             2
                         ),
                     ];
                 })
                 ->values();
 
-            if (
-                isset($dados['entrega_id']) &&
-                (int) $dados['entrega_id'] > 0
-            ) {
-                $entregasIds->push((int) $dados['entrega_id']);
+            if ((int) ($dados['entrega_id'] ?? 0) > 0) {
+                $entregasIds
+                    ->push((int) $dados['entrega_id']);
 
                 $entregasIds = $entregasIds
                     ->unique()
@@ -85,8 +95,8 @@ class RomaneioService
             }
 
             if (
-                $entregasIds->isEmpty() &&
-                $entregaItensIds->isEmpty()
+                $entregasIds->isEmpty()
+                && $entregaItensIds->isEmpty()
             ) {
                 throw ValidationException::withMessages([
                     'romaneio' =>
@@ -129,40 +139,73 @@ class RomaneioService
             if (! $entregaPrincipal) {
                 throw ValidationException::withMessages([
                     'entrega' =>
-                        'Não foi possível identificar a entrega principal do romaneio.',
+                        'Não foi possível identificar a entrega principal.',
                 ]);
             }
 
             $romaneio = Romaneio::create([
                 'entrega_id' => $entregaPrincipal->id,
+                'criado_por' => Auth::id(),
                 'codigo_romaneio' => $this->gerarCodigoRomaneio(),
                 'token_abertura' => Str::random(64),
                 'token_fechamento' => Str::random(64),
-                'status' => self::STATUS_GERADO,
+                'status' => self::STATUS_MONTAGEM,
                 'veiculo_id' => $dados['veiculo_id'] ?? null,
                 'motorista_id' => $dados['motorista_id'] ?? null,
-                'criado_por' => Auth::id(),
                 'data_emissao' => now(),
                 'percentual_carregado' => 0,
                 'observacao' => $dados['observacao'] ?? null,
             ]);
 
-            foreach ($itensPreparados as $itemPreparado) {
+            foreach (
+                $itensPreparados->values()
+                as $indice => $itemPreparado
+            ) {
                 RomaneioItem::create([
                     'romaneio_id' => $romaneio->id,
                     'entrega_item_id' =>
                         $itemPreparado['entrega_item']->id,
+                    'ordem' => $indice + 1,
                     'quantidade_prevista' =>
                         $itemPreparado['quantidade'],
                     'quantidade_separada' => 0,
+                    'quantidade_conferida_separacao' => 0,
+                    'quantidade_conferida' => 0,
                     'quantidade_carregada' => 0,
+                    'quantidade_conferida_saida' => 0,
+                    'quantidade_entregue' => 0,
+                    'quantidade_devolvida' => 0,
+                    'quantidade_recusada' => 0,
+                    'quantidade_avariada' => 0,
+                    'quantidade_perdida' => 0,
                     'status' => 'Pendente',
                 ]);
             }
 
+            $statusAnterior = $romaneio->status;
+
+            $romaneio->update([
+                'status' =>
+                    self::STATUS_AGUARDANDO_SEPARACAO,
+            ]);
+
             $this->atualizarStatusEntregas(
                 $romaneio,
                 'Aguardando_separacao'
+            );
+
+            $romaneio->refresh();
+
+            $this->eventoService->registrarCriacao(
+                $romaneio
+            );
+
+            $this->eventoService->registrarTransicao(
+                romaneio: $romaneio,
+                evento: 'Montagem concluída',
+                etapa: 'Montagem',
+                statusAnterior: $statusAnterior,
+                statusNovo: $romaneio->status
             );
 
             return $this->carregarRomaneio(
@@ -171,11 +214,8 @@ class RomaneioService
         });
     }
 
-    public function atualizarOperacao(
-        Romaneio $romaneio,
-        string $acao,
-        array $dados = []
-    ): Romaneio {
+    public function atualizarOperacao(Romaneio $romaneio, string $acao, array $dados = [] ): Romaneio 
+    {
         return DB::transaction(function () use (
             $romaneio,
             $acao,
@@ -189,13 +229,6 @@ class RomaneioService
                 $romaneio,
                 $acao
             );
-
-            if ($acao === 'voltar_etapa') {
-                return $this->retornarEtapaAnterior(
-                    $romaneio,
-                    $dados
-                );
-            }
 
             return match ($acao) {
                 'salvar_andamento' =>
@@ -216,9 +249,16 @@ class RomaneioService
                         $dados
                     ),
 
-                'enviar_para_doca' =>
-                    $this->enviarParaDoca(
-                        $romaneio
+                'iniciar_conferencia_separacao' =>
+                    $this->iniciarConferenciaSeparacao(
+                        $romaneio,
+                        $dados
+                    ),
+
+                'finalizar_conferencia_separacao' =>
+                    $this->finalizarConferenciaSeparacao(
+                        $romaneio,
+                        $dados
                     ),
 
                 'iniciar_carregamento' =>
@@ -233,20 +273,72 @@ class RomaneioService
                         $dados
                     ),
 
-                'concluir_conferencia' =>
-                    $this->concluirConferencia(
+                'iniciar_conferencia_saida' =>
+                    $this->iniciarConferenciaSaida(
+                        $romaneio,
+                        $dados
+                    ),
+
+                'finalizar_conferencia_saida' =>
+                    $this->finalizarConferenciaSaida(
                         $romaneio,
                         $dados
                     ),
 
                 'liberar_veiculo' =>
-                    $this->liberarRomaneio(
+                    $this->liberarVeiculo(
                         $romaneio
                     ),
 
                 'registrar_saida' =>
                     $this->registrarSaida(
                         $romaneio
+                    ),
+
+                'registrar_retorno' =>
+                    $this->registrarRetorno(
+                        $romaneio,
+                        $dados
+                    ),
+
+                'iniciar_conferencia_retorno' =>
+                    $this->iniciarConferenciaRetorno(
+                        $romaneio,
+                        $dados
+                    ),
+
+                'finalizar_conferencia_retorno' =>
+                    $this->finalizarConferenciaRetorno(
+                        $romaneio,
+                        $dados
+                    ),
+
+                'iniciar_prestacao_contas' =>
+                    $this->iniciarPrestacaoContas(
+                        $romaneio
+                    ),
+
+                'finalizar_prestacao_contas' =>
+                    $this->finalizarPrestacaoContas(
+                        $romaneio,
+                        $dados
+                    ),
+
+                'fechar_romaneio' =>
+                    $this->fecharRomaneio(
+                        $romaneio,
+                        $dados
+                    ),
+
+                'voltar_etapa' =>
+                    $this->retornarEtapaAnterior(
+                        $romaneio,
+                        $dados
+                    ),
+                'navegar_etapa' =>
+                    $this->navegarParaEtapa(
+                        $romaneio,
+                        $dados
                     ),
 
                 default =>
@@ -262,26 +354,6 @@ class RomaneioService
         Romaneio $romaneio,
         array $dados
     ): Romaneio {
-        $status = $this->normalizarStatus(
-            $romaneio->status
-        );
-
-        if ($status === 'gerado') {
-            $this->registrarInicioSeparacao(
-                $romaneio
-            );
-        }
-
-        if (in_array($status, [
-            'separado',
-            'na_doca',
-        ], true)) {
-            $this->registrarInicioCarregamento(
-                $romaneio
-            );
-        }
-
-        $romaneio->refresh();
         $romaneio->load('itens');
 
         $this->salvarDadosOperacionais(
@@ -302,16 +374,33 @@ class RomaneioService
         Romaneio $romaneio,
         array $dados
     ): Romaneio {
-        $this->registrarInicioSeparacao(
-            $romaneio
+        $statusAnterior = $romaneio->status;
+
+        $romaneio->update([
+            'status' => self::STATUS_EM_SEPARACAO,
+            'iniciado_por' =>
+                $romaneio->iniciado_por ?? Auth::id(),
+            'data_inicio_separacao' =>
+                $romaneio->data_inicio_separacao ?? now(),
+        ]);
+
+        $this->atualizarStatusEntregas(
+            $romaneio,
+            'Em_preparacao'
         );
 
-        $romaneio->refresh();
         $romaneio->load('itens');
 
         $this->salvarDadosOperacionais(
             $romaneio,
             $dados
+        );
+
+        $this->eventoService->registrarAbertura(
+            $romaneio,
+            $statusAnterior,
+            $dados['metodo_identificacao']
+                ?? 'Sistema'
         );
 
         return $this->carregarRomaneio(
@@ -323,16 +412,6 @@ class RomaneioService
         Romaneio $romaneio,
         array $dados
     ): Romaneio {
-        if (
-            $this->normalizarStatus($romaneio->status) ===
-            'gerado'
-        ) {
-            $this->registrarInicioSeparacao(
-                $romaneio
-            );
-        }
-
-        $romaneio->refresh();
         $romaneio->load('itens');
 
         $this->salvarDadosOperacionais(
@@ -347,15 +426,21 @@ class RomaneioService
             $romaneio
         );
 
+        $statusAnterior = $romaneio->status;
+
         $romaneio->update([
-            'status' => self::STATUS_SEPARADO,
+            'status' =>
+                self::STATUS_AGUARDANDO_CONFERENCIA_SEPARACAO,
             'data_fim_separacao' =>
                 $romaneio->data_fim_separacao ?? now(),
         ]);
 
-        $this->atualizarStatusEntregas(
-            $romaneio,
-            'Aguardando_carregamento'
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Separação finalizada',
+            etapa: 'Separacao',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status
         );
 
         return $this->carregarRomaneio(
@@ -363,16 +448,112 @@ class RomaneioService
         );
     }
 
-    private function enviarParaDoca(
-        Romaneio $romaneio
+    private function iniciarConferenciaSeparacao(
+        Romaneio $romaneio,
+        array $dados
     ): Romaneio {
-        $this->validarSeparacaoCompleta(
+        $conferenteId = $this->validarFuncionario(
+            $dados,
+            'conferencia_separacao_por',
+            'Informe o funcionário responsável pela conferência da separação.'
+        );
+
+        $statusAnterior = $romaneio->status;
+
+        $romaneio->update([
+            'status' =>
+                self::STATUS_EM_CONFERENCIA_SEPARACAO,
+            'data_inicio_conferencia_separacao' =>
+                $romaneio->data_inicio_conferencia_separacao
+                ?? now(),
+            'conferencia_separacao_iniciada_por' =>
+                Auth::id(),
+        ]);
+
+        $romaneio->load('itens');
+
+        $this->salvarDadosOperacionais(
+            $romaneio,
+            array_merge(
+                $dados,
+                [
+                    'conferencia_separacao_por' =>
+                        $conferenteId,
+                ]
+            )
+        );
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Conferência da separação iniciada',
+            etapa: 'Conferencia_separacao',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status,
+            funcionarioId: $conferenteId
+        );
+
+        return $this->carregarRomaneio(
+            $romaneio
+        );
+    }
+
+    private function finalizarConferenciaSeparacao(
+        Romaneio $romaneio,
+        array $dados
+    ): Romaneio {
+        $romaneio->load('itens');
+
+        $this->salvarDadosOperacionais(
+            $romaneio,
+            $dados
+        );
+
+        $romaneio->refresh();
+        $romaneio->load('itens');
+
+        $this->validarConferenciaSeparacaoCompleta(
             $romaneio
         );
 
+        $statusAnterior = $romaneio->status;
+
         $romaneio->update([
-            'status' => self::STATUS_NA_DOCA,
+            'status' =>
+                self::STATUS_SEPARACAO_CONFERIDA,
+            'data_fim_conferencia_separacao' =>
+                $romaneio->data_fim_conferencia_separacao
+                ?? now(),
+            'conferencia_separacao_finalizada_por' =>
+                Auth::id(),
         ]);
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Conferência da separação concluída',
+            etapa: 'Conferencia_separacao',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status
+        );
+
+        $statusAnterior = $romaneio->status;
+
+        $romaneio->update([
+            'status' =>
+                self::STATUS_AGUARDANDO_CARREGAMENTO,
+        ]);
+
+        $this->atualizarStatusEntregas(
+            $romaneio,
+            'Pronta_para_carregamento'
+        );
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Romaneio liberado para carregamento',
+            etapa: 'Carregamento',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status
+        );
 
         return $this->carregarRomaneio(
             $romaneio
@@ -383,20 +564,55 @@ class RomaneioService
         Romaneio $romaneio,
         array $dados
     ): Romaneio {
-        $this->registrarInicioCarregamento(
+        $carregadorId = $this->validarFuncionario(
+            $dados,
+            'carregado_por',
+            'Informe o funcionário responsável pelo carregamento.'
+        );
+
+        $this->validarConferenciaSeparacaoCompleta(
             $romaneio
         );
 
-        $romaneio->refresh();
+        $statusAnterior = $romaneio->status;
+
+        $romaneio->update([
+            'status' => self::STATUS_CARREGANDO,
+            'carregado_por' => $carregadorId,
+            'data_inicio_carregamento' =>
+                $romaneio->data_inicio_carregamento
+                ?? now(),
+        ]);
+
+        $this->atualizarStatusEntregas(
+            $romaneio,
+            'Pronta_para_carregamento'
+        );
+
         $romaneio->load('itens');
 
         $this->salvarDadosOperacionais(
             $romaneio,
-            $dados
+            array_merge(
+                $dados,
+                [
+                    'carregado_por' =>
+                        $carregadorId,
+                ]
+            )
         );
 
         $this->atualizarPercentualCarregado(
             $romaneio
+        );
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Carregamento iniciado',
+            etapa: 'Carregamento',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status,
+            funcionarioId: $carregadorId
         );
 
         return $this->carregarRomaneio(
@@ -408,20 +624,6 @@ class RomaneioService
         Romaneio $romaneio,
         array $dados
     ): Romaneio {
-        if (in_array(
-            $this->normalizarStatus($romaneio->status),
-            [
-                'separado',
-                'na_doca',
-            ],
-            true
-        )) {
-            $this->registrarInicioCarregamento(
-                $romaneio
-            );
-        }
-
-        $romaneio->refresh();
         $romaneio->load('itens');
 
         $this->salvarDadosOperacionais(
@@ -432,16 +634,19 @@ class RomaneioService
         $romaneio->refresh();
         $romaneio->load('itens');
 
-        $this->atualizarPercentualCarregado(
-            $romaneio
-        );
-
         $this->validarCarregamentoCompleto(
             $romaneio
         );
 
+        $this->atualizarPercentualCarregado(
+            $romaneio
+        );
+
+        $statusAnterior = $romaneio->status;
+
         $romaneio->update([
-            'status' => self::STATUS_CARREGADO,
+            'status' =>
+                self::STATUS_AGUARDANDO_CONFERENCIA_SAIDA,
             'data_fim_carregamento' =>
                 $romaneio->data_fim_carregamento ?? now(),
             'percentual_carregado' => 100,
@@ -449,7 +654,16 @@ class RomaneioService
 
         $this->atualizarStatusEntregas(
             $romaneio,
-            'Aguardando_conferencia'
+            'Carregada'
+        );
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Carregamento finalizado',
+            etapa: 'Carregamento',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status,
+            funcionarioId: $romaneio->carregado_por
         );
 
         return $this->carregarRomaneio(
@@ -457,10 +671,61 @@ class RomaneioService
         );
     }
 
-    private function concluirConferencia(
+    private function iniciarConferenciaSaida(
         Romaneio $romaneio,
         array $dados
     ): Romaneio {
+        $conferenteId = $this->validarFuncionario(
+            $dados,
+            'conferencia_saida_por',
+            'Informe o funcionário responsável pela conferência de saída.'
+        );
+
+        $statusAnterior = $romaneio->status;
+
+        $romaneio->update([
+            'status' =>
+                self::STATUS_EM_CONFERENCIA_SAIDA,
+            'data_inicio_conferencia_saida' =>
+                $romaneio->data_inicio_conferencia_saida
+                ?? now(),
+            'conferencia_saida_iniciada_por' =>
+                Auth::id(),
+        ]);
+
+        $romaneio->load('itens');
+
+        $this->salvarDadosOperacionais(
+            $romaneio,
+            array_merge(
+                $dados,
+                [
+                    'conferencia_saida_por' =>
+                        $conferenteId,
+                ]
+            )
+        );
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Conferência de saída iniciada',
+            etapa: 'Conferencia_saida',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status,
+            funcionarioId: $conferenteId
+        );
+
+        return $this->carregarRomaneio(
+            $romaneio
+        );
+    }
+
+    private function finalizarConferenciaSaida(
+        Romaneio $romaneio,
+        array $dados
+    ): Romaneio {
+        $romaneio->load('itens');
+
         $this->salvarDadosOperacionais(
             $romaneio,
             $dados
@@ -469,18 +734,28 @@ class RomaneioService
         $romaneio->refresh();
         $romaneio->load('itens');
 
-        $this->validarConferenciaCompleta(
+        $this->validarConferenciaSaidaCompleta(
             $romaneio
         );
 
+        $statusAnterior = $romaneio->status;
+
         $romaneio->update([
-            'status' => self::STATUS_CONFERIDO,
-            'conferido_por' => Auth::id(),
+            'status' =>
+                self::STATUS_AGUARDANDO_LIBERACAO,
+            'data_fim_conferencia_saida' =>
+                $romaneio->data_fim_conferencia_saida
+                ?? now(),
+            'conferencia_saida_finalizada_por' =>
+                Auth::id(),
         ]);
 
-        $this->atualizarStatusEntregas(
-            $romaneio,
-            'Aguardando_liberacao'
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Conferência de saída concluída',
+            etapa: 'Conferencia_saida',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status
         );
 
         return $this->carregarRomaneio(
@@ -488,27 +763,31 @@ class RomaneioService
         );
     }
 
-    private function liberarRomaneio(
+    private function liberarVeiculo(
         Romaneio $romaneio
     ): Romaneio {
-        $romaneio->load('itens');
-
         $this->validarLiberacao(
             $romaneio
         );
+
+        $statusAnterior = $romaneio->status;
 
         $romaneio->update([
             'status' => self::STATUS_LIBERADO,
             'finalizado_por' => Auth::id(),
         ]);
 
-        /*
-         * A liberação não representa a saída física.
-         * A entrega permanece aguardando o registro da saída.
-         */
         $this->atualizarStatusEntregas(
             $romaneio,
-            'Aguardando_liberacao'
+            'Liberada'
+        );
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Veículo liberado',
+            etapa: 'Liberacao',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status
         );
 
         return $this->carregarRomaneio(
@@ -519,14 +798,10 @@ class RomaneioService
     private function registrarSaida(
         Romaneio $romaneio
     ): Romaneio {
-        $romaneio->load('itens');
-
-        $this->validarSaida(
-            $romaneio
-        );
+        $statusAnterior = $romaneio->status;
 
         $romaneio->update([
-            'status' => self::STATUS_SAIU_PARA_ENTREGA,
+            'status' => self::STATUS_EM_ROTA,
             'data_saida' => now(),
         ]);
 
@@ -535,48 +810,283 @@ class RomaneioService
             'Em_rota'
         );
 
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Saída do veículo registrada',
+            etapa: 'Em_rota',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status
+        );
+
         return $this->carregarRomaneio(
             $romaneio
         );
     }
 
-    private function registrarInicioSeparacao(
-        Romaneio $romaneio
-    ): void {
+    private function registrarRetorno(
+        Romaneio $romaneio,
+        array $dados
+    ): Romaneio {
+        $statusAnterior = $romaneio->status;
+
         $romaneio->update([
-            'status' => self::STATUS_EM_SEPARACAO,
-            'iniciado_por' =>
-                $romaneio->iniciado_por ?? Auth::id(),
-            'data_inicio_separacao' =>
-                $romaneio->data_inicio_separacao ?? now(),
+            'status' =>
+                self::STATUS_AGUARDANDO_CONFERENCIA_RETORNO,
+            'data_retorno' => now(),
+            'retorno_registrado_por' => Auth::id(),
         ]);
 
-        $this->atualizarStatusEntregas(
-            $romaneio,
-            'Separando'
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Retorno do veículo registrado',
+            etapa: 'Retorno',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status,
+            observacao: $dados['observacao_retorno']
+                ?? null
+        );
+
+        return $this->carregarRomaneio(
+            $romaneio
         );
     }
 
-    private function registrarInicioCarregamento(
-        Romaneio $romaneio
-    ): void {
-        $romaneio->loadMissing('itens');
+    private function iniciarConferenciaRetorno(
+        Romaneio $romaneio,
+        array $dados
+    ): Romaneio {
+        $conferenteId = $this->validarFuncionario(
+            $dados,
+            'retorno_conferido_por',
+            'Informe o funcionário responsável pela conferência do retorno.'
+        );
 
-        $this->validarSeparacaoCompleta(
+        $statusAnterior = $romaneio->status;
+
+        $romaneio->update([
+            'status' =>
+                self::STATUS_EM_CONFERENCIA_RETORNO,
+        ]);
+
+        $romaneio->load('itens');
+
+        $this->salvarDadosOperacionais(
+            $romaneio,
+            array_merge(
+                $dados,
+                [
+                    'retorno_conferido_por' =>
+                        $conferenteId,
+                ]
+            )
+        );
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Conferência do retorno iniciada',
+            etapa: 'Conferencia_retorno',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status,
+            funcionarioId: $conferenteId
+        );
+
+        return $this->carregarRomaneio(
+            $romaneio
+        );
+    }
+
+    private function finalizarConferenciaRetorno(
+        Romaneio $romaneio,
+        array $dados
+    ): Romaneio {
+        $romaneio->load('itens');
+
+        $this->salvarDadosOperacionais(
+            $romaneio,
+            $dados
+        );
+
+        $romaneio->refresh();
+        $romaneio->load('itens');
+
+        $this->validarConferenciaRetornoCompleta(
             $romaneio
         );
 
+        $statusAnterior = $romaneio->status;
+
         $romaneio->update([
-            'status' => self::STATUS_CARREGANDO,
-            'carregado_por' =>
-                $romaneio->carregado_por ?? Auth::id(),
-            'data_inicio_carregamento' =>
-                $romaneio->data_inicio_carregamento ?? now(),
+            'status' =>
+                self::STATUS_AGUARDANDO_PRESTACAO_CONTAS,
         ]);
 
-        $this->atualizarStatusEntregas(
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Conferência do retorno concluída',
+            etapa: 'Conferencia_retorno',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status
+        );
+
+        return $this->carregarRomaneio(
+            $romaneio
+        );
+    }
+
+    private function iniciarPrestacaoContas(
+        Romaneio $romaneio
+    ): Romaneio {
+        $statusAnterior = $romaneio->status;
+
+        $romaneio->update([
+            'status' =>
+                self::STATUS_EM_PRESTACAO_CONTAS,
+            'data_inicio_prestacao_contas' =>
+                $romaneio->data_inicio_prestacao_contas
+                ?? now(),
+            'prestacao_contas_por' =>
+                Auth::id(),
+        ]);
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Prestação de contas iniciada',
+            etapa: 'Prestacao_contas',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status
+        );
+
+        return $this->carregarRomaneio(
+            $romaneio
+        );
+    }
+
+    private function finalizarPrestacaoContas(
+        Romaneio $romaneio,
+        array $dados
+    ): Romaneio {
+        $romaneio->load('itens');
+
+        $this->salvarDadosOperacionais(
             $romaneio,
-            'Carregando'
+            $dados
+        );
+
+        $romaneio->refresh();
+        $romaneio->load('itens');
+
+        $this->validarPrestacaoContas(
+            $romaneio
+        );
+
+        $statusAnterior = $romaneio->status;
+
+        $romaneio->update([
+            'status' =>
+                self::STATUS_AGUARDANDO_FECHAMENTO,
+            'data_fim_prestacao_contas' =>
+                $romaneio->data_fim_prestacao_contas
+                ?? now(),
+            'prestacao_contas_por' =>
+                Auth::id(),
+        ]);
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Prestação de contas concluída',
+            etapa: 'Prestacao_contas',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status
+        );
+
+        return $this->carregarRomaneio(
+            $romaneio
+        );
+    }
+
+    private function fecharRomaneio(
+        Romaneio $romaneio,
+        array $dados
+    ): Romaneio {
+        $metodo = strtolower(
+            trim(
+                (string) (
+                    $dados['metodo_fechamento']
+                    ?? 'pesquisa_manual'
+                )
+            )
+        );
+
+        $metodosPermitidos = [
+            'codigo_barras',
+            'qr_code',
+            'codigo_operacional',
+            'pesquisa_manual',
+        ];
+
+        if (! in_array($metodo, $metodosPermitidos, true)) {
+            throw ValidationException::withMessages([
+                'metodo_fechamento' =>
+                    'O método de fechamento informado é inválido.',
+            ]);
+        }
+
+        $justificativaManual = trim(
+            (string) (
+                $dados['justificativa_fechamento_manual']
+                ?? ''
+            )
+        );
+
+        if (
+            $metodo === 'pesquisa_manual'
+            && mb_strlen($justificativaManual) < 5
+        ) {
+            throw ValidationException::withMessages([
+                'justificativa_fechamento_manual' =>
+                    'Informe a justificativa para o fechamento por pesquisa manual.',
+            ]);
+        }
+
+        $romaneio->refresh();
+        $romaneio->load([
+            'itens',
+            'ocorrencias',
+        ]);
+
+        if (! $romaneio->podeSerFechado()) {
+            throw ValidationException::withMessages([
+                'romaneio' =>
+                    'O romaneio possui pendências que impedem o fechamento.',
+            ]);
+        }
+
+        $statusAnterior = $romaneio->status;
+
+        $romaneio->update([
+            'status' => self::STATUS_FECHADO,
+            'fechado_em' => now(),
+            'fechado_por' => Auth::id(),
+            'finalizado_por' => Auth::id(),
+            'data_baixa' => now(),
+            'metodo_fechamento' => $metodo,
+            'justificativa_fechamento_manual' =>
+                $justificativaManual !== ''
+                    ? $justificativaManual
+                    : null,
+        ]);
+
+        $this->eventoService->registrarFechamento(
+            $romaneio,
+            $statusAnterior,
+            $metodo,
+            $justificativaManual !== ''
+                ? $justificativaManual
+                : null
+        );
+
+        return $this->carregarRomaneio(
+            $romaneio
         );
     }
 
@@ -591,9 +1101,7 @@ class RomaneioService
             ]);
         }
 
-        $etapaAtual = $this->resolverEtapaAtual(
-            $romaneio
-        );
+        $romaneio->loadMissing('itens');
 
         $itensRecebidos = collect(
             $dados['itens'] ?? []
@@ -609,121 +1117,100 @@ class RomaneioService
                 continue;
             }
 
-            $prevista = round(
-                (float) $romaneioItem->quantidade_prevista,
-                2
-            );
-
-            $separadaAtual = round(
-                (float) $romaneioItem->quantidade_separada,
-                2
-            );
-
-            $carregadaAtual = round(
-                (float) $romaneioItem->quantidade_carregada,
-                2
-            );
-
             $atualizacao = [];
 
-            if ($etapaAtual === 'separacao') {
-                $separada = round(
-                    (float) (
-                        $dadosItem['quantidade_separada']
-                        ?? $separadaAtual
-                    ),
-                    2
-                );
+            $this->preencherQuantidade(
+                $atualizacao,
+                $dadosItem,
+                'quantidade_separada'
+            );
 
-                if ($separada > $prevista) {
-                    throw ValidationException::withMessages([
-                        'itens' =>
-                            "A quantidade separada do item #{$romaneioItem->entrega_item_id} excede a quantidade prevista.",
-                    ]);
-                }
+            $this->preencherQuantidade(
+                $atualizacao,
+                $dadosItem,
+                'quantidade_conferida_separacao'
+            );
 
-                $atualizacao['quantidade_separada'] =
-                    $separada;
+            $this->preencherQuantidade(
+                $atualizacao,
+                $dadosItem,
+                'quantidade_carregada'
+            );
 
-                $atualizacao['status'] = match (true) {
-                    $separada <= 0 =>
-                        'Pendente',
+            $this->preencherQuantidade(
+                $atualizacao,
+                $dadosItem,
+                'quantidade_conferida_saida'
+            );
 
-                    $separada < $prevista =>
-                        'Parcial',
+            $this->preencherQuantidade(
+                $atualizacao,
+                $dadosItem,
+                'quantidade_entregue'
+            );
 
-                    default =>
-                        'Separado',
-                };
+            $this->preencherQuantidade(
+                $atualizacao,
+                $dadosItem,
+                'quantidade_devolvida'
+            );
+
+            $this->preencherQuantidade(
+                $atualizacao,
+                $dadosItem,
+                'quantidade_recusada'
+            );
+
+            $this->preencherQuantidade(
+                $atualizacao,
+                $dadosItem,
+                'quantidade_avariada'
+            );
+
+            $this->preencherQuantidade(
+                $atualizacao,
+                $dadosItem,
+                'quantidade_perdida'
+            );
+
+            if (isset($dados['separado_por'])) {
+                $atualizacao['separado_por'] =
+                    (int) $dados['separado_por'];
+
+                $atualizacao['separado_em'] =
+                    $romaneioItem->separado_em ?? now();
             }
 
-            if ($etapaAtual === 'carregamento') {
-                $carregada = round(
-                    (float) (
-                        $dadosItem['quantidade_carregada']
-                        ?? $carregadaAtual
-                    ),
-                    2
-                );
+            if (isset($dados['conferencia_separacao_por'])) {
+                $atualizacao['conferencia_separacao_por'] =
+                    (int) $dados['conferencia_separacao_por'];
 
-                if ($carregada > $separadaAtual) {
-                    throw ValidationException::withMessages([
-                        'itens' =>
-                            "A quantidade carregada do item #{$romaneioItem->entrega_item_id} excede a quantidade separada.",
-                    ]);
-                }
+                $atualizacao['conferencia_separacao_em'] =
+                    now();
+            }
 
-                $atualizacao['quantidade_carregada'] =
-                    $carregada;
-
+            if (isset($dados['carregado_por'])) {
                 $atualizacao['carregado_por'] =
-                    Auth::id();
+                    (int) $dados['carregado_por'];
 
-                $atualizacao['status'] = match (true) {
-                    $carregada <= 0 =>
-                        'Pendente',
-
-                    $carregada < $separadaAtual =>
-                        'Parcial',
-
-                    default =>
-                        'Carregado',
-                };
+                $atualizacao['carregado_em'] =
+                    $romaneioItem->carregado_em ?? now();
             }
 
-            if ($etapaAtual === 'conferencia') {
-                $statusInformado = strtolower(
-                    trim(
-                        (string) (
-                            $dadosItem['status'] ?? ''
-                        )
-                    )
-                );
+            if (isset($dados['conferencia_saida_por'])) {
+                $atualizacao['conferencia_saida_por'] =
+                    (int) $dados['conferencia_saida_por'];
 
-                $statusConferencia = match ($statusInformado) {
-                    'concluido',
-                    'conferido',
-                    'carregado' =>
-                        'Conferido',
+                $atualizacao['conferencia_saida_em'] =
+                    now();
+            }
 
-                    'divergente',
-                    'parcial' =>
-                        'Divergente',
+            if (isset($dados['retorno_conferido_por'])) {
+                $atualizacao['retorno_conferido_por'] =
+                    (int) $dados['retorno_conferido_por'];
 
-                    default =>
-                        $romaneioItem->status,
-                };
-
-                $atualizacao['status'] =
-                    $statusConferencia;
-
-                if ($statusConferencia === 'Conferido') {
-                    $atualizacao['conferido_por'] =
-                        Auth::id();
-
-                    $atualizacao['conferido_em'] =
-                        now();
-                }
+                $atualizacao['retorno_conferido_em'] =
+                    now();
             }
 
             if (
@@ -736,42 +1223,135 @@ class RomaneioService
                     $dadosItem['observacao'] ?: null;
             }
 
-            if (! empty($atualizacao)) {
-                $romaneioItem->update(
+            $atualizacao['status'] =
+                $this->resolverStatusItem(
+                    $romaneioItem,
                     $atualizacao
                 );
-            }
+
+            $romaneioItem->update(
+                $atualizacao
+            );
         }
     }
 
-    private function localizarDadosDoItem(
-        Collection $itensRecebidos,
-        RomaneioItem $romaneioItem
-    ): ?array {
-        $dadosItem = $itensRecebidos->first(
-            function ($item) use ($romaneioItem) {
-                if (! is_array($item)) {
-                    return false;
-                }
+    private function preencherQuantidade(
+        array &$atualizacao,
+        array $dadosItem,
+        string $campo
+    ): void {
+        if (! array_key_exists($campo, $dadosItem)) {
+            return;
+        }
 
-                $entregaItemId = (int) (
-                    $item['entrega_item_id'] ?? 0
-                );
-
-                $romaneioItemId = (int) (
-                    $item['romaneio_item_id'] ?? 0
-                );
-
-                return $entregaItemId ===
-                        (int) $romaneioItem->entrega_item_id
-                    || $romaneioItemId ===
-                        (int) $romaneioItem->id;
-            }
+        $quantidade = round(
+            (float) $dadosItem[$campo],
+            2
         );
 
-        return is_array($dadosItem)
-            ? $dadosItem
-            : null;
+        if ($quantidade < 0) {
+            throw ValidationException::withMessages([
+                'itens' =>
+                    "A quantidade informada em {$campo} não pode ser negativa.",
+            ]);
+        }
+
+        $atualizacao[$campo] = $quantidade;
+    }
+
+    private function resolverStatusItem(
+        RomaneioItem $item,
+        array $atualizacao
+    ): string {
+        $dados = array_merge(
+            $item->only([
+                'quantidade_prevista',
+                'quantidade_separada',
+                'quantidade_conferida_separacao',
+                'quantidade_carregada',
+                'quantidade_conferida_saida',
+                'quantidade_entregue',
+                'quantidade_devolvida',
+                'quantidade_recusada',
+                'quantidade_avariada',
+                'quantidade_perdida',
+            ]),
+            $atualizacao
+        );
+
+        $prevista = (float) $dados['quantidade_prevista'];
+        $separada = (float) $dados['quantidade_separada'];
+        $conferidaSeparacao =
+            (float) $dados['quantidade_conferida_separacao'];
+        $carregada =
+            (float) $dados['quantidade_carregada'];
+        $conferidaSaida =
+            (float) $dados['quantidade_conferida_saida'];
+
+        if ((float) $dados['quantidade_perdida'] > 0) {
+            return 'Perdido';
+        }
+
+        if ((float) $dados['quantidade_avariada'] > 0) {
+            return 'Avariado';
+        }
+
+        if ((float) $dados['quantidade_recusada'] > 0) {
+            return 'Recusado';
+        }
+
+        if ((float) $dados['quantidade_devolvida'] > 0) {
+            return 'Devolvido';
+        }
+
+        if ((float) $dados['quantidade_entregue'] > 0) {
+            return (float) $dados['quantidade_entregue']
+                >= $carregada
+                ? 'Entregue'
+                : 'Entregue_parcial';
+        }
+
+        if (
+            $conferidaSaida > 0
+            && abs($conferidaSaida - $carregada) >= 0.001
+        ) {
+            return 'Divergente_saida';
+        }
+
+        if (
+            $conferidaSaida > 0
+            && abs($conferidaSaida - $carregada) < 0.001
+        ) {
+            return 'Saida_conferida';
+        }
+
+        if ($carregada > 0) {
+            return 'Carregado';
+        }
+
+        if (
+            $conferidaSeparacao > 0
+            && abs($conferidaSeparacao - $separada) >= 0.001
+        ) {
+            return 'Divergente_separacao';
+        }
+
+        if (
+            $conferidaSeparacao > 0
+            && abs($conferidaSeparacao - $separada) < 0.001
+        ) {
+            return 'Separacao_conferida';
+        }
+
+        if ($separada >= $prevista && $prevista > 0) {
+            return 'Separado';
+        }
+
+        if ($separada > 0) {
+            return 'Separando';
+        }
+
+        return 'Pendente';
     }
 
     private function validarSeparacaoCompleta(
@@ -779,25 +1359,13 @@ class RomaneioService
     ): void {
         $romaneio->loadMissing('itens');
 
-        if ($romaneio->itens->isEmpty()) {
-            throw ValidationException::withMessages([
-                'itens' =>
-                    'O romaneio não possui itens.',
-            ]);
-        }
-
         foreach ($romaneio->itens as $item) {
-            $prevista = round(
-                (float) $item->quantidade_prevista,
-                2
-            );
-
-            $separada = round(
-                (float) $item->quantidade_separada,
-                2
-            );
-
-            if ($separada !== $prevista) {
+            if (
+                abs(
+                    (float) $item->quantidade_prevista
+                    - (float) $item->quantidade_separada
+                ) >= 0.001
+            ) {
                 throw ValidationException::withMessages([
                     'itens' =>
                         "O item #{$item->entrega_item_id} ainda não foi totalmente separado.",
@@ -806,30 +1374,36 @@ class RomaneioService
         }
     }
 
+    private function validarConferenciaSeparacaoCompleta(
+        Romaneio $romaneio
+    ): void {
+        $this->validarSeparacaoCompleta(
+            $romaneio
+        );
+
+        foreach ($romaneio->itens as $item) {
+            if ($item->possuiDivergenciaSeparacao()) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        "O item #{$item->entrega_item_id} possui divergência na conferência da separação.",
+                ]);
+            }
+        }
+    }
+
     private function validarCarregamentoCompleto(
         Romaneio $romaneio
     ): void {
-        $romaneio->loadMissing('itens');
+        $this->validarConferenciaSeparacaoCompleta(
+            $romaneio
+        );
 
         foreach ($romaneio->itens as $item) {
-            $prevista = round(
-                (float) $item->quantidade_prevista,
-                2
-            );
-
-            $separada = round(
-                (float) $item->quantidade_separada,
-                2
-            );
-
-            $carregada = round(
-                (float) $item->quantidade_carregada,
-                2
-            );
-
             if (
-                $carregada !== $separada ||
-                $carregada !== $prevista
+                abs(
+                    (float) $item->quantidade_carregada
+                    - (float) $item->quantidade_conferida_separacao
+                ) >= 0.001
             ) {
                 throw ValidationException::withMessages([
                     'itens' =>
@@ -839,7 +1413,7 @@ class RomaneioService
         }
     }
 
-    private function validarConferenciaCompleta(
+    private function validarConferenciaSaidaCompleta(
         Romaneio $romaneio
     ): void {
         $this->validarCarregamentoCompleto(
@@ -847,13 +1421,43 @@ class RomaneioService
         );
 
         foreach ($romaneio->itens as $item) {
-            if (
-                strtolower((string) $item->status) !==
-                'conferido'
-            ) {
+            if ($item->possuiDivergenciaSaida()) {
                 throw ValidationException::withMessages([
                     'itens' =>
-                        "O item #{$item->entrega_item_id} ainda não foi conferido ou possui divergência.",
+                        "O item #{$item->entrega_item_id} possui divergência na conferência de saída.",
+                ]);
+            }
+        }
+    }
+
+    private function validarConferenciaRetornoCompleta(
+        Romaneio $romaneio
+    ): void {
+        foreach ($romaneio->itens as $item) {
+            if (empty($item->retorno_conferido_por)) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        "O retorno do item #{$item->entrega_item_id} ainda não foi conferido.",
+                ]);
+            }
+        }
+    }
+
+    private function validarPrestacaoContas(
+        Romaneio $romaneio
+    ): void {
+        if ($romaneio->possuiOcorrenciaBloqueante()) {
+            throw ValidationException::withMessages([
+                'ocorrencias' =>
+                    'Existem ocorrências bloqueantes ainda abertas.',
+            ]);
+        }
+
+        foreach ($romaneio->itens as $item) {
+            if (! $item->prestacaoContasConciliada()) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        "O item #{$item->entrega_item_id} não está conciliado na prestação de contas.",
                 ]);
             }
         }
@@ -862,158 +1466,147 @@ class RomaneioService
     private function validarLiberacao(
         Romaneio $romaneio
     ): void {
-        $this->validarConferenciaCompleta(
+        $this->validarConferenciaSaidaCompleta(
             $romaneio
         );
 
-        if (empty($romaneio->motorista_id)) {
+        if (! $romaneio->motorista_id) {
             throw ValidationException::withMessages([
                 'motorista_id' =>
                     'Defina o motorista antes da liberação.',
             ]);
         }
 
-        if (empty($romaneio->veiculo_id)) {
+        if (! $romaneio->veiculo_id) {
             throw ValidationException::withMessages([
                 'veiculo_id' =>
                     'Defina o veículo antes da liberação.',
             ]);
         }
 
-        if (empty($romaneio->impresso_em)) {
+        if (! $romaneio->impresso_em) {
             throw ValidationException::withMessages([
                 'romaneio' =>
                     'Imprima o romaneio antes da liberação.',
             ]);
         }
 
-        if (empty($romaneio->impresso_por)) {
+        if ($romaneio->possuiOcorrenciaBloqueante()) {
             throw ValidationException::withMessages([
-                'romaneio' =>
-                    'Não foi possível identificar quem imprimiu o romaneio.',
+                'ocorrencias' =>
+                    'Existem ocorrências bloqueantes que impedem a liberação.',
             ]);
         }
     }
 
-    private function validarSaida(
-        Romaneio $romaneio
-    ): void {
-        if (
-            $this->normalizarStatus($romaneio->status) !==
-            'liberado'
-        ) {
-            throw ValidationException::withMessages([
-                'romaneio' =>
-                    'Somente um romaneio liberado pode registrar a saída.',
-            ]);
+    private function validarAcaoPermitida(Romaneio $romaneio, string $acao): void 
+    {
+        if ($acao === 'navegar_etapa') {
+            if (in_array(
+                $this->normalizarStatus($romaneio->status),
+                [
+                    'em_rota',
+                    'retornando',
+                    'aguardando_conferencia_retorno',
+                    'em_conferencia_retorno',
+                    'aguardando_prestacao_contas',
+                    'em_prestacao_contas',
+                    'aguardando_fechamento',
+                    'fechado',
+                    'cancelado',
+                ],
+                true
+            )) {
+                throw ValidationException::withMessages([
+                    'acao' =>
+                        'A navegação manual não está disponível após a saída do veículo.',
+                ]);
+            }
+
+            return;
         }
-
-        if (empty($romaneio->finalizado_por)) {
-            throw ValidationException::withMessages([
-                'romaneio' =>
-                    'O responsável pela liberação não foi registrado.',
-            ]);
-        }
-
-        if (empty($romaneio->impresso_em)) {
-            throw ValidationException::withMessages([
-                'romaneio' =>
-                    'O romaneio precisa estar impresso antes da saída.',
-            ]);
-        }
-    }
-
-    private function atualizarPercentualCarregado(
-        Romaneio $romaneio
-    ): void {
-        $romaneio->loadMissing('itens');
-
-        $totalPrevisto = round(
-            (float) $romaneio->itens->sum(
-                'quantidade_prevista'
-            ),
-            2
-        );
-
-        $totalCarregado = round(
-            (float) $romaneio->itens->sum(
-                'quantidade_carregada'
-            ),
-            2
-        );
-
-        $percentual = $totalPrevisto > 0
-            ? round(
-                ($totalCarregado / $totalPrevisto) * 100,
-                2
-            )
-            : 0;
-
-        $romaneio->update([
-            'percentual_carregado' =>
-                min(100, max(0, $percentual)),
-        ]);
-    }
-
-    private function validarAcaoPermitida(
-        Romaneio $romaneio,
-        string $acao
-    ): void {
-        $status = $this->normalizarStatus(
-            $romaneio->status
-        );
-
-        $acoesPermitidas = match ($status) {
-            'gerado' => [
-                'salvar_andamento',
+        
+        $acoesPermitidas = match ($romaneio->status) {
+            self::STATUS_AGUARDANDO_SEPARACAO => [
                 'iniciar_separacao',
-                'finalizar_separacao',
             ],
 
-            'em_separacao' => [
+            self::STATUS_EM_SEPARACAO => [
                 'salvar_andamento',
                 'finalizar_separacao',
             ],
 
-            'separado' => [
-                'enviar_para_doca',
-                'iniciar_carregamento',
-                'finalizar_carregamento',
+            self::STATUS_AGUARDANDO_CONFERENCIA_SEPARACAO => [
+                'iniciar_conferencia_separacao',
                 'voltar_etapa',
             ],
 
-            'na_doca' => [
-                'iniciar_carregamento',
-                'finalizar_carregamento',
+            self::STATUS_EM_CONFERENCIA_SEPARACAO => [
+                'salvar_andamento',
+                'finalizar_conferencia_separacao',
                 'voltar_etapa',
             ],
 
-            'carregando' => [
+            self::STATUS_AGUARDANDO_CARREGAMENTO => [
+                'iniciar_carregamento',
+                'voltar_etapa',
+            ],
+
+            self::STATUS_CARREGANDO => [
                 'salvar_andamento',
                 'finalizar_carregamento',
                 'voltar_etapa',
             ],
 
-            'carregado' => [
-                'concluir_conferencia',
+            self::STATUS_AGUARDANDO_CONFERENCIA_SAIDA => [
+                'iniciar_conferencia_saida',
                 'voltar_etapa',
             ],
 
-            'conferido' => [
+            self::STATUS_EM_CONFERENCIA_SAIDA => [
+                'salvar_andamento',
+                'finalizar_conferencia_saida',
+                'voltar_etapa',
+            ],
+
+            self::STATUS_AGUARDANDO_LIBERACAO => [
                 'liberar_veiculo',
                 'voltar_etapa',
             ],
 
-            'liberado' => [
+            self::STATUS_LIBERADO => [
                 'registrar_saida',
                 'voltar_etapa',
             ],
 
-            'saiu_para_entrega',
-            'entregue',
-            'parcial',
-            'devolvido',
-            'cancelado' => [],
+            self::STATUS_EM_ROTA => [
+                'registrar_retorno',
+            ],
+
+            self::STATUS_AGUARDANDO_CONFERENCIA_RETORNO => [
+                'iniciar_conferencia_retorno',
+            ],
+
+            self::STATUS_EM_CONFERENCIA_RETORNO => [
+                'salvar_andamento',
+                'finalizar_conferencia_retorno',
+            ],
+
+            self::STATUS_AGUARDANDO_PRESTACAO_CONTAS => [
+                'iniciar_prestacao_contas',
+            ],
+
+            self::STATUS_EM_PRESTACAO_CONTAS => [
+                'salvar_andamento',
+                'finalizar_prestacao_contas',
+            ],
+
+            self::STATUS_AGUARDANDO_FECHAMENTO => [
+                'fechar_romaneio',
+            ],
+
+            self::STATUS_FECHADO,
+            self::STATUS_CANCELADO => [],
 
             default => throw ValidationException::withMessages([
                 'status' =>
@@ -1029,10 +1622,8 @@ class RomaneioService
         }
     }
 
-    private function retornarEtapaAnterior(
-        Romaneio $romaneio,
-        array $dados
-    ): Romaneio {
+    private function retornarEtapaAnterior(Romaneio $romaneio, array $dados): Romaneio 
+    {
         $motivo = trim(
             (string) (
                 $dados['motivo_retorno'] ?? ''
@@ -1046,39 +1637,37 @@ class RomaneioService
             ]);
         }
 
-        $status = $this->normalizarStatus(
+        [$statusNovo, $statusEntrega, $etapa] = match (
             $romaneio->status
-        );
-
-        [$statusRomaneio, $statusEntrega] = match ($status) {
-            'liberado' => [
-                self::STATUS_CONFERIDO,
-                'Aguardando_liberacao',
+        ) {
+            self::STATUS_LIBERADO => [
+                self::STATUS_AGUARDANDO_LIBERACAO,
+                'Carregada',
+                'Liberacao',
             ],
 
-            'conferido' => [
-                self::STATUS_CARREGADO,
-                'Aguardando_conferencia',
+            self::STATUS_AGUARDANDO_LIBERACAO => [
+                self::STATUS_EM_CONFERENCIA_SAIDA,
+                'Carregada',
+                'Conferencia_saida',
             ],
 
-            'carregado' => [
+            self::STATUS_AGUARDANDO_CONFERENCIA_SAIDA => [
                 self::STATUS_CARREGANDO,
-                'Carregando',
+                'Pronta_para_carregamento',
+                'Carregamento',
             ],
 
-            'carregando' => [
-                self::STATUS_NA_DOCA,
-                'Aguardando_carregamento',
+            self::STATUS_AGUARDANDO_CARREGAMENTO => [
+                self::STATUS_EM_CONFERENCIA_SEPARACAO,
+                'Em_preparacao',
+                'Conferencia_separacao',
             ],
 
-            'na_doca' => [
-                self::STATUS_SEPARADO,
-                'Aguardando_carregamento',
-            ],
-
-            'separado' => [
+            self::STATUS_AGUARDANDO_CONFERENCIA_SEPARACAO => [
                 self::STATUS_EM_SEPARACAO,
-                'Separando',
+                'Em_preparacao',
+                'Separacao',
             ],
 
             default => throw ValidationException::withMessages([
@@ -1087,22 +1676,10 @@ class RomaneioService
             ]),
         };
 
-        $registro = sprintf(
-            '[%s] Retorno de etapa por usuário #%s. Motivo: %s',
-            now()->format('d/m/Y H:i'),
-            Auth::id() ?? 'sistema',
-            $motivo
-        );
-
-        $observacaoAtual = trim(
-            (string) $romaneio->observacao
-        );
+        $statusAnterior = $romaneio->status;
 
         $romaneio->update([
-            'status' => $statusRomaneio,
-            'observacao' => $observacaoAtual
-                ? $observacaoAtual . PHP_EOL . $registro
-                : $registro,
+            'status' => $statusNovo,
         ]);
 
         $this->atualizarStatusEntregas(
@@ -1110,15 +1687,313 @@ class RomaneioService
             $statusEntrega
         );
 
+        $this->eventoService->registrarRetornoEtapa(
+            $romaneio,
+            $etapa,
+            $statusAnterior,
+            $statusNovo,
+            $motivo
+        );
+
         return $this->carregarRomaneio(
             $romaneio
         );
     }
 
-    public function cancelar(
+    private function navegarParaEtapa(Romaneio $romaneio, array $dados): Romaneio 
+    {
+        $etapaDestino = strtolower(
+            trim(
+                (string) (
+                    $dados['etapa_destino']
+                    ?? ''
+                )
+            )
+        );
+
+        $motivo = trim(
+            (string) (
+                $dados['motivo_movimentacao']
+                ?? ''
+            )
+        );
+
+        if (mb_strlen($motivo) < 5) {
+            throw ValidationException::withMessages([
+                'motivo_movimentacao' =>
+                    'Informe um motivo com pelo menos 5 caracteres.',
+            ]);
+        }
+
+        $etapas = $this->mapaEtapasOperacionais();
+
+        if (! isset($etapas[$etapaDestino])) {
+            throw ValidationException::withMessages([
+                'etapa_destino' =>
+                    'A etapa de destino informada é inválida.',
+            ]);
+        }
+
+        $etapaAtual = $this->resolverEtapaOperacional(
+            $romaneio
+        );
+
+        if (! isset($etapas[$etapaAtual])) {
+            throw ValidationException::withMessages([
+                'etapa_atual' =>
+                    'Não foi possível identificar a etapa atual do romaneio.',
+            ]);
+        }
+
+        if ($etapaDestino === $etapaAtual) {
+            throw ValidationException::withMessages([
+                'etapa_destino' =>
+                    'O romaneio já está nesta etapa.',
+            ]);
+        }
+
+        $ordemAtual = $etapas[$etapaAtual]['ordem'];
+        $ordemDestino = $etapas[$etapaDestino]['ordem'];
+
+        if ($ordemDestino > $ordemAtual) {
+            throw ValidationException::withMessages([
+                'etapa_destino' =>
+                    'Não é permitido avançar manualmente para uma etapa futura. Utilize a conclusão normal da operação.',
+            ]);
+        }
+
+        $statusAnterior = $romaneio->status;
+        $configuracaoDestino = $etapas[$etapaDestino];
+
+        $this->prepararRetornoParaEtapa(
+            $romaneio,
+            $etapaDestino
+        );
+
+        $romaneio->update([
+            'status' => $configuracaoDestino['status_romaneio'],
+            'observacao' => $this->adicionarHistoricoNaObservacao(
+                $romaneio->observacao,
+                sprintf(
+                    'Navegação manual de %s para %s. Motivo: %s',
+                    $etapas[$etapaAtual]['label'],
+                    $configuracaoDestino['label'],
+                    $motivo
+                )
+            ),
+        ]);
+
+        $this->atualizarStatusEntregas(
+            $romaneio,
+            $configuracaoDestino['status_entrega']
+        );
+
+        DB::table('romaneio_eventos')->insert([
+            'romaneio_id' => $romaneio->id,
+            'evento' => 'Etapa alterada manualmente',
+            'etapa' => $configuracaoDestino['label'],
+            'status_anterior' => $statusAnterior,
+            'status_novo' => $configuracaoDestino['status_romaneio'],
+            'metodo_identificacao' => 'Sistema',
+            'usuario_id' => Auth::id(),
+            'funcionario_id' => null,
+            'terminal' => request()->userAgent(),
+            'endereco_ip' => request()->ip(),
+            'observacao' => $motivo,
+            'dados' => json_encode([
+                'etapa_origem' => $etapaAtual,
+                'etapa_destino' => $etapaDestino,
+                'motivo' => $motivo,
+            ], JSON_UNESCAPED_UNICODE),
+            'ocorrido_em' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $this->carregarRomaneio(
+            $romaneio->fresh()
+        );
+    }
+
+    private function mapaEtapasOperacionais(): array
+    {
+        return [
+            'montagem' => [
+                'ordem' => 1,
+                'label' => 'Montagem',
+                'status_romaneio' => 'Montagem',
+                'status_entrega' => 'Aguardando_separacao',
+            ],
+
+            'separacao' => [
+                'ordem' => 2,
+                'label' => 'Separação',
+                'status_romaneio' => 'Em_separacao',
+                'status_entrega' => 'Em_preparacao',
+            ],
+
+            'conferencia_separacao' => [
+                'ordem' => 3,
+                'label' => 'Conferência da Separação',
+                'status_romaneio' => 'Em_conferencia_separacao',
+                'status_entrega' => 'Em_preparacao',
+            ],
+
+            'carregamento' => [
+                'ordem' => 4,
+                'label' => 'Carregamento',
+                'status_romaneio' => 'Carregando',
+                'status_entrega' => 'Pronta_para_carregamento',
+            ],
+
+            'conferencia_saida' => [
+                'ordem' => 5,
+                'label' => 'Conferência de Saída',
+                'status_romaneio' => 'Em_conferencia_saida',
+                'status_entrega' => 'Carregada',
+            ],
+
+            'liberacao' => [
+                'ordem' => 6,
+                'label' => 'Liberação',
+                'status_romaneio' => 'Aguardando_liberacao',
+                'status_entrega' => 'Carregada',
+            ],
+
+            'em_rota' => [
+                'ordem' => 7,
+                'label' => 'Em Rota',
+                'status_romaneio' => 'Em_rota',
+                'status_entrega' => 'Em_rota',
+            ],
+        ];
+    }
+
+    private function resolverEtapaOperacional(Romaneio $romaneio): string 
+    {
+        return match (
+            $this->normalizarStatus(
+                $romaneio->status
+            )
+        ) {
+            'montagem' =>
+                'montagem',
+
+            'aguardando_separacao',
+            'em_separacao' =>
+                'separacao',
+
+            'aguardando_conferencia_separacao',
+            'em_conferencia_separacao',
+            'separacao_conferida' =>
+                'conferencia_separacao',
+
+            'aguardando_carregamento',
+            'carregando' =>
+                'carregamento',
+
+            'aguardando_conferencia_saida',
+            'em_conferencia_saida' =>
+                'conferencia_saida',
+
+            'aguardando_liberacao',
+            'liberado' =>
+                'liberacao',
+
+            'em_rota' =>
+                'em_rota',
+
+            default =>
+                '',
+        };
+    }
+
+    private function prepararRetornoParaEtapa(
         Romaneio $romaneio,
-        string $motivo
+        string $etapaDestino
     ): void {
+        $dados = match ($etapaDestino) {
+            'montagem' => [
+                'data_inicio_separacao' => null,
+                'data_fim_separacao' => null,
+                'data_inicio_conferencia_separacao' => null,
+                'data_fim_conferencia_separacao' => null,
+                'data_inicio_carregamento' => null,
+                'data_fim_carregamento' => null,
+                'data_inicio_conferencia_saida' => null,
+                'data_fim_conferencia_saida' => null,
+                'data_saida' => null,
+            ],
+
+            'separacao' => [
+                'data_inicio_separacao' => now(),
+                'data_fim_separacao' => null,
+                'data_inicio_conferencia_separacao' => null,
+                'data_fim_conferencia_separacao' => null,
+                'data_inicio_carregamento' => null,
+                'data_fim_carregamento' => null,
+                'data_inicio_conferencia_saida' => null,
+                'data_fim_conferencia_saida' => null,
+                'data_saida' => null,
+            ],
+
+            'conferencia_separacao' => [
+                'data_inicio_conferencia_separacao' => now(),
+                'data_fim_conferencia_separacao' => null,
+                'data_inicio_carregamento' => null,
+                'data_fim_carregamento' => null,
+                'data_inicio_conferencia_saida' => null,
+                'data_fim_conferencia_saida' => null,
+                'data_saida' => null,
+            ],
+
+            'carregamento' => [
+                'data_inicio_carregamento' => now(),
+                'data_fim_carregamento' => null,
+                'data_inicio_conferencia_saida' => null,
+                'data_fim_conferencia_saida' => null,
+                'data_saida' => null,
+            ],
+
+            'conferencia_saida' => [
+                'data_inicio_conferencia_saida' => now(),
+                'data_fim_conferencia_saida' => null,
+                'data_saida' => null,
+            ],
+
+            'liberacao' => [
+                'data_saida' => null,
+            ],
+
+            default => [],
+        };
+
+        if (! empty($dados)) {
+            $romaneio->update($dados);
+        }
+    }
+
+    private function adicionarHistoricoNaObservacao(
+        ?string $observacaoAtual,
+        string $registro
+    ): string {
+        $linha = sprintf(
+            '[%s] %s',
+            now()->format('d/m/Y H:i'),
+            $registro
+        );
+
+        $observacaoAtual = trim(
+            (string) $observacaoAtual
+        );
+
+        return $observacaoAtual !== ''
+            ? $observacaoAtual . PHP_EOL . $linha
+            : $linha;
+    }
+
+    public function cancelar(Romaneio $romaneio, string $motivo): void 
+    {
         DB::transaction(function () use (
             $romaneio,
             $motivo
@@ -1127,18 +2002,21 @@ class RomaneioService
                 $romaneio->id
             );
 
-            $status = $this->normalizarStatus(
-                $romaneio->status
-            );
-
-            if (in_array($status, [
-                'liberado',
-                'saiu_para_entrega',
-                'entregue',
-                'parcial',
-                'devolvido',
-                'cancelado',
-            ], true)) {
+            if (in_array(
+                $romaneio->status,
+                [
+                    self::STATUS_EM_ROTA,
+                    self::STATUS_RETORNANDO,
+                    self::STATUS_AGUARDANDO_CONFERENCIA_RETORNO,
+                    self::STATUS_EM_CONFERENCIA_RETORNO,
+                    self::STATUS_AGUARDANDO_PRESTACAO_CONTAS,
+                    self::STATUS_EM_PRESTACAO_CONTAS,
+                    self::STATUS_AGUARDANDO_FECHAMENTO,
+                    self::STATUS_FECHADO,
+                    self::STATUS_CANCELADO,
+                ],
+                true
+            )) {
                 throw ValidationException::withMessages([
                     'romaneio' =>
                         'Este romaneio não pode mais ser cancelado.',
@@ -1154,6 +2032,8 @@ class RomaneioService
                 ]);
             }
 
+            $statusAnterior = $romaneio->status;
+
             $romaneio->update([
                 'status' => self::STATUS_CANCELADO,
                 'motivo_cancelamento' => $motivo,
@@ -1161,35 +2041,46 @@ class RomaneioService
                 'cancelado_por' => Auth::id(),
             ]);
 
-            foreach ($romaneio->itens as $item) {
-                $item->update([
+            $romaneio->itens()
+                ->update([
                     'status' => 'Cancelado',
                 ]);
-            }
 
             $this->atualizarStatusEntregas(
                 $romaneio,
                 'Aguardando_separacao'
             );
+
+            $this->eventoService->registrarCancelamento(
+                $romaneio,
+                $statusAnterior,
+                $motivo
+            );
         });
+    }
+
+    private function validarFuncionario(
+        array $dados,
+        string $campo,
+        string $mensagem
+    ): int {
+        $funcionarioId = (int) (
+            $dados[$campo] ?? 0
+        );
+
+        if ($funcionarioId <= 0) {
+            throw ValidationException::withMessages([
+                $campo => $mensagem,
+            ]);
+        }
+
+        return $funcionarioId;
     }
 
     private function buscarItensParaRomaneio(
         array $entregasIds,
         array $entregaItensIds
     ): EloquentCollection {
-        $entregasIds = collect($entregasIds)
-            ->map(fn ($id) => (int) $id)
-            ->filter(fn ($id) => $id > 0)
-            ->unique()
-            ->values();
-
-        $entregaItensIds = collect($entregaItensIds)
-            ->map(fn ($id) => (int) $id)
-            ->filter(fn ($id) => $id > 0)
-            ->unique()
-            ->values();
-
         $query = EntregaItem::query()
             ->with([
                 'entrega',
@@ -1199,16 +2090,13 @@ class RomaneioService
             ])
             ->whereNotIn('status', [
                 'Cancelado',
-                'cancelado',
                 'Entregue',
-                'entregue',
                 'Devolvido',
-                'devolvido',
             ]);
 
         if (
-            $entregasIds->isNotEmpty() &&
-            $entregaItensIds->isNotEmpty()
+            ! empty($entregasIds)
+            && ! empty($entregaItensIds)
         ) {
             $query->where(function ($query) use (
                 $entregasIds,
@@ -1217,22 +2105,22 @@ class RomaneioService
                 $query
                     ->whereIn(
                         'entrega_id',
-                        $entregasIds->all()
+                        $entregasIds
                     )
                     ->orWhereIn(
                         'id',
-                        $entregaItensIds->all()
+                        $entregaItensIds
                     );
             });
-        } elseif ($entregaItensIds->isNotEmpty()) {
+        } elseif (! empty($entregaItensIds)) {
             $query->whereIn(
                 'id',
-                $entregaItensIds->all()
+                $entregaItensIds
             );
         } else {
             $query->whereIn(
                 'entrega_id',
-                $entregasIds->all()
+                $entregasIds
             );
         }
 
@@ -1249,22 +2137,15 @@ class RomaneioService
             ->filter()
             ->unique('id');
 
-        if ($entregas->isEmpty()) {
-            throw ValidationException::withMessages([
-                'entrega' =>
-                    'Os itens selecionados não possuem uma entrega válida.',
-            ]);
-        }
-
         foreach ($entregas as $entrega) {
-            $status = $this->normalizarStatus(
-                $entrega->status
-            );
-
-            if (! in_array($status, [
-                'aguardando_separacao',
-                'separando',
-            ], true)) {
+            if (! in_array(
+                $entrega->status,
+                [
+                    'Aguardando_separacao',
+                    'Em_preparacao',
+                ],
+                true
+            )) {
                 throw ValidationException::withMessages([
                     'entrega' =>
                         "A entrega #{$entrega->id} não está disponível para romaneio. Status atual: {$entrega->status}.",
@@ -1277,73 +2158,22 @@ class RomaneioService
         Collection $entregaItens,
         Collection $itensComQuantidade
     ): Collection {
-        $quantidadesInformadas = $itensComQuantidade
-            ->keyBy('entrega_item_id');
-
-        $entregaItensIds = $entregaItens
-            ->pluck('id')
-            ->map(fn ($id) => (int) $id)
-            ->values();
-
-        $quantidadesJaAlocadas = RomaneioItem::query()
-            ->whereIn(
-                'entrega_item_id',
-                $entregaItensIds->all()
-            )
-            ->whereHas(
-                'romaneio',
-                function ($query) {
-                    $query->where(
-                        'status',
-                        '!=',
-                        self::STATUS_CANCELADO
-                    );
-                }
-            )
-            ->selectRaw(
-                'entrega_item_id, SUM(quantidade_prevista) AS total_alocado'
-            )
-            ->groupBy('entrega_item_id')
-            ->lockForUpdate()
-            ->pluck(
-                'total_alocado',
+        $quantidadesInformadas =
+            $itensComQuantidade->keyBy(
                 'entrega_item_id'
             );
 
         return $entregaItens
             ->map(function (
                 EntregaItem $entregaItem
-            ) use (
-                $quantidadesInformadas,
-                $quantidadesJaAlocadas
-            ) {
-                $quantidadePrevista = round(
-                    (float) (
-                        $entregaItem->quantidade_prevista
-                        ?? 0
-                    ),
+            ) use ($quantidadesInformadas) {
+                $quantidadeDisponivel = round(
+                    (float) $entregaItem->quantidade_prevista
+                    - (float) $entregaItem->quantidade_entregue,
                     2
                 );
 
-                $quantidadeJaAlocada = round(
-                    (float) (
-                        $quantidadesJaAlocadas[
-                            $entregaItem->id
-                        ] ?? 0
-                    ),
-                    2
-                );
-
-                $saldoDisponivel = round(
-                    max(
-                        0,
-                        $quantidadePrevista -
-                        $quantidadeJaAlocada
-                    ),
-                    2
-                );
-
-                if ($saldoDisponivel <= 0) {
+                if ($quantidadeDisponivel <= 0) {
                     return null;
                 }
 
@@ -1352,107 +2182,100 @@ class RomaneioService
                         $entregaItem->id
                     );
 
-                $quantidadeRomaneio =
-                    $quantidadeInformada
-                        ? round(
-                            (float) $quantidadeInformada[
-                                'quantidade'
-                            ],
-                            2
-                        )
-                        : $saldoDisponivel;
+                $quantidade = $quantidadeInformada
+                    ? round(
+                        (float) $quantidadeInformada[
+                            'quantidade'
+                        ],
+                        2
+                    )
+                    : $quantidadeDisponivel;
 
-                if ($quantidadeRomaneio <= 0) {
-                    return null;
-                }
-
-                if (
-                    $quantidadeRomaneio >
-                    $saldoDisponivel
-                ) {
+                if ($quantidade > $quantidadeDisponivel) {
                     throw ValidationException::withMessages([
                         'itens' =>
-                            "A quantidade informada para o item #{$entregaItem->id} excede o saldo disponível de " .
-                            number_format(
-                                $saldoDisponivel,
-                                2,
-                                ',',
-                                '.'
-                            ) .
-                            '.',
+                            "A quantidade do item #{$entregaItem->id} excede o saldo disponível.",
                     ]);
                 }
 
                 return [
                     'entrega_item' => $entregaItem,
-                    'quantidade' => $quantidadeRomaneio,
+                    'quantidade' => $quantidade,
                 ];
             })
             ->filter()
             ->values();
     }
 
+    private function localizarDadosDoItem(
+        Collection $itensRecebidos,
+        RomaneioItem $romaneioItem
+    ): ?array {
+        $dadosItem = $itensRecebidos->first(
+            function ($item) use ($romaneioItem) {
+                if (! is_array($item)) {
+                    return false;
+                }
+
+                return (int) (
+                    $item['romaneio_item_id'] ?? 0
+                ) === (int) $romaneioItem->id
+                    || (int) (
+                        $item['entrega_item_id'] ?? 0
+                    ) ===
+                    (int) $romaneioItem->entrega_item_id;
+            }
+        );
+
+        return is_array($dadosItem)
+            ? $dadosItem
+            : null;
+    }
+
     private function atualizarStatusEntregas(
         Romaneio $romaneio,
         string $status
     ): void {
-        $romaneio->loadMissing([
-            'entrega',
-            'itens.entregaItem.entrega',
-        ]);
+        $entregasIds = $romaneio->itens()
+            ->with('entregaItem')
+            ->get()
+            ->pluck('entregaItem.entrega_id')
+            ->filter()
+            ->unique()
+            ->values();
 
-        $entregas = $romaneio->itens
-            ->pluck('entregaItem')
-            ->filter()
-            ->pluck('entrega')
-            ->filter()
-            ->push($romaneio->entrega)
-            ->filter()
-            ->unique('id');
-
-        foreach ($entregas as $entrega) {
-            $entrega->update([
+        Entrega::query()
+            ->whereIn('id', $entregasIds)
+            ->update([
                 'status' => $status,
             ]);
-        }
     }
 
-    private function resolverEtapaAtual(
+    private function atualizarPercentualCarregado(
         Romaneio $romaneio
-    ): string {
-        return match (
-            $this->normalizarStatus(
-                $romaneio->status
+    ): void {
+        $romaneio->loadMissing('itens');
+
+        $totalPrevisto = (float) $romaneio
+            ->itens
+            ->sum('quantidade_prevista');
+
+        $totalCarregado = (float) $romaneio
+            ->itens
+            ->sum('quantidade_carregada');
+
+        $percentual = $totalPrevisto > 0
+            ? round(
+                ($totalCarregado / $totalPrevisto)
+                * 100,
+                2
             )
-        ) {
-            'gerado',
-            'em_separacao' =>
-                'separacao',
+            : 0;
 
-            'separado',
-            'na_doca',
-            'carregando' =>
-                'carregamento',
-
-            'carregado' =>
-                'conferencia',
-
-            'conferido',
-            'liberado' =>
-                'liberacao',
-
-            'saiu_para_entrega',
-            'entregue',
-            'parcial',
-            'devolvido',
-            'cancelado' =>
-                'finalizado',
-
-            default => throw ValidationException::withMessages([
-                'status' =>
-                    "O status atual do romaneio ({$romaneio->status}) não corresponde a uma etapa válida.",
-            ]),
-        };
+        $romaneio->update([
+            'percentual_carregado' =>
+                min(100, max(0, $percentual)),
+        ]);
     }
 
     private function bloquearRomaneio(
@@ -1460,8 +2283,8 @@ class RomaneioService
     ): Romaneio {
         return Romaneio::query()
             ->with([
-                'entrega',
-                'itens.entregaItem.entrega',
+                'itens',
+                'ocorrencias',
             ])
             ->lockForUpdate()
             ->findOrFail($romaneioId);
@@ -1470,22 +2293,40 @@ class RomaneioService
     private function carregarRomaneio(
         Romaneio $romaneio
     ): Romaneio {
-        return $romaneio->fresh([
+        $romaneio->refresh();
+
+        return $romaneio->load([
             'motorista',
             'veiculo',
-            'entrega.cliente',
-            'entrega.orcamento',
-            'entrega.venda',
-            'itens.entregaItem.entrega',
-            'itens.entregaItem.produto',
-            'itens.entregaItem.vendaItem.produto',
-            'itens.entregaItem.itemOrcamento.produto',
+            'entrega',
+            'itens.entregaItem',
+            'ocorrencias',
+            'eventos',
         ]);
     }
 
-    private function normalizarStatus(
-        ?string $status
-    ): string {
+    private function gerarCodigoRomaneio(): string
+    {
+        do {
+            $codigo = sprintf(
+                'ROM-%s-%04d',
+                now()->format('YmdHis'),
+                random_int(1, 9999)
+            );
+        } while (
+            Romaneio::query()
+                ->where(
+                    'codigo_romaneio',
+                    $codigo
+                )
+                ->exists()
+        );
+
+        return $codigo;
+    }
+
+    private function normalizarStatus(?string $status): string 
+    {
         return strtolower(
             trim(
                 str_replace(
@@ -1495,20 +2336,5 @@ class RomaneioService
                 )
             )
         );
-    }
-
-    private function gerarCodigoRomaneio(): string
-    {
-        $ultimoId = (int) Romaneio::max('id') + 1;
-
-        return 'ROM-' .
-            now()->format('Ymd') .
-            '-' .
-            str_pad(
-                $ultimoId,
-                5,
-                '0',
-                STR_PAD_LEFT
-            );
     }
 }

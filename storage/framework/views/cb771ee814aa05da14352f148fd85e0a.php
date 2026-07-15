@@ -409,24 +409,44 @@
                             Pendente Pagamento
                         </option>
 
+                        <option value="aguardando_faturamento"
+                            <?php if(request('status') === 'aguardando_faturamento'): echo 'selected'; endif; ?>>
+                            Aguardando Faturamento
+                        </option>
+
                         <option value="aguardando_separacao"
                             <?php if(request('status') === 'aguardando_separacao'): echo 'selected'; endif; ?>>
                             Aguardando Separação
                         </option>
 
-                        <option value="separando"
-                            <?php if(request('status') === 'separando'): echo 'selected'; endif; ?>>
-                            Separando
+                        <option value="em_preparacao"
+                            <?php if(request('status') === 'em_preparacao'): echo 'selected'; endif; ?>>
+                            Em Preparação
                         </option>
 
-                        <option value="carregado"
-                            <?php if(request('status') === 'carregado'): echo 'selected'; endif; ?>>
-                            Carregado
+                        <option value="pronta_para_carregamento"
+                            <?php if(request('status') === 'pronta_para_carregamento'): echo 'selected'; endif; ?>>
+                            Pronta para Carregamento
+                        </option>
+
+                        <option value="carregada"
+                            <?php if(request('status') === 'carregada'): echo 'selected'; endif; ?>>
+                            Carregada
+                        </option>
+
+                        <option value="liberada"
+                            <?php if(request('status') === 'liberada'): echo 'selected'; endif; ?>>
+                            Liberada
                         </option>
 
                         <option value="em_rota"
                             <?php if(request('status') === 'em_rota'): echo 'selected'; endif; ?>>
-                            Em rota
+                            Em Rota
+                        </option>
+
+                        <option value="no_destino"
+                            <?php if(request('status') === 'no_destino'): echo 'selected'; endif; ?>>
+                            No Destino
                         </option>
 
                         <option value="entregue"
@@ -434,19 +454,34 @@
                             Entregue
                         </option>
 
-                        <option value="parcial"
-                            <?php if(request('status') === 'parcial'): echo 'selected'; endif; ?>>
-                            Parcial
+                        <option value="entregue_parcial"
+                            <?php if(request('status') === 'entregue_parcial'): echo 'selected'; endif; ?>>
+                            Entregue Parcial
                         </option>
 
-                        <option value="devolvido"
-                            <?php if(request('status') === 'devolvido'): echo 'selected'; endif; ?>>
-                            Devolvido
+                        <option value="nao_entregue"
+                            <?php if(request('status') === 'nao_entregue'): echo 'selected'; endif; ?>>
+                            Não Entregue
                         </option>
 
-                        <option value="cancelado"
-                            <?php if(request('status') === 'cancelado'): echo 'selected'; endif; ?>>
-                            Cancelado
+                        <option value="recusada"
+                            <?php if(request('status') === 'recusada'): echo 'selected'; endif; ?>>
+                            Recusada
+                        </option>
+
+                        <option value="reagendada"
+                            <?php if(request('status') === 'reagendada'): echo 'selected'; endif; ?>>
+                            Reagendada
+                        </option>
+
+                        <option value="devolvida"
+                            <?php if(request('status') === 'devolvida'): echo 'selected'; endif; ?>>
+                            Devolvida
+                        </option>
+
+                        <option value="cancelada"
+                            <?php if(request('status') === 'cancelada'): echo 'selected'; endif; ?>>
+                            Cancelada
                         </option>
                     </select>
                 </div>
@@ -754,7 +789,6 @@
                                         </button>
                                     </div>
                                 </td>
-
                                 <td class="text-center">
                                     <?php
                                         $statusEntrega = strtolower(trim((string) $entrega->status));
@@ -764,47 +798,74 @@
                                                 'titulo' => 'Montar romaneio para esta entrega',
                                                 'icone' => 'bi-clipboard-plus',
                                                 'classe' => 'btn-outline-secondary',
+                                                'tipo' => 'romaneio',
                                             ],
 
-                                            'separando' => [
+                                            'em_preparacao' => [
                                                 'titulo' => 'Continuar separação',
                                                 'icone' => 'bi-box-seam',
                                                 'classe' => 'btn-outline-warning',
+                                                'tipo' => 'romaneio',
                                             ],
 
-                                            'aguardando_carregamento',
-                                            'carregando' => [
+                                            'pronta_para_carregamento' => [
                                                 'titulo' => 'Continuar carregamento',
                                                 'icone' => 'bi-truck-front',
                                                 'classe' => 'btn-outline-info',
+                                                'tipo' => 'romaneio',
                                             ],
 
-                                            'aguardando_conferencia',
-                                            'conferindo' => [
-                                                'titulo' => 'Continuar conferência',
+                                            'carregada' => [
+                                                'titulo' => 'Continuar conferência de saída',
                                                 'icone' => 'bi-clipboard-check',
                                                 'classe' => 'btn-outline-primary',
+                                                'tipo' => 'romaneio',
                                             ],
 
-                                            'aguardando_liberacao' => [
-                                                'titulo' => 'Continuar liberação do veículo',
+                                            'liberada' => [
+                                                'titulo' => 'Registrar saída do veículo',
                                                 'icone' => 'bi-sign-turn-right',
                                                 'classe' => 'btn-outline-success',
+                                                'tipo' => 'romaneio',
                                             ],
 
                                             'em_rota',
-                                            'parcial' => [
-                                                'titulo' => 'Confirmar entrega',
+                                            'no_destino' => [
+                                                'titulo' => 'Registrar retorno e resultado da entrega',
                                                 'icone' => 'bi-check2-circle',
                                                 'classe' => 'btn-outline-success',
+                                                'tipo' => 'retorno',
+                                            ],
+
+                                            'entregue_parcial',
+                                            'nao_entregue',
+                                            'recusada',
+                                            'reagendada',
+                                            'devolvida' => [
+                                                'titulo' => 'Consultar tratativa da entrega',
+                                                'icone' => 'bi-clipboard-pulse',
+                                                'classe' => 'btn-outline-warning',
+                                                'tipo' => 'visualizar',
                                             ],
 
                                             default => null,
                                         };
 
-                                        $podeCancelar = !in_array(
+                                        $tipoAcaoOperacional = $acaoOperacional['tipo'] ?? null;
+
+                                        $podeCancelar = ! in_array(
                                             $statusEntrega,
-                                            ['entregue', 'cancelado', 'devolvido'],
+                                            [
+                                                'em_rota',
+                                                'no_destino',
+                                                'entregue',
+                                                'entregue_parcial',
+                                                'nao_entregue',
+                                                'recusada',
+                                                'reagendada',
+                                                'devolvida',
+                                                'cancelada',
+                                            ],
                                             true
                                         );
                                     ?>
@@ -817,27 +878,39 @@
                                         title="Visualizar entrega">
 
                                             <i class="bi bi-eye"></i>
+                                    
                                         </a>
 
+                                       
                                         
-                                        <?php if(in_array($statusEntrega, ['em_rota', 'parcial'], true)): ?>
-                                            <form method="POST"
-                                                action="<?php echo e(route('entregas.confirmar', $entrega->id)); ?>">
-
-                                                <?php echo csrf_field(); ?>
-                                                <?php echo method_field('PATCH'); ?>
-
-                                                <button type="submit"
-                                                        class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
-                                                        title="<?php echo e($acaoOperacional['titulo']); ?>"
-                                                        onclick="return confirm('Confirmar esta entrega como concluída?')">
-
-                                                    <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
-                                                </button>
-                                            </form>
-
-                                        <?php elseif($acaoOperacional): ?>
+                                        <?php if($tipoAcaoOperacional === 'romaneio'): ?>
                                             <a href="<?php echo e(route('romaneios.create', ['entrega_id' => $entrega->id])); ?>"
+                                            class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
+                                            title="<?php echo e($acaoOperacional['titulo']); ?>">
+
+                                                <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
+                                            </a>
+                                         
+                                        
+                                        <a href="<?php echo e(route('entregas.show', $entrega->id)); ?>"
+                                        class="btn btn-outline-primary btn-sm acao-btn"
+                                        title="Visualizar rota">
+
+                                            <i class="bi bi-geo-alt"></i>
+                                        </a>
+                                        
+
+
+                                        <?php elseif($tipoAcaoOperacional === 'retorno'): ?>
+                                            <a href="<?php echo e(route('entregas.retorno', $entrega->id)); ?>"
+                                            class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
+                                            title="<?php echo e($acaoOperacional['titulo']); ?>">
+
+                                                <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
+                                            </a>
+
+                                        <?php elseif($tipoAcaoOperacional === 'visualizar'): ?>
+                                            <a href="<?php echo e(route('entregas.show', $entrega->id)); ?>"
                                             class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
                                             title="<?php echo e($acaoOperacional['titulo']); ?>">
 
@@ -887,7 +960,6 @@
                                     </div>
                                 </td>
                             </tr>
-
                             <tr class="collapse linha-itens"
                                 id="itens-entrega-<?php echo e($entrega->id); ?>">
 

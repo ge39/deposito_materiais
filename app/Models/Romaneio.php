@@ -17,23 +17,54 @@ class Romaneio extends Model
         'codigo_romaneio',
         'token_abertura',
         'token_fechamento',
+        'Cancelado',
         'status',
+
         'veiculo_id',
         'motorista_id',
+
         'iniciado_por',
         'carregado_por',
         'conferido_por',
         'finalizado_por',
+
         'data_emissao',
         'impresso_em',
         'impresso_por',
+
         'data_inicio_separacao',
         'data_fim_separacao',
+
+        'data_inicio_conferencia_separacao',
+        'data_fim_conferencia_separacao',
+        'conferencia_separacao_iniciada_por',
+        'conferencia_separacao_finalizada_por',
+
         'data_inicio_carregamento',
         'data_fim_carregamento',
+
+        'data_inicio_conferencia_saida',
+        'data_fim_conferencia_saida',
+        'conferencia_saida_iniciada_por',
+        'conferencia_saida_finalizada_por',
+
         'data_saida',
+        'data_retorno',
+        'retorno_registrado_por',
+
+        'data_inicio_prestacao_contas',
+        'data_fim_prestacao_contas',
+        'prestacao_contas_por',
+
         'data_baixa',
+
+        'fechado_em',
+        'fechado_por',
+        'metodo_fechamento',
+        'justificativa_fechamento_manual',
+
         'percentual_carregado',
+
         'observacao',
         'motivo_cancelamento',
         'cancelado_em',
@@ -43,15 +74,37 @@ class Romaneio extends Model
     protected $casts = [
         'data_emissao' => 'datetime',
         'impresso_em' => 'datetime',
+
         'data_inicio_separacao' => 'datetime',
         'data_fim_separacao' => 'datetime',
+
+        'data_inicio_conferencia_separacao' => 'datetime',
+        'data_fim_conferencia_separacao' => 'datetime',
+
         'data_inicio_carregamento' => 'datetime',
         'data_fim_carregamento' => 'datetime',
+
+        'data_inicio_conferencia_saida' => 'datetime',
+        'data_fim_conferencia_saida' => 'datetime',
+
         'data_saida' => 'datetime',
+        'data_retorno' => 'datetime',
+
+        'data_inicio_prestacao_contas' => 'datetime',
+        'data_fim_prestacao_contas' => 'datetime',
+
         'data_baixa' => 'datetime',
+        'fechado_em' => 'datetime',
         'cancelado_em' => 'datetime',
+
         'percentual_carregado' => 'decimal:2',
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relacionamentos principais
+    |--------------------------------------------------------------------------
+    */
 
     public function entrega(): BelongsTo
     {
@@ -66,7 +119,7 @@ class Romaneio extends Model
         return $this->hasMany(
             RomaneioItem::class,
             'romaneio_id'
-        );
+        )->orderBy('ordem');
     }
 
     public function veiculo(): BelongsTo
@@ -85,6 +138,12 @@ class Romaneio extends Model
         );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Usuários responsáveis por ações no sistema
+    |--------------------------------------------------------------------------
+    */
+
     public function criador(): BelongsTo
     {
         return $this->belongsTo(
@@ -98,22 +157,6 @@ class Romaneio extends Model
         return $this->belongsTo(
             User::class,
             'iniciado_por'
-        );
-    }
-
-    public function carregador(): BelongsTo
-    {
-        return $this->belongsTo(
-            User::class,
-            'carregado_por'
-        );
-    }
-
-    public function conferente(): BelongsTo
-    {
-        return $this->belongsTo(
-            User::class,
-            'conferido_por'
         );
     }
 
@@ -133,6 +176,62 @@ class Romaneio extends Model
         );
     }
 
+    public function usuarioInicioConferenciaSeparacao(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'conferencia_separacao_iniciada_por'
+        );
+    }
+
+    public function usuarioFimConferenciaSeparacao(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'conferencia_separacao_finalizada_por'
+        );
+    }
+
+    public function usuarioInicioConferenciaSaida(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'conferencia_saida_iniciada_por'
+        );
+    }
+
+    public function usuarioFimConferenciaSaida(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'conferencia_saida_finalizada_por'
+        );
+    }
+
+    public function usuarioRegistroRetorno(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'retorno_registrado_por'
+        );
+    }
+
+    public function usuarioPrestacaoContas(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'prestacao_contas_por'
+        );
+    }
+
+    public function usuarioFechamento(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'fechado_por'
+        );
+    }
+
     public function cancelador(): BelongsTo
     {
         return $this->belongsTo(
@@ -140,6 +239,34 @@ class Romaneio extends Model
             'cancelado_por'
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Funcionários responsáveis pela execução física
+    |--------------------------------------------------------------------------
+    */
+
+    public function carregador(): BelongsTo
+    {
+        return $this->belongsTo(
+            Funcionario::class,
+            'carregado_por'
+        );
+    }
+
+    public function conferente(): BelongsTo
+    {
+        return $this->belongsTo(
+            Funcionario::class,
+            'conferido_por'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Equipe operacional
+    |--------------------------------------------------------------------------
+    */
 
     public function equipes(): HasMany
     {
@@ -154,9 +281,112 @@ class Romaneio extends Model
         return $this->hasOne(
             RomaneioEquipe::class,
             'romaneio_id'
-        )->where(
-            'status',
-            'Ativa'
+        )->where('status', 'Ativa');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ocorrências e auditoria
+    |--------------------------------------------------------------------------
+    */
+
+    public function ocorrencias(): HasMany
+    {
+        return $this->hasMany(
+            RomaneioOcorrencia::class,
+            'romaneio_id'
         );
+    }
+
+    public function eventos(): HasMany
+    {
+        return $this->hasMany(
+            RomaneioEvento::class,
+            'romaneio_id'
+        )->orderBy('ocorrido_em');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Regras auxiliares do domínio
+    |--------------------------------------------------------------------------
+    */
+
+    public function possuiOcorrenciaCriticaAberta(): bool
+    {
+        return $this->ocorrencias()
+            ->where('criticidade', 'Critico')
+            ->whereIn('status', [
+                'Aberta',
+                'Em_analise',
+            ])
+            ->exists();
+    }
+
+    public function possuiOcorrenciaBloqueante(): bool
+    {
+        return $this->ocorrencias()
+            ->where('bloqueia_operacao', true)
+            ->whereIn('status', [
+                'Aberta',
+                'Em_analise',
+            ])
+            ->exists();
+    }
+
+    public function possuiOcorrenciaAguardandoAutorizacao(): bool
+    {
+        return $this->ocorrencias()
+            ->where('exige_autorizacao', true)
+            ->whereNull('autorizada_por')
+            ->whereIn('status', [
+                'Aberta',
+                'Em_analise',
+            ])
+            ->exists();
+    }
+
+    public function prestacaoContasConciliada(): bool
+    {
+        return ! $this->itens()
+            ->get()
+            ->contains(
+                fn (RomaneioItem $item): bool =>
+                    ! $item->prestacaoContasConciliada()
+            );
+    }
+
+    public function podeSerFechado(): bool
+    {
+        if ($this->possuiOcorrenciaBloqueante()) {
+            return false;
+        }
+
+        if ($this->possuiOcorrenciaAguardandoAutorizacao()) {
+            return false;
+        }
+
+        if (! $this->prestacaoContasConciliada()) {
+            return false;
+        }
+
+        return in_array(
+            $this->status,
+            [
+                'Aguardando_fechamento',
+                'Em_prestacao_contas',
+            ],
+            true
+        );
+    }
+
+    public function estaFechado(): bool
+    {
+        return $this->status === 'Fechado';
+    }
+
+    public function estaCancelado(): bool
+    {
+        return $this->status === 'Cancelado';
     }
 }

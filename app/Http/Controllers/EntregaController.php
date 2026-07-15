@@ -57,6 +57,30 @@ class EntregaController extends Controller
 
     public function index(Request $request)
     {
+        $statusMap = [
+            'pendente_pagamento' => 'Pendente_pagamento',
+            'aguardando_faturamento' => 'Aguardando_faturamento',
+            'aguardando_separacao' => 'Aguardando_separacao',
+            'separando' => 'Em_preparacao',
+            'em_preparacao' => 'Em_preparacao',
+            'pronta_para_carregamento' => 'Pronta_para_carregamento',
+            'carregado' => 'Carregada',
+            'carregada' => 'Carregada',
+            'liberada' => 'Liberada',
+            'em_rota' => 'Em_rota',
+            'no_destino' => 'No_destino',
+            'entregue' => 'Entregue',
+            'parcial' => 'Entregue_parcial',
+            'entregue_parcial' => 'Entregue_parcial',
+            'nao_entregue' => 'Nao_entregue',
+            'recusada' => 'Recusada',
+            'reagendada' => 'Reagendada',
+            'devolvido' => 'Devolvida',
+            'devolvida' => 'Devolvida',
+            'cancelado' => 'Cancelada',
+            'cancelada' => 'Cancelada',
+        ];
+
         $query = Entrega::with([
             'venda',
             'orcamento',
@@ -66,71 +90,130 @@ class EntregaController extends Controller
         ])->orderByDesc('id');
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $statusInformado = strtolower(
+                trim((string) $request->status)
+            );
+
+            if (isset($statusMap[$statusInformado])) {
+                $query->where(
+                    'status',
+                    $statusMap[$statusInformado]
+                );
+            }
         }
 
         if ($request->filled('data_prevista')) {
-            $query->whereDate('data_prevista', $request->data_prevista);
+            $query->whereDate(
+                'data_prevista',
+                $request->data_prevista
+            );
         }
 
         if ($request->filled('codigo_entrega')) {
-            $query->where('codigo_entrega', 'like', '%' . $request->codigo_entrega . '%');
+            $query->where(
+                'codigo_entrega',
+                'like',
+                '%' . trim((string) $request->codigo_entrega) . '%'
+            );
         }
 
-        $entregas = $query->paginate(20)->withQueryString();
+        $entregas = $query
+            ->paginate(20)
+            ->withQueryString();
 
-       $resumo = [
-            'pendente_pagamento' => Entrega::where('status', 'pendente_pagamento')->count(),
+        $resumo = [
+            'pendente_pagamento' => Entrega::where(
+                'status',
+                'Pendente_pagamento'
+            )->count(),
 
-            'aguardando_separacao' => Entrega::where('status', 'aguardando_separacao')->count(),
+            'aguardando_separacao' => Entrega::where(
+                'status',
+                'Aguardando_separacao'
+            )->count(),
 
-            'separando' => Entrega::where('status', 'separando')->count(),
+            'separando' => Entrega::where(
+                'status',
+                'Em_preparacao'
+            )->count(),
 
-            'carregados' => Entrega::where('status', 'carregado')->count(),
+            'carregados' => Entrega::where(
+                'status',
+                'Carregada'
+            )->count(),
 
-            'em_rota' => Entrega::where('status', 'em_rota')->count(),
+            'em_rota' => Entrega::where(
+                'status',
+                'Em_rota'
+            )->count(),
 
-            'entregues' => Entrega::where('status', 'entregue')->count(),
+            'entregues' => Entrega::where(
+                'status',
+                'Entregue'
+            )->count(),
 
-            'parciais' => Entrega::where('status', 'parcial')->count(),
+            'parciais' => Entrega::where(
+                'status',
+                'Entregue_parcial'
+            )->count(),
 
-            'devolvidos' => Entrega::where('status', 'devolvido')->count(),
+            'devolvidos' => Entrega::where(
+                'status',
+                'Devolvida'
+            )->count(),
 
-            'cancelados' => Entrega::where('status', 'cancelado')->count(),
+            'cancelados' => Entrega::where(
+                'status',
+                'Cancelada'
+            )->count(),
 
-            'atrasadas' => Entrega::whereDate('data_prevista', '<', now()->toDateString())
-                ->whereNotIn('status', ['entregue', 'cancelado', 'devolvido'])
+            'atrasadas' => Entrega::whereDate(
+                'data_prevista',
+                '<',
+                now()->toDateString()
+            )
+                ->whereNotIn('status', [
+                    'Entregue',
+                    'Cancelada',
+                    'Devolvida',
+                ])
                 ->count(),
         ];
 
-        return view('entregas.index', compact('entregas', 'resumo'));
+        return view(
+            'entregas.index',
+            compact(
+                'entregas',
+                'resumo'
+            )
+        );
     }
 
-   public function show(Entrega $entrega)
-{
-    $entrega->load([
-        'motorista',
-        'veiculo',
+    public function show(Entrega $entrega)
+    {
+        $entrega->load([
+            'motorista',
+            'veiculo',
 
-        'romaneio',
-        'romaneio.motorista',
-        'romaneio.veiculo',
+            'romaneio',
+            'romaneio.motorista',
+            'romaneio.veiculo',
 
-        'venda',
-        'venda.cliente',
-        'venda.itens.produto',
+            'venda',
+            'venda.cliente',
+            'venda.itens.produto',
 
-        'orcamento',
-        'orcamento.cliente',
-        'orcamento.itens.produto',
+            'orcamento',
+            'orcamento.cliente',
+            'orcamento.itens.produto',
 
-        'itens',
-        'itens.vendaItem.produto',
-        'itens.itemOrcamento.produto',
-    ]);
+            'itens',
+            'itens.vendaItem.produto',
+            'itens.itemOrcamento.produto',
+        ]);
 
-    return view('entregas.show', compact('entrega'));
-}
+        return view('entregas.show', compact('entrega'));
+    }
 
     public function separar(Entrega $entrega)
     {
