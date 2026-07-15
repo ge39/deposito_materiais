@@ -379,136 +379,157 @@
 
         <div class="card-body">
             <form method="GET"
-                  action="<?php echo e(route('entregas.index')); ?>"
-                  class="row g-2 align-items-end">
+                action="<?php echo e(route('entregas.index')); ?>"
+                class="row g-2 align-items-end">
 
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label mb-1 fw-semibold">
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <label for="codigo_entrega"
+                        class="form-label mb-1 fw-semibold">
                         Código da Entrega
                     </label>
 
                     <input type="text"
-                           name="codigo_entrega"
-                           class="form-control form-control-sm"
-                           value="<?php echo e(request('codigo_entrega')); ?>"
-                           placeholder="Ex: ENT-20260629">
+                        id="codigo_entrega"
+                        name="codigo_entrega"
+                        class="form-control form-control-sm"
+                        value="<?php echo e(request('codigo_entrega')); ?>"
+                        placeholder="Ex: ENT-20260629">
                 </div>
 
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label mb-1 fw-semibold">
+                <div class="col-xl-2 col-lg-3 col-md-6">
+                    <label for="status"
+                        class="form-label mb-1 fw-semibold">
                         Status
                     </label>
 
-                    <select name="status"
+                    <select id="status"
+                            name="status"
                             class="form-select form-select-sm">
 
-                        <option value="">Todos</option>
-
-                        <option value="pendente_pagamento"
-                            <?php if(request('status') === 'pendente_pagamento'): echo 'selected'; endif; ?>>
-                            Pendente Pagamento
+                        <option value="">
+                            Todos
                         </option>
 
-                        <option value="aguardando_faturamento"
-                            <?php if(request('status') === 'aguardando_faturamento'): echo 'selected'; endif; ?>>
-                            Aguardando Faturamento
+                        <option value="pendente_pagamento"
+                            <?php if(
+                                request('status')
+                                === 'pendente_pagamento'
+                            ): echo 'selected'; endif; ?>>
+                            Pendente pagamento
                         </option>
 
                         <option value="aguardando_separacao"
-                            <?php if(request('status') === 'aguardando_separacao'): echo 'selected'; endif; ?>>
-                            Aguardando Separação
+                            <?php if(
+                                request('status')
+                                === 'aguardando_separacao'
+                            ): echo 'selected'; endif; ?>>
+                            Aguardando separação
                         </option>
 
-                        <option value="em_preparacao"
-                            <?php if(request('status') === 'em_preparacao'): echo 'selected'; endif; ?>>
-                            Em Preparação
+                        <option value="separando"
+                            <?php if(
+                                request('status')
+                                === 'separando'
+                            ): echo 'selected'; endif; ?>>
+                            Separando
                         </option>
 
-                        <option value="pronta_para_carregamento"
-                            <?php if(request('status') === 'pronta_para_carregamento'): echo 'selected'; endif; ?>>
-                            Pronta para Carregamento
-                        </option>
-
-                        <option value="carregada"
-                            <?php if(request('status') === 'carregada'): echo 'selected'; endif; ?>>
+                        <option value="carregado"
+                            <?php if(
+                                request('status')
+                                === 'carregado'
+                            ): echo 'selected'; endif; ?>>
                             Carregada
                         </option>
 
-                        <option value="liberada"
-                            <?php if(request('status') === 'liberada'): echo 'selected'; endif; ?>>
-                            Liberada
-                        </option>
-
                         <option value="em_rota"
-                            <?php if(request('status') === 'em_rota'): echo 'selected'; endif; ?>>
-                            Em Rota
-                        </option>
-
-                        <option value="no_destino"
-                            <?php if(request('status') === 'no_destino'): echo 'selected'; endif; ?>>
-                            No Destino
+                            <?php if(
+                                request('status')
+                                === 'em_rota'
+                            ): echo 'selected'; endif; ?>>
+                            Em rota
                         </option>
 
                         <option value="entregue"
-                            <?php if(request('status') === 'entregue'): echo 'selected'; endif; ?>>
+                            <?php if(
+                                request('status')
+                                === 'entregue'
+                            ): echo 'selected'; endif; ?>>
                             Entregue
                         </option>
 
-                        <option value="entregue_parcial"
-                            <?php if(request('status') === 'entregue_parcial'): echo 'selected'; endif; ?>>
-                            Entregue Parcial
-                        </option>
-
-                        <option value="nao_entregue"
-                            <?php if(request('status') === 'nao_entregue'): echo 'selected'; endif; ?>>
-                            Não Entregue
-                        </option>
-
-                        <option value="recusada"
-                            <?php if(request('status') === 'recusada'): echo 'selected'; endif; ?>>
-                            Recusada
-                        </option>
-
-                        <option value="reagendada"
-                            <?php if(request('status') === 'reagendada'): echo 'selected'; endif; ?>>
-                            Reagendada
+                        <option value="parcial"
+                            <?php if(
+                                request('status')
+                                === 'parcial'
+                            ): echo 'selected'; endif; ?>>
+                            Parcial
                         </option>
 
                         <option value="devolvida"
-                            <?php if(request('status') === 'devolvida'): echo 'selected'; endif; ?>>
+                            <?php if(
+                                request('status')
+                                === 'devolvida'
+                            ): echo 'selected'; endif; ?>>
                             Devolvida
                         </option>
 
                         <option value="cancelada"
-                            <?php if(request('status') === 'cancelada'): echo 'selected'; endif; ?>>
+                            <?php if(
+                                request('status')
+                                === 'cancelada'
+                            ): echo 'selected'; endif; ?>>
                             Cancelada
                         </option>
                     </select>
                 </div>
 
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label mb-1 fw-semibold">
-                        Data Prevista
+                <div class="col-xl-2 col-lg-2 col-md-6">
+                    <label for="data_inicio"
+                        class="form-label mb-1 fw-semibold">
+                        Data Inicial
                     </label>
 
                     <input type="date"
-                           name="data_prevista"
-                           class="form-control form-control-sm"
-                           value="<?php echo e(request('data_prevista')); ?>">
+                        id="data_inicio"
+                        name="data_inicio"
+                        class="form-control form-control-sm"
+                        value="<?php echo e(request(
+                                    'data_inicio',
+                                    $dataInicio->format('Y-m-d')
+                                )); ?>">
                 </div>
 
-                <div class="col-lg-3 col-md-6">
+                <div class="col-xl-2 col-lg-2 col-md-6">
+                    <label for="data_fim"
+                        class="form-label mb-1 fw-semibold">
+                        Data Final
+                    </label>
+
+                    <input type="date"
+                        id="data_fim"
+                        name="data_fim"
+                        class="form-control form-control-sm"
+                        value="<?php echo e(request(
+                                    'data_fim',
+                                    $dataFim->format('Y-m-d')
+                                )); ?>">
+                </div>
+
+                <div class="col-xl-3 col-lg-12">
                     <div class="d-flex gap-2">
                         <button type="submit"
                                 class="btn btn-primary btn-sm">
 
-                            <i class="bi bi-search me-1"></i>Buscar
+                            <i class="bi bi-search me-1"></i>
+                            Buscar
                         </button>
 
                         <a href="<?php echo e(route('entregas.index')); ?>"
-                           class="btn btn-outline-secondary btn-sm">
+                        class="btn btn-outline-secondary btn-sm">
 
-                            <i class="bi bi-x-circle me-1"></i>Limpar
+                            <i class="bi bi-x-circle me-1"></i>
+                            Limpar
                         </a>
                     </div>
                 </div>
@@ -564,584 +585,848 @@
                         </tr>
                     </thead>
 
-                    <tbody>
-                        <?php $__empty_1 = true; $__currentLoopData = $entregas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $entrega): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                            <?php
-                                $statusClasses = [
-                                    'pendente_pagamento'   => 'bg-secondary',
-                                    'aguardando_separacao' => 'bg-secondary',
-                                    'separando'            => 'bg-primary',
-                                    'carregado'            => 'bg-info text-dark',
-                                    'em_rota'              => 'bg-dark',
-                                    'entregue'             => 'bg-success',
-                                    'parcial'              => 'bg-warning text-dark',
-                                    'devolvido'            => 'bg-danger',
-                                    'cancelado'            => 'bg-danger',
-                                ];
+                   <tbody>
+    <?php $__empty_1 = true; $__currentLoopData = $entregas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $entrega): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+        <?php
+            $statusEntrega = strtolower(
+                trim(
+                    (string) ($entrega->status ?? '')
+                )
+            );
 
-                                $statusLabels = [
-                                    'pendente_pagamento'   => 'Pendente pagamento',
-                                    'aguardando_separacao' => 'Aguardando separação',
-                                    'separando'            => 'Separando',
-                                    'carregado'            => 'Carregado',
-                                    'em_rota'              => 'Em rota',
-                                    'entregue'             => 'Entregue',
-                                    'parcial'              => 'Parcial',
-                                    'devolvido'            => 'Devolvido',
-                                    'cancelado'            => 'Cancelado',
-                                ];
+            $statusClasses = [
+                'pendente_pagamento' => 'bg-secondary',
+                'aguardando_separacao' => 'bg-secondary',
+                'separando' => 'bg-primary',
+                'em_preparacao' => 'bg-primary',
+                'pronta_para_carregamento' => 'bg-info text-dark',
+                'carregando' => 'bg-info text-dark',
+                'carregado' => 'bg-info text-dark',
+                'carregada' => 'bg-info text-dark',
+                'aguardando_conferencia' => 'bg-info text-dark',
+                'aguardando_liberacao' => 'bg-warning text-dark',
+                'liberada' => 'bg-success',
+                'em_rota' => 'bg-dark',
+                'no_destino' => 'bg-dark',
+                'entregue' => 'bg-success',
+                'entregue_parcial' => 'bg-warning text-dark',
+                'parcial' => 'bg-warning text-dark',
+                'nao_entregue' => 'bg-danger',
+                'recusada' => 'bg-danger',
+                'reagendada' => 'bg-warning text-dark',
+                'devolvida' => 'bg-danger',
+                'devolvido' => 'bg-danger',
+                'cancelada' => 'bg-danger',
+                'cancelado' => 'bg-danger',
+            ];
 
-                                $dataPrevista = $entrega->data_prevista
-                                    ? \Carbon\Carbon::parse($entrega->data_prevista)->startOfDay()
-                                    : null;
+            $statusLabels = [
+                'pendente_pagamento' => 'Pendente pagamento',
+                'aguardando_separacao' => 'Aguardando separação',
+                'separando' => 'Separando',
+                'em_preparacao' => 'Em preparação',
+                'pronta_para_carregamento' => 'Pronta para carregamento',
+                'carregando' => 'Carregando',
+                'carregado' => 'Carregado',
+                'carregada' => 'Carregada',
+                'aguardando_conferencia' => 'Aguardando conferência',
+                'aguardando_liberacao' => 'Aguardando liberação',
+                'liberada' => 'Liberada',
+                'em_rota' => 'Em rota',
+                'no_destino' => 'No destino',
+                'entregue' => 'Entregue',
+                'entregue_parcial' => 'Entregue parcialmente',
+                'parcial' => 'Parcial',
+                'nao_entregue' => 'Não entregue',
+                'recusada' => 'Recusada',
+                'reagendada' => 'Reagendada',
+                'devolvida' => 'Devolvida',
+                'devolvido' => 'Devolvido',
+                'cancelada' => 'Cancelada',
+                'cancelado' => 'Cancelado',
+            ];
 
-                                $hoje = now()->startOfDay();
+            $dataPrevista = ! empty($entrega->data_prevista)
+                ? \Carbon\Carbon::parse(
+                    $entrega->data_prevista
+                )->startOfDay()
+                : null;
 
-                                $statusFinalizado = in_array(
-                                    $entrega->status,
-                                    ['entregue', 'cancelado', 'devolvido'],
-                                    true
-                                );
+            $hoje = now()->startOfDay();
 
-                                $atrasada = $dataPrevista
-                                    && $dataPrevista->lt($hoje)
-                                    && !$statusFinalizado;
+            $statusFinalizado = in_array(
+                $statusEntrega,
+                [
+                    'entregue',
+                    'cancelada',
+                    'cancelado',
+                    'devolvida',
+                    'devolvido',
+                ],
+                true
+            );
 
-                                $venceHoje = $dataPrevista
-                                    && $dataPrevista->equalTo($hoje)
-                                    && !$statusFinalizado;
+            $atrasada = $dataPrevista
+                && $dataPrevista->lt($hoje)
+                && ! $statusFinalizado;
 
-                                $venceAmanha = $dataPrevista
-                                    && $dataPrevista->equalTo($hoje->copy()->addDay())
-                                    && !$statusFinalizado;
+            $venceHoje = $dataPrevista
+                && $dataPrevista->equalTo($hoje)
+                && ! $statusFinalizado;
 
-                                $itensEntrega = $entrega->itens ?? collect();
-                                $totalItens = $itensEntrega->count();
+            $venceAmanha = $dataPrevista
+                && $dataPrevista->equalTo(
+                    $hoje->copy()->addDay()
+                )
+                && ! $statusFinalizado;
 
-                                $itensEntregues = $itensEntrega
-                                    ->filter(function ($item) {
-                                        return strtolower($item->status ?? '') === 'entregue';
-                                    })
-                                    ->count();
+            $itensEntrega = collect(
+                $entrega->itens ?? []
+            );
 
-                                $linhaClasse = match ($entrega->status) {
-                                    'pendente_pagamento'   => 'table-light',
-                                    'aguardando_separacao' => '',
-                                    'separando'            => 'table-primary',
-                                    'carregado'            => 'table-info',
-                                    'em_rota'              => 'table-dark',
-                                    'entregue'             => 'table-success',
-                                    'parcial'              => 'table-warning',
-                                    'devolvido',
-                                    'cancelado'            => 'table-danger',
-                                    default                => '',
-                                };
+            $totalItens = $itensEntrega->count();
 
-                                if ($atrasada) {
-                                    $linhaClasse = 'table-danger';
-                                }
+            /*
+             * O contador acompanha a etapa operacional da entrega.
+             *
+             * Depois do carregamento/liberação/saída, todos os itens
+             * já devem estar operacionalmente concluídos, ainda que
+             * entrega_itens.status não tenha sido alterado para Entregue.
+             */
+            $itensConcluidos = match ($statusEntrega) {
+                'pronta_para_carregamento',
+                'carregando',
+                'carregado',
+                'carregada',
+                'aguardando_conferencia',
+                'aguardando_liberacao',
+                'liberada',
+                'em_rota',
+                'no_destino' =>
+                    $totalItens,
 
-                                $prioridadeLabel = 'NORMAL';
-                                $prioridadeClasse = 'bg-success';
-                                $prioridadeIcone = 'bi-calendar-check';
+                'entregue' =>
+                    $totalItens,
 
-                                if ($atrasada) {
-                                    $prioridadeLabel = 'ATRASADA';
-                                    $prioridadeClasse = 'bg-danger';
-                                    $prioridadeIcone = 'bi-alarm';
-                                } elseif ($entrega->status === 'pendente_pagamento') {
-                                    $prioridadeLabel = 'BAIXA';
-                                    $prioridadeClasse = 'bg-secondary';
-                                    $prioridadeIcone = 'bi-clock-history';
-                                } elseif ($venceHoje) {
-                                    $prioridadeLabel = 'HOJE';
-                                    $prioridadeClasse = 'bg-warning text-dark';
-                                    $prioridadeIcone = 'bi-calendar-event';
-                                } elseif ($venceAmanha) {
-                                    $prioridadeLabel = 'AMANHÃ';
-                                    $prioridadeClasse = 'bg-info text-dark';
-                                    $prioridadeIcone = 'bi-calendar2-day';
-                                }
-                            ?>
+                'entregue_parcial',
+                'parcial',
+                'nao_entregue',
+                'recusada',
+                'reagendada',
+                'devolvida',
+                'devolvido' =>
+                    $itensEntrega
+                        ->filter(function ($item) {
+                            $statusItem = strtolower(
+                                trim(
+                                    (string) (
+                                        $item->status
+                                        ?? ''
+                                    )
+                                )
+                            );
 
-                            <tr class="<?php echo e($linhaClasse); ?>">
-                                <td>
-                                    <div class="entrega-codigo">
-                                        <?php echo e($entrega->codigo_entrega ?? 'ENT-' . $entrega->id); ?>
+                            return in_array(
+                                $statusItem,
+                                [
+                                    'entregue',
+                                    'entregue_parcial',
+                                    'parcial',
+                                ],
+                                true
+                            );
+                        })
+                        ->count(),
 
-                                    </div>
+                'separando',
+                'em_preparacao' =>
+                    $itensEntrega
+                        ->filter(function ($item) {
+                            $statusItem = strtolower(
+                                trim(
+                                    (string) (
+                                        $item->status
+                                        ?? ''
+                                    )
+                                )
+                            );
 
-                                    <div class="linha-secundaria">
-                                        ID interno: #<?php echo e($entrega->id); ?>
+                            return in_array(
+                                $statusItem,
+                                [
+                                    'separado',
+                                    'carregado',
+                                    'entregue',
+                                ],
+                                true
+                            );
+                        })
+                        ->count(),
 
-                                    </div>
+                default =>
+                    0,
+            };
 
-                                    <div class="mt-1">
-                                        <span class="badge <?php echo e($prioridadeClasse); ?>">
-                                            <i class="bi <?php echo e($prioridadeIcone); ?> me-1"></i>
-                                            <?php echo e($prioridadeLabel); ?>
+            $linhaClasse = match ($statusEntrega) {
+                'pendente_pagamento' =>
+                    'table-light',
 
-                                        </span>
-                                    </div>
-                                </td>
+                'separando',
+                'em_preparacao' =>
+                    'table-primary',
 
-                                <td class="col-texto">
-                                    <div class="fw-semibold">
-                                        <?php echo e($entrega->responsavel_recebimento ?? 'Responsável não informado'); ?>
+                'pronta_para_carregamento',
+                'carregando',
+                'carregado',
+                'carregada',
+                'aguardando_conferencia' =>
+                    'table-info',
 
-                                    </div>
+                'em_rota',
+                'no_destino' =>
+                    'table-success',
 
-                                    <div class="linha-secundaria">
-                                        <i class="bi bi-telephone me-1"></i>
-                                        <?php echo e($entrega->telefone_recebimento ?? 'Telefone não informado'); ?>
+                'entregue' =>
+                    'table-success',
 
-                                    </div>
-                                </td>
+                'entregue_parcial',
+                'parcial',
+                'reagendada' =>
+                    'table-warning',
 
-                                <td class="documentos text-center">
-                                    <?php if(!empty($entrega->venda_id)): ?>
-                                        <a href="<?php echo e(url('/venda/' . $entrega->venda_id . '/cupom')); ?>"
-                                           target="_self"
-                                           rel="noopener noreferrer"
-                                           class="text-decoration-none fw-semibold">
+                'nao_entregue',
+                'recusada',
+                'devolvida',
+                'devolvido',
+                'cancelada',
+                'cancelado' =>
+                    'table-danger',
 
-                                            <i class="bi bi-receipt me-1"></i>
-                                            VEN-<?php echo e($entrega->venda_id); ?>
+                default =>
+                    '',
+            };
 
-                                        </a>
-                                    <?php else: ?>
-                                        <span class="text-muted">
-                                            <i class="bi bi-receipt me-1"></i>
-                                            Venda —
-                                        </span>
-                                    <?php endif; ?>
+            if ($atrasada) {
+                $linhaClasse = 'table-danger';
+            }
 
-                                    <?php if(!empty($entrega->orcamento_id)): ?>
-                                        <?php if(Route::has('orcamentos.show')): ?>
-                                            <a href="<?php echo e(route('orcamentos.show', $entrega->orcamento_id)); ?>">
-                                                <i class="bi bi-file-earmark-text me-1"></i>
-                                                ORÇ-<?php echo e($entrega->orcamento_id); ?>
+            $prioridadeLabel = 'NORMAL';
+            $prioridadeClasse = 'bg-success';
+            $prioridadeIcone = 'bi-calendar-check';
 
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="text-muted">
-                                                <i class="bi bi-file-earmark-text me-1"></i>
-                                                ORÇ-<?php echo e($entrega->orcamento_id); ?>
+            if ($atrasada) {
+                $prioridadeLabel = 'ATRASADA';
+                $prioridadeClasse = 'bg-danger';
+                $prioridadeIcone = 'bi-alarm';
+            } elseif ($statusEntrega === 'pendente_pagamento') {
+                $prioridadeLabel = 'BAIXA';
+                $prioridadeClasse = 'bg-secondary';
+                $prioridadeIcone = 'bi-clock-history';
+            } elseif ($venceHoje) {
+                $prioridadeLabel = 'HOJE';
+                $prioridadeClasse = 'bg-warning text-dark';
+                $prioridadeIcone = 'bi-calendar-event';
+            } elseif ($venceAmanha) {
+                $prioridadeLabel = 'AMANHÃ';
+                $prioridadeClasse = 'bg-info text-dark';
+                $prioridadeIcone = 'bi-calendar2-day';
+            }
 
-                                            </span>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <span class="text-muted">
-                                            <i class="bi bi-file-earmark-text me-1"></i>
-                                            Orç. —
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
+            $acaoOperacional = match ($statusEntrega) {
+                'aguardando_separacao' => [
+                    'titulo' =>
+                        'Montar romaneio para esta entrega',
+                    'icone' =>
+                        'bi-clipboard-plus',
+                    'classe' =>
+                        'btn-outline-secondary',
+                    'tipo' =>
+                        'romaneio',
+                ],
 
-                                <td class="text-center">
-                                    <div class="fw-semibold">
-                                        <?php echo e($dataPrevista ? $dataPrevista->format('d/m/Y') : '—'); ?>
+                'separando',
+                'em_preparacao' => [
+                    'titulo' =>
+                        'Continuar separação',
+                    'icone' =>
+                        'bi-box-seam',
+                    'classe' =>
+                        'btn-outline-warning',
+                    'tipo' =>
+                        'romaneio',
+                ],
 
-                                    </div>
+                'pronta_para_carregamento',
+                'carregando' => [
+                    'titulo' =>
+                        'Continuar carregamento',
+                    'icone' =>
+                        'bi-truck-front',
+                    'classe' =>
+                        'btn-outline-info',
+                    'tipo' =>
+                        'romaneio',
+                ],
 
-                                    <div class="linha-secundaria">
-                                        <?php echo e($entrega->periodo_entrega ?? 'Período não informado'); ?>
+                'carregado',
+                'carregada',
+                'aguardando_conferencia',
+                'aguardando_liberacao' => [
+                    'titulo' =>
+                        'Continuar conferência ou liberação',
+                    'icone' =>
+                        'bi-clipboard-check',
+                    'classe' =>
+                        'btn-outline-primary',
+                    'tipo' =>
+                        'romaneio',
+                ],
 
-                                    </div>
-                                </td>
+                'liberada' => [
+                    'titulo' =>
+                        'Registrar saída do veículo',
+                    'icone' =>
+                        'bi-sign-turn-right',
+                    'classe' =>
+                        'btn-outline-success',
+                    'tipo' =>
+                        'romaneio',
+                ],
 
-                                <td class="text-center">
-                                    <?php if($entrega->tipo_entrega === 'retira_loja'): ?>
-                                        <span class="badge bg-secondary">
-                                            <i class="bi bi-shop me-1"></i>Retira
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="badge bg-info text-dark">
-                                            <i class="bi bi-truck me-1"></i>Entrega
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
+                'em_rota',
+                'no_destino' => [
+                    'titulo' =>
+                        'Registrar retorno e resultado da entrega',
+                    'icone' =>
+                        'bi-check2-circle',
+                    'classe' =>
+                        'btn-outline-success',
+                    'tipo' =>
+                        'retorno',
+                ],
 
-                                <td class="text-center">
-                                    <span class="badge <?php echo e($statusClasses[$entrega->status] ?? 'bg-secondary'); ?>">
-                                        <?php echo e($statusLabels[$entrega->status]
-                                            ?? ucfirst(str_replace('_', ' ', $entrega->status))); ?>
+                'entregue_parcial',
+                'parcial',
+                'nao_entregue',
+                'recusada',
+                'reagendada',
+                'devolvida',
+                'devolvido' => [
+                    'titulo' =>
+                        'Consultar tratativa da entrega',
+                    'icone' =>
+                        'bi-clipboard-pulse',
+                    'classe' =>
+                        'btn-outline-warning',
+                    'tipo' =>
+                        'visualizar',
+                ],
 
-                                    </span>
-                                </td>
+                default =>
+                    null,
+            };
 
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center align-items-center gap-1">
-                                        <span class="badge bg-light text-dark border">
-                                            <?php echo e($itensEntregues); ?>/<?php echo e($totalItens); ?>
+            $tipoAcaoOperacional =
+                $acaoOperacional['tipo']
+                ?? null;
 
-                                        </span>
+            $podeCancelar = ! in_array(
+                $statusEntrega,
+                [
+                    'em_rota',
+                    'no_destino',
+                    'entregue',
+                    'entregue_parcial',
+                    'parcial',
+                    'nao_entregue',
+                    'recusada',
+                    'reagendada',
+                    'devolvida',
+                    'devolvido',
+                    'cancelada',
+                    'cancelado',
+                ],
+                true
+            );
+        ?>
 
-                                        <button type="button"
-                                                class="btn btn-outline-primary btn-sm itens-toggle"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target="#itens-entrega-<?php echo e($entrega->id); ?>"
-                                                aria-expanded="false"
-                                                aria-controls="itens-entrega-<?php echo e($entrega->id); ?>"
-                                                title="Exibir itens da entrega">
+        <tr class="<?php echo e($linhaClasse); ?>">
+            <td>
+                <div class="entrega-codigo">
+                    <?php echo e($entrega->codigo_entrega
+                        ?? 'ENT-' . $entrega->id); ?>
 
-                                            <i class="bi bi-chevron-down"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                                <td class="text-center">
-                                    <?php
-                                        $statusEntrega = strtolower(trim((string) $entrega->status));
+                </div>
 
-                                        $acaoOperacional = match ($statusEntrega) {
-                                            'aguardando_separacao' => [
-                                                'titulo' => 'Montar romaneio para esta entrega',
-                                                'icone' => 'bi-clipboard-plus',
-                                                'classe' => 'btn-outline-secondary',
-                                                'tipo' => 'romaneio',
-                                            ],
+                <div class="linha-secundaria">
+                    ID interno: #<?php echo e($entrega->id); ?>
 
-                                            'em_preparacao' => [
-                                                'titulo' => 'Continuar separação',
-                                                'icone' => 'bi-box-seam',
-                                                'classe' => 'btn-outline-warning',
-                                                'tipo' => 'romaneio',
-                                            ],
+                </div>
 
-                                            'pronta_para_carregamento' => [
-                                                'titulo' => 'Continuar carregamento',
-                                                'icone' => 'bi-truck-front',
-                                                'classe' => 'btn-outline-info',
-                                                'tipo' => 'romaneio',
-                                            ],
+                <div class="mt-1">
+                    <span class="badge <?php echo e($prioridadeClasse); ?>">
+                        <i class="bi <?php echo e($prioridadeIcone); ?> me-1"></i>
+                        <?php echo e($prioridadeLabel); ?>
 
-                                            'carregada' => [
-                                                'titulo' => 'Continuar conferência de saída',
-                                                'icone' => 'bi-clipboard-check',
-                                                'classe' => 'btn-outline-primary',
-                                                'tipo' => 'romaneio',
-                                            ],
+                    </span>
+                </div>
+            </td>
 
-                                            'liberada' => [
-                                                'titulo' => 'Registrar saída do veículo',
-                                                'icone' => 'bi-sign-turn-right',
-                                                'classe' => 'btn-outline-success',
-                                                'tipo' => 'romaneio',
-                                            ],
+            <td class="col-texto">
+                <div class="fw-semibold">
+                    <?php echo e($entrega->responsavel_recebimento
+                        ?? 'Responsável não informado'); ?>
 
-                                            'em_rota',
-                                            'no_destino' => [
-                                                'titulo' => 'Registrar retorno e resultado da entrega',
-                                                'icone' => 'bi-check2-circle',
-                                                'classe' => 'btn-outline-success',
-                                                'tipo' => 'retorno',
-                                            ],
+                </div>
 
-                                            'entregue_parcial',
-                                            'nao_entregue',
-                                            'recusada',
-                                            'reagendada',
-                                            'devolvida' => [
-                                                'titulo' => 'Consultar tratativa da entrega',
-                                                'icone' => 'bi-clipboard-pulse',
-                                                'classe' => 'btn-outline-warning',
-                                                'tipo' => 'visualizar',
-                                            ],
+                <div class="linha-secundaria">
+                    <i class="bi bi-telephone me-1"></i>
 
-                                            default => null,
-                                        };
+                    <?php echo e($entrega->telefone_recebimento
+                        ?? 'Telefone não informado'); ?>
 
-                                        $tipoAcaoOperacional = $acaoOperacional['tipo'] ?? null;
+                </div>
+            </td>
 
-                                        $podeCancelar = ! in_array(
-                                            $statusEntrega,
-                                            [
-                                                'em_rota',
-                                                'no_destino',
-                                                'entregue',
-                                                'entregue_parcial',
-                                                'nao_entregue',
-                                                'recusada',
-                                                'reagendada',
+            <td class="documentos text-center">
+                <?php if(! empty($entrega->venda_id)): ?>
+                    <a href="<?php echo e(url(
+                            '/venda/'
+                            . $entrega->venda_id
+                            . '/cupom'
+                        )); ?>"
+                       target="_self"
+                       rel="noopener noreferrer"
+                       class="text-decoration-none fw-semibold">
+
+                        <i class="bi bi-receipt me-1"></i>
+                        VEN-<?php echo e($entrega->venda_id); ?>
+
+                    </a>
+                <?php else: ?>
+                    <span class="text-muted">
+                        <i class="bi bi-receipt me-1"></i>
+                        Venda —
+                    </span>
+                <?php endif; ?>
+
+                <?php if(! empty($entrega->orcamento_id)): ?>
+                    <?php if(Route::has('orcamentos.show')): ?>
+                        <a href="<?php echo e(route(
+                            'orcamentos.show',
+                            $entrega->orcamento_id
+                        )); ?>">
+                            <i class="bi bi-file-earmark-text me-1"></i>
+                            ORÇ-<?php echo e($entrega->orcamento_id); ?>
+
+                        </a>
+                    <?php else: ?>
+                        <span class="text-muted">
+                            <i class="bi bi-file-earmark-text me-1"></i>
+                            ORÇ-<?php echo e($entrega->orcamento_id); ?>
+
+                        </span>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <span class="text-muted">
+                        <i class="bi bi-file-earmark-text me-1"></i>
+                        Orç. —
+                    </span>
+                <?php endif; ?>
+            </td>
+
+            <td class="text-center">
+                <div class="fw-semibold">
+                    <?php echo e($dataPrevista
+                            ? $dataPrevista->format('d/m/Y')
+                            : '—'); ?>
+
+                </div>
+
+                <div class="linha-secundaria">
+                    <?php echo e($entrega->periodo_entrega
+                        ?? 'Período não informado'); ?>
+
+                </div>
+            </td>
+
+            <td class="text-center">
+                <?php if($entrega->tipo_entrega === 'retira_loja'): ?>
+                    <span class="badge bg-secondary">
+                        <i class="bi bi-shop me-1"></i>
+                        Retira
+                    </span>
+                <?php else: ?>
+                    <span class="badge bg-info text-dark">
+                        <i class="bi bi-truck me-1"></i>
+                        Entrega
+                    </span>
+                <?php endif; ?>
+            </td>
+
+            <td class="text-center">
+                <span class="badge <?php echo e($statusClasses[$statusEntrega]
+                    ?? 'bg-secondary'); ?>">
+                    <?php echo e($statusLabels[$statusEntrega]
+                        ?? ucfirst(
+                            str_replace(
+                                '_',
+                                ' ',
+                                $statusEntrega
+                            )
+                        )); ?>
+
+                </span>
+            </td>
+
+            <td class="text-center">
+                <div class="d-flex justify-content-center align-items-center gap-1">
+                    <span class="badge bg-light text-dark border">
+                        <?php echo e($itensConcluidos); ?>/<?php echo e($totalItens); ?>
+
+                    </span>
+
+                    <button type="button"
+                            class="btn btn-outline-primary btn-sm itens-toggle"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#itens-entrega-<?php echo e($entrega->id); ?>"
+                            aria-expanded="false"
+                            aria-controls="itens-entrega-<?php echo e($entrega->id); ?>"
+                            title="Exibir itens da entrega">
+
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                </div>
+            </td>
+
+            <td class="text-center">
+                <div class="d-flex justify-content-center gap-1 flex-nowrap">
+                    <a href="<?php echo e(route(
+                            'entregas.show',
+                            $entrega->id
+                        )); ?>"
+                       class="btn btn-outline-primary btn-sm acao-btn"
+                       title="Visualizar entrega">
+
+                        <i class="bi bi-eye"></i>
+                    </a>
+
+                    <?php if($tipoAcaoOperacional === 'romaneio'): ?>
+                        <a href="<?php echo e(route(
+                                'romaneios.create',
+                                [
+                                    'entrega_id' =>
+                                        $entrega->id,
+                                ]
+                            )); ?>"
+                           class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
+                           title="<?php echo e($acaoOperacional['titulo']); ?>">
+
+                            <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
+                        </a>
+
+                    <?php elseif($tipoAcaoOperacional === 'retorno'): ?>
+                        <a href="<?php echo e(route(
+                                'entregas.retorno',
+                                $entrega->id
+                            )); ?>"
+                           class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
+                           title="<?php echo e($acaoOperacional['titulo']); ?>">
+
+                            <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
+                        </a>
+
+                    <?php elseif($tipoAcaoOperacional === 'visualizar'): ?>
+                        <a href="<?php echo e(route(
+                                'entregas.show',
+                                $entrega->id
+                            )); ?>"
+                           class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
+                           title="<?php echo e($acaoOperacional['titulo']); ?>">
+
+                            <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
+                        </a>
+
+                    <?php else: ?>
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-sm acao-btn"
+                                title="Nenhuma operação disponível para este status"
+                                disabled>
+
+                            <i class="bi bi-clipboard-x"></i>
+                        </button>
+                    <?php endif; ?>
+
+                    <?php if($podeCancelar): ?>
+                        <form method="POST"
+                              action="<?php echo e(route(
+                                  'entregas.cancelar',
+                                  $entrega->id
+                              )); ?>">
+
+                            <?php echo csrf_field(); ?>
+                            <?php echo method_field('PATCH'); ?>
+
+                            <input type="hidden"
+                                   name="motivo"
+                                   value="Cancelada pelo painel de entregas.">
+
+                            <button type="submit"
+                                    class="btn btn-outline-danger btn-sm acao-btn"
+                                    title="Cancelar entrega"
+                                    onclick="return confirm(
+                                        'Deseja realmente cancelar esta entrega?'
+                                    )">
+
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                    <?php else: ?>
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm acao-btn"
+                                title="Cancelamento indisponível para este status"
+                                disabled>
+
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    <?php endif; ?>
+                </div>
+            </td>
+        </tr>
+
+        <tr class="collapse linha-itens"
+            id="itens-entrega-<?php echo e($entrega->id); ?>">
+
+            <td colspan="8">
+                <div class="painel-itens">
+                    <div class="painel-itens-header">
+                        <span>
+                            <i class="bi bi-box-seam me-2"></i>
+
+                            Itens da Entrega
+                            <?php echo e($entrega->codigo_entrega
+                                ?? '#' . $entrega->id); ?>
+
+                        </span>
+
+                        <span class="badge bg-dark">
+                            <?php echo e($totalItens); ?> item(ns)
+                        </span>
+                    </div>
+
+                    <div class="painel-itens-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered item-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 38%;">
+                                            Produto
+                                        </th>
+
+                                        <th style="width: 14%;">
+                                            Localização
+                                        </th>
+
+                                        <th style="width: 12%;">
+                                            Prevista
+                                        </th>
+
+                                        <th style="width: 12%;">
+                                            Entregue
+                                        </th>
+
+                                        <th style="width: 12%;">
+                                            Saldo
+                                        </th>
+
+                                        <th style="width: 6%;">
+                                            Unid.
+                                        </th>
+
+                                        <th style="width: 6%;">
+                                            Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php $__empty_2 = true; $__currentLoopData = $itensEntrega; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
+                                        <?php
+                                            $produto =
+                                                $item->produto
+                                                ?? $item->vendaItem?->produto
+                                                ?? $item->itemOrcamento?->produto;
+
+                                            $quantidadePrevista = (float) (
+                                                $item->quantidade_prevista
+                                                ?? 0
+                                            );
+
+                                            $quantidadeEntregue = (float) (
+                                                $item->quantidade_entregue
+                                                ?? 0
+                                            );
+
+                                            $saldo = max(
+                                                0,
+                                                $quantidadePrevista
+                                                - $quantidadeEntregue
+                                            );
+
+                                            $unidade =
+                                                $produto?->unidadeMedida?->sigla
+                                                ?? $produto?->unidade
+                                                ?? 'UN';
+
+                                            $localizacao =
+                                                $produto?->localizacaoEstoque?->descricao
+                                                ?? $produto?->localizacaoEstoque?->nome
+                                                ?? $produto?->localizacao_estoque
+                                                ?? '—';
+
+                                            $statusItem = strtolower(
+                                                trim(
+                                                    (string) (
+                                                        $item->status
+                                                        ?? 'pendente'
+                                                    )
+                                                )
+                                            );
+
+                                            $statusItemClasse = match (
+                                                $statusItem
+                                            ) {
+                                                'separado',
+                                                'carregado',
+                                                'entregue' =>
+                                                    'bg-success',
+
+                                                'parcial',
+                                                'entregue_parcial' =>
+                                                    'bg-warning text-dark',
+
+                                                'devolvido',
                                                 'devolvida',
+                                                'cancelado',
                                                 'cancelada',
-                                            ],
-                                            true
-                                        );
-                                    ?>
+                                                'recusado',
+                                                'recusada' =>
+                                                    'bg-danger',
 
-                                    <div class="d-flex justify-content-center gap-1 flex-nowrap">
+                                                default =>
+                                                    'bg-secondary',
+                                            };
 
-                                        
-                                        <a href="<?php echo e(route('entregas.show', $entrega->id)); ?>"
-                                        class="btn btn-outline-primary btn-sm acao-btn"
-                                        title="Visualizar entrega">
+                                            $statusItemLabel = ucfirst(
+                                                str_replace(
+                                                    '_',
+                                                    ' ',
+                                                    $item->status
+                                                    ?? 'Pendente'
+                                                )
+                                            );
+                                        ?>
 
-                                            <i class="bi bi-eye"></i>
-                                    
-                                        </a>
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold">
+                                                    <?php echo e($produto?->nome
+                                                        ?? $produto?->descricao
+                                                        ?? 'Produto não identificado'); ?>
 
-                                       
-                                        
-                                        <?php if($tipoAcaoOperacional === 'romaneio'): ?>
-                                            <a href="<?php echo e(route('romaneios.create', ['entrega_id' => $entrega->id])); ?>"
-                                            class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
-                                            title="<?php echo e($acaoOperacional['titulo']); ?>">
+                                                </div>
 
-                                                <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
-                                            </a>
-                                         
-                                        
-                                        <a href="<?php echo e(route('entregas.show', $entrega->id)); ?>"
-                                        class="btn btn-outline-primary btn-sm acao-btn"
-                                        title="Visualizar rota">
+                                                <div class="linha-secundaria">
+                                                    Código:
+                                                    <?php echo e($produto?->id ?? '—'); ?>
 
-                                            <i class="bi bi-geo-alt"></i>
-                                        </a>
-                                        
+                                                </div>
 
+                                                <?php if(! empty($item->observacao)): ?>
+                                                    <div class="linha-secundaria mt-1">
+                                                        <i class="bi bi-chat-left-text me-1"></i>
+                                                        <?php echo e($item->observacao); ?>
 
-                                        <?php elseif($tipoAcaoOperacional === 'retorno'): ?>
-                                            <a href="<?php echo e(route('entregas.retorno', $entrega->id)); ?>"
-                                            class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
-                                            title="<?php echo e($acaoOperacional['titulo']); ?>">
+                                                    </div>
+                                                <?php endif; ?>
+                                            </td>
 
-                                                <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
-                                            </a>
+                                            <td class="text-center">
+                                                <?php echo e($localizacao); ?>
 
-                                        <?php elseif($tipoAcaoOperacional === 'visualizar'): ?>
-                                            <a href="<?php echo e(route('entregas.show', $entrega->id)); ?>"
-                                            class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
-                                            title="<?php echo e($acaoOperacional['titulo']); ?>">
+                                            </td>
 
-                                                <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
-                                            </a>
+                                            <td class="text-end fw-semibold">
+                                                <?php echo e(number_format(
+                                                        $quantidadePrevista,
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )); ?>
 
-                                        <?php else: ?>
-                                            <button type="button"
-                                                    class="btn btn-outline-secondary btn-sm acao-btn"
-                                                    title="Nenhuma operação disponível para este status"
-                                                    disabled>
+                                            </td>
 
-                                                <i class="bi bi-clipboard-x"></i>
-                                            </button>
-                                        <?php endif; ?>
+                                            <td class="text-end">
+                                                <?php echo e(number_format(
+                                                        $quantidadeEntregue,
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )); ?>
 
-                                        
-                                        <?php if($podeCancelar): ?>
-                                            <form method="POST"
-                                                action="<?php echo e(route('entregas.cancelar', $entrega->id)); ?>">
+                                            </td>
 
-                                                <?php echo csrf_field(); ?>
-                                                <?php echo method_field('PATCH'); ?>
+                                            <td class="text-end fw-bold <?php echo e($saldo > 0
+                                                    ? 'text-danger'
+                                                    : 'text-success'); ?>">
+                                                <?php echo e(number_format(
+                                                        $saldo,
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )); ?>
 
-                                                <input type="hidden"
-                                                    name="motivo"
-                                                    value="Cancelada pelo painel de entregas.">
+                                            </td>
 
-                                                <button type="submit"
-                                                        class="btn btn-outline-danger btn-sm acao-btn"
-                                                        title="Cancelar entrega"
-                                                        onclick="return confirm('Deseja realmente cancelar esta entrega?')">
+                                            <td class="text-center">
+                                                <?php echo e($unidade); ?>
 
-                                                    <i class="bi bi-x-circle"></i>
-                                                </button>
-                                            </form>
-                                        <?php else: ?>
-                                            <button type="button"
-                                                    class="btn btn-outline-danger btn-sm acao-btn"
-                                                    title="Cancelamento indisponível para este status"
-                                                    disabled>
+                                            </td>
 
-                                                <i class="bi bi-x-circle"></i>
-                                            </button>
-                                        <?php endif; ?>
+                                            <td class="text-center">
+                                                <span class="badge <?php echo e($statusItemClasse); ?>">
+                                                    <?php echo e($statusItemLabel); ?>
 
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr class="collapse linha-itens"
-                                id="itens-entrega-<?php echo e($entrega->id); ?>">
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
+                                        <tr>
+                                            <td colspan="7"
+                                                class="text-center text-muted py-3">
 
-                                <td colspan="8">
-                                    <div class="painel-itens">
-                                        <div class="painel-itens-header">
-                                            <span>
-                                                <i class="bi bi-box-seam me-2"></i>
-                                                Itens da Entrega
-                                                <?php echo e($entrega->codigo_entrega ?? '#' . $entrega->id); ?>
+                                                Nenhum item encontrado para esta entrega.
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
 
-                                            </span>
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+        <tr>
+            <td colspan="8"
+                class="text-center text-muted py-4">
 
-                                            <span class="badge bg-dark">
-                                                <?php echo e($totalItens); ?> item(ns)
-                                            </span>
-                                        </div>
-
-                                        <div class="painel-itens-body">
-                                            <div class="table-responsive">
-                                                <table class="table table-sm table-bordered item-table">
-                                                    <thead>
-                                                        <tr>
-                                                            <th style="width: 38%;">Produto</th>
-                                                            <th style="width: 14%;">Localização</th>
-                                                            <th style="width: 12%;">Prevista</th>
-                                                            <th style="width: 12%;">Entregue</th>
-                                                            <th style="width: 12%;">Saldo</th>
-                                                            <th style="width: 6%;">Unid.</th>
-                                                            <th style="width: 6%;">Status</th>
-                                                        </tr>
-                                                    </thead>
-
-                                                    <tbody>
-                                                        <?php $__empty_2 = true; $__currentLoopData = $itensEntrega; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
-                                                            <?php
-                                                                $produto = $item->vendaItem?->produto
-                                                                    ?? $item->itemOrcamento?->produto;
-
-                                                                $quantidadePrevista = (float) (
-                                                                    $item->quantidade_prevista ?? 0
-                                                                );
-
-                                                                $quantidadeEntregue = (float) (
-                                                                    $item->quantidade_entregue ?? 0
-                                                                );
-
-                                                                $saldo = max(
-                                                                    0,
-                                                                    $quantidadePrevista - $quantidadeEntregue
-                                                                );
-
-                                                                $unidade = $produto?->unidade_medida?->sigla
-                                                                    ?? $produto?->unidade
-                                                                    ?? 'UN';
-
-                                                                $localizacao = $produto?->localizacao_estoque
-                                                                    ?? '—';
-
-                                                                $statusItem = strtolower(
-                                                                    $item->status ?? 'pendente'
-                                                                );
-
-                                                                $statusItemClasse = match ($statusItem) {
-                                                                    'separado',
-                                                                    'carregado',
-                                                                    'entregue' => 'bg-success',
-
-                                                                    'parcial' => 'bg-warning text-dark',
-
-                                                                    'devolvido',
-                                                                    'cancelado' => 'bg-danger',
-
-                                                                    default => 'bg-secondary',
-                                                                };
-
-                                                                $statusItemLabel = ucfirst(
-                                                                    str_replace(
-                                                                        '_',
-                                                                        ' ',
-                                                                        $item->status ?? 'Pendente'
-                                                                    )
-                                                                );
-                                                            ?>
-
-                                                            <tr>
-                                                                <td>
-                                                                    <div class="fw-semibold">
-                                                                        <?php echo e($produto?->nome
-                                                                            ?? $produto?->descricao
-                                                                            ?? 'Produto não identificado'); ?>
-
-                                                                    </div>
-
-                                                                    <div class="linha-secundaria">
-                                                                        Código: <?php echo e($produto?->id ?? '—'); ?>
-
-                                                                    </div>
-
-                                                                    <?php if(!empty($item->observacao)): ?>
-                                                                        <div class="linha-secundaria mt-1">
-                                                                            <i class="bi bi-chat-left-text me-1"></i>
-                                                                            <?php echo e($item->observacao); ?>
-
-                                                                        </div>
-                                                                    <?php endif; ?>
-                                                                </td>
-
-                                                                <td class="text-center">
-                                                                    <?php echo e($localizacao); ?>
-
-                                                                </td>
-
-                                                                <td class="text-end fw-semibold">
-                                                                    <?php echo e(number_format(
-                                                                            $quantidadePrevista,
-                                                                            2,
-                                                                            ',',
-                                                                            '.'
-                                                                        )); ?>
-
-                                                                </td>
-
-                                                                <td class="text-end">
-                                                                    <?php echo e(number_format(
-                                                                            $quantidadeEntregue,
-                                                                            2,
-                                                                            ',',
-                                                                            '.'
-                                                                        )); ?>
-
-                                                                </td>
-
-                                                                <td class="text-end fw-bold <?php echo e($saldo > 0 ? 'text-danger' : 'text-success'); ?>">
-                                                                    <?php echo e(number_format(
-                                                                            $saldo,
-                                                                            2,
-                                                                            ',',
-                                                                            '.'
-                                                                        )); ?>
-
-                                                                </td>
-
-                                                                <td class="text-center">
-                                                                    <?php echo e($unidade); ?>
-
-                                                                </td>
-
-                                                                <td class="text-center">
-                                                                    <span class="badge <?php echo e($statusItemClasse); ?>">
-                                                                        <?php echo e($statusItemLabel); ?>
-
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
-                                                            <tr>
-                                                                <td colspan="7"
-                                                                    class="text-center text-muted py-3">
-
-                                                                    Nenhum item encontrado para esta entrega.
-                                                                </td>
-                                                            </tr>
-                                                        <?php endif; ?>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                            <tr>
-                                <td colspan="8"
-                                    class="text-center text-muted py-4">
-
-                                    <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                    Nenhuma entrega encontrada.
-                                </td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
+                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                Nenhuma entrega encontrada.
+            </td>
+        </tr>
+    <?php endif; ?>
+</tbody>
                 </table>
             </div>
         </div>

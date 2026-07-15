@@ -376,136 +376,161 @@
 
         <div class="card-body">
             <form method="GET"
-                  action="{{ route('entregas.index') }}"
-                  class="row g-2 align-items-end">
+                action="{{ route('entregas.index') }}"
+                class="row g-2 align-items-end">
 
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label mb-1 fw-semibold">
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <label for="codigo_entrega"
+                        class="form-label mb-1 fw-semibold">
                         Código da Entrega
                     </label>
 
                     <input type="text"
-                           name="codigo_entrega"
-                           class="form-control form-control-sm"
-                           value="{{ request('codigo_entrega') }}"
-                           placeholder="Ex: ENT-20260629">
+                        id="codigo_entrega"
+                        name="codigo_entrega"
+                        class="form-control form-control-sm"
+                        value="{{ request('codigo_entrega') }}"
+                        placeholder="Ex: ENT-20260629">
                 </div>
 
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label mb-1 fw-semibold">
+                <div class="col-xl-2 col-lg-3 col-md-6">
+                    <label for="status"
+                        class="form-label mb-1 fw-semibold">
                         Status
                     </label>
 
-                    <select name="status"
+                    <select id="status"
+                            name="status"
                             class="form-select form-select-sm">
 
-                        <option value="">Todos</option>
-
-                        <option value="pendente_pagamento"
-                            @selected(request('status') === 'pendente_pagamento')>
-                            Pendente Pagamento
+                        <option value="">
+                            Todos
                         </option>
 
-                        <option value="aguardando_faturamento"
-                            @selected(request('status') === 'aguardando_faturamento')>
-                            Aguardando Faturamento
+                        <option value="pendente_pagamento"
+                            @selected(
+                                request('status')
+                                === 'pendente_pagamento'
+                            )>
+                            Pendente pagamento
                         </option>
 
                         <option value="aguardando_separacao"
-                            @selected(request('status') === 'aguardando_separacao')>
-                            Aguardando Separação
+                            @selected(
+                                request('status')
+                                === 'aguardando_separacao'
+                            )>
+                            Aguardando separação
                         </option>
 
-                        <option value="em_preparacao"
-                            @selected(request('status') === 'em_preparacao')>
-                            Em Preparação
+                        <option value="separando"
+                            @selected(
+                                request('status')
+                                === 'separando'
+                            )>
+                            Separando
                         </option>
 
-                        <option value="pronta_para_carregamento"
-                            @selected(request('status') === 'pronta_para_carregamento')>
-                            Pronta para Carregamento
-                        </option>
-
-                        <option value="carregada"
-                            @selected(request('status') === 'carregada')>
+                        <option value="carregado"
+                            @selected(
+                                request('status')
+                                === 'carregado'
+                            )>
                             Carregada
                         </option>
 
-                        <option value="liberada"
-                            @selected(request('status') === 'liberada')>
-                            Liberada
-                        </option>
-
                         <option value="em_rota"
-                            @selected(request('status') === 'em_rota')>
-                            Em Rota
-                        </option>
-
-                        <option value="no_destino"
-                            @selected(request('status') === 'no_destino')>
-                            No Destino
+                            @selected(
+                                request('status')
+                                === 'em_rota'
+                            )>
+                            Em rota
                         </option>
 
                         <option value="entregue"
-                            @selected(request('status') === 'entregue')>
+                            @selected(
+                                request('status')
+                                === 'entregue'
+                            )>
                             Entregue
                         </option>
 
-                        <option value="entregue_parcial"
-                            @selected(request('status') === 'entregue_parcial')>
-                            Entregue Parcial
-                        </option>
-
-                        <option value="nao_entregue"
-                            @selected(request('status') === 'nao_entregue')>
-                            Não Entregue
-                        </option>
-
-                        <option value="recusada"
-                            @selected(request('status') === 'recusada')>
-                            Recusada
-                        </option>
-
-                        <option value="reagendada"
-                            @selected(request('status') === 'reagendada')>
-                            Reagendada
+                        <option value="parcial"
+                            @selected(
+                                request('status')
+                                === 'parcial'
+                            )>
+                            Parcial
                         </option>
 
                         <option value="devolvida"
-                            @selected(request('status') === 'devolvida')>
+                            @selected(
+                                request('status')
+                                === 'devolvida'
+                            )>
                             Devolvida
                         </option>
 
                         <option value="cancelada"
-                            @selected(request('status') === 'cancelada')>
+                            @selected(
+                                request('status')
+                                === 'cancelada'
+                            )>
                             Cancelada
                         </option>
                     </select>
                 </div>
 
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label mb-1 fw-semibold">
-                        Data Prevista
+                <div class="col-xl-2 col-lg-2 col-md-6">
+                    <label for="data_inicio"
+                        class="form-label mb-1 fw-semibold">
+                        Data Inicial
                     </label>
 
                     <input type="date"
-                           name="data_prevista"
-                           class="form-control form-control-sm"
-                           value="{{ request('data_prevista') }}">
+                        id="data_inicio"
+                        name="data_inicio"
+                        class="form-control form-control-sm"
+                        value="{{
+                                request(
+                                    'data_inicio',
+                                    $dataInicio->format('Y-m-d')
+                                )
+                        }}">
                 </div>
 
-                <div class="col-lg-3 col-md-6">
+                <div class="col-xl-2 col-lg-2 col-md-6">
+                    <label for="data_fim"
+                        class="form-label mb-1 fw-semibold">
+                        Data Final
+                    </label>
+
+                    <input type="date"
+                        id="data_fim"
+                        name="data_fim"
+                        class="form-control form-control-sm"
+                        value="{{
+                                request(
+                                    'data_fim',
+                                    $dataFim->format('Y-m-d')
+                                )
+                        }}">
+                </div>
+
+                <div class="col-xl-3 col-lg-12">
                     <div class="d-flex gap-2">
                         <button type="submit"
                                 class="btn btn-primary btn-sm">
 
-                            <i class="bi bi-search me-1"></i>Buscar
+                            <i class="bi bi-search me-1"></i>
+                            Buscar
                         </button>
 
                         <a href="{{ route('entregas.index') }}"
-                           class="btn btn-outline-secondary btn-sm">
+                        class="btn btn-outline-secondary btn-sm">
 
-                            <i class="bi bi-x-circle me-1"></i>Limpar
+                            <i class="bi bi-x-circle me-1"></i>
+                            Limpar
                         </a>
                     </div>
                 </div>
@@ -557,570 +582,872 @@
                         </tr>
                     </thead>
 
-                    <tbody>
-                        @forelse($entregas as $entrega)
-                            @php
-                                $statusClasses = [
-                                    'pendente_pagamento'   => 'bg-secondary',
-                                    'aguardando_separacao' => 'bg-secondary',
-                                    'separando'            => 'bg-primary',
-                                    'carregado'            => 'bg-info text-dark',
-                                    'em_rota'              => 'bg-dark',
-                                    'entregue'             => 'bg-success',
-                                    'parcial'              => 'bg-warning text-dark',
-                                    'devolvido'            => 'bg-danger',
-                                    'cancelado'            => 'bg-danger',
-                                ];
+                   <tbody>
+    @forelse($entregas as $entrega)
+        @php
+            $statusEntrega = strtolower(
+                trim(
+                    (string) ($entrega->status ?? '')
+                )
+            );
 
-                                $statusLabels = [
-                                    'pendente_pagamento'   => 'Pendente pagamento',
-                                    'aguardando_separacao' => 'Aguardando separação',
-                                    'separando'            => 'Separando',
-                                    'carregado'            => 'Carregado',
-                                    'em_rota'              => 'Em rota',
-                                    'entregue'             => 'Entregue',
-                                    'parcial'              => 'Parcial',
-                                    'devolvido'            => 'Devolvido',
-                                    'cancelado'            => 'Cancelado',
-                                ];
+            $statusClasses = [
+                'pendente_pagamento' => 'bg-secondary',
+                'aguardando_separacao' => 'bg-secondary',
+                'separando' => 'bg-primary',
+                'em_preparacao' => 'bg-primary',
+                'pronta_para_carregamento' => 'bg-info text-dark',
+                'carregando' => 'bg-info text-dark',
+                'carregado' => 'bg-info text-dark',
+                'carregada' => 'bg-info text-dark',
+                'aguardando_conferencia' => 'bg-info text-dark',
+                'aguardando_liberacao' => 'bg-warning text-dark',
+                'liberada' => 'bg-success',
+                'em_rota' => 'bg-dark',
+                'no_destino' => 'bg-dark',
+                'entregue' => 'bg-success',
+                'entregue_parcial' => 'bg-warning text-dark',
+                'parcial' => 'bg-warning text-dark',
+                'nao_entregue' => 'bg-danger',
+                'recusada' => 'bg-danger',
+                'reagendada' => 'bg-warning text-dark',
+                'devolvida' => 'bg-danger',
+                'devolvido' => 'bg-danger',
+                'cancelada' => 'bg-danger',
+                'cancelado' => 'bg-danger',
+            ];
 
-                                $dataPrevista = $entrega->data_prevista
-                                    ? \Carbon\Carbon::parse($entrega->data_prevista)->startOfDay()
-                                    : null;
+            $statusLabels = [
+                'pendente_pagamento' => 'Pendente pagamento',
+                'aguardando_separacao' => 'Aguardando separação',
+                'separando' => 'Separando',
+                'em_preparacao' => 'Em preparação',
+                'pronta_para_carregamento' => 'Pronta para carregamento',
+                'carregando' => 'Carregando',
+                'carregado' => 'Carregado',
+                'carregada' => 'Carregada',
+                'aguardando_conferencia' => 'Aguardando conferência',
+                'aguardando_liberacao' => 'Aguardando liberação',
+                'liberada' => 'Liberada',
+                'em_rota' => 'Em rota',
+                'no_destino' => 'No destino',
+                'entregue' => 'Entregue',
+                'entregue_parcial' => 'Entregue parcialmente',
+                'parcial' => 'Parcial',
+                'nao_entregue' => 'Não entregue',
+                'recusada' => 'Recusada',
+                'reagendada' => 'Reagendada',
+                'devolvida' => 'Devolvida',
+                'devolvido' => 'Devolvido',
+                'cancelada' => 'Cancelada',
+                'cancelado' => 'Cancelado',
+            ];
 
-                                $hoje = now()->startOfDay();
+            $dataPrevista = ! empty($entrega->data_prevista)
+                ? \Carbon\Carbon::parse(
+                    $entrega->data_prevista
+                )->startOfDay()
+                : null;
 
-                                $statusFinalizado = in_array(
-                                    $entrega->status,
-                                    ['entregue', 'cancelado', 'devolvido'],
-                                    true
-                                );
+            $hoje = now()->startOfDay();
 
-                                $atrasada = $dataPrevista
-                                    && $dataPrevista->lt($hoje)
-                                    && !$statusFinalizado;
+            $statusFinalizado = in_array(
+                $statusEntrega,
+                [
+                    'entregue',
+                    'cancelada',
+                    'cancelado',
+                    'devolvida',
+                    'devolvido',
+                ],
+                true
+            );
 
-                                $venceHoje = $dataPrevista
-                                    && $dataPrevista->equalTo($hoje)
-                                    && !$statusFinalizado;
+            $atrasada = $dataPrevista
+                && $dataPrevista->lt($hoje)
+                && ! $statusFinalizado;
 
-                                $venceAmanha = $dataPrevista
-                                    && $dataPrevista->equalTo($hoje->copy()->addDay())
-                                    && !$statusFinalizado;
+            $venceHoje = $dataPrevista
+                && $dataPrevista->equalTo($hoje)
+                && ! $statusFinalizado;
 
-                                $itensEntrega = $entrega->itens ?? collect();
-                                $totalItens = $itensEntrega->count();
+            $venceAmanha = $dataPrevista
+                && $dataPrevista->equalTo(
+                    $hoje->copy()->addDay()
+                )
+                && ! $statusFinalizado;
 
-                                $itensEntregues = $itensEntrega
-                                    ->filter(function ($item) {
-                                        return strtolower($item->status ?? '') === 'entregue';
-                                    })
-                                    ->count();
+            $itensEntrega = collect(
+                $entrega->itens ?? []
+            );
 
-                                $linhaClasse = match ($entrega->status) {
-                                    'pendente_pagamento'   => 'table-light',
-                                    'aguardando_separacao' => '',
-                                    'separando'            => 'table-primary',
-                                    'carregado'            => 'table-info',
-                                    'em_rota'              => 'table-dark',
-                                    'entregue'             => 'table-success',
-                                    'parcial'              => 'table-warning',
-                                    'devolvido',
-                                    'cancelado'            => 'table-danger',
-                                    default                => '',
-                                };
+            $totalItens = $itensEntrega->count();
 
-                                if ($atrasada) {
-                                    $linhaClasse = 'table-danger';
-                                }
+            /*
+             * O contador acompanha a etapa operacional da entrega.
+             *
+             * Depois do carregamento/liberação/saída, todos os itens
+             * já devem estar operacionalmente concluídos, ainda que
+             * entrega_itens.status não tenha sido alterado para Entregue.
+             */
+            $itensConcluidos = match ($statusEntrega) {
+                'pronta_para_carregamento',
+                'carregando',
+                'carregado',
+                'carregada',
+                'aguardando_conferencia',
+                'aguardando_liberacao',
+                'liberada',
+                'em_rota',
+                'no_destino' =>
+                    $totalItens,
 
-                                $prioridadeLabel = 'NORMAL';
-                                $prioridadeClasse = 'bg-success';
-                                $prioridadeIcone = 'bi-calendar-check';
+                'entregue' =>
+                    $totalItens,
 
-                                if ($atrasada) {
-                                    $prioridadeLabel = 'ATRASADA';
-                                    $prioridadeClasse = 'bg-danger';
-                                    $prioridadeIcone = 'bi-alarm';
-                                } elseif ($entrega->status === 'pendente_pagamento') {
-                                    $prioridadeLabel = 'BAIXA';
-                                    $prioridadeClasse = 'bg-secondary';
-                                    $prioridadeIcone = 'bi-clock-history';
-                                } elseif ($venceHoje) {
-                                    $prioridadeLabel = 'HOJE';
-                                    $prioridadeClasse = 'bg-warning text-dark';
-                                    $prioridadeIcone = 'bi-calendar-event';
-                                } elseif ($venceAmanha) {
-                                    $prioridadeLabel = 'AMANHÃ';
-                                    $prioridadeClasse = 'bg-info text-dark';
-                                    $prioridadeIcone = 'bi-calendar2-day';
-                                }
-                            @endphp
+                'entregue_parcial',
+                'parcial',
+                'nao_entregue',
+                'recusada',
+                'reagendada',
+                'devolvida',
+                'devolvido' =>
+                    $itensEntrega
+                        ->filter(function ($item) {
+                            $statusItem = strtolower(
+                                trim(
+                                    (string) (
+                                        $item->status
+                                        ?? ''
+                                    )
+                                )
+                            );
 
-                            <tr class="{{ $linhaClasse }}">
-                                <td>
-                                    <div class="entrega-codigo">
-                                        {{ $entrega->codigo_entrega ?? 'ENT-' . $entrega->id }}
-                                    </div>
+                            return in_array(
+                                $statusItem,
+                                [
+                                    'entregue',
+                                    'entregue_parcial',
+                                    'parcial',
+                                ],
+                                true
+                            );
+                        })
+                        ->count(),
 
-                                    <div class="linha-secundaria">
-                                        ID interno: #{{ $entrega->id }}
-                                    </div>
+                'separando',
+                'em_preparacao' =>
+                    $itensEntrega
+                        ->filter(function ($item) {
+                            $statusItem = strtolower(
+                                trim(
+                                    (string) (
+                                        $item->status
+                                        ?? ''
+                                    )
+                                )
+                            );
 
-                                    <div class="mt-1">
-                                        <span class="badge {{ $prioridadeClasse }}">
-                                            <i class="bi {{ $prioridadeIcone }} me-1"></i>
-                                            {{ $prioridadeLabel }}
-                                        </span>
-                                    </div>
-                                </td>
+                            return in_array(
+                                $statusItem,
+                                [
+                                    'separado',
+                                    'carregado',
+                                    'entregue',
+                                ],
+                                true
+                            );
+                        })
+                        ->count(),
 
-                                <td class="col-texto">
-                                    <div class="fw-semibold">
-                                        {{ $entrega->responsavel_recebimento ?? 'Responsável não informado' }}
-                                    </div>
+                default =>
+                    0,
+            };
 
-                                    <div class="linha-secundaria">
-                                        <i class="bi bi-telephone me-1"></i>
-                                        {{ $entrega->telefone_recebimento ?? 'Telefone não informado' }}
-                                    </div>
-                                </td>
+            $linhaClasse = match ($statusEntrega) {
+                'pendente_pagamento' =>
+                    'table-light',
 
-                                <td class="documentos text-center">
-                                    @if(!empty($entrega->venda_id))
-                                        <a href="{{ url('/venda/' . $entrega->venda_id . '/cupom') }}"
-                                           target="_self"
-                                           rel="noopener noreferrer"
-                                           class="text-decoration-none fw-semibold">
+                'separando',
+                'em_preparacao' =>
+                    'table-primary',
 
-                                            <i class="bi bi-receipt me-1"></i>
-                                            VEN-{{ $entrega->venda_id }}
-                                        </a>
-                                    @else
-                                        <span class="text-muted">
-                                            <i class="bi bi-receipt me-1"></i>
-                                            Venda —
-                                        </span>
-                                    @endif
+                'pronta_para_carregamento',
+                'carregando',
+                'carregado',
+                'carregada',
+                'aguardando_conferencia' =>
+                    'table-info',
 
-                                    @if(!empty($entrega->orcamento_id))
-                                        @if(Route::has('orcamentos.show'))
-                                            <a href="{{ route('orcamentos.show', $entrega->orcamento_id) }}">
-                                                <i class="bi bi-file-earmark-text me-1"></i>
-                                                ORÇ-{{ $entrega->orcamento_id }}
-                                            </a>
-                                        @else
-                                            <span class="text-muted">
-                                                <i class="bi bi-file-earmark-text me-1"></i>
-                                                ORÇ-{{ $entrega->orcamento_id }}
-                                            </span>
-                                        @endif
-                                    @else
-                                        <span class="text-muted">
-                                            <i class="bi bi-file-earmark-text me-1"></i>
-                                            Orç. —
-                                        </span>
-                                    @endif
-                                </td>
+                'em_rota',
+                'no_destino' =>
+                    'table-success',
 
-                                <td class="text-center">
-                                    <div class="fw-semibold">
-                                        {{ $dataPrevista ? $dataPrevista->format('d/m/Y') : '—' }}
-                                    </div>
+                'entregue' =>
+                    'table-success',
 
-                                    <div class="linha-secundaria">
-                                        {{ $entrega->periodo_entrega ?? 'Período não informado' }}
-                                    </div>
-                                </td>
+                'entregue_parcial',
+                'parcial',
+                'reagendada' =>
+                    'table-warning',
 
-                                <td class="text-center">
-                                    @if($entrega->tipo_entrega === 'retira_loja')
-                                        <span class="badge bg-secondary">
-                                            <i class="bi bi-shop me-1"></i>Retira
-                                        </span>
-                                    @else
-                                        <span class="badge bg-info text-dark">
-                                            <i class="bi bi-truck me-1"></i>Entrega
-                                        </span>
-                                    @endif
-                                </td>
+                'nao_entregue',
+                'recusada',
+                'devolvida',
+                'devolvido',
+                'cancelada',
+                'cancelado' =>
+                    'table-danger',
 
-                                <td class="text-center">
-                                    <span class="badge {{ $statusClasses[$entrega->status] ?? 'bg-secondary' }}">
-                                        {{
-                                            $statusLabels[$entrega->status]
-                                            ?? ucfirst(str_replace('_', ' ', $entrega->status))
-                                        }}
-                                    </span>
-                                </td>
+                default =>
+                    '',
+            };
 
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center align-items-center gap-1">
-                                        <span class="badge bg-light text-dark border">
-                                            {{ $itensEntregues }}/{{ $totalItens }}
-                                        </span>
+            if ($atrasada) {
+                $linhaClasse = 'table-danger';
+            }
 
-                                        <button type="button"
-                                                class="btn btn-outline-primary btn-sm itens-toggle"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target="#itens-entrega-{{ $entrega->id }}"
-                                                aria-expanded="false"
-                                                aria-controls="itens-entrega-{{ $entrega->id }}"
-                                                title="Exibir itens da entrega">
+            $prioridadeLabel = 'NORMAL';
+            $prioridadeClasse = 'bg-success';
+            $prioridadeIcone = 'bi-calendar-check';
 
-                                            <i class="bi bi-chevron-down"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                                <td class="text-center">
-                                    @php
-                                        $statusEntrega = strtolower(trim((string) $entrega->status));
+            if ($atrasada) {
+                $prioridadeLabel = 'ATRASADA';
+                $prioridadeClasse = 'bg-danger';
+                $prioridadeIcone = 'bi-alarm';
+            } elseif ($statusEntrega === 'pendente_pagamento') {
+                $prioridadeLabel = 'BAIXA';
+                $prioridadeClasse = 'bg-secondary';
+                $prioridadeIcone = 'bi-clock-history';
+            } elseif ($venceHoje) {
+                $prioridadeLabel = 'HOJE';
+                $prioridadeClasse = 'bg-warning text-dark';
+                $prioridadeIcone = 'bi-calendar-event';
+            } elseif ($venceAmanha) {
+                $prioridadeLabel = 'AMANHÃ';
+                $prioridadeClasse = 'bg-info text-dark';
+                $prioridadeIcone = 'bi-calendar2-day';
+            }
 
-                                        $acaoOperacional = match ($statusEntrega) {
-                                            'aguardando_separacao' => [
-                                                'titulo' => 'Montar romaneio para esta entrega',
-                                                'icone' => 'bi-clipboard-plus',
-                                                'classe' => 'btn-outline-secondary',
-                                                'tipo' => 'romaneio',
-                                            ],
+            $acaoOperacional = match ($statusEntrega) {
+                'aguardando_separacao' => [
+                    'titulo' =>
+                        'Montar romaneio para esta entrega',
+                    'icone' =>
+                        'bi-clipboard-plus',
+                    'classe' =>
+                        'btn-outline-secondary',
+                    'tipo' =>
+                        'romaneio',
+                ],
 
-                                            'em_preparacao' => [
-                                                'titulo' => 'Continuar separação',
-                                                'icone' => 'bi-box-seam',
-                                                'classe' => 'btn-outline-warning',
-                                                'tipo' => 'romaneio',
-                                            ],
+                'separando',
+                'em_preparacao' => [
+                    'titulo' =>
+                        'Continuar separação',
+                    'icone' =>
+                        'bi-box-seam',
+                    'classe' =>
+                        'btn-outline-warning',
+                    'tipo' =>
+                        'romaneio',
+                ],
 
-                                            'pronta_para_carregamento' => [
-                                                'titulo' => 'Continuar carregamento',
-                                                'icone' => 'bi-truck-front',
-                                                'classe' => 'btn-outline-info',
-                                                'tipo' => 'romaneio',
-                                            ],
+                'pronta_para_carregamento',
+                'carregando' => [
+                    'titulo' =>
+                        'Continuar carregamento',
+                    'icone' =>
+                        'bi-truck-front',
+                    'classe' =>
+                        'btn-outline-info',
+                    'tipo' =>
+                        'romaneio',
+                ],
 
-                                            'carregada' => [
-                                                'titulo' => 'Continuar conferência de saída',
-                                                'icone' => 'bi-clipboard-check',
-                                                'classe' => 'btn-outline-primary',
-                                                'tipo' => 'romaneio',
-                                            ],
+                'carregado',
+                'carregada',
+                'aguardando_conferencia',
+                'aguardando_liberacao' => [
+                    'titulo' =>
+                        'Continuar conferência ou liberação',
+                    'icone' =>
+                        'bi-clipboard-check',
+                    'classe' =>
+                        'btn-outline-primary',
+                    'tipo' =>
+                        'romaneio',
+                ],
 
-                                            'liberada' => [
-                                                'titulo' => 'Registrar saída do veículo',
-                                                'icone' => 'bi-sign-turn-right',
-                                                'classe' => 'btn-outline-success',
-                                                'tipo' => 'romaneio',
-                                            ],
+                'liberada' => [
+                    'titulo' =>
+                        'Registrar saída do veículo',
+                    'icone' =>
+                        'bi-sign-turn-right',
+                    'classe' =>
+                        'btn-outline-success',
+                    'tipo' =>
+                        'romaneio',
+                ],
 
-                                            'em_rota',
-                                            'no_destino' => [
-                                                'titulo' => 'Registrar retorno e resultado da entrega',
-                                                'icone' => 'bi-check2-circle',
-                                                'classe' => 'btn-outline-success',
-                                                'tipo' => 'retorno',
-                                            ],
+                'em_rota',
+                'no_destino' => [
+                    'titulo' =>
+                        'Registrar retorno e resultado da entrega',
+                    'icone' =>
+                        'bi-check2-circle',
+                    'classe' =>
+                        'btn-outline-success',
+                    'tipo' =>
+                        'retorno',
+                ],
 
-                                            'entregue_parcial',
-                                            'nao_entregue',
-                                            'recusada',
-                                            'reagendada',
-                                            'devolvida' => [
-                                                'titulo' => 'Consultar tratativa da entrega',
-                                                'icone' => 'bi-clipboard-pulse',
-                                                'classe' => 'btn-outline-warning',
-                                                'tipo' => 'visualizar',
-                                            ],
+                'entregue_parcial',
+                'parcial',
+                'nao_entregue',
+                'recusada',
+                'reagendada',
+                'devolvida',
+                'devolvido' => [
+                    'titulo' =>
+                        'Consultar tratativa da entrega',
+                    'icone' =>
+                        'bi-clipboard-pulse',
+                    'classe' =>
+                        'btn-outline-warning',
+                    'tipo' =>
+                        'visualizar',
+                ],
 
-                                            default => null,
-                                        };
+                default =>
+                    null,
+            };
 
-                                        $tipoAcaoOperacional = $acaoOperacional['tipo'] ?? null;
+            $tipoAcaoOperacional =
+                $acaoOperacional['tipo']
+                ?? null;
 
-                                        $podeCancelar = ! in_array(
-                                            $statusEntrega,
-                                            [
-                                                'em_rota',
-                                                'no_destino',
-                                                'entregue',
-                                                'entregue_parcial',
-                                                'nao_entregue',
-                                                'recusada',
-                                                'reagendada',
+            $podeCancelar = ! in_array(
+                $statusEntrega,
+                [
+                    'em_rota',
+                    'no_destino',
+                    'entregue',
+                    'entregue_parcial',
+                    'parcial',
+                    'nao_entregue',
+                    'recusada',
+                    'reagendada',
+                    'devolvida',
+                    'devolvido',
+                    'cancelada',
+                    'cancelado',
+                ],
+                true
+            );
+        @endphp
+
+        <tr class="{{ $linhaClasse }}">
+            <td>
+                <div class="entrega-codigo">
+                    {{
+                        $entrega->codigo_entrega
+                        ?? 'ENT-' . $entrega->id
+                    }}
+                </div>
+
+                <div class="linha-secundaria">
+                    ID interno: #{{ $entrega->id }}
+                </div>
+
+                <div class="mt-1">
+                    <span class="badge {{ $prioridadeClasse }}">
+                        <i class="bi {{ $prioridadeIcone }} me-1"></i>
+                        {{ $prioridadeLabel }}
+                    </span>
+                </div>
+            </td>
+
+            <td class="col-texto">
+                <div class="fw-semibold">
+                    {{
+                        $entrega->responsavel_recebimento
+                        ?? 'Responsável não informado'
+                    }}
+                </div>
+
+                <div class="linha-secundaria">
+                    <i class="bi bi-telephone me-1"></i>
+
+                    {{
+                        $entrega->telefone_recebimento
+                        ?? 'Telefone não informado'
+                    }}
+                </div>
+            </td>
+
+            <td class="documentos text-center">
+                @if(! empty($entrega->venda_id))
+                    <a href="{{ url(
+                            '/venda/'
+                            . $entrega->venda_id
+                            . '/cupom'
+                        ) }}"
+                       target="_self"
+                       rel="noopener noreferrer"
+                       class="text-decoration-none fw-semibold">
+
+                        <i class="bi bi-receipt me-1"></i>
+                        VEN-{{ $entrega->venda_id }}
+                    </a>
+                @else
+                    <span class="text-muted">
+                        <i class="bi bi-receipt me-1"></i>
+                        Venda —
+                    </span>
+                @endif
+
+                @if(! empty($entrega->orcamento_id))
+                    @if(Route::has('orcamentos.show'))
+                        <a href="{{ route(
+                            'orcamentos.show',
+                            $entrega->orcamento_id
+                        ) }}">
+                            <i class="bi bi-file-earmark-text me-1"></i>
+                            ORÇ-{{ $entrega->orcamento_id }}
+                        </a>
+                    @else
+                        <span class="text-muted">
+                            <i class="bi bi-file-earmark-text me-1"></i>
+                            ORÇ-{{ $entrega->orcamento_id }}
+                        </span>
+                    @endif
+                @else
+                    <span class="text-muted">
+                        <i class="bi bi-file-earmark-text me-1"></i>
+                        Orç. —
+                    </span>
+                @endif
+            </td>
+
+            <td class="text-center">
+                <div class="fw-semibold">
+                    {{
+                        $dataPrevista
+                            ? $dataPrevista->format('d/m/Y')
+                            : '—'
+                    }}
+                </div>
+
+                <div class="linha-secundaria">
+                    {{
+                        $entrega->periodo_entrega
+                        ?? 'Período não informado'
+                    }}
+                </div>
+            </td>
+
+            <td class="text-center">
+                @if($entrega->tipo_entrega === 'retira_loja')
+                    <span class="badge bg-secondary">
+                        <i class="bi bi-shop me-1"></i>
+                        Retira
+                    </span>
+                @else
+                    <span class="badge bg-info text-dark">
+                        <i class="bi bi-truck me-1"></i>
+                        Entrega
+                    </span>
+                @endif
+            </td>
+
+            <td class="text-center">
+                <span class="badge {{
+                    $statusClasses[$statusEntrega]
+                    ?? 'bg-secondary'
+                }}">
+                    {{
+                        $statusLabels[$statusEntrega]
+                        ?? ucfirst(
+                            str_replace(
+                                '_',
+                                ' ',
+                                $statusEntrega
+                            )
+                        )
+                    }}
+                </span>
+            </td>
+
+            <td class="text-center">
+                <div class="d-flex justify-content-center align-items-center gap-1">
+                    <span class="badge bg-light text-dark border">
+                        {{ $itensConcluidos }}/{{ $totalItens }}
+                    </span>
+
+                    <button type="button"
+                            class="btn btn-outline-primary btn-sm itens-toggle"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#itens-entrega-{{ $entrega->id }}"
+                            aria-expanded="false"
+                            aria-controls="itens-entrega-{{ $entrega->id }}"
+                            title="Exibir itens da entrega">
+
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                </div>
+            </td>
+
+            <td class="text-center">
+                <div class="d-flex justify-content-center gap-1 flex-nowrap">
+                    <a href="{{ route(
+                            'entregas.show',
+                            $entrega->id
+                        ) }}"
+                       class="btn btn-outline-primary btn-sm acao-btn"
+                       title="Visualizar entrega">
+
+                        <i class="bi bi-eye"></i>
+                    </a>
+
+                    @if($tipoAcaoOperacional === 'romaneio')
+                        <a href="{{ route(
+                                'romaneios.create',
+                                [
+                                    'entrega_id' =>
+                                        $entrega->id,
+                                ]
+                            ) }}"
+                           class="btn {{
+                                $acaoOperacional['classe']
+                           }} btn-sm acao-btn"
+                           title="{{
+                                $acaoOperacional['titulo']
+                           }}">
+
+                            <i class="bi {{
+                                $acaoOperacional['icone']
+                            }}"></i>
+                        </a>
+
+                    @elseif($tipoAcaoOperacional === 'retorno')
+                        <a href="{{ route(
+                                'entregas.retorno',
+                                $entrega->id
+                            ) }}"
+                           class="btn {{
+                                $acaoOperacional['classe']
+                           }} btn-sm acao-btn"
+                           title="{{
+                                $acaoOperacional['titulo']
+                           }}">
+
+                            <i class="bi {{
+                                $acaoOperacional['icone']
+                            }}"></i>
+                        </a>
+
+                    @elseif($tipoAcaoOperacional === 'visualizar')
+                        <a href="{{ route(
+                                'entregas.show',
+                                $entrega->id
+                            ) }}"
+                           class="btn {{
+                                $acaoOperacional['classe']
+                           }} btn-sm acao-btn"
+                           title="{{
+                                $acaoOperacional['titulo']
+                           }}">
+
+                            <i class="bi {{
+                                $acaoOperacional['icone']
+                            }}"></i>
+                        </a>
+
+                    @else
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-sm acao-btn"
+                                title="Nenhuma operação disponível para este status"
+                                disabled>
+
+                            <i class="bi bi-clipboard-x"></i>
+                        </button>
+                    @endif
+
+                    @if($podeCancelar)
+                        <form method="POST"
+                              action="{{ route(
+                                  'entregas.cancelar',
+                                  $entrega->id
+                              ) }}">
+
+                            @csrf
+                            @method('PATCH')
+
+                            <input type="hidden"
+                                   name="motivo"
+                                   value="Cancelada pelo painel de entregas.">
+
+                            <button type="submit"
+                                    class="btn btn-outline-danger btn-sm acao-btn"
+                                    title="Cancelar entrega"
+                                    onclick="return confirm(
+                                        'Deseja realmente cancelar esta entrega?'
+                                    )">
+
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                    @else
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm acao-btn"
+                                title="Cancelamento indisponível para este status"
+                                disabled>
+
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    @endif
+                </div>
+            </td>
+        </tr>
+
+        <tr class="collapse linha-itens"
+            id="itens-entrega-{{ $entrega->id }}">
+
+            <td colspan="8">
+                <div class="painel-itens">
+                    <div class="painel-itens-header">
+                        <span>
+                            <i class="bi bi-box-seam me-2"></i>
+
+                            Itens da Entrega
+                            {{
+                                $entrega->codigo_entrega
+                                ?? '#' . $entrega->id
+                            }}
+                        </span>
+
+                        <span class="badge bg-dark">
+                            {{ $totalItens }} item(ns)
+                        </span>
+                    </div>
+
+                    <div class="painel-itens-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered item-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 38%;">
+                                            Produto
+                                        </th>
+
+                                        <th style="width: 14%;">
+                                            Localização
+                                        </th>
+
+                                        <th style="width: 12%;">
+                                            Prevista
+                                        </th>
+
+                                        <th style="width: 12%;">
+                                            Entregue
+                                        </th>
+
+                                        <th style="width: 12%;">
+                                            Saldo
+                                        </th>
+
+                                        <th style="width: 6%;">
+                                            Unid.
+                                        </th>
+
+                                        <th style="width: 6%;">
+                                            Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($itensEntrega as $item)
+                                        @php
+                                            $produto =
+                                                $item->produto
+                                                ?? $item->vendaItem?->produto
+                                                ?? $item->itemOrcamento?->produto;
+
+                                            $quantidadePrevista = (float) (
+                                                $item->quantidade_prevista
+                                                ?? 0
+                                            );
+
+                                            $quantidadeEntregue = (float) (
+                                                $item->quantidade_entregue
+                                                ?? 0
+                                            );
+
+                                            $saldo = max(
+                                                0,
+                                                $quantidadePrevista
+                                                - $quantidadeEntregue
+                                            );
+
+                                            $unidade =
+                                                $produto?->unidadeMedida?->sigla
+                                                ?? $produto?->unidade
+                                                ?? 'UN';
+
+                                            $localizacao =
+                                                $produto?->localizacaoEstoque?->descricao
+                                                ?? $produto?->localizacaoEstoque?->nome
+                                                ?? $produto?->localizacao_estoque
+                                                ?? '—';
+
+                                            $statusItem = strtolower(
+                                                trim(
+                                                    (string) (
+                                                        $item->status
+                                                        ?? 'pendente'
+                                                    )
+                                                )
+                                            );
+
+                                            $statusItemClasse = match (
+                                                $statusItem
+                                            ) {
+                                                'separado',
+                                                'carregado',
+                                                'entregue' =>
+                                                    'bg-success',
+
+                                                'parcial',
+                                                'entregue_parcial' =>
+                                                    'bg-warning text-dark',
+
+                                                'devolvido',
                                                 'devolvida',
+                                                'cancelado',
                                                 'cancelada',
-                                            ],
-                                            true
-                                        );
-                                    @endphp
+                                                'recusado',
+                                                'recusada' =>
+                                                    'bg-danger',
 
-                                    <div class="d-flex justify-content-center gap-1 flex-nowrap">
+                                                default =>
+                                                    'bg-secondary',
+                                            };
 
-                                        {{-- SLOT 1: Visualizar --}}
-                                        <a href="{{ route('entregas.show', $entrega->id) }}"
-                                        class="btn btn-outline-primary btn-sm acao-btn"
-                                        title="Visualizar entrega">
+                                            $statusItemLabel = ucfirst(
+                                                str_replace(
+                                                    '_',
+                                                    ' ',
+                                                    $item->status
+                                                    ?? 'Pendente'
+                                                )
+                                            );
+                                        @endphp
 
-                                            <i class="bi bi-eye"></i>
-                                    
-                                        </a>
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold">
+                                                    {{
+                                                        $produto?->nome
+                                                        ?? $produto?->descricao
+                                                        ?? 'Produto não identificado'
+                                                    }}
+                                                </div>
 
-                                       
-                                        {{-- SLOT 2: Ação operacional --}}
-                                        @if($tipoAcaoOperacional === 'romaneio')
-                                            <a href="{{ route('romaneios.create', ['entrega_id' => $entrega->id]) }}"
-                                            class="btn {{ $acaoOperacional['classe'] }} btn-sm acao-btn"
-                                            title="{{ $acaoOperacional['titulo'] }}">
+                                                <div class="linha-secundaria">
+                                                    Código:
+                                                    {{ $produto?->id ?? '—' }}
+                                                </div>
 
-                                                <i class="bi {{ $acaoOperacional['icone'] }}"></i>
-                                            </a>
-                                         
-                                        {{-- SLOT 1: Visualizar --}}
-                                        <a href="{{ route('entregas.show', $entrega->id) }}"
-                                            class="btn btn-outline-primary btn-sm acao-btn"
-                                            title="Visualizar rota">
+                                                @if(! empty($item->observacao))
+                                                    <div class="linha-secundaria mt-1">
+                                                        <i class="bi bi-chat-left-text me-1"></i>
+                                                        {{ $item->observacao }}
+                                                    </div>
+                                                @endif
+                                            </td>
 
-                                            <i class="bi bi-geo-alt"></i>
-                                        </a>
-                                        
-                                        @elseif($tipoAcaoOperacional === 'retorno')
-                                            <a href="{{ route('entregas.retorno', $entrega->id) }}"
-                                            class="btn {{ $acaoOperacional['classe'] }} btn-sm acao-btn"
-                                            title="{{ $acaoOperacional['titulo'] }}">
+                                            <td class="text-center">
+                                                {{ $localizacao }}
+                                            </td>
 
-                                                <i class="bi {{ $acaoOperacional['icone'] }}"></i>
-                                            </a>
+                                            <td class="text-end fw-semibold">
+                                                {{
+                                                    number_format(
+                                                        $quantidadePrevista,
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )
+                                                }}
+                                            </td>
 
-                                        @elseif($tipoAcaoOperacional === 'visualizar')
-                                            <a href="{{ route('entregas.show', $entrega->id) }}"
-                                            class="btn {{ $acaoOperacional['classe'] }} btn-sm acao-btn"
-                                            title="{{ $acaoOperacional['titulo'] }}">
+                                            <td class="text-end">
+                                                {{
+                                                    number_format(
+                                                        $quantidadeEntregue,
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )
+                                                }}
+                                            </td>
 
-                                                <i class="bi {{ $acaoOperacional['icone'] }}"></i>
-                                            </a>
+                                            <td class="text-end fw-bold {{
+                                                $saldo > 0
+                                                    ? 'text-danger'
+                                                    : 'text-success'
+                                            }}">
+                                                {{
+                                                    number_format(
+                                                        $saldo,
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )
+                                                }}
+                                            </td>
 
-                                        @else
-                                            <button type="button"
-                                                    class="btn btn-outline-secondary btn-sm acao-btn"
-                                                    title="Nenhuma operação disponível para este status"
-                                                    disabled>
+                                            <td class="text-center">
+                                                {{ $unidade }}
+                                            </td>
 
-                                                <i class="bi bi-clipboard-x"></i>
-                                            </button>
-                                        @endif
+                                            <td class="text-center">
+                                                <span class="badge {{
+                                                    $statusItemClasse
+                                                }}">
+                                                    {{ $statusItemLabel }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="7"
+                                                class="text-center text-muted py-3">
 
-                                        {{-- SLOT 3: Cancelar --}}
-                                        @if($podeCancelar)
-                                            <form method="POST"
-                                                action="{{ route('entregas.cancelar', $entrega->id) }}">
+                                                Nenhum item encontrado para esta entrega.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
 
-                                                @csrf
-                                                @method('PATCH')
+    @empty
+        <tr>
+            <td colspan="8"
+                class="text-center text-muted py-4">
 
-                                                <input type="hidden"
-                                                    name="motivo"
-                                                    value="Cancelada pelo painel de entregas.">
-
-                                                <button type="submit"
-                                                        class="btn btn-outline-danger btn-sm acao-btn"
-                                                        title="Cancelar entrega"
-                                                        onclick="return confirm('Deseja realmente cancelar esta entrega?')">
-
-                                                    <i class="bi bi-x-circle"></i>
-                                                </button>
-                                            </form>
-                                        @else
-                                            <button type="button"
-                                                    class="btn btn-outline-danger btn-sm acao-btn"
-                                                    title="Cancelamento indisponível para este status"
-                                                    disabled>
-
-                                                <i class="bi bi-x-circle"></i>
-                                            </button>
-                                        @endif
-
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr class="collapse linha-itens"
-                                id="itens-entrega-{{ $entrega->id }}">
-
-                                <td colspan="8">
-                                    <div class="painel-itens">
-                                        <div class="painel-itens-header">
-                                            <span>
-                                                <i class="bi bi-box-seam me-2"></i>
-                                                Itens da Entrega
-                                                {{ $entrega->codigo_entrega ?? '#' . $entrega->id }}
-                                            </span>
-
-                                            <span class="badge bg-dark">
-                                                {{ $totalItens }} item(ns)
-                                            </span>
-                                        </div>
-
-                                        <div class="painel-itens-body">
-                                            <div class="table-responsive">
-                                                <table class="table table-sm table-bordered item-table">
-                                                    <thead>
-                                                        <tr>
-                                                            <th style="width: 38%;">Produto</th>
-                                                            <th style="width: 14%;">Localização</th>
-                                                            <th style="width: 12%;">Prevista</th>
-                                                            <th style="width: 12%;">Entregue</th>
-                                                            <th style="width: 12%;">Saldo</th>
-                                                            <th style="width: 6%;">Unid.</th>
-                                                            <th style="width: 6%;">Status</th>
-                                                        </tr>
-                                                    </thead>
-
-                                                    <tbody>
-                                                        @forelse($itensEntrega as $item)
-                                                            @php
-                                                                $produto = $item->vendaItem?->produto
-                                                                    ?? $item->itemOrcamento?->produto;
-
-                                                                $quantidadePrevista = (float) (
-                                                                    $item->quantidade_prevista ?? 0
-                                                                );
-
-                                                                $quantidadeEntregue = (float) (
-                                                                    $item->quantidade_entregue ?? 0
-                                                                );
-
-                                                                $saldo = max(
-                                                                    0,
-                                                                    $quantidadePrevista - $quantidadeEntregue
-                                                                );
-
-                                                                $unidade = $produto?->unidade_medida?->sigla
-                                                                    ?? $produto?->unidade
-                                                                    ?? 'UN';
-
-                                                                $localizacao = $produto?->localizacao_estoque
-                                                                    ?? '—';
-
-                                                                $statusItem = strtolower(
-                                                                    $item->status ?? 'pendente'
-                                                                );
-
-                                                                $statusItemClasse = match ($statusItem) {
-                                                                    'separado',
-                                                                    'carregado',
-                                                                    'entregue' => 'bg-success',
-
-                                                                    'parcial' => 'bg-warning text-dark',
-
-                                                                    'devolvido',
-                                                                    'cancelado' => 'bg-danger',
-
-                                                                    default => 'bg-secondary',
-                                                                };
-
-                                                                $statusItemLabel = ucfirst(
-                                                                    str_replace(
-                                                                        '_',
-                                                                        ' ',
-                                                                        $item->status ?? 'Pendente'
-                                                                    )
-                                                                );
-                                                            @endphp
-
-                                                            <tr>
-                                                                <td>
-                                                                    <div class="fw-semibold">
-                                                                        {{
-                                                                            $produto?->nome
-                                                                            ?? $produto?->descricao
-                                                                            ?? 'Produto não identificado'
-                                                                        }}
-                                                                    </div>
-
-                                                                    <div class="linha-secundaria">
-                                                                        Código: {{ $produto?->id ?? '—' }}
-                                                                    </div>
-
-                                                                    @if(!empty($item->observacao))
-                                                                        <div class="linha-secundaria mt-1">
-                                                                            <i class="bi bi-chat-left-text me-1"></i>
-                                                                            {{ $item->observacao }}
-                                                                        </div>
-                                                                    @endif
-                                                                </td>
-
-                                                                <td class="text-center">
-                                                                    {{ $localizacao }}
-                                                                </td>
-
-                                                                <td class="text-end fw-semibold">
-                                                                    {{
-                                                                        number_format(
-                                                                            $quantidadePrevista,
-                                                                            2,
-                                                                            ',',
-                                                                            '.'
-                                                                        )
-                                                                    }}
-                                                                </td>
-
-                                                                <td class="text-end">
-                                                                    {{
-                                                                        number_format(
-                                                                            $quantidadeEntregue,
-                                                                            2,
-                                                                            ',',
-                                                                            '.'
-                                                                        )
-                                                                    }}
-                                                                </td>
-
-                                                                <td class="text-end fw-bold {{ $saldo > 0 ? 'text-danger' : 'text-success' }}">
-                                                                    {{
-                                                                        number_format(
-                                                                            $saldo,
-                                                                            2,
-                                                                            ',',
-                                                                            '.'
-                                                                        )
-                                                                    }}
-                                                                </td>
-
-                                                                <td class="text-center">
-                                                                    {{ $unidade }}
-                                                                </td>
-
-                                                                <td class="text-center">
-                                                                    <span class="badge {{ $statusItemClasse }}">
-                                                                        {{ $statusItemLabel }}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        @empty
-                                                            <tr>
-                                                                <td colspan="7"
-                                                                    class="text-center text-muted py-3">
-
-                                                                    Nenhum item encontrado para esta entrega.
-                                                                </td>
-                                                            </tr>
-                                                        @endforelse
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8"
-                                    class="text-center text-muted py-4">
-
-                                    <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                    Nenhuma entrega encontrada.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
+                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                Nenhuma entrega encontrada.
+            </td>
+        </tr>
+    @endforelse
+</tbody>
                 </table>
             </div>
         </div>

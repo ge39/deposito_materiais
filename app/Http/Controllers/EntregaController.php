@@ -22,76 +22,287 @@ class EntregaController extends Controller
 
     // public function index(Request $request)
     // {
-    //     $query = Entrega::with(['venda', 'orcamento', 'itens'])
-    //         ->orderByDesc('id');
+    //     $statusMap = [
+    //         'pendente_pagamento' => 'Pendente_pagamento',
+    //         'aguardando_faturamento' => 'Aguardando_faturamento',
+    //         'aguardando_separacao' => 'Aguardando_separacao',
+    //         'separando' => 'Em_preparacao',
+    //         'em_preparacao' => 'Em_preparacao',
+    //         'pronta_para_carregamento' => 'Pronta_para_carregamento',
+    //         'carregado' => 'Carregada',
+    //         'carregada' => 'Carregada',
+    //         'liberada' => 'Liberada',
+    //         'em_rota' => 'Em_rota',
+    //         'no_destino' => 'No_destino',
+    //         'entregue' => 'Entregue',
+    //         'parcial' => 'Entregue_parcial',
+    //         'entregue_parcial' => 'Entregue_parcial',
+    //         'nao_entregue' => 'Nao_entregue',
+    //         'recusada' => 'Recusada',
+    //         'reagendada' => 'Reagendada',
+    //         'devolvido' => 'Devolvida',
+    //         'devolvida' => 'Devolvida',
+    //         'cancelado' => 'Cancelada',
+    //         'cancelada' => 'Cancelada',
+    //     ];
+
+    //     $query = Entrega::with([
+    //         'venda',
+    //         'orcamento',
+    //         'itens',
+    //         'itens.vendaItem.produto',
+    //         'itens.itemOrcamento.produto',
+    //     ])->orderByDesc('id');
 
     //     if ($request->filled('status')) {
-    //         $query->where('status', $request->status);
+    //         $statusInformado = strtolower(
+    //             trim((string) $request->status)
+    //         );
+
+    //         if (isset($statusMap[$statusInformado])) {
+    //             $query->where(
+    //                 'status',
+    //                 $statusMap[$statusInformado]
+    //             );
+    //         }
     //     }
 
     //     if ($request->filled('data_prevista')) {
-    //         $query->whereDate('data_prevista', $request->data_prevista);
+    //         $query->whereDate(
+    //             'data_prevista',
+    //             $request->data_prevista
+    //         );
     //     }
 
     //     if ($request->filled('codigo_entrega')) {
-    //         $query->where('codigo_entrega', 'like', '%' . $request->codigo_entrega . '%');
+    //         $query->where(
+    //             'codigo_entrega',
+    //             'like',
+    //             '%' . trim((string) $request->codigo_entrega) . '%'
+    //         );
     //     }
 
-    //     $entregas = $query->paginate(20)->withQueryString();
+    //     $entregas = $query
+    //         ->paginate(20)
+    //         ->withQueryString();
 
     //     $resumo = [
-    //         'pendentes' => Entrega::where('status', 'pendente')->count(),
-    //         'separando' => Entrega::where('status', 'separando')->count(),
-    //         'carregados' => Entrega::where('status', 'carregado')->count(),
-    //         'em_rota' => Entrega::where('status', 'em_rota')->count(),
-    //         'entregues' => Entrega::where('status', 'entregue')->count(),
-    //         'parciais' => Entrega::where('status', 'parcial')->count(),
+    //         'pendente_pagamento' => Entrega::where(
+    //             'status',
+    //             'Pendente_pagamento'
+    //         )->count(),
 
-    //         'atrasadas' => Entrega::whereDate('data_prevista', '<', now()->toDateString())
-    //             ->whereNotIn('status', ['entregue', 'cancelado', 'devolvido'])
+    //         'aguardando_separacao' => Entrega::where(
+    //             'status',
+    //             'Aguardando_separacao'
+    //         )->count(),
+
+    //         'separando' => Entrega::where(
+    //             'status',
+    //             'Em_preparacao'
+    //         )->count(),
+
+    //         'carregados' => Entrega::where(
+    //             'status',
+    //             'Carregada'
+    //         )->count(),
+
+    //         'em_rota' => Entrega::where(
+    //             'status',
+    //             'Em_rota'
+    //         )->count(),
+
+    //         'entregues' => Entrega::where(
+    //             'status',
+    //             'Entregue'
+    //         )->count(),
+
+    //         'parciais' => Entrega::where(
+    //             'status',
+    //             'Entregue_parcial'
+    //         )->count(),
+
+    //         'devolvidos' => Entrega::where(
+    //             'status',
+    //             'Devolvida'
+    //         )->count(),
+
+    //         'cancelados' => Entrega::where(
+    //             'status',
+    //             'Cancelada'
+    //         )->count(),
+
+    //         'atrasadas' => Entrega::whereDate(
+    //             'data_prevista',
+    //             '<',
+    //             now()->toDateString()
+    //         )
+    //             ->whereNotIn('status', [
+    //                 'Entregue',
+    //                 'Cancelada',
+    //                 'Devolvida',
+    //             ])
     //             ->count(),
     //     ];
 
-    //     return view('entregas.index', compact('entregas', 'resumo'));
+    //     return view(
+    //         'entregas.index',
+    //         compact(
+    //             'entregas',
+    //             'resumo'
+    //         )
+    //     );
     // }
 
-    public function index(Request $request)
+   public function index(Request $request)
     {
+        $dadosValidados = $request->validate(
+            [
+                'codigo_entrega' => [
+                    'nullable',
+                    'string',
+                    'max:100',
+                ],
+
+                'status' => [
+                    'nullable',
+                    'string',
+                ],
+
+                'data_inicio' => [
+                    'nullable',
+                    'date',
+                ],
+
+                'data_fim' => [
+                    'nullable',
+                    'date',
+                    'after_or_equal:data_inicio',
+                ],
+            ],
+            [
+                'codigo_entrega.string' =>
+                    'O código da entrega informado é inválido.',
+
+                'codigo_entrega.max' =>
+                    'O código da entrega pode possuir no máximo 100 caracteres.',
+
+                'data_inicio.date' =>
+                    'A data inicial informada é inválida.',
+
+                'data_fim.date' =>
+                    'A data final informada é inválida.',
+
+                'data_fim.after_or_equal' =>
+                    'A data final deve ser igual ou posterior à data inicial.',
+            ]
+        );
+
         $statusMap = [
-            'pendente_pagamento' => 'Pendente_pagamento',
-            'aguardando_faturamento' => 'Aguardando_faturamento',
-            'aguardando_separacao' => 'Aguardando_separacao',
-            'separando' => 'Em_preparacao',
-            'em_preparacao' => 'Em_preparacao',
-            'pronta_para_carregamento' => 'Pronta_para_carregamento',
-            'carregado' => 'Carregada',
-            'carregada' => 'Carregada',
-            'liberada' => 'Liberada',
-            'em_rota' => 'Em_rota',
-            'no_destino' => 'No_destino',
-            'entregue' => 'Entregue',
-            'parcial' => 'Entregue_parcial',
-            'entregue_parcial' => 'Entregue_parcial',
-            'nao_entregue' => 'Nao_entregue',
-            'recusada' => 'Recusada',
-            'reagendada' => 'Reagendada',
-            'devolvido' => 'Devolvida',
-            'devolvida' => 'Devolvida',
-            'cancelado' => 'Cancelada',
-            'cancelada' => 'Cancelada',
+            'pendente_pagamento' =>
+                'Pendente_pagamento',
+
+            'aguardando_faturamento' =>
+                'Aguardando_faturamento',
+
+            'aguardando_separacao' =>
+                'Aguardando_separacao',
+
+            'separando' =>
+                'Em_preparacao',
+
+            'em_preparacao' =>
+                'Em_preparacao',
+
+            'pronta_para_carregamento' =>
+                'Pronta_para_carregamento',
+
+            'carregado' =>
+                'Carregada',
+
+            'carregada' =>
+                'Carregada',
+
+            'liberada' =>
+                'Liberada',
+
+            'em_rota' =>
+                'Em_rota',
+
+            'no_destino' =>
+                'No_destino',
+
+            'entregue' =>
+                'Entregue',
+
+            'parcial' =>
+                'Entregue_parcial',
+
+            'entregue_parcial' =>
+                'Entregue_parcial',
+
+            'nao_entregue' =>
+                'Nao_entregue',
+
+            'recusada' =>
+                'Recusada',
+
+            'reagendada' =>
+                'Reagendada',
+
+            'devolvido' =>
+                'Devolvida',
+
+            'devolvida' =>
+                'Devolvida',
+
+            'cancelado' =>
+                'Cancelada',
+
+            'cancelada' =>
+                'Cancelada',
         ];
 
-        $query = Entrega::with([
-            'venda',
-            'orcamento',
-            'itens',
-            'itens.vendaItem.produto',
-            'itens.itemOrcamento.produto',
-        ])->orderByDesc('id');
+        $dataInicio = ! empty(
+            $dadosValidados['data_inicio'] ?? null
+        )
+            ? \Carbon\Carbon::parse(
+                $dadosValidados['data_inicio']
+            )->startOfDay()
+            : now()->subDays(30)->startOfDay();
 
-        if ($request->filled('status')) {
+        $dataFim = ! empty(
+            $dadosValidados['data_fim'] ?? null
+        )
+            ? \Carbon\Carbon::parse(
+                $dadosValidados['data_fim']
+            )->endOfDay()
+            : now()->endOfDay();
+
+        $query = Entrega::query()
+            ->with([
+                'venda',
+                'orcamento',
+                'itens',
+                'itens.produto',
+                'itens.vendaItem.produto',
+                'itens.itemOrcamento.produto',
+            ])
+            ->whereBetween(
+                'data_prevista',
+                [
+                    $dataInicio,
+                    $dataFim,
+                ]
+            );
+
+        if (! empty(
+            $dadosValidados['status'] ?? null
+        )) {
             $statusInformado = strtolower(
-                trim((string) $request->status)
+                trim(
+                    (string) $dadosValidados['status']
+                )
             );
 
             if (isset($statusMap[$statusInformado])) {
@@ -102,89 +313,121 @@ class EntregaController extends Controller
             }
         }
 
-        if ($request->filled('data_prevista')) {
-            $query->whereDate(
-                'data_prevista',
-                $request->data_prevista
-            );
-        }
-
-        if ($request->filled('codigo_entrega')) {
+        if (! empty(
+            $dadosValidados['codigo_entrega'] ?? null
+        )) {
             $query->where(
                 'codigo_entrega',
                 'like',
-                '%' . trim((string) $request->codigo_entrega) . '%'
+                '%' . trim(
+                    (string) $dadosValidados['codigo_entrega']
+                ) . '%'
             );
         }
+
+        /*
+        * Entregas canceladas ficam sempre no final.
+        * As demais continuam ordenadas pela data prevista
+        * e pelo identificador.
+        */
+        $query
+            ->orderByRaw(
+                "
+                    CASE
+                        WHEN LOWER(TRIM(status)) IN (
+                            'cancelada',
+                            'cancelado'
+                        ) THEN 1
+                        ELSE 0
+                    END ASC
+                "
+            )
+            ->orderBy('data_prevista')
+            ->orderBy('id');
 
         $entregas = $query
             ->paginate(20)
             ->withQueryString();
 
         $resumo = [
-            'pendente_pagamento' => Entrega::where(
-                'status',
-                'Pendente_pagamento'
-            )->count(),
+            'pendente_pagamento' =>
+                Entrega::where(
+                    'status',
+                    'Pendente_pagamento'
+                )->count(),
 
-            'aguardando_separacao' => Entrega::where(
-                'status',
-                'Aguardando_separacao'
-            )->count(),
+            'aguardando_separacao' =>
+                Entrega::where(
+                    'status',
+                    'Aguardando_separacao'
+                )->count(),
 
-            'separando' => Entrega::where(
-                'status',
-                'Em_preparacao'
-            )->count(),
+            'separando' =>
+                Entrega::where(
+                    'status',
+                    'Em_preparacao'
+                )->count(),
 
-            'carregados' => Entrega::where(
-                'status',
-                'Carregada'
-            )->count(),
+            'carregados' =>
+                Entrega::where(
+                    'status',
+                    'Carregada'
+                )->count(),
 
-            'em_rota' => Entrega::where(
-                'status',
-                'Em_rota'
-            )->count(),
+            'em_rota' =>
+                Entrega::where(
+                    'status',
+                    'Em_rota'
+                )->count(),
 
-            'entregues' => Entrega::where(
-                'status',
-                'Entregue'
-            )->count(),
+            'entregues' =>
+                Entrega::where(
+                    'status',
+                    'Entregue'
+                )->count(),
 
-            'parciais' => Entrega::where(
-                'status',
-                'Entregue_parcial'
-            )->count(),
+            'parciais' =>
+                Entrega::where(
+                    'status',
+                    'Entregue_parcial'
+                )->count(),
 
-            'devolvidos' => Entrega::where(
-                'status',
-                'Devolvida'
-            )->count(),
+            'devolvidos' =>
+                Entrega::where(
+                    'status',
+                    'Devolvida'
+                )->count(),
 
-            'cancelados' => Entrega::where(
-                'status',
-                'Cancelada'
-            )->count(),
+            'cancelados' =>
+                Entrega::where(
+                    'status',
+                    'Cancelada'
+                )->count(),
 
-            'atrasadas' => Entrega::whereDate(
-                'data_prevista',
-                '<',
-                now()->toDateString()
-            )
-                ->whereNotIn('status', [
-                    'Entregue',
-                    'Cancelada',
-                    'Devolvida',
-                ])
-                ->count(),
+            'atrasadas' =>
+                Entrega::whereDate(
+                    'data_prevista',
+                    '<',
+                    now()->toDateString()
+                )
+                    ->whereNotIn(
+                        'status',
+                        [
+                            'Entregue',
+                            'Cancelada',
+                            'Devolvida',
+                        ]
+                    )
+                    ->count(),
         ];
 
         return view(
             'entregas.index',
             compact(
                 'entregas',
-                'resumo'
+                'resumo',
+                'dataInicio',
+                'dataFim'
             )
         );
     }

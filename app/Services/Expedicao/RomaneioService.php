@@ -37,9 +37,8 @@ class RomaneioService
     private const STATUS_FECHADO = 'Fechado';
     private const STATUS_CANCELADO = 'Cancelado';
 
-    public function __construct(
-        private readonly RomaneioEventoService $eventoService
-    ) {
+    public function __construct(private readonly RomaneioEventoService $eventoService)
+    {
     }
 
     public function criarRomaneio(array $dados): Romaneio
@@ -214,146 +213,237 @@ class RomaneioService
         });
     }
 
-    public function atualizarOperacao(Romaneio $romaneio, string $acao, array $dados = [] ): Romaneio 
+    public function atualizarOperacao(Romaneio $romaneio, string $acao, array $dados = []): Romaneio 
     {
         return DB::transaction(function () use (
             $romaneio,
             $acao,
             $dados
         ) {
-            $romaneio = $this->bloquearRomaneio(
-                $romaneio->id
-            );
+        $romaneio = $this->bloquearRomaneio(
+            $romaneio->id
+        );
 
-            $this->validarAcaoPermitida(
-                $romaneio,
-                $acao
-            );
+        $this->validarAcaoPermitida(
+            $romaneio,
+            $acao
+        );
 
-            return match ($acao) {
-                'salvar_andamento' =>
-                    $this->salvarAndamento(
-                        $romaneio,
-                        $dados
-                    ),
+        return match ($acao) {
+            'concluir_montagem' =>
+                $this->concluirMontagem(
+                    $romaneio,
+                    $dados
+                ),
 
-                'iniciar_separacao' =>
-                    $this->iniciarSeparacao(
-                        $romaneio,
-                        $dados
-                    ),
+            'salvar_andamento' =>
+                $this->salvarAndamento(
+                    $romaneio,
+                    $dados
+                ),
 
-                'finalizar_separacao' =>
-                    $this->finalizarSeparacao(
-                        $romaneio,
-                        $dados
-                    ),
+            'iniciar_separacao' =>
+                $this->iniciarSeparacao(
+                    $romaneio,
+                    $dados
+                ),
 
-                'iniciar_conferencia_separacao' =>
-                    $this->iniciarConferenciaSeparacao(
-                        $romaneio,
-                        $dados
-                    ),
+            'finalizar_separacao' =>
+                $this->finalizarSeparacao(
+                    $romaneio,
+                    $dados
+                ),
 
-                'finalizar_conferencia_separacao' =>
-                    $this->finalizarConferenciaSeparacao(
-                        $romaneio,
-                        $dados
-                    ),
+            'iniciar_conferencia_separacao' =>
+                $this->iniciarConferenciaSeparacao(
+                    $romaneio,
+                    $dados
+                ),
 
-                'iniciar_carregamento' =>
-                    $this->iniciarCarregamento(
-                        $romaneio,
-                        $dados
-                    ),
+            'finalizar_conferencia_separacao' =>
+                $this->finalizarConferenciaSeparacao(
+                    $romaneio,
+                    $dados
+                ),
 
-                'finalizar_carregamento' =>
-                    $this->finalizarCarregamento(
-                        $romaneio,
-                        $dados
-                    ),
+            'iniciar_carregamento' =>
+                $this->iniciarCarregamento(
+                    $romaneio,
+                    $dados
+                ),
 
-                'iniciar_conferencia_saida' =>
-                    $this->iniciarConferenciaSaida(
-                        $romaneio,
-                        $dados
-                    ),
+            'finalizar_carregamento' =>
+                $this->finalizarCarregamento(
+                    $romaneio,
+                    $dados
+                ),
 
-                'finalizar_conferencia_saida' =>
-                    $this->finalizarConferenciaSaida(
-                        $romaneio,
-                        $dados
-                    ),
+            'iniciar_conferencia_saida' =>
+                $this->iniciarConferenciaSaida(
+                    $romaneio,
+                    $dados
+                ),
 
-                'liberar_veiculo' =>
-                    $this->liberarVeiculo(
-                        $romaneio
-                    ),
+            'finalizar_conferencia_saida' =>
+                $this->finalizarConferenciaSaida(
+                    $romaneio,
+                    $dados
+                ),
 
-                'registrar_saida' =>
-                    $this->registrarSaida(
-                        $romaneio
-                    ),
+            'liberar_veiculo' =>
+                $this->liberarVeiculo(
+                    $romaneio
+                ),
 
-                'registrar_retorno' =>
-                    $this->registrarRetorno(
-                        $romaneio,
-                        $dados
-                    ),
+            'registrar_saida' =>
+                $this->registrarSaida(
+                    $romaneio
+                ),
 
-                'iniciar_conferencia_retorno' =>
-                    $this->iniciarConferenciaRetorno(
-                        $romaneio,
-                        $dados
-                    ),
+            'registrar_retorno' =>
+                $this->registrarRetorno(
+                    $romaneio,
+                    $dados
+                ),
 
-                'finalizar_conferencia_retorno' =>
-                    $this->finalizarConferenciaRetorno(
-                        $romaneio,
-                        $dados
-                    ),
+            'iniciar_conferencia_retorno' =>
+                $this->iniciarConferenciaRetorno(
+                    $romaneio,
+                    $dados
+                ),
 
-                'iniciar_prestacao_contas' =>
-                    $this->iniciarPrestacaoContas(
-                        $romaneio
-                    ),
+            'finalizar_conferencia_retorno' =>
+                $this->finalizarConferenciaRetorno(
+                    $romaneio,
+                    $dados
+                ),
 
-                'finalizar_prestacao_contas' =>
-                    $this->finalizarPrestacaoContas(
-                        $romaneio,
-                        $dados
-                    ),
+            'iniciar_prestacao_contas' =>
+                $this->iniciarPrestacaoContas(
+                    $romaneio
+                ),
 
-                'fechar_romaneio' =>
-                    $this->fecharRomaneio(
-                        $romaneio,
-                        $dados
-                    ),
+            'finalizar_prestacao_contas' =>
+                $this->finalizarPrestacaoContas(
+                    $romaneio,
+                    $dados
+                ),
 
-                'voltar_etapa' =>
-                    $this->retornarEtapaAnterior(
-                        $romaneio,
-                        $dados
-                    ),
-                'navegar_etapa' =>
-                    $this->navegarParaEtapa(
-                        $romaneio,
-                        $dados
-                    ),
+            'fechar_romaneio' =>
+                $this->fecharRomaneio(
+                    $romaneio,
+                    $dados
+                ),
 
-                default =>
-                    throw ValidationException::withMessages([
-                        'acao' =>
-                            'A ação operacional informada é inválida.',
-                    ]),
-            };
-        });
+            'voltar_etapa' =>
+                $this->retornarEtapaAnterior(
+                    $romaneio,
+                    $dados
+                ),
+
+            'navegar_etapa' =>
+                $this->navegarParaEtapa(
+                    $romaneio,
+                    $dados
+                ),
+
+            default =>
+                throw ValidationException::withMessages([
+                    'acao' =>
+                        'A ação operacional informada é inválida.',
+                ]),
+        };
+    });
+}
+    private function concluirMontagem( Romaneio $romaneio, array $dados): Romaneio 
+    {
+        $romaneio->load('itens');
+
+        if ($romaneio->itens->isEmpty()) {
+            throw ValidationException::withMessages([
+                'itens' =>
+                    'O romaneio não possui itens para concluir a montagem.',
+            ]);
+        }
+
+        $motoristaId = (int) (
+            $dados['motorista_id']
+            ?? $romaneio->motorista_id
+            ?? 0
+        );
+
+        $veiculoId = (int) (
+            $dados['veiculo_id']
+            ?? $romaneio->veiculo_id
+            ?? 0
+        );
+
+        if ($motoristaId <= 0) {
+            throw ValidationException::withMessages([
+                'motorista_id' =>
+                    'Defina o motorista antes de concluir a montagem.',
+            ]);
+        }
+
+        if ($veiculoId <= 0) {
+            throw ValidationException::withMessages([
+                'veiculo_id' =>
+                    'Defina o veículo antes de concluir a montagem.',
+            ]);
+        }
+
+        foreach ($romaneio->itens as $item) {
+            if ((float) $item->quantidade_prevista <= 0) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        "O item #{$item->entrega_item_id} possui quantidade prevista inválida.",
+                ]);
+            }
+        }
+
+        $statusAnterior = $romaneio->status;
+
+        $romaneio->update([
+            'motorista_id' =>
+                $motoristaId,
+
+            'veiculo_id' =>
+                $veiculoId,
+
+            'observacao' =>
+                array_key_exists('observacao', $dados)
+                    ? ($dados['observacao'] ?: null)
+                    : $romaneio->observacao,
+
+            'status' =>
+                self::STATUS_AGUARDANDO_SEPARACAO,
+
+            'percentual_carregado' =>
+                0,
+        ]);
+
+        $this->atualizarStatusEntregas(
+            $romaneio,
+            'Aguardando_separacao'
+        );
+
+        $romaneio->refresh();
+
+        $this->eventoService->registrarTransicao(
+            romaneio: $romaneio,
+            evento: 'Montagem concluída',
+            etapa: 'Montagem',
+            statusAnterior: $statusAnterior,
+            statusNovo: $romaneio->status
+        );
+
+        return $this->carregarRomaneio(
+            $romaneio
+        );
     }
 
-    private function salvarAndamento(
-        Romaneio $romaneio,
-        array $dados
-    ): Romaneio {
+    private function salvarAndamento(Romaneio $romaneio, array $dados): Romaneio 
+    {
         $romaneio->load('itens');
 
         $this->salvarDadosOperacionais(
@@ -370,10 +460,8 @@ class RomaneioService
         );
     }
 
-    private function iniciarSeparacao(
-        Romaneio $romaneio,
-        array $dados
-    ): Romaneio {
+    private function iniciarSeparacao(Romaneio $romaneio, array $dados): Romaneio 
+    {
         $statusAnterior = $romaneio->status;
 
         $romaneio->update([
@@ -408,10 +496,8 @@ class RomaneioService
         );
     }
 
-    private function finalizarSeparacao(
-        Romaneio $romaneio,
-        array $dados
-    ): Romaneio {
+    private function finalizarSeparacao(Romaneio $romaneio, array $dados): Romaneio 
+    {
         $romaneio->load('itens');
 
         $this->salvarDadosOperacionais(
@@ -1463,9 +1549,8 @@ class RomaneioService
         }
     }
 
-    private function validarLiberacao(
-        Romaneio $romaneio
-    ): void {
+    private function validarLiberacao(Romaneio $romaneio): void 
+    {
         $this->validarConferenciaSaidaCompleta(
             $romaneio
         );
@@ -1525,8 +1610,12 @@ class RomaneioService
 
             return;
         }
-        
+
         $acoesPermitidas = match ($romaneio->status) {
+            self::STATUS_MONTAGEM => [
+                'concluir_montagem',
+            ],
+
             self::STATUS_AGUARDANDO_SEPARACAO => [
                 'iniciar_separacao',
             ],
@@ -1608,10 +1697,11 @@ class RomaneioService
             self::STATUS_FECHADO,
             self::STATUS_CANCELADO => [],
 
-            default => throw ValidationException::withMessages([
-                'status' =>
-                    "O status atual do romaneio ({$romaneio->status}) é inválido.",
-            ]),
+            default =>
+                throw ValidationException::withMessages([
+                    'status' =>
+                        "O status atual do romaneio ({$romaneio->status}) é inválido.",
+                ]),
         };
 
         if (! in_array($acao, $acoesPermitidas, true)) {
@@ -1752,8 +1842,11 @@ class RomaneioService
             ]);
         }
 
-        $ordemAtual = $etapas[$etapaAtual]['ordem'];
-        $ordemDestino = $etapas[$etapaDestino]['ordem'];
+        $ordemAtual =
+            (int) $etapas[$etapaAtual]['ordem'];
+
+        $ordemDestino =
+            (int) $etapas[$etapaDestino]['ordem'];
 
         if ($ordemDestino > $ordemAtual) {
             throw ValidationException::withMessages([
@@ -1763,24 +1856,44 @@ class RomaneioService
         }
 
         $statusAnterior = $romaneio->status;
-        $configuracaoDestino = $etapas[$etapaDestino];
 
+        $configuracaoDestino =
+            $etapas[$etapaDestino];
+
+        /*
+        * Primeiro desfaz os dados operacionais posteriores
+        * à etapa escolhida.
+        */
         $this->prepararRetornoParaEtapa(
             $romaneio,
             $etapaDestino
         );
 
+        /*
+        * Depois sincroniza quantidades e situações
+        * dos itens do romaneio.
+        */
+        $this->sincronizarItensParaEtapa(
+            $romaneio,
+            $etapaDestino
+        );
+
+        $romaneio->refresh();
+
         $romaneio->update([
-            'status' => $configuracaoDestino['status_romaneio'],
-            'observacao' => $this->adicionarHistoricoNaObservacao(
-                $romaneio->observacao,
-                sprintf(
-                    'Navegação manual de %s para %s. Motivo: %s',
-                    $etapas[$etapaAtual]['label'],
-                    $configuracaoDestino['label'],
-                    $motivo
-                )
-            ),
+            'status' =>
+                $configuracaoDestino['status_romaneio'],
+
+            'observacao' =>
+                $this->adicionarHistoricoNaObservacao(
+                    $romaneio->observacao,
+                    sprintf(
+                        'Navegação manual de %s para %s. Motivo: %s',
+                        $etapas[$etapaAtual]['label'],
+                        $configuracaoDestino['label'],
+                        $motivo
+                    )
+                ),
         ]);
 
         $this->atualizarStatusEntregas(
@@ -1788,31 +1901,564 @@ class RomaneioService
             $configuracaoDestino['status_entrega']
         );
 
+        $romaneio->refresh();
+        $romaneio->load('itens');
+
+        /*
+        * O percentual precisa ser recalculado depois
+        * da limpeza das quantidades carregadas.
+        */
+        $this->atualizarPercentualCarregado(
+            $romaneio
+        );
+
+        $romaneio->refresh();
+
         DB::table('romaneio_eventos')->insert([
-            'romaneio_id' => $romaneio->id,
-            'evento' => 'Etapa alterada manualmente',
-            'etapa' => $configuracaoDestino['label'],
-            'status_anterior' => $statusAnterior,
-            'status_novo' => $configuracaoDestino['status_romaneio'],
-            'metodo_identificacao' => 'Sistema',
-            'usuario_id' => Auth::id(),
-            'funcionario_id' => null,
-            'terminal' => request()->userAgent(),
-            'endereco_ip' => request()->ip(),
-            'observacao' => $motivo,
-            'dados' => json_encode([
-                'etapa_origem' => $etapaAtual,
-                'etapa_destino' => $etapaDestino,
-                'motivo' => $motivo,
-            ], JSON_UNESCAPED_UNICODE),
-            'ocorrido_em' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'romaneio_id' =>
+                $romaneio->id,
+
+            'evento' =>
+                'Etapa alterada manualmente',
+
+            'etapa' =>
+                $configuracaoDestino['label'],
+
+            'status_anterior' =>
+                $statusAnterior,
+
+            'status_novo' =>
+                $configuracaoDestino['status_romaneio'],
+
+            'metodo_identificacao' =>
+                'Sistema',
+
+            'usuario_id' =>
+                Auth::id(),
+
+            'funcionario_id' =>
+                null,
+
+            'terminal' =>
+                request()->userAgent(),
+
+            'endereco_ip' =>
+                request()->ip(),
+
+            'observacao' =>
+                $motivo,
+
+            'dados' => json_encode(
+                [
+                    'etapa_origem' =>
+                        $etapaAtual,
+
+                    'etapa_destino' =>
+                        $etapaDestino,
+
+                    'motivo' =>
+                        $motivo,
+                ],
+                JSON_UNESCAPED_UNICODE
+            ),
+
+            'ocorrido_em' =>
+                now(),
+
+            'created_at' =>
+                now(),
+
+            'updated_at' =>
+                now(),
         ]);
 
         return $this->carregarRomaneio(
             $romaneio->fresh()
         );
+    }
+
+    private function prepararRetornoParaEtapa(Romaneio $romaneio, string $etapaDestino): void 
+    {
+        $dados = match ($etapaDestino) {
+            'montagem' => [
+                'data_inicio_separacao' =>
+                    null,
+
+                'data_fim_separacao' =>
+                    null,
+
+                'data_inicio_conferencia_separacao' =>
+                    null,
+
+                'data_fim_conferencia_separacao' =>
+                    null,
+
+                'data_inicio_carregamento' =>
+                    null,
+
+                'data_fim_carregamento' =>
+                    null,
+
+                'data_inicio_conferencia_saida' =>
+                    null,
+
+                'data_fim_conferencia_saida' =>
+                    null,
+
+                'data_saida' =>
+                    null,
+
+                'iniciado_por' =>
+                    null,
+
+                'separado_por' =>
+                    null,
+
+                'conferencia_separacao_por' =>
+                    null,
+
+                'carregado_por' =>
+                    null,
+
+                'conferido_por' =>
+                    null,
+
+                'conferencia_saida_por' =>
+                    null,
+
+                'finalizado_por' =>
+                    null,
+
+                'percentual_carregado' =>
+                    0,
+            ],
+
+            'separacao' => [
+                'data_inicio_separacao' =>
+                    now(),
+
+                'data_fim_separacao' =>
+                    null,
+
+                'data_inicio_conferencia_separacao' =>
+                    null,
+
+                'data_fim_conferencia_separacao' =>
+                    null,
+
+                'data_inicio_carregamento' =>
+                    null,
+
+                'data_fim_carregamento' =>
+                    null,
+
+                'data_inicio_conferencia_saida' =>
+                    null,
+
+                'data_fim_conferencia_saida' =>
+                    null,
+
+                'data_saida' =>
+                    null,
+
+                'conferencia_separacao_por' =>
+                    null,
+
+                'carregado_por' =>
+                    null,
+
+                'conferido_por' =>
+                    null,
+
+                'conferencia_saida_por' =>
+                    null,
+
+                'finalizado_por' =>
+                    null,
+
+                'percentual_carregado' =>
+                    0,
+            ],
+
+            'conferencia_separacao' => [
+                'data_inicio_conferencia_separacao' =>
+                    now(),
+
+                'data_fim_conferencia_separacao' =>
+                    null,
+
+                'data_inicio_carregamento' =>
+                    null,
+
+                'data_fim_carregamento' =>
+                    null,
+
+                'data_inicio_conferencia_saida' =>
+                    null,
+
+                'data_fim_conferencia_saida' =>
+                    null,
+
+                'data_saida' =>
+                    null,
+
+                'carregado_por' =>
+                    null,
+
+                'conferido_por' =>
+                    null,
+
+                'conferencia_saida_por' =>
+                    null,
+
+                'finalizado_por' =>
+                    null,
+
+                'percentual_carregado' =>
+                    0,
+            ],
+
+            'carregamento' => [
+                'data_inicio_carregamento' =>
+                    now(),
+
+                'data_fim_carregamento' =>
+                    null,
+
+                'data_inicio_conferencia_saida' =>
+                    null,
+
+                'data_fim_conferencia_saida' =>
+                    null,
+
+                'data_saida' =>
+                    null,
+
+                'conferido_por' =>
+                    null,
+
+                'conferencia_saida_por' =>
+                    null,
+
+                'finalizado_por' =>
+                    null,
+            ],
+
+            'conferencia_saida' => [
+                'data_inicio_conferencia_saida' =>
+                    now(),
+
+                'data_fim_conferencia_saida' =>
+                    null,
+
+                'data_saida' =>
+                    null,
+
+                'conferido_por' =>
+                    null,
+
+                'conferencia_saida_por' =>
+                    null,
+
+                'finalizado_por' =>
+                    null,
+            ],
+
+            'liberacao' => [
+                'data_saida' =>
+                    null,
+
+                'finalizado_por' =>
+                    null,
+            ],
+
+            default => [],
+        };
+
+        if (! empty($dados)) {
+            $romaneio->update($dados);
+        }
+    }
+
+    private function sincronizarItensParaEtapa(Romaneio $romaneio, string $etapaDestino): void 
+    {
+        $romaneio->loadMissing('itens');
+
+        foreach ($romaneio->itens as $item) {
+            $atualizacao = match ($etapaDestino) {
+                /*
+                * Retorno completo ao início da operação.
+                */
+                'montagem' => [
+                    'quantidade_separada' =>
+                        0,
+
+                    'quantidade_conferida_separacao' =>
+                        0,
+
+                    'quantidade_conferida' =>
+                        0,
+
+                    'quantidade_carregada' =>
+                        0,
+
+                    'quantidade_conferida_saida' =>
+                        0,
+
+                    'quantidade_entregue' =>
+                        0,
+
+                    'quantidade_devolvida' =>
+                        0,
+
+                    'quantidade_recusada' =>
+                        0,
+
+                    'quantidade_avariada' =>
+                        0,
+
+                    'quantidade_perdida' =>
+                        0,
+
+                    'carregado_por' =>
+                        null,
+
+                    'conferido_por' =>
+                        null,
+
+                    'conferido_em' =>
+                        null,
+
+                    'retorno_conferido_por' =>
+                        null,
+
+                    'retorno_conferido_em' =>
+                        null,
+                ],
+
+                /*
+                * A separação já informada é preservada.
+                * As etapas posteriores são descartadas.
+                */
+                'separacao' => [
+                    'quantidade_conferida_separacao' =>
+                        0,
+
+                    'quantidade_conferida' =>
+                        0,
+
+                    'quantidade_carregada' =>
+                        0,
+
+                    'quantidade_conferida_saida' =>
+                        0,
+
+                    'quantidade_entregue' =>
+                        0,
+
+                    'quantidade_devolvida' =>
+                        0,
+
+                    'quantidade_recusada' =>
+                        0,
+
+                    'quantidade_avariada' =>
+                        0,
+
+                    'quantidade_perdida' =>
+                        0,
+
+                    'carregado_por' =>
+                        null,
+
+                    'conferido_por' =>
+                        null,
+
+                    'conferido_em' =>
+                        null,
+
+                    'retorno_conferido_por' =>
+                        null,
+
+                    'retorno_conferido_em' =>
+                        null,
+                ],
+
+                /*
+                * Preserva a separação.
+                * Reinicia a conferência da separação
+                * e todas as etapas posteriores.
+                */
+                'conferencia_separacao' => [
+                    'quantidade_conferida_separacao' =>
+                        0,
+
+                    'quantidade_conferida' =>
+                        0,
+
+                    'quantidade_carregada' =>
+                        0,
+
+                    'quantidade_conferida_saida' =>
+                        0,
+
+                    'quantidade_entregue' =>
+                        0,
+
+                    'quantidade_devolvida' =>
+                        0,
+
+                    'quantidade_recusada' =>
+                        0,
+
+                    'quantidade_avariada' =>
+                        0,
+
+                    'quantidade_perdida' =>
+                        0,
+
+                    'carregado_por' =>
+                        null,
+
+                    'conferido_por' =>
+                        null,
+
+                    'conferido_em' =>
+                        null,
+
+                    'retorno_conferido_por' =>
+                        null,
+
+                    'retorno_conferido_em' =>
+                        null,
+                ],
+
+                /*
+                * Preserva separação e conferência
+                * da separação.
+                */
+                'carregamento' => [
+                    'quantidade_carregada' =>
+                        0,
+
+                    'quantidade_conferida_saida' =>
+                        0,
+
+                    'quantidade_entregue' =>
+                        0,
+
+                    'quantidade_devolvida' =>
+                        0,
+
+                    'quantidade_recusada' =>
+                        0,
+
+                    'quantidade_avariada' =>
+                        0,
+
+                    'quantidade_perdida' =>
+                        0,
+
+                    'carregado_por' =>
+                        null,
+
+                    'conferido_por' =>
+                        null,
+
+                    'conferido_em' =>
+                        null,
+
+                    'retorno_conferido_por' =>
+                        null,
+
+                    'retorno_conferido_em' =>
+                        null,
+                ],
+
+                /*
+                * Preserva o carregamento.
+                * Reinicia a conferência de saída
+                * e as etapas posteriores.
+                */
+                'conferencia_saida' => [
+                    'quantidade_conferida_saida' =>
+                        0,
+
+                    'quantidade_entregue' =>
+                        0,
+
+                    'quantidade_devolvida' =>
+                        0,
+
+                    'quantidade_recusada' =>
+                        0,
+
+                    'quantidade_avariada' =>
+                        0,
+
+                    'quantidade_perdida' =>
+                        0,
+
+                    'conferido_por' =>
+                        null,
+
+                    'conferido_em' =>
+                        null,
+
+                    'retorno_conferido_por' =>
+                        null,
+
+                    'retorno_conferido_em' =>
+                        null,
+                ],
+
+                /*
+                * Preserva toda a operação até a
+                * conferência de saída e descarta
+                * qualquer movimentação posterior.
+                */
+                'liberacao' => [
+                    'quantidade_entregue' =>
+                        0,
+
+                    'quantidade_devolvida' =>
+                        0,
+
+                    'quantidade_recusada' =>
+                        0,
+
+                    'quantidade_avariada' =>
+                        0,
+
+                    'quantidade_perdida' =>
+                        0,
+
+                    'retorno_conferido_por' =>
+                        null,
+
+                    'retorno_conferido_em' =>
+                        null,
+                ],
+
+                default => [],
+            };
+
+            if (empty($atualizacao)) {
+                continue;
+            }
+
+            /*
+            * O status é sempre derivado das quantidades.
+            * Não deve ser atribuído manualmente.
+            */
+            $atualizacao['status'] =
+                $this->resolverStatusItem(
+                    $item,
+                    $atualizacao
+                );
+
+            $item->update($atualizacao);
+        }
     }
 
     private function mapaEtapasOperacionais(): array
@@ -1908,70 +2554,68 @@ class RomaneioService
         };
     }
 
-    private function prepararRetornoParaEtapa(
-        Romaneio $romaneio,
-        string $etapaDestino
-    ): void {
-        $dados = match ($etapaDestino) {
-            'montagem' => [
-                'data_inicio_separacao' => null,
-                'data_fim_separacao' => null,
-                'data_inicio_conferencia_separacao' => null,
-                'data_fim_conferencia_separacao' => null,
-                'data_inicio_carregamento' => null,
-                'data_fim_carregamento' => null,
-                'data_inicio_conferencia_saida' => null,
-                'data_fim_conferencia_saida' => null,
-                'data_saida' => null,
-            ],
+    // private function prepararRetornoParaEtapa(Romaneio $romaneio, string $etapaDestino): void 
+    // {
+    //     $dados = match ($etapaDestino) {
+    //         'montagem' => [
+    //             'data_inicio_separacao' => null,
+    //             'data_fim_separacao' => null,
+    //             'data_inicio_conferencia_separacao' => null,
+    //             'data_fim_conferencia_separacao' => null,
+    //             'data_inicio_carregamento' => null,
+    //             'data_fim_carregamento' => null,
+    //             'data_inicio_conferencia_saida' => null,
+    //             'data_fim_conferencia_saida' => null,
+    //             'data_saida' => null,
+    //         ],
 
-            'separacao' => [
-                'data_inicio_separacao' => now(),
-                'data_fim_separacao' => null,
-                'data_inicio_conferencia_separacao' => null,
-                'data_fim_conferencia_separacao' => null,
-                'data_inicio_carregamento' => null,
-                'data_fim_carregamento' => null,
-                'data_inicio_conferencia_saida' => null,
-                'data_fim_conferencia_saida' => null,
-                'data_saida' => null,
-            ],
+    //         'separacao' => [
+    //             'data_inicio_separacao' => now(),
+    //             'data_fim_separacao' => null,
+    //             'data_inicio_conferencia_separacao' => null,
+    //             'data_fim_conferencia_separacao' => null,
+    //             'data_inicio_carregamento' => null,
+    //             'data_fim_carregamento' => null,
+    //             'data_inicio_conferencia_saida' => null,
+    //             'data_fim_conferencia_saida' => null,
+    //             'data_saida' => null,
+    //         ],
 
-            'conferencia_separacao' => [
-                'data_inicio_conferencia_separacao' => now(),
-                'data_fim_conferencia_separacao' => null,
-                'data_inicio_carregamento' => null,
-                'data_fim_carregamento' => null,
-                'data_inicio_conferencia_saida' => null,
-                'data_fim_conferencia_saida' => null,
-                'data_saida' => null,
-            ],
+    //         'conferencia_separacao' => [
+    //             'data_inicio_conferencia_separacao' => now(),
+    //             'data_fim_conferencia_separacao' => null,
+    //             'data_inicio_carregamento' => null,
+    //             'data_fim_carregamento' => null,
+    //             'data_inicio_conferencia_saida' => null,
+    //             'data_fim_conferencia_saida' => null,
+    //             'data_saida' => null,
+    //         ],
 
-            'carregamento' => [
-                'data_inicio_carregamento' => now(),
-                'data_fim_carregamento' => null,
-                'data_inicio_conferencia_saida' => null,
-                'data_fim_conferencia_saida' => null,
-                'data_saida' => null,
-            ],
+    //         'carregamento' => [
+    //             'data_inicio_carregamento' => now(),
+    //             'data_fim_carregamento' => null,
+    //             'data_inicio_conferencia_saida' => null,
+    //             'data_fim_conferencia_saida' => null,
+    //             'data_saida' => null,
+    //         ],
 
-            'conferencia_saida' => [
-                'data_inicio_conferencia_saida' => now(),
-                'data_fim_conferencia_saida' => null,
-                'data_saida' => null,
-            ],
+    //         'conferencia_saida' => [
+    //             'data_inicio_conferencia_saida' => now(),
+    //             'data_fim_conferencia_saida' => null,
+    //             'data_saida' => null,
+    //         ],
 
-            'liberacao' => [
-                'data_saida' => null,
-            ],
+    //         'liberacao' => [
+    //             'data_saida' => null,
+    //         ],
 
-            default => [],
-        };
+    //         default => [],
+    //     };
 
-        if (! empty($dados)) {
-            $romaneio->update($dados);
-        }
-    }
+    //     if (! empty($dados)) {
+    //         $romaneio->update($dados);
+    //     }
+    // }
 
     private function adicionarHistoricoNaObservacao(
         ?string $observacaoAtual,

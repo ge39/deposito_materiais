@@ -767,21 +767,151 @@
                     </div>
 
                     <div class="operation-description">
-                        @if($criandoRomaneio)
-                            A criação prepara o documento, mas não inicia automaticamente a separação.
-                        @elseif($statusOriginal === 'em_separacao')
-                            Todos os itens devem ser separados antes da conclusão.
-                        @elseif($statusOriginal === 'em_conferencia_separacao')
-                            A quantidade conferida deve corresponder à quantidade separada.
-                        @elseif($statusOriginal === 'carregando')
-                            A quantidade carregada deve corresponder à separação já conferida.
-                        @elseif($statusOriginal === 'em_conferencia_saida')
-                            A quantidade conferida deve corresponder à carga presente no veículo.
-                        @elseif($statusOriginal === 'aguardando_liberacao')
-                            A impressão é obrigatória antes da liberação.
-                        @elseif($statusOriginal === 'em_rota')
-                            O resultado da entrega será informado pelo botão Confirmar entrega.
-                        @endif
+                       @if($criandoRomaneio)
+    <button type="submit"
+            class="btn btn-primary btn-sm"
+            id="btnPrincipal">
+        <i class="bi bi-check-circle me-1"></i>
+        Criar Romaneio
+    </button>
+
+        @elseif($statusOriginal === 'montagem')
+            <button type="submit"
+                    name="acao"
+                    value="concluir_montagem"
+                    class="btn btn-primary btn-sm"
+                    id="btnPrincipal">
+                <i class="bi bi-check-circle me-1"></i>
+                Concluir Montagem
+            </button>
+
+        @elseif($statusOriginal === 'aguardando_separacao')
+            <button type="submit"
+                    name="acao"
+                    value="iniciar_separacao"
+                    class="btn btn-warning btn-sm"
+                    id="btnPrincipal">
+                <i class="bi bi-play-circle me-1"></i>
+                Iniciar Separação
+            </button>
+
+        @elseif($statusOriginal === 'em_separacao')
+            <button type="submit"
+                    name="acao"
+                    value="finalizar_separacao"
+                    class="btn btn-warning btn-sm"
+                    id="btnPrincipal">
+                <i class="bi bi-box-seam me-1"></i>
+                Finalizar Separação
+            </button>
+
+        @elseif($statusOriginal === 'aguardando_conferencia_separacao')
+            <button type="submit"
+                    name="acao"
+                    value="iniciar_conferencia_separacao"
+                    class="btn btn-info btn-sm"
+                    id="btnPrincipal">
+                <i class="bi bi-clipboard2-check me-1"></i>
+                Iniciar Conferência
+            </button>
+
+        @elseif($statusOriginal === 'em_conferencia_separacao')
+            <button type="submit"
+                    name="acao"
+                    value="finalizar_conferencia_separacao"
+                    class="btn btn-info btn-sm"
+                    id="btnPrincipal">
+                <i class="bi bi-check2-all me-1"></i>
+                Finalizar Conferência
+            </button>
+
+        @elseif(in_array(
+            $statusOriginal,
+            [
+                'separacao_conferida',
+                'aguardando_carregamento',
+            ],
+            true
+        ))
+            <button type="submit"
+                    name="acao"
+                    value="iniciar_carregamento"
+                    class="btn btn-primary btn-sm"
+                    id="btnPrincipal">
+                <i class="bi bi-play-circle me-1"></i>
+                Iniciar Carregamento
+            </button>
+
+        @elseif($statusOriginal === 'carregando')
+            <button type="submit"
+                    name="acao"
+                    value="finalizar_carregamento"
+                    class="btn btn-primary btn-sm"
+                    id="btnPrincipal">
+                <i class="bi bi-truck-front me-1"></i>
+                Finalizar Carregamento
+            </button>
+
+        @elseif($statusOriginal === 'aguardando_conferencia_saida')
+            <button type="submit"
+                    name="acao"
+                    value="iniciar_conferencia_saida"
+                    class="btn btn-info btn-sm"
+                    id="btnPrincipal">
+                <i class="bi bi-clipboard-data me-1"></i>
+                Iniciar Conf. Saída
+            </button>
+
+        @elseif($statusOriginal === 'em_conferencia_saida')
+            <button type="submit"
+                    name="acao"
+                    value="finalizar_conferencia_saida"
+                    class="btn btn-info btn-sm"
+                    id="btnPrincipal">
+                <i class="bi bi-check2-all me-1"></i>
+                Finalizar Conf. Saída
+            </button>
+
+        @elseif($statusOriginal === 'aguardando_liberacao')
+            <button type="submit"
+                    form="formImprimirRomaneio"
+                    class="btn btn-outline-dark btn-sm" formTarget="_blank">
+                <i class="bi bi-printer me-1"></i>
+                Imprimir
+            </button>
+
+            <button type="submit"
+                    name="acao"
+                    value="liberar_veiculo"
+                    class="btn btn-success btn-sm"
+                    id="btnPrincipal"
+                    @disabled(
+                        empty(
+                            $romaneioAtivo?->impresso_em
+                        )
+                    )>
+                <i class="bi bi-shield-check me-1"></i>
+                Liberar Veículo
+            </button>
+
+        @elseif($statusOriginal === 'liberado')
+            <button type="submit"
+                    name="acao"
+                    value="registrar_saida"
+                    class="btn btn-dark btn-sm"
+                    id="btnPrincipal">
+                <i class="bi bi-truck me-1"></i>
+                Registrar Saída
+            </button>
+
+        @elseif($statusOriginal === 'em_rota')
+            <button type="button"
+                    class="btn btn-dark btn-sm"
+                    disabled>
+                <i class="bi bi-sign-turn-right me-1"></i>
+                Veículo em Rota
+            </button>
+        @endif
                     </div>
 
                     @if($romaneioAtivo)

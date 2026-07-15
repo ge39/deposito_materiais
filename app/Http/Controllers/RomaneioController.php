@@ -470,6 +470,7 @@ class RomaneioController extends Controller
     public function atualizarOperacao(Request $request,Romaneio $romaneio) 
     {
         $acoesPermitidas = [
+            'concluir_montagem',
             'salvar_andamento',
             'iniciar_separacao',
             'finalizar_separacao',
