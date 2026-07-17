@@ -24,19 +24,19 @@ Laravel <?php echo e(app()->version()); ?>
 
 ## Headers
 
-<?php $__empty_-5 = true; $__currentLoopData = $exception->requestHeaders(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_-5 = false; ?>
+<?php $__empty_1 = true; $__currentLoopData = $exception->requestHeaders(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
 * **<?php echo e($key); ?>**: <?php echo $value; ?>
 
-<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_-5): ?>
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
 No header data available.
 <?php endif; ?>
 
 ## Route Context
 
-<?php $__empty_-5 = true; $__currentLoopData = $exception->applicationRouteContext(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_-5 = false; ?>
+<?php $__empty_1 = true; $__currentLoopData = $exception->applicationRouteContext(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
 <?php echo e($name); ?>: <?php echo $value; ?>
 
-<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_-5): ?>
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
 No routing data available.
 <?php endif; ?>
 
@@ -51,9 +51,9 @@ No route parameter data available.
 
 ## Database Queries
 
-<?php $__empty_-5 = true; $__currentLoopData = $exception->applicationQueries(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as ['connectionName' => $connectionName, 'sql' => $sql, 'time' => $time]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_-5 = false; ?>
+<?php $__empty_1 = true; $__currentLoopData = $exception->applicationQueries(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as ['connectionName' => $connectionName, 'sql' => $sql, 'time' => $time]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
 * <?php echo e($connectionName); ?> - <?php echo $sql; ?> (<?php echo e($time); ?> ms)
-<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_-5): ?>
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
 No database queries detected.
 <?php endif; ?>
 <?php /**PATH C:\xampp\htdocs\deposito_materiais\vendor\laravel\framework\src\Illuminate\Foundation\Providers/../resources/exceptions/renderer/markdown.blade.php ENDPATH**/ ?>

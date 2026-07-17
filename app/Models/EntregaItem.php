@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\ItemVenda;
-use App\Models\ItemOrcamento;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EntregaItem extends Model
 {
@@ -16,6 +16,10 @@ class EntregaItem extends Model
         'venda_item_id',
         'quantidade_prevista',
         'quantidade_entregue',
+        'quantidade_recusada',
+        'quantidade_devolvida',
+        'quantidade_avariada',
+        'motivo_nao_entrega',
         'status',
         'observacao',
     ];
@@ -23,39 +27,61 @@ class EntregaItem extends Model
     protected $casts = [
         'quantidade_prevista' => 'decimal:2',
         'quantidade_entregue' => 'decimal:2',
+        'quantidade_recusada' => 'decimal:2',
+        'quantidade_devolvida' => 'decimal:2',
+        'quantidade_avariada' => 'decimal:2',
     ];
 
-    public function entrega()
+    public function entrega(): BelongsTo
     {
         return $this->belongsTo(Entrega::class, 'entrega_id');
     }
 
-    public function vendaItem()
+    public function vendaItem(): BelongsTo
     {
         return $this->belongsTo(ItemVenda::class, 'venda_item_id');
     }
 
-    public function itemOrcamento()
+    public function produto(): BelongsTo{
+        
+    }
+
+    public function itemOrcamento(): BelongsTo
     {
         return $this->belongsTo(ItemOrcamento::class, 'item_orcamento_id');
     }
 
-    public function produto()
+    public function romaneioItens(): HasMany
     {
-        return $this->belongsTo(Produto::class, 'produto_id');
+        return $this->hasMany(RomaneioItem::class, 'entrega_item_id');
     }
 
-    public function getSaldoAttribute()
+    public function getProdutoAttribute(): ?Produto
     {
-        return max(0, $this->quantidade_prevista - $this->quantidade_entregue);
+        return $this->itemOrcamento?->produto
+            ?? $this->vendaItem?->produto;
     }
 
-    public function getPercentualEntregueAttribute()
+    public function getQuantidadePendenteAttribute(): float
     {
-        if ($this->quantidade_prevista <= 0) {
+        return max(
+            0,
+            (float) $this->quantidade_prevista
+            - (float) $this->quantidade_entregue
+        );
+    }
+
+    public function getPercentualEntregueAttribute(): float
+    {
+        $quantidadePrevista = (float) $this->quantidade_prevista;
+
+        if ($quantidadePrevista <= 0) {
             return 0;
         }
 
-        return round(($this->quantidade_entregue / $this->quantidade_prevista) * 100, 2);
+        return round(
+            ((float) $this->quantidade_entregue / $quantidadePrevista) * 100,
+            2
+        );
     }
 }

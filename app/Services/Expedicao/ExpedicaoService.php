@@ -41,11 +41,15 @@ class ExpedicaoService
 
         $entregasDisponiveis = Entrega::with([
                 'cliente',
-                'itens.produto',
+                'itens.vendaItem.produto',
+                'itens.itemOrcamento.produto',
                 'orcamento',
                 'venda',
             ])
-            ->whereIn('status', ['Aguardando_separacao', 'Separando'])
+            ->whereIn('status', [
+                'Aguardando_separacao',
+                'Separando',
+            ])
             ->orderBy('data_prevista_entrega')
             ->orderBy('id')
             ->get();
@@ -59,7 +63,6 @@ class ExpedicaoService
                 'entrega.venda',
 
                 'itens.entregaItem.entrega',
-                'itens.entregaItem.produto',
                 'itens.entregaItem.vendaItem.produto',
                 'itens.entregaItem.itemOrcamento.produto',
             ])
@@ -91,20 +94,38 @@ class ExpedicaoService
             ->get();
 
         $kpis = [
-            'entregas_disponiveis' => $entregasDisponiveis->count(),
+            'entregas_disponiveis' =>
+                $entregasDisponiveis->count(),
 
-            'romaneios_abertos' => Romaneio::where('status', 'Gerado')->count(),
-            'romaneios_em_separacao' => Romaneio::where('status', 'Em_separacao')->count(),
-            'romaneios_separados' => Romaneio::where('status', 'Separado')->count(),
-            'romaneios_na_doca' => Romaneio::where('status', 'Na_doca')->count(),
+            'romaneios_abertos' =>
+                Romaneio::where('status', 'Gerado')->count(),
 
-            'romaneios_carregando' => Romaneio::where('status', 'Carregando')->count(),
-            'romaneios_carregados' => Romaneio::where('status', 'Carregado')->count(),
-            'romaneios_em_rota' => Romaneio::where('status', 'Saiu_para_entrega')->count(),
+            'romaneios_em_separacao' =>
+                Romaneio::where('status', 'Em_separacao')->count(),
 
-            'romaneios_parciais' => Romaneio::where('status', 'Parcial')->count(),
-            'romaneios_devolvidos' => Romaneio::where('status', 'Devolvido')->count(),
-            'romaneios_cancelados' => Romaneio::where('status', 'Cancelado')->count(),
+            'romaneios_separados' =>
+                Romaneio::where('status', 'Separado')->count(),
+
+            'romaneios_na_doca' =>
+                Romaneio::where('status', 'Na_doca')->count(),
+
+            'romaneios_carregando' =>
+                Romaneio::where('status', 'Carregando')->count(),
+
+            'romaneios_carregados' =>
+                Romaneio::where('status', 'Carregado')->count(),
+
+            'romaneios_em_rota' =>
+                Romaneio::where('status', 'Saiu_para_entrega')->count(),
+
+            'romaneios_parciais' =>
+                Romaneio::where('status', 'Parcial')->count(),
+
+            'romaneios_devolvidos' =>
+                Romaneio::where('status', 'Devolvido')->count(),
+
+            'romaneios_cancelados' =>
+                Romaneio::where('status', 'Cancelado')->count(),
         ];
 
         return compact(

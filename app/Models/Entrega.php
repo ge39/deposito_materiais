@@ -9,36 +9,39 @@ use App\Models\Romaneio;
 
 class Entrega extends Model
 {
-    protected $table = 'entregas';
+   protected $table = 'entregas';
 
-    protected $fillable = [
-       'orcamento_id',
-        'venda_id',
-        'codigo_entrega',
-        'data_prevista',
-        'data_prevista_entrega',
-        'periodo_entrega',
-        'observacao_entrega',
-        'status',
-        'tipo_entrega',
-        'usar_endereco_cliente',
-        'endereco_entrega',
-        'responsavel_recebimento',
-        'telefone_recebimento',
-        'cobrar_frete',
-        'valor_frete',
-        'motorista_id',
-        'veiculo_id',
-        'data_realizada',
+   protected $fillable = [
+    'orcamento_id',
+    'venda_id',
+    'codigo_entrega',
+    'data_prevista',
+    'data_prevista_entrega',
+    'periodo_entrega',
+    'observacao_entrega',
+    'data_realizada',
+    'status',
+    'cobrar_frete',
+    'valor_frete',
+    'tipo_entrega',
+    'usar_endereco_cliente',
+    'endereco_entrega',
+    'responsavel_recebimento',
+    'telefone_recebimento',
+    'motorista_id',
+    'veiculo_id',
+    'ordem_rota',
+    'observacao',
     ];
 
     protected $casts = [
-    'data_prevista' => 'date',
-    'data_prevista_entrega' => 'date',
-    'data_realizada' => 'date',
-    'usar_endereco_cliente' => 'boolean',
-    'cobrar_frete' => 'boolean',
-    'valor_frete' => 'decimal:2',
+        'data_prevista' => 'date',
+        'data_prevista_entrega' => 'date',
+        'data_realizada' => 'date',
+        'usar_endereco_cliente' => 'boolean',
+        'cobrar_frete' => 'boolean',
+        'valor_frete' => 'decimal:2',
+        'ordem_rota' => 'integer',
     ];
 
     public function motorista()

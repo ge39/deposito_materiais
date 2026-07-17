@@ -11,17 +11,20 @@ class Romaneio extends Model
 {
     protected $table = 'romaneios';
 
-    protected $fillable = [
+   protected $fillable = 
+    [
         'entrega_id',
+        'romaneio_origem_id',
         'criado_por',
         'codigo_romaneio',
         'token_abertura',
         'token_fechamento',
-        'Cancelado',
         'status',
 
         'veiculo_id',
         'motorista_id',
+        'motorista_executante_id',
+        'veiculo_executante_id',
 
         'iniciado_por',
         'carregado_por',
@@ -47,6 +50,15 @@ class Romaneio extends Model
         'data_fim_conferencia_saida',
         'conferencia_saida_iniciada_por',
         'conferencia_saida_finalizada_por',
+
+        'data_prevista_saida',
+        'data_prevista_retorno',
+        'planejamento_confirmado',
+        'ordem_execucao',
+        'prioridade',
+
+        'liberado_por',
+        'liberado_em',
 
         'data_saida',
         'data_retorno',
@@ -87,6 +99,13 @@ class Romaneio extends Model
         'data_inicio_conferencia_saida' => 'datetime',
         'data_fim_conferencia_saida' => 'datetime',
 
+        'data_prevista_saida' => 'datetime',
+        'data_prevista_retorno' => 'datetime',
+        'planejamento_confirmado' => 'boolean',
+        'ordem_execucao' => 'integer',
+
+        'liberado_em' => 'datetime',
+
         'data_saida' => 'datetime',
         'data_retorno' => 'datetime',
 
@@ -108,19 +127,36 @@ class Romaneio extends Model
 
     public function entrega(): BelongsTo
     {
-        return $this->belongsTo(
-            Entrega::class,
-            'entrega_id'
-        );
+        return $this->belongsTo(Entrega::class, 'entrega_id');
     }
 
     public function itens(): HasMany
     {
-        return $this->hasMany(
-            RomaneioItem::class,
-            'romaneio_id'
-        )->orderBy('ordem');
+        return $this->hasMany(RomaneioItem::class, 'romaneio_id')
+            ->orderBy('ordem');
     }
+
+    public function romaneioOrigem(): BelongsTo
+    {
+        return $this->belongsTo(
+            Romaneio::class,
+            'romaneio_origem_id'
+        );
+    }
+
+    public function romaneiosFilhos(): HasMany
+    {
+        return $this->hasMany(
+            Romaneio::class,
+            'romaneio_origem_id'
+        )->orderBy('ordem_execucao');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Equipe planejada
+    |--------------------------------------------------------------------------
+    */
 
     public function veiculo(): BelongsTo
     {
@@ -140,40 +176,55 @@ class Romaneio extends Model
 
     /*
     |--------------------------------------------------------------------------
+    | Equipe executante
+    |--------------------------------------------------------------------------
+    */
+
+    public function veiculoExecutante(): BelongsTo
+    {
+        return $this->belongsTo(
+            Veiculo::class,
+            'veiculo_executante_id'
+        );
+    }
+
+    public function motoristaExecutante(): BelongsTo
+    {
+        return $this->belongsTo(
+            Funcionario::class,
+            'motorista_executante_id'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Usuários responsáveis por ações no sistema
     |--------------------------------------------------------------------------
     */
 
     public function criador(): BelongsTo
     {
-        return $this->belongsTo(
-            User::class,
-            'criado_por'
-        );
+        return $this->belongsTo(User::class, 'criado_por');
     }
 
     public function iniciador(): BelongsTo
     {
-        return $this->belongsTo(
-            User::class,
-            'iniciado_por'
-        );
+        return $this->belongsTo(User::class, 'iniciado_por');
     }
 
     public function finalizador(): BelongsTo
     {
-        return $this->belongsTo(
-            User::class,
-            'finalizado_por'
-        );
+        return $this->belongsTo(User::class, 'finalizado_por');
     }
 
     public function impressor(): BelongsTo
     {
-        return $this->belongsTo(
-            User::class,
-            'impresso_por'
-        );
+        return $this->belongsTo(User::class, 'impresso_por');
+    }
+
+    public function liberador(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'liberado_por');
     }
 
     public function usuarioInicioConferenciaSeparacao(): BelongsTo
@@ -286,6 +337,36 @@ class Romaneio extends Model
 
     /*
     |--------------------------------------------------------------------------
+    | Promessas e fracionamentos
+    |--------------------------------------------------------------------------
+    */
+
+    public function promessasEntrega(): HasMany
+    {
+        return $this->hasMany(
+            PromessaEntrega::class,
+            'romaneio_id'
+        )->orderBy('data_prometida');
+    }
+
+    public function fracionamentosOrigem(): HasMany
+    {
+        return $this->hasMany(
+            EntregaFracionamento::class,
+            'romaneio_origem_id'
+        );
+    }
+
+    public function fracionamentosDestino(): HasMany
+    {
+        return $this->hasMany(
+            EntregaFracionamento::class,
+            'romaneio_destino_id'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Ocorrências e auditoria
     |--------------------------------------------------------------------------
     */
@@ -375,6 +456,44 @@ class Romaneio extends Model
             [
                 'Aguardando_fechamento',
                 'Em_prestacao_contas',
+            ],
+            true
+        );
+    }
+
+    public function podeAlterarPlanejamento(): bool
+    {
+        return ! in_array(
+            $this->status,
+            [
+                'Liberado',
+                'Em_rota',
+                'Retornando',
+                'Aguardando_conferencia_retorno',
+                'Em_conferencia_retorno',
+                'Aguardando_prestacao_contas',
+                'Em_prestacao_contas',
+                'Aguardando_fechamento',
+                'Fechado',
+                'Cancelado',
+            ],
+            true
+        );
+    }
+
+    public function estaEmExecucao(): bool
+    {
+        return in_array(
+            $this->status,
+            [
+                'Liberado',
+                'Em_rota',
+                'Retornando',
+                'Aguardando_conferencia_retorno',
+                'Em_conferencia_retorno',
+                'Aguardando_prestacao_contas',
+                'Em_prestacao_contas',
+                'Aguardando_fechamento',
             ],
             true
         );

@@ -3,7 +3,10 @@
 @section('content')
 
 @php
-    $entregas = collect($entregasDisponiveis ?? [])->filter()->values();
+    $entregas = collect($entregasDisponiveis ?? [])
+        ->filter()
+        ->values();
+
     $entregaPrincipal = $entregas->first();
 
     $romaneioAtivo = $romaneioAtivo
@@ -20,6 +23,7 @@
                 '_',
                 (string) (
                     $romaneioAtivo?->status
+                    ?? $entregaPrincipal?->status
                     ?? 'montagem'
                 )
             )
@@ -27,39 +31,37 @@
     );
 
     $etapaAtual = match ($statusOriginal) {
-        'montagem' =>
+        'montagem',
+        'aguardando_separacao',
+        'rascunho',
+        'pendente' =>
             'montagem',
 
-        'aguardando_separacao',
-        'em_separacao' =>
+        'gerado',
+        'em_separacao',
+        'separando' =>
             'separacao',
 
-        'aguardando_conferencia_separacao',
-        'em_conferencia_separacao',
-        'separacao_conferida' =>
-            'conferencia_separacao',
-
-        'aguardando_carregamento',
-        'carregando' =>
+        'separado',
+        'na_doca',
+        'carregando',
+        'aguardando_carregamento' =>
             'carregamento',
 
-        'aguardando_conferencia_saida',
-        'em_conferencia_saida' =>
-            'conferencia_saida',
+        'carregado',
+        'aguardando_conferencia',
+        'conferindo' =>
+            'conferencia',
 
+        'conferido',
         'aguardando_liberacao',
-        'liberado' =>
-            'liberacao',
-
+        'liberado',
+        'saiu_para_entrega',
         'em_rota',
-        'retornando',
-        'aguardando_conferencia_retorno',
-        'em_conferencia_retorno',
-        'aguardando_prestacao_contas',
-        'em_prestacao_contas',
-        'aguardando_fechamento',
-        'fechado' =>
-            'em_rota',
+        'entregue',
+        'parcial',
+        'devolvido' =>
+            'liberacao',
 
         default =>
             $criandoRomaneio
@@ -80,45 +82,36 @@
             'ordem' => 2,
         ],
 
-        'conferencia_separacao' => [
-            'label' => 'Conf. Separação',
-            'icone' => 'bi-clipboard2-check',
-            'ordem' => 3,
-        ],
-
         'carregamento' => [
             'label' => 'Carregamento',
             'icone' => 'bi-truck-front',
-            'ordem' => 4,
+            'ordem' => 3,
         ],
 
-        'conferencia_saida' => [
-            'label' => 'Conf. Saída',
+        'conferencia' => [
+            'label' => 'Conferência',
             'icone' => 'bi-clipboard-data',
-            'ordem' => 5,
+            'ordem' => 4,
         ],
 
         'liberacao' => [
             'label' => 'Liberação',
-            'icone' => 'bi-shield-check',
-            'ordem' => 6,
-        ],
-
-        'em_rota' => [
-            'label' => 'Em Rota',
             'icone' => 'bi-sign-turn-right',
-            'ordem' => 7,
+            'ordem' => 5,
         ],
     ];
 
     $ordemAtual = $etapas[$etapaAtual]['ordem'];
 
-    $progressoWorkflow = count($etapas) > 1
-        ? (($ordemAtual - 1) / (count($etapas) - 1)) * 100
-        : 0;
+    $progressoWorkflow = (
+        ($ordemAtual - 1)
+        / (count($etapas) - 1)
+    ) * 100;
 
     $codigoRomaneio =
         $romaneioAtivo?->codigo_romaneio
+        ?? $romaneioAtivo?->codigo
+        ?? $romaneioAtivo?->numero
         ?? null;
 
     $motoristaSelecionado = old(
@@ -148,13 +141,20 @@
         : 'PUT';
 
     $statusClasses = [
-        'montagem' => 'bg-secondary',
-        'separacao' => 'bg-warning text-dark',
-        'conferencia_separacao' => 'bg-info text-dark',
-        'carregamento' => 'bg-primary',
-        'conferencia_saida' => 'bg-info text-dark',
-        'liberacao' => 'bg-success',
-        'em_rota' => 'bg-dark',
+        'montagem' =>
+            'bg-secondary',
+
+        'separacao' =>
+            'bg-warning text-dark',
+
+        'carregamento' =>
+            'bg-primary',
+
+        'conferencia' =>
+            'bg-info text-dark',
+
+        'liberacao' =>
+            'bg-success',
     ];
 
     $formatarData = function ($data, bool $comHora = false) {
@@ -193,30 +193,36 @@
         );
     };
 
-    $resolverItemRomaneio = function ($item) use ($romaneioAtivo) {
+    $resolverItemRomaneio = function ($item) use (
+        $romaneioAtivo
+    ) {
         if (! $romaneioAtivo) {
             return null;
         }
 
         return collect($romaneioAtivo->itens ?? [])
-            ->first(
-                fn ($itemRomaneio) =>
-                    (int) $itemRomaneio->entrega_item_id
-                    === (int) $item->id
-            );
+            ->first(function ($itemRomaneio) use ($item) {
+                return (int) $itemRomaneio->entrega_item_id
+                    === (int) $item->id;
+            });
     };
 
-    $funcionariosOperacionais = collect(
-        $funcionariosOperacionais ?? []
-    );
+    $totalEntregas = $entregas->count();
+
+    $totalItens = $entregas->sum(function ($entrega) {
+        return collect(
+            $entrega?->itens ?? []
+        )->count();
+    });
+
+    $statusRomaneio = $romaneioAtivo?->status;
 
     $podeSalvarAndamento = in_array(
         $statusOriginal,
         [
+            'gerado',
             'em_separacao',
-            'em_conferencia_separacao',
             'carregando',
-            'em_conferencia_saida',
         ],
         true
     );
@@ -224,109 +230,28 @@
     $podeVoltarEtapa = in_array(
         $statusOriginal,
         [
-            'aguardando_conferencia_separacao',
-            'em_conferencia_separacao',
-            'aguardando_carregamento',
+            'separado',
+            'na_doca',
             'carregando',
-            'aguardando_conferencia_saida',
-            'em_conferencia_saida',
-            'aguardando_liberacao',
+            'carregado',
+            'conferido',
             'liberado',
         ],
         true
     );
 
-    $operacaoInternaFinalizada = in_array(
+    $operacaoFinalizada = in_array(
         $statusOriginal,
         [
+            'saiu_para_entrega',
             'em_rota',
-            'retornando',
-            'aguardando_conferencia_retorno',
-            'em_conferencia_retorno',
-            'aguardando_prestacao_contas',
-            'em_prestacao_contas',
-            'aguardando_fechamento',
-            'fechado',
+            'entregue',
+            'parcial',
+            'devolvido',
             'cancelado',
         ],
         true
     );
-
-    $podeEditarEquipe = $criandoRomaneio || ! in_array(
-        $statusOriginal,
-        [
-            'liberado',
-            'em_rota',
-            'retornando',
-            'aguardando_conferencia_retorno',
-            'em_conferencia_retorno',
-            'aguardando_prestacao_contas',
-            'em_prestacao_contas',
-            'aguardando_fechamento',
-            'fechado',
-            'cancelado',
-        ],
-        true
-    );
-
-    $campoQuantidadeAtiva = match ($statusOriginal) {
-        'em_separacao' =>
-            'quantidade_separada',
-
-        'em_conferencia_separacao' =>
-            'quantidade_conferida_separacao',
-
-        'carregando' =>
-            'quantidade_carregada',
-
-        'em_conferencia_saida' =>
-            'quantidade_conferida_saida',
-
-        default =>
-            null,
-    };
-
-    $descricaoEtapa = match ($statusOriginal) {
-        'montagem' =>
-            'Monte o romaneio, defina motorista, veículo e quantidades.',
-
-        'aguardando_separacao' =>
-            'O romaneio está pronto para iniciar a separação física.',
-
-        'em_separacao' =>
-            'Registre as quantidades separadas de cada item.',
-
-        'aguardando_conferencia_separacao' =>
-            'A separação terminou e aguarda conferência antes do carregamento.',
-
-        'em_conferencia_separacao' =>
-            'Confira fisicamente cada quantidade separada.',
-
-        'separacao_conferida',
-        'aguardando_carregamento' =>
-            'A separação foi conferida e o carregamento pode começar.',
-
-        'carregando' =>
-            'Registre as quantidades efetivamente colocadas no veículo.',
-
-        'aguardando_conferencia_saida' =>
-            'O carregamento terminou e aguarda a conferência final de saída.',
-
-        'em_conferencia_saida' =>
-            'Confira a carga no veículo antes da liberação.',
-
-        'aguardando_liberacao' =>
-            'A carga está conferida. Imprima o romaneio e libere o veículo.',
-
-        'liberado' =>
-            'O veículo está liberado e aguarda o registro da saída física.',
-
-        'em_rota' =>
-            'O veículo está em rota. O retorno será tratado na tela de Entregas.',
-
-        default =>
-            'Acompanhe a operação do romaneio.',
-    };
 @endphp
 
 <style>
@@ -372,14 +297,12 @@
     }
 
     .workflow-card {
-        overflow-x: auto;
         padding: 1rem;
     }
 
     .workflow {
         display: grid;
-        grid-template-columns: repeat(7, minmax(110px, 1fr));
-        min-width: 820px;
+        grid-template-columns: repeat(5, minmax(120px, 1fr));
         position: relative;
     }
 
@@ -387,9 +310,9 @@
         background: #d9dee3;
         content: "";
         height: 4px;
-        left: 7%;
+        left: 10%;
         position: absolute;
-        right: 7%;
+        right: 10%;
         top: 19px;
         z-index: 0;
     }
@@ -397,8 +320,8 @@
     .workflow-progress {
         background: #198754;
         height: 4px;
-        left: 7%;
-        max-width: 86%;
+        left: 10%;
+        max-width: 80%;
         position: absolute;
         top: 19px;
         transition: width .25s ease;
@@ -439,7 +362,7 @@
     .workflow-label {
         color: #6c757d;
         display: block;
-        font-size: .72rem;
+        font-size: .74rem;
         font-weight: 700;
         margin-top: .42rem;
     }
@@ -465,25 +388,19 @@
         border-color: #ffda6a;
     }
 
-    .operation-banner.conferencia_separacao,
-    .operation-banner.conferencia_saida {
-        background: var(--erp-info-soft);
-        border-color: #9eeaf9;
-    }
-
     .operation-banner.carregamento {
         background: var(--erp-primary-soft);
         border-color: #9ec5fe;
     }
 
+    .operation-banner.conferencia {
+        background: var(--erp-info-soft);
+        border-color: #9eeaf9;
+    }
+
     .operation-banner.liberacao {
         background: var(--erp-success-soft);
         border-color: #75b798;
-    }
-
-    .operation-banner.em_rota {
-        background: #e9ecef;
-        border-color: #adb5bd;
     }
 
     .operation-title {
@@ -528,9 +445,9 @@
 
     .delivery-item {
         background: #fff;
-        border: 1px solid #dfe3e7;
+        border: 1px solid #ccd2d8;
         border-radius: 7px;
-        margin-bottom: .7rem;
+        margin-bottom: .75rem;
         overflow: hidden;
     }
 
@@ -539,34 +456,64 @@
     }
 
     .delivery-button {
-        background: #f8f9fa;
-        font-size: .82rem;
-        padding: .75rem;
+        background: #e9ecef;
+        border: 0;
+        box-shadow: none !important;
+        color: #212529;
+        padding: .8rem .9rem;
+    }
+
+    .delivery-button:not(.collapsed) {
+        background: #dde2e6;
+        color: #212529;
+    }
+
+    .delivery-button::after {
+        display: none;
     }
 
     .delivery-code {
-        font-size: .78rem;
-        font-weight: 800;
+        font-size: .93rem;
+        font-weight: 850;
     }
 
     .delivery-client {
-        color: #6c757d;
-        font-size: .72rem;
+        color: #495057;
+        font-size: .78rem;
+        font-weight: 650;
+    }
+
+    .toggle-icon {
+        align-items: center;
+        border: 1px solid #adb5bd;
+        border-radius: 5px;
+        display: inline-flex;
+        flex: 0 0 auto;
+        height: 30px;
+        justify-content: center;
+        width: 30px;
+    }
+
+    .toggle-icon i {
+        transition: transform .2s ease;
+    }
+
+    .delivery-button:not(.collapsed) .toggle-icon i {
+        transform: rotate(180deg);
     }
 
     .items-table th {
         background: var(--erp-dark);
         color: #fff;
-        font-size: .67rem;
+        font-size: .7rem;
         font-weight: 800;
         text-align: center;
         text-transform: uppercase;
         vertical-align: middle;
-        white-space: nowrap;
     }
 
     .items-table td {
-        font-size: .77rem;
+        font-size: .79rem;
         vertical-align: middle;
     }
 
@@ -581,8 +528,18 @@
     }
 
     .quantity-input {
-        min-width: 88px;
+        min-width: 85px;
         text-align: right;
+    }
+
+    .balance-value.pending {
+        color: #dc3545;
+        font-weight: 800;
+    }
+
+    .balance-value.complete {
+        color: #198754;
+        font-weight: 800;
     }
 
     .summary-card {
@@ -625,6 +582,42 @@
         border-color: #75b798;
     }
 
+    .control-panel {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 7px;
+        margin-top: .8rem;
+        padding: .75rem;
+    }
+
+    .control-grid {
+        display: grid;
+        gap: .5rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .control-item {
+        background: #fff;
+        border: 1px solid #e2e6e9;
+        border-radius: 6px;
+        padding: .55rem;
+    }
+
+    .control-item-label {
+        color: #6c757d;
+        display: block;
+        font-size: .65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .control-item-value {
+        display: block;
+        font-size: .76rem;
+        font-weight: 750;
+        margin-top: .15rem;
+    }
+
     .footer-actions {
         align-items: center;
         display: flex;
@@ -634,13 +627,14 @@
     }
 
     @media (max-width: 991.98px) {
-        .summary-card {
-            position: static;
+        .workflow {
+            gap: .5rem;
+            grid-template-columns: repeat(5, minmax(95px, 1fr));
+            overflow-x: auto;
         }
 
-        .footer-actions {
-            align-items: stretch;
-            flex-direction: column;
+        .summary-card {
+            position: static;
         }
     }
 </style>
@@ -648,6 +642,7 @@
 <div class="container-fluid romaneio-page py-3">
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+
         <div>
             <h1 class="romaneio-title">
                 <i class="bi bi-truck me-2"></i>
@@ -655,11 +650,12 @@
             </h1>
 
             <div class="romaneio-subtitle">
-                Montagem, separação, conferência, carregamento, liberação e saída.
+                Montagem, separação, carregamento, conferência e liberação.
             </div>
         </div>
 
         <div class="d-flex flex-wrap gap-2">
+
             @if($codigoRomaneio)
                 <span class="badge bg-dark fs-6">
                     {{ $codigoRomaneio }}
@@ -676,6 +672,7 @@
                 <i class="bi bi-arrow-left me-1"></i>
                 Voltar
             </a>
+
         </div>
     </div>
 
@@ -706,10 +703,13 @@
     @endif
 
     @if($entregas->isEmpty())
+
         <div class="alert alert-warning">
             Nenhuma entrega disponível para operação.
         </div>
+
     @else
+
         <form id="formRomaneio"
               method="POST"
               action="{{ $formAction }}">
@@ -731,12 +731,15 @@
             @endif
 
             <div class="section-card workflow-card mb-3">
+
                 <div class="workflow">
+
                     <div class="workflow-progress"
                          style="width: {{ $progressoWorkflow }}%;">
                     </div>
 
                     @foreach($etapas as $chave => $etapa)
+
                         @php
                             $classeEtapa = '';
 
@@ -748,6 +751,7 @@
                         @endphp
 
                         <div class="workflow-step {{ $classeEtapa }}">
+
                             <div class="workflow-circle">
                                 <i class="bi {{ $etapa['icone'] }}"></i>
                             </div>
@@ -755,172 +759,103 @@
                             <span class="workflow-label">
                                 {{ $etapa['label'] }}
                             </span>
+
                         </div>
+
                     @endforeach
+
                 </div>
             </div>
 
             <div class="operation-banner {{ $etapaAtual }} mb-3">
+
                 <div>
+
                     <div class="operation-title">
-                        {{ $descricaoEtapa }}
+
+                        @if($criandoRomaneio)
+                            Monte o romaneio e confirme as quantidades.
+
+                        @elseif($statusOriginal === 'gerado')
+                            O romaneio foi criado e aguarda o início da separação.
+
+                        @elseif($statusOriginal === 'em_separacao')
+                            A separação física está em andamento.
+
+                        @elseif($statusOriginal === 'separado')
+                            A separação terminou. Encaminhe o romaneio para a doca.
+
+                        @elseif($statusOriginal === 'na_doca')
+                            O romaneio está na doca e aguarda o início do carregamento.
+
+                        @elseif($statusOriginal === 'carregando')
+                            Registre os produtos colocados no veículo.
+
+                        @elseif($statusOriginal === 'carregado')
+                            O carregamento terminou e aguarda conferência.
+
+                        @elseif($statusOriginal === 'conferido')
+                            Imprima o romaneio e libere o veículo.
+
+                        @elseif($statusOriginal === 'liberado')
+                            O romaneio foi liberado. Registre a saída física.
+
+                        @elseif(in_array($statusOriginal, ['saiu_para_entrega', 'em_rota'], true))
+                            O veículo saiu para entrega.
+
+                        @elseif($statusOriginal === 'entregue')
+                            A entrega foi concluída.
+
+                        @else
+                            Acompanhe a operação do romaneio.
+                        @endif
+
                     </div>
 
                     <div class="operation-description">
-                       @if($criandoRomaneio)
-    <button type="submit"
-            class="btn btn-primary btn-sm"
-            id="btnPrincipal">
-        <i class="bi bi-check-circle me-1"></i>
-        Criar Romaneio
-    </button>
 
-        @elseif($statusOriginal === 'montagem')
-            <button type="submit"
-                    name="acao"
-                    value="concluir_montagem"
-                    class="btn btn-primary btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-check-circle me-1"></i>
-                Concluir Montagem
-            </button>
+                        @if($criandoRomaneio)
+                            A criação gera o romaneio, mas não inicia automaticamente a separação.
 
-        @elseif($statusOriginal === 'aguardando_separacao')
-            <button type="submit"
-                    name="acao"
-                    value="iniciar_separacao"
-                    class="btn btn-warning btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-play-circle me-1"></i>
-                Iniciar Separação
-            </button>
+                        @elseif($statusOriginal === 'gerado')
+                            O início registrará o responsável e a data de início da separação.
 
-        @elseif($statusOriginal === 'em_separacao')
-            <button type="submit"
-                    name="acao"
-                    value="finalizar_separacao"
-                    class="btn btn-warning btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-box-seam me-1"></i>
-                Finalizar Separação
-            </button>
+                        @elseif($statusOriginal === 'em_separacao')
+                            Todos os itens precisam ser separados antes da finalização.
 
-        @elseif($statusOriginal === 'aguardando_conferencia_separacao')
-            <button type="submit"
-                    name="acao"
-                    value="iniciar_conferencia_separacao"
-                    class="btn btn-info btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-clipboard2-check me-1"></i>
-                Iniciar Conferência
-            </button>
+                        @elseif($statusOriginal === 'separado')
+                            O envio para doca registra a movimentação operacional antes do carregamento.
 
-        @elseif($statusOriginal === 'em_conferencia_separacao')
-            <button type="submit"
-                    name="acao"
-                    value="finalizar_conferencia_separacao"
-                    class="btn btn-info btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-check2-all me-1"></i>
-                Finalizar Conferência
-            </button>
+                        @elseif($statusOriginal === 'na_doca')
+                            O início do carregamento registrará o responsável e o horário.
 
-        @elseif(in_array(
-            $statusOriginal,
-            [
-                'separacao_conferida',
-                'aguardando_carregamento',
-            ],
-            true
-        ))
-            <button type="submit"
-                    name="acao"
-                    value="iniciar_carregamento"
-                    class="btn btn-primary btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-play-circle me-1"></i>
-                Iniciar Carregamento
-            </button>
+                        @elseif($statusOriginal === 'carregando')
+                            O percentual carregado será atualizado conforme as quantidades informadas.
 
-        @elseif($statusOriginal === 'carregando')
-            <button type="submit"
-                    name="acao"
-                    value="finalizar_carregamento"
-                    class="btn btn-primary btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-truck-front me-1"></i>
-                Finalizar Carregamento
-            </button>
+                        @elseif($statusOriginal === 'carregado')
+                            Valide todos os itens antes da conclusão da conferência.
 
-        @elseif($statusOriginal === 'aguardando_conferencia_saida')
-            <button type="submit"
-                    name="acao"
-                    value="iniciar_conferencia_saida"
-                    class="btn btn-info btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-clipboard-data me-1"></i>
-                Iniciar Conf. Saída
-            </button>
+                        @elseif($statusOriginal === 'conferido')
+                            A liberação somente será permitida após o registro da impressão.
 
-        @elseif($statusOriginal === 'em_conferencia_saida')
-            <button type="submit"
-                    name="acao"
-                    value="finalizar_conferencia_saida"
-                    class="btn btn-info btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-check2-all me-1"></i>
-                Finalizar Conf. Saída
-            </button>
+                        @elseif($statusOriginal === 'liberado')
+                            A liberação não coloca a entrega em rota. A saída é um evento separado.
 
-        @elseif($statusOriginal === 'aguardando_liberacao')
-            <button type="submit"
-                    form="formImprimirRomaneio"
-                    class="btn btn-outline-dark btn-sm" formTarget="_blank">
-                <i class="bi bi-printer me-1"></i>
-                Imprimir
-            </button>
+                        @elseif(in_array($statusOriginal, ['saiu_para_entrega', 'em_rota'], true))
+                            A data de saída e a situação em rota foram registradas.
 
-            <button type="submit"
-                    name="acao"
-                    value="liberar_veiculo"
-                    class="btn btn-success btn-sm"
-                    id="btnPrincipal"
-                    @disabled(
-                        empty(
-                            $romaneioAtivo?->impresso_em
-                        )
-                    )>
-                <i class="bi bi-shield-check me-1"></i>
-                Liberar Veículo
-            </button>
+                        @endif
 
-        @elseif($statusOriginal === 'liberado')
-            <button type="submit"
-                    name="acao"
-                    value="registrar_saida"
-                    class="btn btn-dark btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-truck me-1"></i>
-                Registrar Saída
-            </button>
-
-        @elseif($statusOriginal === 'em_rota')
-            <button type="button"
-                    class="btn btn-dark btn-sm"
-                    disabled>
-                <i class="bi bi-sign-turn-right me-1"></i>
-                Veículo em Rota
-            </button>
-        @endif
                     </div>
 
                     @if($romaneioAtivo)
+
                         <div class="operation-meta">
+
                             <span class="badge bg-light text-dark border">
                                 <i class="bi bi-person me-1"></i>
                                 Criado por:
-                                {{ $romaneioAtivo?->criador?->name
-                                    ?? $romaneioAtivo?->criador?->nome
+                                {{ $romaneioAtivo?->criador?->nome
                                     ?? $romaneioAtivo?->criado_por
                                     ?? 'Não registrado' }}
                             </span>
@@ -936,7 +871,7 @@
 
                             @if($romaneioAtivo?->data_inicio_separacao)
                                 <span class="badge bg-warning text-dark">
-                                    Separação:
+                                    Separação iniciada:
                                     {{ $formatarData(
                                         $romaneioAtivo->data_inicio_separacao,
                                         true
@@ -944,19 +879,9 @@
                                 </span>
                             @endif
 
-                            @if($romaneioAtivo?->data_inicio_conferencia_separacao)
-                                <span class="badge bg-info text-dark">
-                                    Conf. separação:
-                                    {{ $formatarData(
-                                        $romaneioAtivo->data_inicio_conferencia_separacao,
-                                        true
-                                    ) }}
-                                </span>
-                            @endif
-
                             @if($romaneioAtivo?->data_inicio_carregamento)
                                 <span class="badge bg-primary">
-                                    Carga:
+                                    Carga iniciada:
                                     {{ $formatarData(
                                         $romaneioAtivo->data_inicio_carregamento,
                                         true
@@ -964,11 +889,11 @@
                                 </span>
                             @endif
 
-                            @if($romaneioAtivo?->data_inicio_conferencia_saida)
-                                <span class="badge bg-info text-dark">
-                                    Conf. saída:
+                            @if($romaneioAtivo?->impresso_em)
+                                <span class="badge bg-success">
+                                    Impresso:
                                     {{ $formatarData(
-                                        $romaneioAtivo->data_inicio_conferencia_saida,
+                                        $romaneioAtivo->impresso_em,
                                         true
                                     ) }}
                                 </span>
@@ -983,210 +908,253 @@
                                     ) }}
                                 </span>
                             @endif
+
+                        </div>
+
+                    @endif
+
+                    @if(
+                        ! $criandoRomaneio &&
+                        $statusOriginal === 'conferido'
+                    )
+                        <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
+
+                            <button type="submit"
+                                    form="formImprimirRomaneio"
+                                    class="btn btn-outline-dark btn-sm" formtarget="_blank">
+
+                                <i class="bi bi-printer me-1"></i>
+
+                                {{ $romaneioAtivo?->impresso_em
+                                    ? 'Reimprimir Romaneio'
+                                    : 'Imprimir Romaneio' }}
+
+                            </button>
+
+                            @if($romaneioAtivo?->impresso_em)
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    Impressão registrada
+                                </span>
+                            @else
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Impressão pendente
+                                </span>
+                            @endif
+
                         </div>
                     @endif
+
                 </div>
+
+                <i class="bi {{ $etapas[$etapaAtual]['icone'] }} fs-2"></i>
+
             </div>
 
             <div class="section-card mb-3">
+
+                @php
+                    $podeEditarEquipe = $criandoRomaneio
+                        || in_array(
+                            $statusOriginal,
+                            [
+                                'gerado',
+                                'em_separacao',
+                            ],
+                            true
+                        );
+                @endphp
+
                 <div class="section-header">
+
                     <span>
-                        <i class="bi bi-person-badge me-1"></i>
-                        Equipe e orientações
+                        <i class="bi bi-person-badge me-2"></i>
+                        Equipe e Veículo
                     </span>
+
+                    @if($podeEditarEquipe)
+                        <span class="badge bg-warning text-dark">
+                            Definição operacional
+                        </span>
+                    @else
+                        <span class="badge bg-light text-dark">
+                            Dados definidos
+                        </span>
+                    @endif
+
                 </div>
 
-                <div class="p-3">
+                <div class="card-body p-3">
+
                     <div class="row g-3">
-                        <div class="col-lg-3">
+
+                        <div class="col-lg-4">
+
                             <label for="motorista_id"
-                                   class="form-label">
+                                class="form-label">
+
                                 Motorista
+
+                                @if($podeEditarEquipe)
+                                    <span class="text-danger">*</span>
+                                @endif
+
                             </label>
 
                             <select id="motorista_id"
                                     name="motorista_id"
-                                    class="form-select form-select-sm"
-                                    {{ $podeEditarEquipe ? '' : 'disabled' }}>
-                                <option value="">Selecione...</option>
+                                    class="form-select form-select-sm
+                                        @error('motorista_id') is-invalid @enderror"
+                                    {{ $podeEditarEquipe ? 'required' : 'disabled' }}>
+
+                                <option value="">
+                                    Selecione o motorista
+                                </option>
 
                                 @foreach($motoristas as $motorista)
+
                                     <option value="{{ $motorista->id }}"
-                                        @selected(
-                                            (int) $motoristaSelecionado
-                                            === (int) $motorista->id
-                                        )>
+                                        @if(
+                                            (string) old(
+                                                'motorista_id',
+                                                $motoristaSelecionado
+                                            ) === (string) $motorista->id
+                                        )
+                                            selected
+                                        @endif>
+
                                         {{ $motorista->nome }}
+
                                     </option>
+
                                 @endforeach
+
                             </select>
+
+                            @error('motorista_id')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
 
                             @if(! $podeEditarEquipe)
                                 <input type="hidden"
-                                       name="motorista_id"
-                                       value="{{ $motoristaSelecionado }}">
+                                    name="motorista_id"
+                                    value="{{ $motoristaSelecionado }}">
                             @endif
+
                         </div>
 
-                        <div class="col-lg-3">
+                        <div class="col-lg-4">
+
                             <label for="veiculo_id"
-                                   class="form-label">
+                                class="form-label">
+
                                 Veículo
+
+                                @if($podeEditarEquipe)
+                                    <span class="text-danger">*</span>
+                                @endif
+
                             </label>
 
                             <select id="veiculo_id"
                                     name="veiculo_id"
-                                    class="form-select form-select-sm"
-                                    {{ $podeEditarEquipe ? '' : 'disabled' }}>
-                                <option value="">Selecione...</option>
+                                    class="form-select form-select-sm
+                                        @error('veiculo_id') is-invalid @enderror"
+                                    {{ $podeEditarEquipe ? 'required' : 'disabled' }}>
+
+                                <option value="">
+                                    Selecione o veículo
+                                </option>
 
                                 @foreach($veiculos as $veiculo)
+
                                     <option value="{{ $veiculo->id }}"
-                                        @selected(
-                                            (int) $veiculoSelecionado
-                                            === (int) $veiculo->id
-                                        )>
-                                        {{ $veiculo->placa
-                                            ?? $veiculo->descricao
-                                            ?? $veiculo->observacao
+                                        @if(
+                                            (string) old(
+                                                'veiculo_id',
+                                                $veiculoSelecionado
+                                            ) === (string) $veiculo->id
+                                        )
+                                            selected
+                                        @endif>
+
+                                        {{ $veiculo->descricao
+                                            ?? $veiculo->nome
+                                            ?? $veiculo->modelo
                                             ?? 'Veículo #' . $veiculo->id }}
+
+                                        @if(! empty($veiculo->placa))
+                                            - {{ $veiculo->placa }}
+                                        @endif
+
                                     </option>
+
                                 @endforeach
+
                             </select>
+
+                            @error('veiculo_id')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
 
                             @if(! $podeEditarEquipe)
                                 <input type="hidden"
-                                       name="veiculo_id"
-                                       value="{{ $veiculoSelecionado }}">
+                                    name="veiculo_id"
+                                    value="{{ $veiculoSelecionado }}">
                             @endif
+
                         </div>
 
-                        @if($statusOriginal === 'em_separacao')
-                            <div class="col-lg-3">
-                                <label for="separado_por"
-                                       class="form-label">
-                                    Separador
-                                </label>
+                        <div class="col-lg-4">
 
-                                <select id="separado_por"
-                                        name="separado_por"
-                                        class="form-select form-select-sm">
-                                    <option value="">Selecione...</option>
-
-                                    @foreach($funcionariosOperacionais as $funcionario)
-                                        <option value="{{ $funcionario->id }}"
-                                            @selected(
-                                                (int) old('separado_por')
-                                                === (int) $funcionario->id
-                                            )>
-                                            {{ $funcionario->nome }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        @endif
-
-                        @if($statusOriginal === 'aguardando_conferencia_separacao')
-                            <div class="col-lg-3">
-                                <label for="conferencia_separacao_por"
-                                       class="form-label">
-                                    Conferente da separação
-                                </label>
-
-                                <select id="conferencia_separacao_por"
-                                        name="conferencia_separacao_por"
-                                        class="form-select form-select-sm">
-                                    <option value="">Selecione...</option>
-
-                                    @foreach($funcionariosOperacionais as $funcionario)
-                                        <option value="{{ $funcionario->id }}"
-                                            @selected(
-                                                (int) old('conferencia_separacao_por')
-                                                === (int) $funcionario->id
-                                            )>
-                                            {{ $funcionario->nome }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        @endif
-
-                        @if($statusOriginal === 'aguardando_carregamento')
-                            <div class="col-lg-3">
-                                <label for="carregado_por"
-                                       class="form-label">
-                                    Responsável pelo carregamento
-                                </label>
-
-                                <select id="carregado_por"
-                                        name="carregado_por"
-                                        class="form-select form-select-sm">
-                                    <option value="">Selecione...</option>
-
-                                    @foreach($funcionariosOperacionais as $funcionario)
-                                        <option value="{{ $funcionario->id }}"
-                                            @selected(
-                                                (int) old('carregado_por')
-                                                === (int) $funcionario->id
-                                            )>
-                                            {{ $funcionario->nome }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        @endif
-
-                        @if($statusOriginal === 'aguardando_conferencia_saida')
-                            <div class="col-lg-3">
-                                <label for="conferencia_saida_por"
-                                       class="form-label">
-                                    Conferente de saída
-                                </label>
-
-                                <select id="conferencia_saida_por"
-                                        name="conferencia_saida_por"
-                                        class="form-select form-select-sm">
-                                    <option value="">Selecione...</option>
-
-                                    @foreach($funcionariosOperacionais as $funcionario)
-                                        <option value="{{ $funcionario->id }}"
-                                            @selected(
-                                                (int) old('conferencia_saida_por')
-                                                === (int) $funcionario->id
-                                            )>
-                                            {{ $funcionario->nome }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        @endif
-
-                        <div class="col-lg-3">
                             <label for="observacao"
-                                   class="form-label">
-                                Observação
+                                class="form-label">
+                                Observação do romaneio
                             </label>
 
                             <input type="text"
-                                   id="observacao"
-                                   name="observacao"
-                                   class="form-control form-control-sm"
-                                   maxlength="1000"
-                                   value="{{ $observacaoRomaneio }}"
-                                   {{ $operacaoInternaFinalizada ? 'readonly' : '' }}
-                                   placeholder="Orientação de carga, acesso ou prioridade...">
+                                id="observacao"
+                                name="observacao"
+                                class="form-control form-control-sm
+                                    @error('observacao') is-invalid @enderror"
+                                value="{{ old(
+                                    'observacao',
+                                    $observacaoRomaneio
+                                ) }}"
+                                maxlength="1000"
+                                {{ $operacaoFinalizada ? 'readonly' : '' }}
+                                placeholder="Orientação de carga, acesso, prioridade ou rota...">
+
+                            @error('observacao')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
 
             <div class="row g-3">
+
                 <div class="col-xl-9">
+
                     <div class="delivery-list section-card">
+
                         <div class="accordion"
                              id="accordionEntregas">
 
                             @foreach($entregas as $indiceEntrega => $entrega)
+
                                 @php
                                     $cliente = $resolverCliente($entrega);
 
@@ -1202,12 +1170,18 @@
 
                                     $enderecoEntrega =
                                         $entrega?->endereco_entrega
+                                        ?? $entrega?->endereco_completo
                                         ?? 'Endereço não informado';
 
                                     $dataPrevista = $formatarData(
                                         $entrega?->data_prevista_entrega
                                         ?? $entrega?->data_prevista
                                     );
+
+                                    $periodoEntrega =
+                                        $entrega?->periodo_entrega
+                                        ?? $entrega?->periodo
+                                        ?? 'Não informado';
 
                                     $itensEntrega = collect(
                                         $entrega?->itens ?? []
@@ -1219,6 +1193,7 @@
                                 @endphp
 
                                 <div class="delivery-item">
+
                                     <h2 class="accordion-header"
                                         id="headingEntrega{{ $entrega->id }}">
 
@@ -1228,28 +1203,46 @@
                                                 data-bs-target="#collapseEntrega{{ $entrega->id }}">
 
                                             <div class="d-flex justify-content-between align-items-center gap-3 w-100 me-2">
-                                                <div>
-                                                    <div class="delivery-code">
-                                                        {{ $codigoEntrega }}
+
+                                                <div class="d-flex align-items-center gap-3">
+
+                                                    <span class="toggle-icon">
+                                                        <i class="bi bi-chevron-down"></i>
+                                                    </span>
+
+                                                    <div>
+                                                        <div class="delivery-code">
+                                                            {{ $codigoEntrega }}
+                                                        </div>
+
+                                                        <div class="delivery-client">
+                                                            {{ $clienteNome }}
+                                                        </div>
                                                     </div>
 
-                                                    <div class="delivery-client">
-                                                        {{ $clienteNome }}
-                                                    </div>
                                                 </div>
 
-                                                <div class="d-flex flex-wrap gap-2">
+                                                <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+
                                                     <span class="badge bg-light text-dark border">
                                                         <i class="bi bi-calendar3 me-1"></i>
                                                         {{ $dataPrevista }}
+                                                    </span>
+
+                                                    <span class="badge bg-light text-dark border">
+                                                        <i class="bi bi-clock me-1"></i>
+                                                        {{ $periodoEntrega }}
                                                     </span>
 
                                                     <span class="badge bg-primary">
                                                         {{ $itensEntrega->count() }}
                                                         item(ns)
                                                     </span>
+
                                                 </div>
+
                                             </div>
+
                                         </button>
                                     </h2>
 
@@ -1258,8 +1251,11 @@
                                          data-bs-parent="#accordionEntregas">
 
                                         <div class="accordion-body p-0">
+
                                             <div class="p-3 border-bottom">
+
                                                 <div class="row g-3">
+
                                                     <div class="col-lg-3">
                                                         <span class="info-label">
                                                             Cliente
@@ -1299,33 +1295,63 @@
                                                             {{ $dataPrevista }}
                                                         </div>
                                                     </div>
+
                                                 </div>
                                             </div>
 
                                             <div class="table-responsive">
+
                                                 <table class="table table-bordered items-table mb-0">
+
                                                     <thead>
                                                         <tr>
                                                             <th class="text-start">
                                                                 Produto
                                                             </th>
 
-                                                            <th>Local</th>
-                                                            <th>Prevista</th>
-                                                            <th>Romaneio</th>
-                                                            <th>Separada</th>
-                                                            <th>Conf. Separação</th>
-                                                            <th>Carregada</th>
-                                                            <th>Conf. Saída</th>
-                                                            <th>Situação</th>
-                                                            <th>Unid.</th>
+                                                            <th style="width: 100px;">
+                                                                Local
+                                                            </th>
+
+                                                            <th style="width: 95px;">
+                                                                Prevista
+                                                            </th>
+
+                                                            <th style="width: 110px;">
+                                                                Romaneio
+                                                            </th>
+
+                                                            @if(! $criandoRomaneio)
+                                                                <th style="width: 110px;">
+                                                                    Separada
+                                                                </th>
+
+                                                                <th style="width: 110px;">
+                                                                    Carregada
+                                                                </th>
+                                                            @endif
+
+                                                            <th style="width: 95px;">
+                                                                Saldo
+                                                            </th>
+
+                                                            <th style="width: 130px;">
+                                                                Situação
+                                                            </th>
+
+                                                            <th style="width: 65px;">
+                                                                Unid.
+                                                            </th>
                                                         </tr>
                                                     </thead>
 
                                                     <tbody>
+
                                                         @forelse($itensEntrega as $item)
+
                                                             @php
                                                                 $produto = $resolverProduto($item);
+
                                                                 $itemRomaneio = $resolverItemRomaneio($item);
 
                                                                 $quantidadePrevista =
@@ -1343,22 +1369,18 @@
                                                                         ?? 0
                                                                 );
 
-                                                                $quantidadeConferidaSeparacao = (float) old(
-                                                                    "itens.{$item->id}.quantidade_conferida_separacao",
-                                                                    $itemRomaneio?->quantidade_conferida_separacao
-                                                                        ?? 0
-                                                                );
-
                                                                 $quantidadeCarregada = (float) old(
                                                                     "itens.{$item->id}.quantidade_carregada",
                                                                     $itemRomaneio?->quantidade_carregada
                                                                         ?? 0
                                                                 );
 
-                                                                $quantidadeConferidaSaida = (float) old(
-                                                                    "itens.{$item->id}.quantidade_conferida_saida",
-                                                                    $itemRomaneio?->quantidade_conferida_saida
-                                                                        ?? 0
+                                                                $statusItem = strtolower(
+                                                                    (string) old(
+                                                                        "itens.{$item->id}.status",
+                                                                        $itemRomaneio?->status
+                                                                            ?? 'pendente'
+                                                                    )
                                                                 );
 
                                                                 $unidade =
@@ -1373,9 +1395,11 @@
                                                             @endphp
 
                                                             <tr class="item-row"
-                                                                data-prevista="{{ number_format($quantidadeRomaneio, 2, '.', '') }}">
+                                                                data-prevista="{{ number_format($quantidadeRomaneio, 2, '.', '') }}"
+                                                                data-romaneio="{{ number_format($quantidadeRomaneio, 2, '.', '') }}">
 
                                                                 <td>
+
                                                                     <input type="hidden"
                                                                            name="itens[{{ $item->id }}][entrega_item_id]"
                                                                            value="{{ $item->id }}">
@@ -1398,6 +1422,7 @@
                                                                             ?? $produto?->id
                                                                             ?? '-' }}
                                                                     </div>
+
                                                                 </td>
 
                                                                 <td class="text-center">
@@ -1414,16 +1439,20 @@
                                                                 </td>
 
                                                                 <td class="text-center">
+
                                                                     @if($criandoRomaneio)
+
                                                                         <input type="number"
                                                                                name="itens[{{ $item->id }}][quantidade]"
                                                                                value="{{ number_format($quantidadeRomaneio, 2, '.', '') }}"
-                                                                               min="1"
+                                                                               min="0.01"
                                                                                max="{{ number_format($quantidadePrevista, 2, '.', '') }}"
                                                                                step="1"
                                                                                class="form-control form-control-sm quantity-input"
-                                                                               data-active-quantity>
+                                                                               data-quantity-romaneio>
+
                                                                     @else
+
                                                                         <strong>
                                                                             {{ number_format(
                                                                                 $quantidadeRomaneio,
@@ -1436,156 +1465,269 @@
                                                                         <input type="hidden"
                                                                                name="itens[{{ $item->id }}][quantidade]"
                                                                                value="{{ number_format($quantidadeRomaneio, 2, '.', '') }}">
+
                                                                     @endif
+
                                                                 </td>
 
-                                                                <td class="text-center">
-                                                                    @if($campoQuantidadeAtiva === 'quantidade_separada')
-                                                                        <input type="number"
-                                                                               name="itens[{{ $item->id }}][quantidade_separada]"
-                                                                               value="{{ number_format($quantidadeSeparada, 2, '.', '') }}"
-                                                                               min="0"
-                                                                               max="{{ number_format($quantidadeRomaneio, 2, '.', '') }}"
-                                                                               step="1"
-                                                                               class="form-control form-control-sm quantity-input"
-                                                                               data-active-quantity>
-                                                                    @else
-                                                                        <strong>
-                                                                            {{ number_format(
-                                                                                $quantidadeSeparada,
-                                                                                2,
-                                                                                ',',
-                                                                                '.'
-                                                                            ) }}
-                                                                        </strong>
+                                                                @if(! $criandoRomaneio)
 
-                                                                        <input type="hidden"
-                                                                               name="itens[{{ $item->id }}][quantidade_separada]"
-                                                                               value="{{ number_format($quantidadeSeparada, 2, '.', '') }}">
-                                                                    @endif
-                                                                </td>
+                                                                    <td class="text-center">
 
-                                                                <td class="text-center">
-                                                                    @if($campoQuantidadeAtiva === 'quantidade_conferida_separacao')
-                                                                        <input type="number"
-                                                                               name="itens[{{ $item->id }}][quantidade_conferida_separacao]"
-                                                                               value="{{ number_format($quantidadeConferidaSeparacao, 2, '.', '') }}"
-                                                                               min="0"
-                                                                               max="{{ number_format($quantidadeSeparada, 2, '.', '') }}"
-                                                                               step="1"
-                                                                               class="form-control form-control-sm quantity-input"
-                                                                               data-active-quantity>
-                                                                    @else
-                                                                        <strong>
-                                                                            {{ number_format(
-                                                                                $quantidadeConferidaSeparacao,
-                                                                                2,
-                                                                                ',',
-                                                                                '.'
-                                                                            ) }}
-                                                                        </strong>
+                                                                        @if($statusOriginal === 'em_separacao')
 
-                                                                        <input type="hidden"
-                                                                               name="itens[{{ $item->id }}][quantidade_conferida_separacao]"
-                                                                               value="{{ number_format($quantidadeConferidaSeparacao, 2, '.', '') }}">
-                                                                    @endif
-                                                                </td>
+                                                                            <input type="number"
+                                                                                name="itens[{{ $item->id }}][quantidade_separada]"
+                                                                                value="{{ number_format(
+                                                                                    $quantidadeSeparada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                ) }}"
+                                                                                min="0"
+                                                                                max="{{ number_format(
+                                                                                    $quantidadeRomaneio,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                ) }}"
+                                                                                step="1"
+                                                                                class="form-control form-control-sm quantity-input
+                                                                                    @error("itens.{$item->id}.quantidade_separada") is-invalid @enderror"
+                                                                                data-quantity-separated>
 
-                                                                <td class="text-center">
-                                                                    @if($campoQuantidadeAtiva === 'quantidade_carregada')
-                                                                        <input type="number"
-                                                                               name="itens[{{ $item->id }}][quantidade_carregada]"
-                                                                               value="{{ number_format($quantidadeCarregada, 2, '.', '') }}"
-                                                                               min="0"
-                                                                               max="{{ number_format($quantidadeConferidaSeparacao, 2, '.', '') }}"
-                                                                               step="1"
-                                                                               class="form-control form-control-sm quantity-input"
-                                                                               data-active-quantity>
-                                                                    @else
-                                                                        <strong>
-                                                                            {{ number_format(
-                                                                                $quantidadeCarregada,
-                                                                                2,
-                                                                                ',',
-                                                                                '.'
-                                                                            ) }}
-                                                                        </strong>
+                                                                            @error("itens.{$item->id}.quantidade_separada")
+                                                                                <div class="invalid-feedback">
+                                                                                    {{ $message }}
+                                                                                </div>
+                                                                            @enderror
 
-                                                                        <input type="hidden"
-                                                                               name="itens[{{ $item->id }}][quantidade_carregada]"
-                                                                               value="{{ number_format($quantidadeCarregada, 2, '.', '') }}">
-                                                                    @endif
-                                                                </td>
+                                                                        @else
 
-                                                                <td class="text-center">
-                                                                    @if($campoQuantidadeAtiva === 'quantidade_conferida_saida')
-                                                                        <input type="number"
-                                                                               name="itens[{{ $item->id }}][quantidade_conferida_saida]"
-                                                                               value="{{ number_format($quantidadeConferidaSaida, 2, '.', '') }}"
-                                                                               min="0"
-                                                                               max="{{ number_format($quantidadeCarregada, 2, '.', '') }}"
-                                                                               step="1"
-                                                                               class="form-control form-control-sm quantity-input"
-                                                                               data-active-quantity>
-                                                                    @else
-                                                                        <strong>
-                                                                            {{ number_format(
-                                                                                $quantidadeConferidaSaida,
-                                                                                2,
-                                                                                ',',
-                                                                                '.'
-                                                                            ) }}
-                                                                        </strong>
+                                                                            <strong>
+                                                                                {{ number_format(
+                                                                                    $quantidadeSeparada,
+                                                                                    2,
+                                                                                    ',',
+                                                                                    '.'
+                                                                                ) }}
+                                                                            </strong>
 
-                                                                        <input type="hidden"
-                                                                               name="itens[{{ $item->id }}][quantidade_conferida_saida]"
-                                                                               value="{{ number_format($quantidadeConferidaSaida, 2, '.', '') }}">
-                                                                    @endif
-                                                                </td>
+                                                                            <input type="hidden"
+                                                                                name="itens[{{ $item->id }}][quantidade_separada]"
+                                                                                value="{{ number_format(
+                                                                                    $quantidadeSeparada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                ) }}">
 
-                                                                <td class="text-center">
-                                                                    <span class="badge bg-light text-dark border">
-                                                                        {{ $itemRomaneio?->status
-                                                                            ?? 'Pendente' }}
+                                                                        @endif
+
+                                                                    </td>
+
+                                                                    <td class="text-center">
+
+                                                                        @if($statusOriginal === 'carregando')
+
+                                                                            <input type="number"
+                                                                                name="itens[{{ $item->id }}][quantidade_carregada]"
+                                                                                value="{{ number_format(
+                                                                                    $quantidadeCarregada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                ) }}"
+                                                                                min="0"
+                                                                                max="{{ number_format(
+                                                                                    $quantidadeSeparada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                ) }}"
+                                                                                step="1"
+                                                                                class="form-control form-control-sm quantity-input
+                                                                                    @error("itens.{$item->id}.quantidade_carregada") is-invalid @enderror"
+                                                                                data-quantity-loaded>
+
+                                                                            @error("itens.{$item->id}.quantidade_carregada")
+                                                                                <div class="invalid-feedback">
+                                                                                    {{ $message }}
+                                                                                </div>
+                                                                            @enderror
+
+                                                                        @else
+
+                                                                            <strong>
+                                                                                {{ number_format(
+                                                                                    $quantidadeCarregada,
+                                                                                    2,
+                                                                                    ',',
+                                                                                    '.'
+                                                                                ) }}
+                                                                            </strong>
+
+                                                                            <input type="hidden"
+                                                                                name="itens[{{ $item->id }}][quantidade_carregada]"
+                                                                                value="{{ number_format(
+                                                                                    $quantidadeCarregada,
+                                                                                    2,
+                                                                                    '.',
+                                                                                    ''
+                                                                                ) }}">
+
+                                                                        @endif
+
+                                                                    </td>
+
+                                                                @endif
+
+                                                                <td class="text-end">
+                                                                    <span class="balance-value"
+                                                                          data-balance>
+                                                                        0,00
                                                                     </span>
+                                                                </td>
+
+                                                                <td class="text-center">
+
+                                                                    @if($statusOriginal === 'carregado')
+
+                                                                        <select name="itens[{{ $item->id }}][status]"
+                                                                                class="form-select form-select-sm"
+                                                                                data-status-item>
+
+                                                                            <option value="conferido"
+                                                                                @selected($statusItem === 'conferido')>
+                                                                                Conferido
+                                                                            </option>
+
+                                                                            <option value="divergente"
+                                                                                @selected(in_array(
+                                                                                    $statusItem,
+                                                                                    ['divergente', 'parcial'],
+                                                                                    true
+                                                                                ))>
+                                                                                Divergente
+                                                                            </option>
+
+                                                                        </select>
+
+                                                                    @else
+
+                                                                        @php
+                                                                            $classeStatus = match ($statusItem) {
+                                                                                'separado',
+                                                                                'carregado',
+                                                                                'conferido' =>
+                                                                                    'bg-success',
+
+                                                                                'parcial',
+                                                                                'divergente' =>
+                                                                                    'bg-warning text-dark',
+
+                                                                                'cancelado' =>
+                                                                                    'bg-danger',
+
+                                                                                default =>
+                                                                                    'bg-secondary',
+                                                                            };
+                                                                        @endphp
+
+                                                                        <span class="badge {{ $classeStatus }}">
+                                                                            {{ ucfirst(
+                                                                                str_replace(
+                                                                                    '_',
+                                                                                    ' ',
+                                                                                    $statusItem
+                                                                                )
+                                                                            ) }}
+                                                                        </span>
+
+                                                                        <input type="hidden"
+                                                                               name="itens[{{ $item->id }}][status]"
+                                                                               value="{{ $statusItem }}">
+
+                                                                    @endif
+
                                                                 </td>
 
                                                                 <td class="text-center">
                                                                     {{ $unidade }}
                                                                 </td>
+
                                                             </tr>
+
                                                         @empty
+
                                                             <tr>
-                                                                <td colspan="10"
+                                                                <td colspan="9"
                                                                     class="text-center text-muted py-4">
                                                                     Nenhum item encontrado.
                                                                 </td>
                                                             </tr>
+
                                                         @endforelse
+
                                                     </tbody>
                                                 </table>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+
                             @endforeach
+
                         </div>
                     </div>
                 </div>
 
                 <div class="col-xl-3">
+
                     <div class="section-card summary-card">
+
                         <div class="section-header">
                             <span>
-                                <i class="bi bi-graph-up me-1"></i>
-                                Resumo
+                                <i class="bi bi-clipboard-data me-2"></i>
+                                Resumo Operacional
                             </span>
                         </div>
 
-                        <div class="p-3">
+                        <div class="card-body p-3">
+
                             <div class="summary-row">
                                 <span class="summary-label">
-                                    Total previsto
+                                    Romaneio
+                                </span>
+
+                                <span class="summary-value">
+                                    {{ $codigoRomaneio ?? 'Novo' }}
+                                </span>
+                            </div>
+
+                            <div class="summary-row">
+                                <span class="summary-label">
+                                    Entregas
+                                </span>
+
+                                <span class="summary-value">
+                                    {{ $totalEntregas }}
+                                </span>
+                            </div>
+
+                            <div class="summary-row">
+                                <span class="summary-label">
+                                    Itens
+                                </span>
+
+                                <span class="summary-value">
+                                    {{ $totalItens }}
+                                </span>
+                            </div>
+
+                            <div class="summary-row">
+                                <span class="summary-label">
+                                    Quantidade prevista
                                 </span>
 
                                 <span class="summary-value"
@@ -1596,7 +1738,7 @@
 
                             <div class="summary-row">
                                 <span class="summary-label">
-                                    Total informado
+                                    Quantidade realizada
                                 </span>
 
                                 <span class="summary-value"
@@ -1607,17 +1749,19 @@
 
                             <div class="summary-row">
                                 <span class="summary-label">
-                                    Pendente
+                                    Pendências
                                 </span>
 
-                                <span class="summary-value"
+                                <span class="summary-value text-danger"
                                       id="summaryPending">
-                                    0,00
+                                    0
                                 </span>
                             </div>
 
                             <div class="mt-3">
+
                                 <div class="d-flex justify-content-between mb-1">
+
                                     <span class="summary-label">
                                         Progresso
                                     </span>
@@ -1626,195 +1770,329 @@
                                           id="summaryPercent">
                                         0%
                                     </span>
+
                                 </div>
 
                                 <div class="progress summary-progress">
-                                    <div id="summaryProgress"
-                                         class="progress-bar"
+
+                                    <div class="progress-bar"
+                                         id="summaryProgress"
+                                         role="progressbar"
                                          style="width: 0%;">
                                     </div>
+
                                 </div>
                             </div>
 
-                            <div id="nextStep"
-                                 class="next-step mt-3">
-                                <div class="fw-bold small"
+                            <div class="next-step mt-3"
+                                 id="nextStep">
+
+                                <div class="fw-bold small mb-1"
                                      id="nextStepTitle">
-                                    Preencha as quantidades.
+                                    Verificando operação
                                 </div>
 
-                                <div class="small text-muted mt-1">
-                                    A etapa só poderá ser finalizada quando todas as quantidades estiverem conciliadas.
+                                <div class="text-muted small"
+                                     id="nextStepText">
+                                    Aguarde o cálculo dos itens.
                                 </div>
+
                             </div>
 
                             @if($romaneioAtivo)
-                                <hr>
 
-                                <div class="small text-muted">
-                                    <div class="mb-2">
-                                        <i class="bi bi-person-badge me-1"></i>
-                                        Motorista:
+                                <div class="control-panel">
 
-                                        <strong>
-                                            {{ $romaneioAtivo?->motorista?->nome
-                                                ?? 'A definir' }}
-                                        </strong>
+                                    <div class="fw-bold small mb-2">
+                                        Controles registrados
                                     </div>
 
-                                    <div>
-                                        <i class="bi bi-truck me-1"></i>
-                                        Veículo:
+                                    <div class="control-grid">
 
-                                        <strong>
-                                            {{ $romaneioAtivo?->veiculo?->placa
-                                                ?? $romaneioAtivo?->veiculo?->descricao
-                                                ?? 'A definir' }}
-                                        </strong>
+                                        <div class="control-item">
+                                            <span class="control-item-label">
+                                                Início separação
+                                            </span>
+
+                                            <span class="control-item-value">
+                                                {{ $formatarData(
+                                                    $romaneioAtivo?->data_inicio_separacao,
+                                                    true
+                                                ) }}
+                                            </span>
+                                        </div>
+
+                                        <div class="control-item">
+                                            <span class="control-item-label">
+                                                Fim separação
+                                            </span>
+
+                                            <span class="control-item-value">
+                                                {{ $formatarData(
+                                                    $romaneioAtivo?->data_fim_separacao,
+                                                    true
+                                                ) }}
+                                            </span>
+                                        </div>
+
+                                        <div class="control-item">
+                                            <span class="control-item-label">
+                                                Início carga
+                                            </span>
+
+                                            <span class="control-item-value">
+                                                {{ $formatarData(
+                                                    $romaneioAtivo?->data_inicio_carregamento,
+                                                    true
+                                                ) }}
+                                            </span>
+                                        </div>
+
+                                        <div class="control-item">
+                                            <span class="control-item-label">
+                                                Fim carga
+                                            </span>
+
+                                            <span class="control-item-value">
+                                                {{ $formatarData(
+                                                    $romaneioAtivo?->data_fim_carregamento,
+                                                    true
+                                                ) }}
+                                            </span>
+                                        </div>
+
+                                        <div class="control-item">
+                                            <span class="control-item-label">
+                                                Percentual
+                                            </span>
+
+                                            <span class="control-item-value">
+                                                {{ number_format(
+                                                    (float) $romaneioAtivo?->percentual_carregado,
+                                                    2,
+                                                    ',',
+                                                    '.'
+                                                ) }}%
+                                            </span>
+                                        </div>
+
+                                        <div class="control-item">
+                                            <span class="control-item-label">
+                                                Saída
+                                            </span>
+
+                                            <span class="control-item-value">
+                                                {{ $formatarData(
+                                                    $romaneioAtivo?->data_saida,
+                                                    true
+                                                ) }}
+                                            </span>
+                                        </div>
+
                                     </div>
                                 </div>
+
                             @endif
+
+                            <hr>
+
+                            <div class="small text-muted">
+
+                                <div class="mb-2">
+                                    <i class="bi bi-person-badge me-1"></i>
+                                    Motorista:
+
+                                    <strong>
+                                        {{ $romaneioAtivo?->motorista?->nome
+                                            ?? 'A definir' }}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <i class="bi bi-truck me-1"></i>
+                                    Veículo:
+
+                                    <strong>
+                                        {{ $romaneioAtivo?->veiculo?->placa
+                                            ?? $romaneioAtivo?->veiculo?->descricao
+                                            ?? 'A definir' }}
+                                    </strong>
+                                </div>
+
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="section-card mt-3">
+
                 <div class="footer-actions">
+
                     <div class="small text-muted">
-                        {{ $descricaoEtapa }}
+
+                        @if($criandoRomaneio)
+                            A criação prepara o romaneio para o início da separação.
+
+                        @elseif($statusOriginal === 'gerado')
+                            Inicie a separação para registrar operador e horário.
+
+                        @elseif($statusOriginal === 'em_separacao')
+                            Salve o andamento ou finalize a separação.
+
+                        @elseif($statusOriginal === 'separado')
+                            Encaminhe o romaneio para a doca.
+
+                        @elseif($statusOriginal === 'na_doca')
+                            Inicie o carregamento do veículo.
+
+                        @elseif($statusOriginal === 'carregando')
+                            Salve o andamento ou finalize o carregamento.
+
+                        @elseif($statusOriginal === 'carregado')
+                            Confira todos os itens da carga.
+
+                        @elseif($statusOriginal === 'conferido')
+                            Imprima e libere o romaneio.
+
+                        @elseif($statusOriginal === 'liberado')
+                            Registre a saída física do veículo.
+
+                        @elseif(in_array($statusOriginal, ['saiu_para_entrega', 'em_rota'], true))
+                            Veículo em rota de entrega.
+
+                        @endif
+
                     </div>
 
                     <div class="d-flex flex-wrap gap-2">
+
                         <a href="{{ route('entregas.index') }}"
                            class="btn btn-outline-secondary btn-sm">
                             <i class="bi bi-x-circle me-1"></i>
                             Fechar
                         </a>
 
-                        @if(! $criandoRomaneio && $podeVoltarEtapa)
+                        @if(
+                            ! $criandoRomaneio &&
+                            $podeVoltarEtapa
+                        )
                             <button type="button"
-                                class="btn btn-outline-danger"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modalNavegarEtapa">
+                                    class="btn btn-outline-danger btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalVoltarEtapa">
 
-                            <i class="bi bi-arrow-counterclockwise me-1"></i>
-                            Alterar Etapa
-                        </button>
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                                Voltar Etapa
+
+                            </button>
                         @endif
 
-                        @if(! $criandoRomaneio && $podeSalvarAndamento)
+                        @if(
+                            ! $criandoRomaneio &&
+                            $podeSalvarAndamento
+                        )
                             <button type="submit"
                                     name="acao"
                                     value="salvar_andamento"
                                     class="btn btn-outline-primary btn-sm">
+
                                 <i class="bi bi-floppy me-1"></i>
                                 Salvar Andamento
+
                             </button>
                         @endif
 
                         @if($criandoRomaneio)
+
                             <button type="submit"
                                     class="btn btn-primary btn-sm"
                                     id="btnPrincipal">
+
                                 <i class="bi bi-check-circle me-1"></i>
                                 Criar Romaneio
+
                             </button>
 
-                        @elseif($statusOriginal === 'aguardando_separacao')
+                        @elseif($statusOriginal === 'gerado')
+
                             <button type="submit"
                                     name="acao"
                                     value="iniciar_separacao"
                                     class="btn btn-warning btn-sm"
                                     id="btnPrincipal">
+
                                 <i class="bi bi-play-circle me-1"></i>
                                 Iniciar Separação
+
                             </button>
 
                         @elseif($statusOriginal === 'em_separacao')
+
                             <button type="submit"
                                     name="acao"
                                     value="finalizar_separacao"
                                     class="btn btn-warning btn-sm"
                                     id="btnPrincipal">
+
                                 <i class="bi bi-box-seam me-1"></i>
                                 Finalizar Separação
+
                             </button>
 
-                        @elseif($statusOriginal === 'aguardando_conferencia_separacao')
+                        @elseif($statusOriginal === 'separado')
+
                             <button type="submit"
                                     name="acao"
-                                    value="iniciar_conferencia_separacao"
-                                    class="btn btn-info btn-sm"
+                                    value="enviar_para_doca"
+                                    class="btn btn-primary btn-sm"
                                     id="btnPrincipal">
-                                <i class="bi bi-clipboard2-check me-1"></i>
-                                Iniciar Conferência
+
+                                <i class="bi bi-arrow-right-circle me-1"></i>
+                                Enviar para Doca
+
                             </button>
 
-                        @elseif($statusOriginal === 'em_conferencia_separacao')
-                            <button type="submit"
-                                    name="acao"
-                                    value="finalizar_conferencia_separacao"
-                                    class="btn btn-info btn-sm"
-                                    id="btnPrincipal">
-                                <i class="bi bi-check2-all me-1"></i>
-                                Finalizar Conferência
-                            </button>
+                        @elseif($statusOriginal === 'na_doca')
 
-                        @elseif(in_array(
-                            $statusOriginal,
-                            [
-                                'separacao_conferida',
-                                'aguardando_carregamento',
-                            ],
-                            true
-                        ))
                             <button type="submit"
                                     name="acao"
                                     value="iniciar_carregamento"
                                     class="btn btn-primary btn-sm"
                                     id="btnPrincipal">
+
                                 <i class="bi bi-play-circle me-1"></i>
                                 Iniciar Carregamento
+
                             </button>
 
                         @elseif($statusOriginal === 'carregando')
+
                             <button type="submit"
                                     name="acao"
                                     value="finalizar_carregamento"
                                     class="btn btn-primary btn-sm"
                                     id="btnPrincipal">
+
                                 <i class="bi bi-truck-front me-1"></i>
                                 Finalizar Carregamento
+
                             </button>
 
-                        @elseif($statusOriginal === 'aguardando_conferencia_saida')
+                        @elseif($statusOriginal === 'carregado')
+
                             <button type="submit"
                                     name="acao"
-                                    value="iniciar_conferencia_saida"
+                                    value="concluir_conferencia"
                                     class="btn btn-info btn-sm"
                                     id="btnPrincipal">
-                                <i class="bi bi-clipboard-data me-1"></i>
-                                Iniciar Conf. Saída
+
+                                <i class="bi bi-clipboard-check me-1"></i>
+                                Concluir Conferência
+
                             </button>
 
-                        @elseif($statusOriginal === 'em_conferencia_saida')
-                            <button type="submit"
-                                    name="acao"
-                                    value="finalizar_conferencia_saida"
-                                    class="btn btn-info btn-sm"
-                                    id="btnPrincipal">
-                                <i class="bi bi-check2-all me-1"></i>
-                                Finalizar Conf. Saída
-                            </button>
-
-                        @elseif($statusOriginal === 'aguardando_liberacao')
-                            <button type="submit"
-                                    form="formImprimirRomaneio"
-                                    class="btn btn-outline-dark btn-sm">
-                                <i class="bi bi-printer me-1"></i>
-                                Imprimir
-                            </button>
+                        @elseif($statusOriginal === 'conferido')
 
                             <button type="submit"
                                     name="acao"
@@ -1826,36 +2104,51 @@
                                             $romaneioAtivo?->impresso_em
                                         )
                                     )>
+
                                 <i class="bi bi-shield-check me-1"></i>
-                                Liberar Veículo
+                                Liberar Romaneio
+
                             </button>
 
                         @elseif($statusOriginal === 'liberado')
+
                             <button type="submit"
                                     name="acao"
                                     value="registrar_saida"
                                     class="btn btn-dark btn-sm"
                                     id="btnPrincipal">
+
                                 <i class="bi bi-truck me-1"></i>
                                 Registrar Saída
+
                             </button>
 
-                        @elseif($statusOriginal === 'em_rota')
+                        @elseif(in_array(
+                            $statusOriginal,
+                            ['saiu_para_entrega', 'em_rota'],
+                            true
+                        ))
+
                             <button type="button"
-                                    class="btn btn-dark btn-sm"
+                                    class="btn btn-success btn-sm"
                                     disabled>
-                                <i class="bi bi-sign-turn-right me-1"></i>
+
+                                <i class="bi bi-check-circle me-1"></i>
                                 Veículo em Rota
+
                             </button>
+
                         @endif
+
                     </div>
                 </div>
             </div>
+
         </form>
 
         @if(
-            ! $criandoRomaneio
-            && $statusOriginal === 'aguardando_liberacao'
+            ! $criandoRomaneio &&
+            $statusOriginal === 'conferido'
         )
             <form id="formImprimirRomaneio"
                   method="POST"
@@ -1868,716 +2161,531 @@
             </form>
         @endif
 
-       @if(! $criandoRomaneio && $podeVoltarEtapa)
-    <div class="modal fade"
-         id="modalNavegarEtapa"
-         tabindex="-1"
-         aria-labelledby="modalNavegarEtapaLabel"
-         aria-hidden="true">
+        @if(
+            ! $criandoRomaneio &&
+            $podeVoltarEtapa
+        )
+            <div class="modal fade"
+                 id="modalVoltarEtapa"
+                 tabindex="-1"
+                 aria-hidden="true">
 
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+                <div class="modal-dialog">
 
-                <div class="modal-header">
-                    <h5 class="modal-title"
-                        id="modalNavegarEtapaLabel">
+                    <div class="modal-content">
 
-                        <i class="bi bi-arrow-counterclockwise me-2"></i>
-                        Alterar etapa operacional
-                    </h5>
+                        <div class="modal-header">
 
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Fechar">
-                    </button>
-                </div>
+                            <h5 class="modal-title">
+                                Retornar etapa
+                            </h5>
 
-                <div class="modal-body">
+                            <button type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="modal">
+                            </button>
 
-                    <div class="alert alert-warning py-2">
-                        <i class="bi bi-exclamation-triangle me-1"></i>
-                        A alteração será registrada no histórico auditável do romaneio.
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="etapa_destino_modal"
-                               class="form-label fw-semibold">
-                            Etapa de destino
-                        </label>
-
-                        <select id="etapa_destino_modal"
-                                class="form-select">
-
-                            <option value="">
-                                Selecione a etapa
-                            </option>
-
-                            @foreach($etapas as $chaveEtapa => $configuracaoEtapa)
-                                @if(
-                                    $configuracaoEtapa['ordem'] < $ordemAtual
-                                    && $chaveEtapa !== 'em_rota'
-                                )
-                                    <option value="{{ $chaveEtapa }}">
-                                        {{ $configuracaoEtapa['label'] }}
-                                    </option>
-                                @endif
-                            @endforeach
-                        </select>
-
-                        <div class="invalid-feedback">
-                            Selecione a etapa de destino.
                         </div>
-                    </div>
 
-                    <div>
-                        <label for="motivo_movimentacao_modal"
-                               class="form-label fw-semibold">
-                            Motivo da alteração
-                        </label>
+                        <div class="modal-body">
 
-                        <textarea id="motivo_movimentacao_modal"
-                                  class="form-control"
-                                  rows="4"
-                                  maxlength="1000"
-                                  placeholder="Informe por que o romaneio precisa retornar para outra etapa."></textarea>
+                            <label for="motivo_retorno"
+                                   class="form-label">
+                                Motivo do retorno
+                            </label>
 
-                        <div class="invalid-feedback">
-                            Informe um motivo com pelo menos 5 caracteres.
+                            <textarea id="motivo_retorno"
+                                      class="form-control"
+                                      rows="4"
+                                      maxlength="500"
+                                      placeholder="Informe por que o romaneio precisa retornar de etapa."></textarea>
+
                         </div>
+
+                        <div class="modal-footer">
+
+                            <button type="button"
+                                    class="btn btn-outline-secondary"
+                                    data-bs-dismiss="modal">
+                                Cancelar
+                            </button>
+
+                            <button type="button"
+                                    class="btn btn-danger"
+                                    id="btnConfirmarRetorno">
+
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                                Confirmar Retorno
+
+                            </button>
+
+                        </div>
+
                     </div>
-
                 </div>
-
-                <div class="modal-footer">
-                    <button type="button"
-                            class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal">
-                        Cancelar
-                    </button>
-
-                    <button type="button"
-                            class="btn btn-danger"
-                            id="btnConfirmarNavegacao">
-
-                        <i class="bi bi-arrow-counterclockwise me-1"></i>
-                        Confirmar alteração
-                    </button>
-                </div>
-
             </div>
-        </div>
-    </div>
-@endif
+        @endif
+
     @endif
+
 </div>
-
-<!-- <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('formRomaneio');
-
-        if (!form) {
-            return;
-        }
-
-        const rows = [
-            ...document.querySelectorAll('.item-row')
-        ];
-
-        const summaryExpected =
-            document.getElementById('summaryExpected');
-
-        const summaryCompleted =
-            document.getElementById('summaryCompleted');
-
-        const summaryPending =
-            document.getElementById('summaryPending');
-
-        const summaryPercent =
-            document.getElementById('summaryPercent');
-
-        const summaryProgress =
-            document.getElementById('summaryProgress');
-
-        const nextStep =
-            document.getElementById('nextStep');
-
-        const nextStepTitle =
-            document.getElementById('nextStepTitle');
-
-        const btnPrincipal =
-            document.getElementById('btnPrincipal');
-
-        const parseNumber = value => {
-            const parsed = Number.parseFloat(value);
-
-            return Number.isFinite(parsed)
-                ? parsed
-                : 0;
-        };
-
-        const formatNumber = value => {
-            return value.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-            });
-        };
-
-        const atualizarResumo = () => {
-            let previsto = 0;
-            let informado = 0;
-
-            rows.forEach(row => {
-                previsto += parseNumber(
-                    row.dataset.prevista
-                );
-
-                const inputAtivo =
-                    row.querySelector(
-                        '[data-active-quantity]'
-                    );
-
-                if (inputAtivo) {
-                    informado += parseNumber(
-                        inputAtivo.value
-                    );
-                } else {
-                    informado += parseNumber(
-                        row.dataset.prevista
-                    );
-                }
-            });
-
-            const pendente = Math.max(
-                previsto - informado,
-                0
-            );
-
-            const percentual = previsto > 0
-                ? Math.min(
-                    (informado / previsto) * 100,
-                    100
-                )
-                : 0;
-
-            if (summaryExpected) {
-                summaryExpected.textContent =
-                    formatNumber(previsto);
-            }
-
-            if (summaryCompleted) {
-                summaryCompleted.textContent =
-                    formatNumber(informado);
-            }
-
-            if (summaryPending) {
-                summaryPending.textContent =
-                    formatNumber(pendente);
-            }
-
-            if (summaryPercent) {
-                summaryPercent.textContent =
-                    `${percentual.toFixed(0)}%`;
-            }
-
-            if (summaryProgress) {
-                summaryProgress.style.width =
-                    `${percentual}%`;
-            }
-
-            const concluido =
-                Math.abs(previsto - informado) < 0.001;
-
-            if (nextStep) {
-                nextStep.classList.toggle(
-                    'ready',
-                    concluido
-                );
-            }
-
-            if (nextStepTitle) {
-                nextStepTitle.textContent = concluido
-                    ? 'Etapa pronta para conclusão.'
-                    : 'Existem quantidades pendentes.';
-            }
-
-            if (btnPrincipal) {
-                const acao = btnPrincipal.value ?? '';
-
-                const exigeQuantidadeCompleta = [
-                    'finalizar_separacao',
-                    'finalizar_conferencia_separacao',
-                    'finalizar_carregamento',
-                    'finalizar_conferencia_saida',
-                ].includes(acao);
-
-                if (exigeQuantidadeCompleta) {
-                    btnPrincipal.disabled = ! concluido;
-                }
-            }
-        };
-
-        document
-            .querySelectorAll('[data-active-quantity]')
-            .forEach(input => {
-                input.addEventListener(
-                    'input',
-                    atualizarResumo
-                );
-            });
-
-        /*
-        |--------------------------------------------------------------------------
-        | Navegação auditável entre etapas
-        |--------------------------------------------------------------------------
-        */
-
-        const modalNavegarElemento =
-            document.getElementById(
-                'modalNavegarEtapa'
-            );
-
-       const etapaDestino =
-            document.getElementById('etapa_destino_modal');
-
-        const motivoMovimentacao =
-            document.getElementById('motivo_movimentacao_modal');
-
-        const btnConfirmarNavegacao =
-
-    document.getElementById('btnConfirmarNavegacao');
-
-        const motivoMovimentacao =
-            document.getElementById(
-                'motivoMovimentacao'
-            );
-
-        const btnConfirmarNavegacao =
-            document.getElementById(
-                'btnConfirmarNavegacao'
-            );
-
-        let etapaDestinoSelecionada = null;
-
-        const removerCamposNavegacaoAnteriores = () => {
-            form
-                .querySelectorAll(
-                    '[data-campo-navegacao="true"]'
-                )
-                .forEach(input => input.remove());
-        };
-
-        document
-            .querySelectorAll(
-                '.workflow-navigation-button'
-            )
-            .forEach(button => {
-                button.addEventListener(
-                    'click',
-                    () => {
-                        etapaDestinoSelecionada =
-                            button.dataset.etapaDestino;
-
-                        if (etapaDestinoLabel) {
-                            etapaDestinoLabel.value =
-                                button.dataset.etapaLabel
-                                ?? '';
-                        }
-
-                        if (motivoMovimentacao) {
-                            motivoMovimentacao.value = '';
-
-                            motivoMovimentacao
-                                .classList
-                                .remove('is-invalid');
-                        }
-
-                        if (!modalNavegarElemento) {
-                            return;
-                        }
-
-                        bootstrap.Modal
-                            .getOrCreateInstance(
-                                modalNavegarElemento
-                            )
-                            .show();
-                    }
-                );
-            });
-
-        btnConfirmarNavegacao
-            ?.addEventListener(
-                'click',
-                () => {
-                    const motivo =
-                        motivoMovimentacao
-                            ?.value
-                            .trim()
-                        ?? '';
-
-                    if (
-                        !etapaDestinoSelecionada
-                        || motivo.length < 5
-                    ) {
-                        motivoMovimentacao
-                            ?.classList
-                            .add('is-invalid');
-
-                        motivoMovimentacao?.focus();
-
-                        return;
-                    }
-
-                    motivoMovimentacao
-                        ?.classList
-                        .remove('is-invalid');
-
-                    removerCamposNavegacaoAnteriores();
-
-                    const campos = {
-                        acao: 'navegar_etapa',
-                        etapa_destino:
-                            etapaDestinoSelecionada,
-                        motivo_movimentacao:
-                            motivo,
-                    };
-
-                    Object.entries(campos)
-                        .forEach(
-                            ([nome, valor]) => {
-                                const input =
-                                    document.createElement(
-                                        'input'
-                                    );
-
-                                input.type = 'hidden';
-                                input.name = nome;
-                                input.value = valor;
-
-                                input.dataset
-                                    .campoNavegacao =
-                                    'true';
-
-                                form.appendChild(input);
-                            }
-                        );
-
-                    btnConfirmarNavegacao.disabled =
-                        true;
-
-                    form.submit();
-                }
-            );
-
-        atualizarResumo();
-    });
-</script> -->
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const form =
-            document.getElementById('formRomaneio');
+    const form = document.getElementById('formRomaneio');
 
-        if (!form) {
+    if (!form) {
+        return;
+    }
+
+    const etapaAtual =
+        document.querySelector('[name="etapa_atual"]')?.value
+        ?? 'montagem';
+
+    const statusOriginal = @json($statusOriginal);
+
+    const rows = [
+        ...document.querySelectorAll('.item-row')
+    ];
+
+    const summaryExpected =
+        document.getElementById('summaryExpected');
+
+    const summaryCompleted =
+        document.getElementById('summaryCompleted');
+
+    const summaryPending =
+        document.getElementById('summaryPending');
+
+    const summaryPercent =
+        document.getElementById('summaryPercent');
+
+    const summaryProgress =
+        document.getElementById('summaryProgress');
+
+    const nextStep =
+        document.getElementById('nextStep');
+
+    const nextStepTitle =
+        document.getElementById('nextStepTitle');
+
+    const nextStepText =
+        document.getElementById('nextStepText');
+
+    const btnPrincipal =
+        document.getElementById('btnPrincipal');
+
+    function numero(valor) {
+        if (
+            valor === null ||
+            valor === undefined ||
+            valor === ''
+        ) {
+            return 0;
+        }
+
+        return parseFloat(
+            String(valor).replace(',', '.')
+        ) || 0;
+    }
+
+    function formatarNumero(valor) {
+        return Number(valor).toLocaleString(
+            'pt-BR',
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+    }
+
+    function quantidadeRomaneio(row) {
+        const input = row.querySelector(
+            '[data-quantity-romaneio]'
+        );
+
+        if (input) {
+            return numero(input.value);
+        }
+
+        return numero(row.dataset.romaneio);
+    }
+
+    function quantidadeSeparada(row) {
+        const input = row.querySelector(
+            '[data-quantity-separated]'
+        );
+
+        if (input) {
+            return numero(input.value);
+        }
+
+        const hidden = row.querySelector(
+            'input[name$="[quantidade_separada]"]'
+        );
+
+        return hidden
+            ? numero(hidden.value)
+            : 0;
+    }
+
+    function quantidadeCarregada(row) {
+        const input = row.querySelector(
+            '[data-quantity-loaded]'
+        );
+
+        if (input) {
+            return numero(input.value);
+        }
+
+        const hidden = row.querySelector(
+            'input[name$="[quantidade_carregada]"]'
+        );
+
+        return hidden
+            ? numero(hidden.value)
+            : 0;
+    }
+
+    function quantidadeEtapa(row) {
+        if (etapaAtual === 'montagem') {
+            return quantidadeRomaneio(row);
+        }
+
+        if (statusOriginal === 'gerado') {
+            return 0;
+        }
+
+        if (
+            etapaAtual === 'separacao' ||
+            statusOriginal === 'separado' ||
+            statusOriginal === 'na_doca'
+        ) {
+            return quantidadeSeparada(row);
+        }
+
+        return quantidadeCarregada(row);
+    }
+
+    function atualizarLinha(row) {
+        const prevista =
+            numero(row.dataset.prevista);
+
+        const realizada =
+            quantidadeEtapa(row);
+
+        const saldo = Math.max(
+            0,
+            prevista - realizada
+        );
+
+        const saldoSpan = row.querySelector(
+            '[data-balance]'
+        );
+
+        if (saldoSpan) {
+            saldoSpan.textContent =
+                formatarNumero(saldo);
+
+            saldoSpan.classList.toggle(
+                'pending',
+                saldo > 0.0001
+            );
+
+            saldoSpan.classList.toggle(
+                'complete',
+                saldo <= 0.0001
+            );
+        }
+
+        return {
+            prevista,
+            realizada,
+            saldo
+        };
+    }
+
+    function atualizarResumo() {
+        let prevista = 0;
+        let realizada = 0;
+        let pendentes = 0;
+
+        rows.forEach(row => {
+            const dados = atualizarLinha(row);
+
+            prevista += dados.prevista;
+            realizada += dados.realizada;
+
+            if (dados.saldo > 0.0001) {
+                pendentes++;
+            }
+        });
+
+        const percentual = prevista > 0
+            ? Math.min(
+                100,
+                (realizada / prevista) * 100
+            )
+            : 0;
+
+        if (summaryExpected) {
+            summaryExpected.textContent =
+                formatarNumero(prevista);
+        }
+
+        if (summaryCompleted) {
+            summaryCompleted.textContent =
+                formatarNumero(realizada);
+        }
+
+        if (summaryPending) {
+            summaryPending.textContent =
+                String(pendentes);
+        }
+
+        if (summaryPercent) {
+            summaryPercent.textContent =
+                Math.round(percentual) + '%';
+        }
+
+        if (summaryProgress) {
+            summaryProgress.style.width =
+                percentual + '%';
+        }
+
+        if (nextStep) {
+            nextStep.classList.toggle(
+                'ready',
+                pendentes === 0
+            );
+        }
+
+        if (
+            !nextStepTitle ||
+            !nextStepText
+        ) {
             return;
         }
 
-        const rows = [
-            ...document.querySelectorAll('.item-row')
-        ];
+        if (statusOriginal === 'gerado') {
+            nextStepTitle.textContent =
+                'Aguardando início da separação';
 
-        const summaryExpected =
-            document.getElementById('summaryExpected');
+            nextStepText.textContent =
+                'Clique em Iniciar Separação para registrar a operação.';
 
-        const summaryCompleted =
-            document.getElementById('summaryCompleted');
+            return;
+        }
 
-        const summaryPending =
-            document.getElementById('summaryPending');
+        if (statusOriginal === 'separado') {
+            nextStepTitle.textContent =
+                'Separação finalizada';
 
-        const summaryPercent =
-            document.getElementById('summaryPercent');
+            nextStepText.textContent =
+                'O próximo evento é o envio para a doca.';
 
-        const summaryProgress =
-            document.getElementById('summaryProgress');
+            return;
+        }
 
-        const nextStep =
-            document.getElementById('nextStep');
+        if (statusOriginal === 'na_doca') {
+            nextStepTitle.textContent =
+                'Romaneio na doca';
 
-        const nextStepTitle =
-            document.getElementById('nextStepTitle');
+            nextStepText.textContent =
+                'O veículo já pode iniciar o carregamento.';
 
-        const btnPrincipal =
-            document.getElementById('btnPrincipal');
+            return;
+        }
 
-        const modalNavegarElemento =
-            document.getElementById('modalNavegarEtapa');
+        if (statusOriginal === 'carregado') {
+            nextStepTitle.textContent =
+                'Carga concluída';
 
-        const etapaDestino =
-            document.getElementById('etapa_destino_modal');
+            nextStepText.textContent =
+                'Confira a situação de todos os itens.';
 
-        const motivoMovimentacao =
-            document.getElementById(
-                'motivo_movimentacao_modal'
+            return;
+        }
+
+        if (statusOriginal === 'conferido') {
+            nextStepTitle.textContent =
+                'Conferência concluída';
+
+            nextStepText.textContent =
+                'Imprima o romaneio antes de liberar.';
+
+            return;
+        }
+
+        if (statusOriginal === 'liberado') {
+            nextStepTitle.textContent =
+                'Romaneio liberado';
+
+            nextStepText.textContent =
+                'Registre a saída física do veículo.';
+
+            return;
+        }
+
+        if (
+            statusOriginal === 'saiu_para_entrega' ||
+            statusOriginal === 'em_rota'
+        ) {
+            nextStepTitle.textContent =
+                'Veículo em rota';
+
+            nextStepText.textContent =
+                'A saída foi registrada com sucesso.';
+
+            return;
+        }
+
+        nextStepTitle.textContent =
+            pendentes === 0
+                ? 'Etapa concluída'
+                : 'Etapa em andamento';
+
+        nextStepText.textContent =
+            pendentes === 0
+                ? 'A operação pode avançar.'
+                : 'Ainda existem itens pendentes.';
+    }
+
+    document
+        .querySelectorAll(
+            '[data-quantity-romaneio], ' +
+            '[data-quantity-separated], ' +
+            '[data-quantity-loaded], ' +
+            '[data-status-item]'
+        )
+        .forEach(elemento => {
+            elemento.addEventListener(
+                'input',
+                atualizarResumo
             );
 
-        const btnConfirmarNavegacao =
-            document.getElementById(
-                'btnConfirmarNavegacao'
+            elemento.addEventListener(
+                'change',
+                atualizarResumo
+            );
+        });
+
+    form.addEventListener('submit', event => {
+        const botaoSubmit = event.submitter;
+
+        const acao = botaoSubmit?.value ?? '';
+
+        if (
+            acao === 'finalizar_separacao' ||
+            acao === 'finalizar_carregamento'
+        ) {
+            const possuiPendencia = rows.some(
+                row => atualizarLinha(row).saldo > 0.0001
             );
 
-        const parseNumber = value => {
-            const parsed =
-                Number.parseFloat(value);
+            if (possuiPendencia) {
+                event.preventDefault();
 
-            return Number.isFinite(parsed)
-                ? parsed
-                : 0;
-        };
-
-        const formatNumber = value => {
-            return value.toLocaleString(
-                'pt-BR',
-                {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                }
-            );
-        };
-
-        const atualizarResumo = () => {
-            let previsto = 0;
-            let informado = 0;
-
-            rows.forEach(row => {
-                previsto += parseNumber(
-                    row.dataset.prevista
+                window.alert(
+                    'Existem itens pendentes. ' +
+                    'Conclua todas as quantidades antes de avançar.'
                 );
 
-                const inputAtivo =
-                    row.querySelector(
-                        '[data-active-quantity]'
-                    );
-
-                if (inputAtivo) {
-                    informado += parseNumber(
-                        inputAtivo.value
-                    );
-                } else {
-                    informado += parseNumber(
-                        row.dataset.prevista
-                    );
-                }
-            });
-
-            const pendente = Math.max(
-                previsto - informado,
-                0
-            );
-
-            const percentual = previsto > 0
-                ? Math.min(
-                    (informado / previsto) * 100,
-                    100
-                )
-                : 0;
-
-            if (summaryExpected) {
-                summaryExpected.textContent =
-                    formatNumber(previsto);
+                return;
             }
+        }
 
-            if (summaryCompleted) {
-                summaryCompleted.textContent =
-                    formatNumber(informado);
-            }
-
-            if (summaryPending) {
-                summaryPending.textContent =
-                    formatNumber(pendente);
-            }
-
-            if (summaryPercent) {
-                summaryPercent.textContent =
-                    `${percentual.toFixed(0)}%`;
-            }
-
-            if (summaryProgress) {
-                summaryProgress.style.width =
-                    `${percentual}%`;
-            }
-
-            const concluido =
-                Math.abs(
-                    previsto - informado
-                ) < 0.001;
-
-            if (nextStep) {
-                nextStep.classList.toggle(
-                    'ready',
-                    concluido
+        if (acao === 'concluir_conferencia') {
+            const possuiDivergencia = rows.some(row => {
+                const select = row.querySelector(
+                    '[data-status-item]'
                 );
-            }
 
-            if (nextStepTitle) {
-                nextStepTitle.textContent =
-                    concluido
-                        ? 'Etapa pronta para conclusão.'
-                        : 'Existem quantidades pendentes.';
-            }
-
-            if (btnPrincipal) {
-                const acao =
-                    btnPrincipal.value ?? '';
-
-                const exigeQuantidadeCompleta = [
-                    'finalizar_separacao',
-                    'finalizar_conferencia_separacao',
-                    'finalizar_carregamento',
-                    'finalizar_conferencia_saida',
-                ].includes(acao);
-
-                if (exigeQuantidadeCompleta) {
-                    btnPrincipal.disabled =
-                        ! concluido;
-                }
-            }
-        };
-
-        document
-            .querySelectorAll(
-                '[data-active-quantity]'
-            )
-            .forEach(input => {
-                input.addEventListener(
-                    'input',
-                    atualizarResumo
+                return (
+                    select &&
+                    select.value !== 'conferido'
                 );
             });
 
-        const removerCamposNavegacao = () => {
-            form
-                .querySelectorAll(
-                    '[data-campo-navegacao="true"]'
-                )
-                .forEach(input => {
-                    input.remove();
-                });
-        };
+            if (possuiDivergencia) {
+                event.preventDefault();
 
-        const criarCampoNavegacao = (
-            nome,
-            valor
-        ) => {
-            const input =
+                window.alert(
+                    'Existem itens divergentes. ' +
+                    'Todos precisam estar conferidos.'
+                );
+
+                return;
+            }
+        }
+
+        if (acao) {
+            const inputAcaoExistente = form.querySelector(
+                'input[type="hidden"][name="acao"]'
+            );
+
+            if (inputAcaoExistente) {
+                inputAcaoExistente.value = acao;
+            } else {
+                const inputAcao = document.createElement('input');
+
+                inputAcao.type = 'hidden';
+                inputAcao.name = 'acao';
+                inputAcao.value = acao;
+
+                form.appendChild(inputAcao);
+            }
+        }
+
+        if (btnPrincipal) {
+            btnPrincipal.disabled = true;
+        }
+    });
+
+    const btnConfirmarRetorno =
+        document.getElementById(
+            'btnConfirmarRetorno'
+        );
+
+    btnConfirmarRetorno?.addEventListener(
+        'click',
+        () => {
+            const motivo = document
+                .getElementById('motivo_retorno')
+                ?.value
+                ?.trim();
+
+            if (!motivo || motivo.length < 5) {
+                window.alert(
+                    'Informe um motivo com pelo menos 5 caracteres.'
+                );
+
+                return;
+            }
+
+            const inputAcao =
                 document.createElement('input');
 
-            input.type = 'hidden';
-            input.name = nome;
-            input.value = valor;
+            inputAcao.type = 'hidden';
+            inputAcao.name = 'acao';
+            inputAcao.value = 'voltar_etapa';
 
-            input.dataset.campoNavegacao =
-                'true';
+            const inputMotivo =
+                document.createElement('input');
 
-            form.appendChild(input);
-        };
+            inputMotivo.type = 'hidden';
+            inputMotivo.name = 'motivo_retorno';
+            inputMotivo.value = motivo;
 
-        btnConfirmarNavegacao
-            ?.addEventListener(
-                'click',
-                () => {
-                    const destino =
-                        etapaDestino?.value ?? '';
+            form.appendChild(inputAcao);
+            form.appendChild(inputMotivo);
 
-                    const motivo =
-                        motivoMovimentacao
-                            ?.value
-                            .trim()
-                        ?? '';
+            form.submit();
+        }
+    );
 
-                    let valido = true;
-
-                    etapaDestino
-                        ?.classList
-                        .remove('is-invalid');
-
-                    motivoMovimentacao
-                        ?.classList
-                        .remove('is-invalid');
-
-                    if (!destino) {
-                        etapaDestino
-                            ?.classList
-                            .add('is-invalid');
-
-                        valido = false;
-                    }
-
-                    if (motivo.length < 5) {
-                        motivoMovimentacao
-                            ?.classList
-                            .add('is-invalid');
-
-                        valido = false;
-                    }
-
-                    if (!valido) {
-                        return;
-                    }
-
-                    removerCamposNavegacao();
-
-                    criarCampoNavegacao(
-                        'acao',
-                        'navegar_etapa'
-                    );
-
-                    criarCampoNavegacao(
-                        'etapa_destino',
-                        destino
-                    );
-
-                    criarCampoNavegacao(
-                        'motivo_movimentacao',
-                        motivo
-                    );
-
-                    btnConfirmarNavegacao.disabled =
-                        true;
-
-                    form.submit();
-                }
-            );
-
-        modalNavegarElemento
-            ?.addEventListener(
-                'hidden.bs.modal',
-                () => {
-                    if (etapaDestino) {
-                        etapaDestino.value = '';
-
-                        etapaDestino
-                            .classList
-                            .remove('is-invalid');
-                    }
-
-                    if (motivoMovimentacao) {
-                        motivoMovimentacao.value = '';
-
-                        motivoMovimentacao
-                            .classList
-                            .remove('is-invalid');
-                    }
-
-                    if (btnConfirmarNavegacao) {
-                        btnConfirmarNavegacao.disabled =
-                            false;
-                    }
-                }
-            );
-
-        atualizarResumo();
-    });
+    atualizarResumo();
+});
 </script>
 
 @endsection

@@ -199,10 +199,10 @@
         </div>
 
         <div class="d-flex gap-2">
-            <a href="{{ route('romaneios.create') }}"
+            <!-- <a href="{{ route('romaneios.create') }}"
                class="btn btn-primary btn-sm">
                 <i class="bi bi-box-seam me-1"></i>Criar Romaneio
-            </a>
+            </a> -->
 
             <a href="{{ route('entregas.index') }}"
                class="btn btn-outline-dark btn-sm">

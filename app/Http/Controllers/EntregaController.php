@@ -280,21 +280,20 @@ class EntregaController extends Controller
             : now()->endOfDay();
 
         $query = Entrega::query()
-            ->with([
-                'venda',
-                'orcamento',
-                'itens',
-                'itens.produto',
-                'itens.vendaItem.produto',
-                'itens.itemOrcamento.produto',
-            ])
-            ->whereBetween(
-                'data_prevista',
-                [
-                    $dataInicio,
-                    $dataFim,
-                ]
-            );
+        ->with([
+            'venda',
+            'orcamento',
+            'itens',
+            'itens.vendaItem.produto',
+            'itens.itemOrcamento.produto',
+        ])
+        ->whereBetween(
+            'data_prevista',
+            [
+                $dataInicio,
+                $dataFim,
+            ]
+        );
 
         if (! empty(
             $dadosValidados['status'] ?? null

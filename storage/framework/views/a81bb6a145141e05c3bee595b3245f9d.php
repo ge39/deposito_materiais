@@ -1,6 +1,50 @@
 
 
 <?php $__env->startSection('content'); ?>
+<?php
+    $entrega = $romaneio->entrega ?? null;
+    $orcamento = $entrega->orcamento ?? null;
+    $cliente = $orcamento->cliente ?? $entrega->cliente ?? null;
+
+    $motoristasDisponiveis = $motoristas ?? $funcionarios ?? collect();
+    $veiculosDisponiveis = $veiculos ?? collect();
+
+    $clienteNome = $cliente->nome
+        ?? $cliente->razao_social
+        ?? 'Cliente não informado';
+
+    $codigoOrcamento = $orcamento->codigo_orcamento
+        ?? $orcamento->codigo
+        ?? $orcamento->numero
+        ?? '-';
+
+    $codigoRomaneio = $romaneio->codigo_romaneio
+        ?? '#' . $romaneio->id;
+
+    $codigoEntrega = $entrega->codigo_entrega
+        ?? (!empty($entrega->id) ? '#' . $entrega->id : '-');
+
+    $dataPrevista = !empty($entrega?->data_prevista_entrega)
+        ? \Carbon\Carbon::parse($entrega->data_prevista_entrega)->format('d/m/Y')
+        : '-';
+
+    $periodo = $entrega->periodo_entrega ?? 'Não definido';
+
+    $enderecoEntrega = $entrega->endereco_entrega
+        ?? $entrega->endereco_entrega_concatenado
+        ?? 'Endereço não informado';
+
+    $motoristaAtual = $romaneio->motorista->nome
+        ?? $romaneio->motorista->name
+        ?? 'Não atribuído';
+
+    $veiculoAtual = $romaneio->veiculo
+        ? trim(($romaneio->veiculo->placa ?? '') . ' - ' . ($romaneio->veiculo->modelo ?? ''))
+        : 'Não atribuído';
+
+    $statusRomaneio = $romaneio->status ?? 'Gerado';
+?>
+
 <div class="container-fluid px-2">
 
     
@@ -8,19 +52,27 @@
         <div>
             <h4 class="mb-0 fw-bold">
                 <i class="bi bi-truck me-2"></i>
-                Atribuir Motorista e Veículo
+                Atribuir Motorista e Veículo ao Romaneio
             </h4>
             <small class="text-muted">
-                Entrega <?php echo e($entrega->codigo_entrega ?? '#' . $entrega->id); ?>
+                Romaneio <?php echo e($codigoRomaneio); ?> |
+                Entrega <?php echo e($codigoEntrega); ?>
 
             </small>
         </div>
 
         <div class="d-flex gap-1">
-            <a href="<?php echo e(route('entregas.show', $entrega->id)); ?>" class="btn btn-outline-secondary btn-sm">
+            <a href="<?php echo e(route('expedicao.index')); ?>" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>
                 Voltar
             </a>
+
+            <?php if($entrega): ?>
+                <a href="<?php echo e(route('entregas.show', $entrega->id)); ?>" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-eye me-1"></i>
+                    Ver Entrega
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -55,37 +107,6 @@
         </div>
     <?php endif; ?>
 
-    <?php
-        $cliente = $entrega->orcamento->cliente ?? null;
-
-        $clienteNome = $cliente->nome
-            ?? $cliente->razao_social
-            ?? 'Cliente não informado';
-
-        $codigoOrcamento = $entrega->orcamento->codigo_orcamento
-            ?? $entrega->orcamento->codigo
-            ?? $entrega->orcamento->numero
-            ?? '-';
-
-        $dataPrevista = !empty($entrega->data_prevista_entrega)
-            ? \Carbon\Carbon::parse($entrega->data_prevista_entrega)->format('d/m/Y')
-            : '-';
-
-        $periodo = $entrega->periodo_entrega ?? 'Não definido';
-
-        $enderecoEntrega = $entrega->endereco_entrega
-            ?? $entrega->endereco_entrega_concatenado
-            ?? 'Endereço não informado';
-
-        $motoristaAtual = $entrega->motorista->nome
-            ?? $entrega->motorista->name
-            ?? 'Não atribuído';
-
-        $veiculoAtual = $entrega->veiculo
-            ? trim(($entrega->veiculo->placa ?? '') . ' - ' . ($entrega->veiculo->modelo ?? ''))
-            : 'Não atribuído';
-    ?>
-
     
     <div class="row g-2 mb-3">
         <div class="col-md-3">
@@ -97,8 +118,7 @@
                 </div>
             </div>
         </div>
-
-        <div class="col-md-3">
+                <div class="col-md-3">
             <div class="card shadow-sm border-start border-4 border-success h-100">
                 <div class="card-body py-2">
                     <small class="text-muted fw-semibold">DATA DA ENTREGA</small>
@@ -111,9 +131,9 @@
         <div class="col-md-3">
             <div class="card shadow-sm border-start border-4 border-warning h-100">
                 <div class="card-body py-2">
-                    <small class="text-muted fw-semibold">MOTORISTA ATUAL</small>
+                    <small class="text-muted fw-semibold">MOTORISTA DO ROMANEIO</small>
                     <div class="fw-bold"><?php echo e($motoristaAtual); ?></div>
-                    <small class="text-muted">Responsável pela entrega</small>
+                    <small class="text-muted">Responsável pelo carregamento/saída</small>
                 </div>
             </div>
         </div>
@@ -121,7 +141,7 @@
         <div class="col-md-3">
             <div class="card shadow-sm border-start border-4 border-dark h-100">
                 <div class="card-body py-2">
-                    <small class="text-muted fw-semibold">VEÍCULO ATUAL</small>
+                    <small class="text-muted fw-semibold">VEÍCULO DO ROMANEIO</small>
                     <div class="fw-bold"><?php echo e($veiculoAtual); ?></div>
                     <small class="text-muted">Recurso de transporte</small>
                 </div>
@@ -129,9 +149,10 @@
         </div>
     </div>
 
-    <form method="POST" action="<?php echo e(route('entregas.salvar-equipe', $entrega->id)); ?>">
-        <?php echo csrf_field(); ?>
-        <?php echo method_field('PUT'); ?>
+    <!-- <form method="POST" action="<?php echo e(request()->url()); ?>">-->
+    <form method="POST" action="<?php echo e(route('expedicao.salvar-equipe', $romaneio->id)); ?>"> 
+     <?php echo csrf_field(); ?>
+    <?php echo method_field('PUT'); ?>
 
         <div class="row g-3">
 
@@ -141,11 +162,11 @@
                     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                         <strong>
                             <i class="bi bi-person-badge me-2"></i>
-                            Equipe da Entrega
+                            Equipe do Romaneio
                         </strong>
 
                         <span class="badge bg-light text-dark">
-                            <?php echo e(str_replace('_', ' ', $entrega->status)); ?>
+                            <?php echo e(str_replace('_', ' ', $statusRomaneio)); ?>
 
                         </span>
                     </div>
@@ -160,9 +181,9 @@
                                 <select name="motorista_id" id="motorista_id" class="form-select" required>
                                     <option value="">Selecione o motorista</option>
 
-                                    <?php $__currentLoopData = $motoristas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $motorista): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <?php $__currentLoopData = $motoristasDisponiveis; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $motorista): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <option value="<?php echo e($motorista->id); ?>"
-                                            <?php if(old('motorista_id', $entrega->motorista_id) == $motorista->id): echo 'selected'; endif; ?>>
+                                            <?php if(old('motorista_id', $romaneio->motorista_id) == $motorista->id): echo 'selected'; endif; ?>>
                                             <?php echo e($motorista->nome ?? $motorista->name); ?>
 
                                             <?php echo e(!empty($motorista->telefone) ? ' — ' . $motorista->telefone : ''); ?>
@@ -172,7 +193,7 @@
                                 </select>
 
                                 <small class="text-muted">
-                                    Funcionário responsável pela condução da entrega.
+                                    Funcionário responsável pela condução do romaneio.
                                 </small>
                             </div>
 
@@ -184,7 +205,7 @@
                                 <select name="veiculo_id" id="veiculo_id" class="form-select" required>
                                     <option value="">Selecione o veículo</option>
 
-                                    <?php $__currentLoopData = $veiculos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $veiculo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <?php $__currentLoopData = $veiculosDisponiveis; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $veiculo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <option value="<?php echo e($veiculo->id); ?>"
                                             data-placa="<?php echo e($veiculo->placa); ?>"
                                             data-modelo="<?php echo e($veiculo->modelo); ?>"
@@ -216,7 +237,7 @@
                                             data-restricao-peso="<?php echo e($veiculo->restricao_peso ? 'Sim' : 'Não'); ?>"
                                             data-consumo="<?php echo e($veiculo->consumo_medio_km_l); ?>"
                                             data-custo-km="<?php echo e($veiculo->custo_medio_km); ?>"
-                                            <?php if(old('veiculo_id', $entrega->veiculo_id) == $veiculo->id): echo 'selected'; endif; ?>>
+                                            <?php if(old('veiculo_id', $romaneio->veiculo_id) == $veiculo->id): echo 'selected'; endif; ?>>
                                             <?php echo e($veiculo->placa); ?>
 
                                             <?php echo e($veiculo->modelo ? ' — ' . $veiculo->modelo : ''); ?>
@@ -252,7 +273,7 @@
 
                         </div>
 
-                        <?php if(!empty($entrega->observacao_entrega)): ?>
+                        <?php if(!empty($entrega?->observacao_entrega)): ?>
                             <hr class="my-2">
                             <div class="small">
                                 <strong>Observação:</strong>
@@ -263,8 +284,7 @@
                     </div>
                 </div>
             </div>
-
-            
+                        
             <div class="col-md-5">
                 <div class="card shadow-sm mb-3">
                     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
@@ -380,7 +400,7 @@
 
                         <div class="alert alert-info py-2 mb-0">
                             <i class="bi bi-lightbulb me-1"></i>
-                            Confira capacidade, carroceria, materiais aceitos e restrições antes de salvar a equipe.
+                            Confira capacidade, carroceria, materiais aceitos e restrições antes de salvar a equipe do romaneio.
                         </div>
                     </div>
                 </div>
@@ -388,7 +408,7 @@
                 
                 <div class="card shadow-sm">
                     <div class="card-body d-flex justify-content-end gap-2">
-                        <a href="<?php echo e(route('entregas.show', $entrega->id)); ?>" class="btn btn-outline-secondary">
+                        <a href="<?php echo e(route('expedicao.index')); ?>" class="btn btn-outline-secondary">
                             Cancelar
                         </a>
 
@@ -544,4 +564,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <?php $__env->stopSection(); ?>
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/entregas/atribuir-equipe.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/expedicao/atribuir-equipe.blade.php ENDPATH**/ ?>

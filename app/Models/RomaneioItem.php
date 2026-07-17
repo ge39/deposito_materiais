@@ -12,7 +12,9 @@ class RomaneioItem extends Model
 
     protected $fillable = [
         'romaneio_id',
+        'romaneio_item_origem_id',
         'entrega_item_id',
+
         'ordem',
 
         'quantidade_prevista',
@@ -21,12 +23,18 @@ class RomaneioItem extends Model
         'quantidade_conferida',
         'quantidade_carregada',
         'quantidade_conferida_saida',
-
         'quantidade_entregue',
         'quantidade_devolvida',
         'quantidade_recusada',
         'quantidade_avariada',
         'quantidade_perdida',
+
+        'motivo_saldo',
+        'destino_saldo',
+        'data_prevista_saldo',
+        'saldo_decidido_por',
+        'observacao_saldo',
+        'saldo_liberado_novo_romaneio',
 
         'status',
 
@@ -58,12 +66,15 @@ class RomaneioItem extends Model
         'quantidade_conferida' => 'decimal:2',
         'quantidade_carregada' => 'decimal:2',
         'quantidade_conferida_saida' => 'decimal:2',
-
         'quantidade_entregue' => 'decimal:2',
         'quantidade_devolvida' => 'decimal:2',
         'quantidade_recusada' => 'decimal:2',
         'quantidade_avariada' => 'decimal:2',
         'quantidade_perdida' => 'decimal:2',
+
+        'saldo_liberado_novo_romaneio' => 'boolean',
+
+        'data_prevista_saldo' => 'datetime',
 
         'separado_em' => 'datetime',
         'conferencia_separacao_em' => 'datetime',

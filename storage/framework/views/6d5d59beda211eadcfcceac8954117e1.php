@@ -22,10 +22,10 @@
                 Entregas
             </a>
 
-            <a href="<?php echo e(route('romaneios.create')); ?>" class="btn btn-success btn-sm">
+            <!-- <a href="<?php echo e(route('romaneios.create')); ?>" class="btn btn-success btn-sm">
                 <i class="bi bi-box-seam me-1"></i>
                 Separar Itens
-            </a>
+            </a> -->
 
             <button type="button" onclick="window.location.reload()" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-arrow-clockwise me-1"></i>
