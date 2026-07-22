@@ -453,14 +453,30 @@
                 Acompanhamento da entrega e da operação logística vinculada.
             </small>
         </div>
-
+         
         <div class="d-flex gap-1">
             <a href="{{ route('entregas.index') }}"
                class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>
                 Voltar
             </a>
-
+            
+                        @if(
+                $entrega->romaneio
+                && $entrega->romaneio
+                    ->ocorrencias()
+                    ->exists()
+            )
+                <a href="{{ route(
+                        'romaneios.ocorrencias.index',
+                        $entrega->romaneio->id
+                    ) }}"
+                class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Ocorrências
+                </a>
+            @endif
+        
             <button type="button"
                     onclick="window.print()"
                     class="btn btn-outline-dark btn-sm">
@@ -670,6 +686,51 @@
 
         {{-- COLUNA PRINCIPAL --}}
         <div class="col-md-8">
+            
+             {{-- RESUMO --}}
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <strong>
+                        <i class="bi bi-calendar-check me-2"></i>
+                        Resumo Operacional
+                    </strong>
+                </div>
+
+                <div class="card-body">
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            Data prevista entrega
+                        </small>
+
+                        <div class="fw-semibold">
+                            {{ $dataPrevista
+                                ? $dataPrevista->format('d/m/Y')
+                                : '-' }}
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <small class="text-muted">Período</small>
+
+                        <div class="fw-semibold">
+                            {{ $periodoEntrega
+                                ? ucfirst(
+                                    str_replace(
+                                        '_',
+                                        ' ',
+                                        $periodoEntrega
+                                    )
+                                )
+                                : '-' }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <small class="text-muted">Observação</small>
+                        <div>{{ $observacaoEntrega ?? '-' }}</div>
+                    </div>
+                </div>
+            </div>
 
             {{-- DADOS DA ENTREGA --}}
             <div class="card shadow-sm mb-3">
@@ -824,7 +885,7 @@
                     </div>
                 </div>
             </div>
-
+            
             {{-- CLIENTE --}}
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white">
@@ -1147,7 +1208,7 @@
         <div class="col-md-4">
 
             {{-- RESUMO --}}
-            <div class="card shadow-sm mb-3">
+            <!-- <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white">
                     <strong>
                         <i class="bi bi-calendar-check me-2"></i>
@@ -1189,7 +1250,7 @@
                         <div>{{ $observacaoEntrega ?? '-' }}</div>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             {{-- FLUXO --}}
             <div class="card shadow-sm mb-3">

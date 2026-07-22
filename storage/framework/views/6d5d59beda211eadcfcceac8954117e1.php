@@ -455,92 +455,92 @@
                         ?>
 
                         <div class="border rounded p-2 mb-2 bg-light">
-    <?php
-        $badgeData = 'bg-secondary';
-        $textoData = $dataPrevista;
+                            <?php
+                                $badgeData = 'bg-secondary';
+                                $textoData = $dataPrevista;
 
-        if (!empty($entrega->data_prevista_entrega)) {
-            $hoje = now()->startOfDay();
-            $prevista = \Carbon\Carbon::parse($entrega->data_prevista_entrega)->startOfDay();
+                                if (!empty($entrega->data_prevista_entrega)) {
+                                    $hoje = now()->startOfDay();
+                                    $prevista = \Carbon\Carbon::parse($entrega->data_prevista_entrega)->startOfDay();
 
-            if ($prevista->lt($hoje)) {
-                $badgeData = 'bg-danger';
-                $textoData = 'ATRASADA';
-            } elseif ($prevista->equalTo($hoje)) {
-                $badgeData = 'bg-success';
-                $textoData = 'HOJE';
-            } elseif ($prevista->equalTo($hoje->copy()->addDay())) {
-                $badgeData = 'bg-warning text-dark';
-                $textoData = 'AMANHÃ';
-            }
-        }
+                                    if ($prevista->lt($hoje)) {
+                                        $badgeData = 'bg-danger';
+                                        $textoData = 'ATRASADA';
+                                    } elseif ($prevista->equalTo($hoje)) {
+                                        $badgeData = 'bg-success';
+                                        $textoData = 'HOJE';
+                                    } elseif ($prevista->equalTo($hoje->copy()->addDay())) {
+                                        $badgeData = 'bg-warning text-dark';
+                                        $textoData = 'AMANHÃ';
+                                    }
+                                }
 
-        $badgePeriodo = match(strtolower($periodo)) {
-            'manha', 'manhã' => 'bg-warning text-dark',
-            'tarde' => 'bg-info text-dark',
-            'noite' => 'bg-dark',
-            default => 'bg-secondary',
-        };
-    ?>
+                                $badgePeriodo = match(strtolower($periodo)) {
+                                    'manha', 'manhã' => 'bg-warning text-dark',
+                                    'tarde' => 'bg-info text-dark',
+                                    'noite' => 'bg-dark',
+                                    default => 'bg-secondary',
+                                };
+                            ?>
 
-    <div class="d-flex justify-content-between align-items-start gap-2">
-        <div>
-            <div class="fw-semibold">
-                <?php echo e($codigoEntrega); ?> - <?php echo e($clienteEntrega); ?>
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <div class="fw-semibold">
+                                        <?php echo e($codigoEntrega); ?> - <?php echo e($clienteEntrega); ?>
 
-            </div>
+                                    </div>
 
-            <small class="text-muted d-block">
-                Orçamento: <?php echo e($codigoOrcamento); ?>
+                                    <small class="text-muted d-block">
+                                        Orçamento: <?php echo e($codigoOrcamento); ?>
 
-            </small>
+                                    </small>
 
-            <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
-                <span class="badge <?php echo e($badgeData); ?>">
-                    <i class="bi bi-calendar-event me-1"></i>
-                    <?php echo e($textoData); ?>
+                                    <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                        <span class="badge <?php echo e($badgeData); ?>">
+                                            <i class="bi bi-calendar-event me-1"></i>
+                                            <?php echo e($textoData); ?>
 
-                </span>
+                                        </span>
 
-                <span class="badge <?php echo e($badgePeriodo); ?>">
-                    <i class="bi bi-clock me-1"></i>
-                    <?php echo e(ucfirst($periodo)); ?>
+                                        <span class="badge <?php echo e($badgePeriodo); ?>">
+                                            <i class="bi bi-clock me-1"></i>
+                                            <?php echo e(ucfirst($periodo)); ?>
 
-                </span>
-            </div>
+                                        </span>
+                                    </div>
 
-            <small class="text-primary d-block mt-1">
-                <i class="bi bi-calendar-check me-1"></i>
-                Data Entrega:
-                <strong><?php echo e($dataPrevista); ?></strong>
-            </small>
-        </div>
+                                    <small class="text-primary d-block mt-1">
+                                        <i class="bi bi-calendar-check me-1"></i>
+                                        Data Entrega:
+                                        <strong><?php echo e($dataPrevista); ?></strong>
+                                    </small>
+                                </div>
 
-        <span class="badge bg-success">
-            <?php echo e(str_replace('_', ' ', $entrega->status)); ?>
+                                <span class="badge bg-success">
+                                    <?php echo e(str_replace('_', ' ', $entrega->status)); ?>
 
-        </span>
-    </div>
+                                </span>
+                            </div>
 
-    <small class="text-muted d-block mt-1">
-        <i class="bi bi-geo-alt me-1"></i>
-        <?php echo e($entrega->endereco_entrega ?? $entrega->endereco_entrega_concatenado ?? 'Endereço não informado'); ?>
+                            <small class="text-muted d-block mt-1">
+                                <i class="bi bi-geo-alt me-1"></i>
+                                <?php echo e($entrega->endereco_entrega ?? $entrega->endereco_entrega_concatenado ?? 'Endereço não informado'); ?>
 
-    </small>
+                            </small>
 
-    <div class="d-flex justify-content-end align-items-end mt-2">
-        <!-- <small class="text-muted">
-            Itens: <?php echo e($entrega->itens->count()); ?>
+                            <div class="d-flex justify-content-end align-items-end mt-2">
+                                <!-- <small class="text-muted">
+                                    Itens: <?php echo e($entrega->itens->count()); ?>
 
-        </small> -->
+                                </small> -->
 
-        <a href="<?php echo e(route('romaneios.create', ['entrega_id' => $entrega->id])); ?>"
-           class="btn btn-success btn-sm">
-            <i class="bi bi-box-seam me-1"></i>
-            Separar
-        </a>
-    </div>
-</div>
+                                <a href="<?php echo e(route('romaneios.create', ['entrega_id' => $entrega->id])); ?>"
+                                class="btn btn-success btn-sm">
+                                    <i class="bi bi-box-seam me-1"></i>
+                                    Separar
+                                </a>
+                            </div>
+                        </div>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <div class="text-muted text-center py-3">
                             <i class="bi bi-check2-circle fs-4 d-block mb-2"></i>

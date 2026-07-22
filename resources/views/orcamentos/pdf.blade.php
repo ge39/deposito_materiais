@@ -252,7 +252,7 @@
             @if($qtdEntregue > 0)
                 <div class="tr">
                     <div class="td">{{ $produto->id ?? '-' }}</div>
-                    <div class="td">{{ $produto->descricao }}</div>
+                    <div class="td">{{ $produto->nome }}</div>
                     <div class="td text-center">{{ number_format($qtdSolicitada, 2, ',', '.') }}</div>
                     <div class="td text-center">{{ number_format($qtdEntregue, 2, ',', '.') }}</div>
                     <div class="td text-center">{{ $lotesStr ?: '-' }}</div>

@@ -532,66 +532,139 @@ Route::middleware(['auth'])
             ->name('destroy');
     });
 
-    // Entregas
-    Route::prefix('entregas')
-        ->name('entregas.')
-        ->group(function () {
-            Route::get('/', [EntregaController::class, 'index'])->name('index');
-            Route::get('/{entrega}', [EntregaController::class, 'show'])->name('show');
+   /*
+|--------------------------------------------------------------------------
+| ENTREGAS
+|--------------------------------------------------------------------------
+*/
 
-            Route::patch('/{entrega}/separar', [EntregaController::class, 'separar'])->name('separar');
-            Route::patch('/{entrega}/carregar', [EntregaController::class, 'carregar'])->name('carregar');
-            Route::patch('/{entrega}/rota', [EntregaController::class, 'enviarParaRota'])->name('rota');
-            Route::get('/{entrega}/retorno', [EntregaController::class, 'retorno'])->name('retorno');
-            Route::patch('/{entrega}/retorno', [EntregaController::class, 'registrarRetorno'])->name('registrar-retorno');
-            Route::patch('/{entrega}/cancelar', [EntregaController::class, 'cancelar'])->name('cancelar');
-            Route::get('/{entrega}/atribuir-equipe', [EntregaController::class, 'atribuirEquipe']) ->name('atribuir-equipe');
-            Route::put('/{entrega}/atribuir-equipe', [EntregaController::class, 'salvarEquipe'])->name('salvar-equipe');
-            Route::resource('pedidos', PedidoCompraController::class);
-    });
-    // EXPEDIÇÃO
-    Route::prefix('expedicao')->name('expedicao.')->group(function () {
-        Route::get('/', [ExpedicaoController::class, 'index'])
-            ->name('index');
-
-        Route::get('/romaneio/{romaneio}', [ExpedicaoController::class, 'show'])
-            ->name('show');
-
-        Route::get('/romaneio/{romaneio}/atribuir-equipe', [ExpedicaoController::class, 'atribuirEquipe'])
-            ->name('atribuir-equipe');
-
-        Route::put('/romaneio/{romaneio}/salvar-equipe', [ExpedicaoController::class, 'salvarEquipe'])
-            ->name('salvar-equipe');
-
-        Route::get('/romaneio/{romaneio}/operacao', [ExpedicaoController::class, 'operacao'])
-            ->name('operacao');
-
-        Route::post('/romaneio/{romaneio}/iniciar-separacao', [ExpedicaoController::class, 'iniciarSeparacao'])
-            ->name('iniciar-separacao');
-
-        Route::post('/romaneio/{romaneio}/iniciar-carregamento', [ExpedicaoController::class, 'iniciarCarregamento'])
-            ->name('iniciar-carregamento');
-
-        Route::post('/romaneio/{romaneio}/finalizar-carregamento', [ExpedicaoController::class, 'finalizarCarregamento'])
-            ->name('finalizar-carregamento');
-
-        Route::post('/romaneio/{romaneio}/liberar-rota', [ExpedicaoController::class, 'liberarRota'])
-            ->name('liberar-rota');
-    });
-
-    // LOCALIZAÇÕES DE ESTOQUE
-    Route::prefix('localizacoes-estoque')
-    
-    ->name('localizacoes-estoque.')
+Route::prefix('entregas')
+    ->name('entregas.')
     ->group(function () {
-        Route::get('/', [LocalizacaoEstoqueController::class, 'index'])->name('index');
-        Route::get('/criar', [LocalizacaoEstoqueController::class, 'create'])->name('create');
-        Route::post('/', [LocalizacaoEstoqueController::class, 'store'])->name('store');
-        Route::get('/{localizacaoEstoque}/editar', [LocalizacaoEstoqueController::class, 'edit'])->name('edit');
-        Route::put('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'update'])->name('update');
-        Route::delete('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'destroy'])->name('destroy');
-        // Route::get('/romaneios/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('romaneios.imprimir');
+        Route::get(
+            '/',
+            [EntregaController::class, 'index']
+        )->name('index');
+
+        Route::get(
+            '/{entrega}/retorno',
+            [EntregaController::class, 'retorno']
+        )->name('retorno');
+
+        Route::patch(
+            '/{entrega}/retorno',
+            [EntregaController::class, 'registrarRetorno']
+        )->name('registrar-retorno');
+
+        Route::patch(
+            '/{entrega}/retorno/iniciar-conferencia',
+            [EntregaController::class, 'iniciarConferenciaRetorno']
+        )->name('iniciar-conferencia-retorno');
+
+        Route::patch(
+            '/{entrega}/retorno/finalizar-conferencia',
+            [EntregaController::class, 'finalizarConferenciaRetorno']
+        )->name('finalizar-conferencia-retorno');
+
+        Route::get(
+            '/{entrega}/retorno/imprimir',
+            [EntregaController::class, 'imprimirRelatorioRetorno']
+        )->name('retorno.imprimir');
+
+        Route::patch(
+            '/{entrega}/separar',
+            [EntregaController::class, 'separar']
+        )->name('separar');
+
+        Route::patch(
+            '/{entrega}/carregar',
+            [EntregaController::class, 'carregar']
+        )->name('carregar');
+
+        Route::patch(
+            '/{entrega}/rota',
+            [EntregaController::class, 'enviarParaRota']
+        )->name('rota');
+
+        Route::patch(
+            '/{entrega}/cancelar',
+            [EntregaController::class, 'cancelar']
+        )->name('cancelar');
+
+        Route::get(
+            '/{entrega}/atribuir-equipe',
+            [EntregaController::class, 'atribuirEquipe']
+        )->name('atribuir-equipe');
+
+        Route::put(
+            '/{entrega}/atribuir-equipe',
+            [EntregaController::class, 'salvarEquipe']
+        )->name('salvar-equipe');
+
+        /*
+         * A rota dinâmica deve permanecer por último.
+         */
+        Route::get(
+            '/{entrega}',
+            [EntregaController::class, 'show']
+        )->name('show');
+
+        Route::get(
+        '/{romaneio}/nota-entrega',
+        [RomaneioController::class, 'imprimirNotaEntrega']
+        )->name('nota-entrega');
     });
+
+        /*
+        * Esta rota não deve ficar dentro do prefixo entregas.
+        */
+        Route::resource(
+            'pedidos',
+            PedidoCompraController::class
+        );
+                
+            // EXPEDIÇÃO
+            Route::prefix('expedicao')->name('expedicao.')->group(function () {
+                Route::get('/', [ExpedicaoController::class, 'index'])
+                    ->name('index');
+
+                Route::get('/romaneio/{romaneio}', [ExpedicaoController::class, 'show'])
+                    ->name('show');
+
+                Route::get('/romaneio/{romaneio}/atribuir-equipe', [ExpedicaoController::class, 'atribuirEquipe'])
+                    ->name('atribuir-equipe');
+
+                Route::put('/romaneio/{romaneio}/salvar-equipe', [ExpedicaoController::class, 'salvarEquipe'])
+                    ->name('salvar-equipe');
+
+                Route::get('/romaneio/{romaneio}/operacao', [ExpedicaoController::class, 'operacao'])
+                    ->name('operacao');
+
+                Route::post('/romaneio/{romaneio}/iniciar-separacao', [ExpedicaoController::class, 'iniciarSeparacao'])
+                    ->name('iniciar-separacao');
+
+                Route::post('/romaneio/{romaneio}/iniciar-carregamento', [ExpedicaoController::class, 'iniciarCarregamento'])
+                    ->name('iniciar-carregamento');
+
+                Route::post('/romaneio/{romaneio}/finalizar-carregamento', [ExpedicaoController::class, 'finalizarCarregamento'])
+                    ->name('finalizar-carregamento');
+
+                Route::post('/romaneio/{romaneio}/liberar-rota', [ExpedicaoController::class, 'liberarRota'])
+                    ->name('liberar-rota');
+            });
+
+    
+            // LOCALIZAÇÕES DE ESTOQUE
+            Route::prefix('localizacoes-estoque')->name('localizacoes-estoque.')
+            ->group(function () {
+                Route::get('/', [LocalizacaoEstoqueController::class, 'index'])->name('index');
+                Route::get('/criar', [LocalizacaoEstoqueController::class, 'create'])->name('create');
+                Route::post('/', [LocalizacaoEstoqueController::class, 'store'])->name('store');
+                Route::get('/{localizacaoEstoque}/editar', [LocalizacaoEstoqueController::class, 'edit'])->name('edit');
+                Route::put('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'update'])->name('update');
+                Route::delete('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'destroy'])->name('destroy');
+                // Route::get('/romaneios/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('romaneios.imprimir');
+            });
 
     // Veiculos
     Route::prefix('veiculos')->name('veiculos.')->group(function () {
@@ -623,19 +696,140 @@ Route::middleware(['auth'])
 
         });
         
-    // ===============================
-    // ROMANEIOS — FASE 3
-    // ===============================
-    Route::prefix('romaneios')->name('romaneios.')->group(function () {
-        Route::get('/', [RomaneioController::class, 'index'])->name('index');
-        Route::get('/criar', [RomaneioController::class, 'create'])->name('create');
-        Route::post('/', [RomaneioController::class, 'store'])->name('store');
-        Route::post('/{romaneio}/registrar-impressao', [RomaneioController::class, 'registrarImpressao'])->name('registrar-impressao');
-        Route::get('/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('imprimir');
-        Route::get('/{romaneio}/separacao', [RomaneioController::class, 'separacao'])->name('separacao');
-        Route::put('/{romaneio}/operacao', [RomaneioController::class, 'atualizarOperacao'])->name('operacao.update');
-        Route::post('/{romaneio}/cancelar', [RomaneioController::class, 'cancelar'])->name('cancelar');
-        Route::get('/{romaneio}', [RomaneioController::class, 'show'])->name('show');
-    });
-        
+        // ===============================
+// ROMANEIOS — FASE 3
+// ===============================
+Route::prefix('romaneios')
+    ->name('romaneios.')
+    ->group(function () {
+        Route::get(
+            '/',
+            [RomaneioController::class, 'index']
+        )->name('index');
 
+        Route::get(
+            '/criar',
+            [RomaneioController::class, 'create']
+        )->name('create');
+
+        Route::post(
+            '/',
+            [RomaneioController::class, 'store']
+        )->name('store');
+
+        Route::post(
+            '/{romaneio}/registrar-impressao',
+            [RomaneioController::class, 'registrarImpressao']
+        )->name('registrar-impressao');
+
+        Route::get(
+            '/{romaneio}/imprimir',
+            [RomaneioController::class, 'imprimir']
+        )->name('imprimir');
+
+        Route::get(
+            '/{romaneio}/nota-entrega',
+            [RomaneioController::class, 'imprimirNotaEntrega']
+        )->name('nota-entrega');
+
+        Route::get(
+            '/{romaneio}/separacao',
+            [RomaneioController::class, 'separacao']
+        )->name('separacao');
+
+        Route::put(
+            '/{romaneio}/operacao',
+            [RomaneioController::class, 'atualizarOperacao']
+        )->name('operacao.update');
+
+        Route::post(
+            '/{romaneio}/cancelar',
+            [RomaneioController::class, 'cancelar']
+        )->name('cancelar');
+
+        /*
+        |--------------------------------------------------------------------------
+        | OCORRÊNCIAS DO ROMANEIO
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/{romaneio}/ocorrencias',
+            [
+                \App\Http\Controllers\RomaneioOcorrenciaController::class,
+                'index',
+            ]
+        )->name('ocorrencias.index');
+
+        Route::patch(
+            '/{romaneio}/ocorrencias/{ocorrencia}/responsavel',
+            [
+                \App\Http\Controllers\RomaneioOcorrenciaController::class,
+                'atribuirResponsavel',
+            ]
+        )->name('ocorrencias.responsavel');
+
+        Route::post(
+            '/{romaneio}/ocorrencias/{ocorrencia}/evidencias',
+            [
+                \App\Http\Controllers\RomaneioOcorrenciaController::class,
+                'anexarEvidencia',
+            ]
+        )->name('ocorrencias.evidencias.store');
+
+        Route::delete(
+            '/{romaneio}/ocorrencias/{ocorrencia}/evidencias/{anexo}',
+            [
+                \App\Http\Controllers\RomaneioOcorrenciaController::class,
+                'removerEvidencia',
+            ]
+        )->name('ocorrencias.evidencias.destroy');
+
+        Route::patch(
+            '/{romaneio}/ocorrencias/{ocorrencia}/autorizar',
+            [
+                \App\Http\Controllers\RomaneioOcorrenciaController::class,
+                'autorizar',
+            ]
+        )->name('ocorrencias.autorizar');
+
+        Route::patch(
+            '/{romaneio}/ocorrencias/{ocorrencia}/decisao',
+            [
+                \App\Http\Controllers\RomaneioOcorrenciaController::class,
+                'registrarDecisao',
+            ]
+        )->name('ocorrencias.decisao');
+
+        Route::patch(
+            '/{romaneio}/ocorrencias/{ocorrencia}/liberar-fechamento',
+            [
+                \App\Http\Controllers\RomaneioOcorrenciaController::class,
+                'liberarFechamento',
+            ]
+        )->name('ocorrencias.liberar-fechamento');
+
+        Route::patch(
+            '/{romaneio}/ocorrencias/{ocorrencia}/resolver',
+            [
+                \App\Http\Controllers\RomaneioOcorrenciaController::class,
+                'resolver',
+            ]
+        )->name('ocorrencias.resolver');
+
+        Route::patch(
+            '/{romaneio}/ocorrencias/{ocorrencia}/cancelar',
+            [
+                \App\Http\Controllers\RomaneioOcorrenciaController::class,
+                'cancelar',
+            ]
+        )->name('ocorrencias.cancelar');
+
+        /*
+         * Esta rota genérica deve permanecer por último.
+         */
+        Route::get(
+            '/{romaneio}',
+            [RomaneioController::class, 'show']
+        )->name('show');
+    });

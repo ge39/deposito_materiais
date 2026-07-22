@@ -14,7 +14,6 @@ class RomaneioItem extends Model
         'romaneio_id',
         'romaneio_item_origem_id',
         'entrega_item_id',
-
         'ordem',
 
         'quantidade_prevista',
@@ -23,6 +22,7 @@ class RomaneioItem extends Model
         'quantidade_conferida',
         'quantidade_carregada',
         'quantidade_conferida_saida',
+
         'quantidade_entregue',
         'quantidade_devolvida',
         'quantidade_recusada',
@@ -66,6 +66,7 @@ class RomaneioItem extends Model
         'quantidade_conferida' => 'decimal:2',
         'quantidade_carregada' => 'decimal:2',
         'quantidade_conferida_saida' => 'decimal:2',
+
         'quantidade_entregue' => 'decimal:2',
         'quantidade_devolvida' => 'decimal:2',
         'quantidade_recusada' => 'decimal:2',
@@ -75,7 +76,6 @@ class RomaneioItem extends Model
         'saldo_liberado_novo_romaneio' => 'boolean',
 
         'data_prevista_saldo' => 'datetime',
-
         'separado_em' => 'datetime',
         'conferencia_separacao_em' => 'datetime',
         'carregado_em' => 'datetime',
@@ -84,17 +84,27 @@ class RomaneioItem extends Model
         'retorno_conferido_em' => 'datetime',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Relacionamentos principais
-    |--------------------------------------------------------------------------
-    */
-
     public function romaneio(): BelongsTo
     {
         return $this->belongsTo(
             Romaneio::class,
             'romaneio_id'
+        );
+    }
+
+    public function origemSaldo(): BelongsTo
+    {
+        return $this->belongsTo(
+            self::class,
+            'romaneio_item_origem_id'
+        );
+    }
+
+    public function itensGeradosPeloSaldo(): HasMany
+    {
+        return $this->hasMany(
+            self::class,
+            'romaneio_item_origem_id'
         );
     }
 
@@ -106,11 +116,13 @@ class RomaneioItem extends Model
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Funcionários responsáveis pela execução física
-    |--------------------------------------------------------------------------
-    */
+    public function usuarioDecisaoSaldo(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'saldo_decidido_por'
+        );
+    }
 
     public function separador(): BelongsTo
     {
@@ -160,12 +172,6 @@ class RomaneioItem extends Model
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Ocorrências
-    |--------------------------------------------------------------------------
-    */
-
     public function ocorrencias(): HasMany
     {
         return $this->hasMany(
@@ -174,52 +180,80 @@ class RomaneioItem extends Model
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Prestação de contas
-    |--------------------------------------------------------------------------
-    */
+    public function getQuantidadeSaldoAttribute(): float
+    {
+        return max(
+            round(
+                (float) $this->quantidade_prevista
+                - (float) $this->quantidade_separada,
+                2
+            ),
+            0
+        );
+    }
+
+    public function possuiSaldoPendente(): bool
+    {
+        return $this->quantidade_saldo >= 0.001;
+    }
+
+    public function saldoAguardaEstoque(): bool
+    {
+        return $this->possuiSaldoPendente()
+            && $this->destino_saldo === 'Aguardar_estoque'
+            && ! $this->saldo_liberado_novo_romaneio;
+    }
+
+    public function saldoDisponivelParaNovoRomaneio(): bool
+    {
+        return $this->possuiSaldoPendente()
+            && $this->destino_saldo === 'Novo_romaneio'
+            && $this->saldo_liberado_novo_romaneio;
+    }
 
     public function quantidadePrestadaConta(): float
     {
         return
-            (float) $this->quantidade_entregue +
-            (float) $this->quantidade_devolvida +
-            (float) $this->quantidade_recusada +
-            (float) $this->quantidade_avariada +
-            (float) $this->quantidade_perdida;
+            (float) $this->quantidade_entregue
+            + (float) $this->quantidade_devolvida
+            + (float) $this->quantidade_recusada
+            + (float) $this->quantidade_avariada
+            + (float) $this->quantidade_perdida;
     }
 
     public function quantidadePendenteRetorno(): float
     {
         $pendente =
-            (float) $this->quantidade_carregada -
-            $this->quantidadePrestadaConta();
+            (float) $this->quantidade_carregada
+            - $this->quantidadePrestadaConta();
 
-        return max(round($pendente, 2), 0);
+        return max(
+            round($pendente, 2),
+            0
+        );
     }
 
     public function prestacaoContasConciliada(): bool
     {
         return abs(
-            (float) $this->quantidade_carregada -
-            $this->quantidadePrestadaConta()
+            (float) $this->quantidade_carregada
+            - $this->quantidadePrestadaConta()
         ) < 0.001;
     }
 
     public function possuiDivergenciaSeparacao(): bool
     {
         return abs(
-            (float) $this->quantidade_separada -
-            (float) $this->quantidade_conferida_separacao
+            (float) $this->quantidade_separada
+            - (float) $this->quantidade_conferida_separacao
         ) >= 0.001;
     }
 
     public function possuiDivergenciaSaida(): bool
     {
         return abs(
-            (float) $this->quantidade_carregada -
-            (float) $this->quantidade_conferida_saida
+            (float) $this->quantidade_carregada
+            - (float) $this->quantidade_conferida_saida
         ) >= 0.001;
     }
 }

@@ -4,87 +4,325 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Devolucao extends Model
 {
     use HasFactory;
 
-    // Nome exato da tabela no banco de dados
     protected $table = 'devolucoes';
-    
-    // Removidos 'created_at' e 'updated_at' para deixar o Eloquent gerenciar os timestamps sozinho
+
     protected $fillable = [
+        'romaneio_ocorrencia_id',
+        'romaneio_id',
+        'entrega_id',
+        'romaneio_item_id',
+        'entrega_item_id',
+
         'cliente_id',
         'venda_id',
         'venda_item_id',
+
+        'orcamento_origem_id',
+        'orcamento_reposicao_id',
+
         'produto_id',
         'quantidade',
+
         'motivo',
         'tipo',
         'status',
         'observacao',
+        'motivo_rejeicao',
+
+        'destino_estoque',
+        'movimentacao_entrada_id',
+        'movimentacao_saida_id',
+
         'criado_por',
+        'responsavel_analise_id',
+        'analise_iniciada_em',
+
+        'decidida_por',
+        'decidida_em',
+        'decisao',
+
+        'concluida_por',
+        'concluida_em',
+
         'imagem1',
         'imagem2',
         'imagem3',
         'imagem4',
-        'motivo_rejeicao',
+
         'empresa_id',
     ];
-    
-    // 🔗 Relacionamentos
 
-    public function cliente()
+    protected $casts = [
+        'quantidade' => 'decimal:3',
+        'analise_iniciada_em' => 'datetime',
+        'decidida_em' => 'datetime',
+        'concluida_em' => 'datetime',
+    ];
+
+    public function ocorrencia(): BelongsTo
     {
-        return $this->belongsTo(Cliente::class);
+        return $this->belongsTo(
+            RomaneioOcorrencia::class,
+            'romaneio_ocorrencia_id'
+        );
     }
 
-    public function venda()
+    public function romaneio(): BelongsTo
     {
-        return $this->belongsTo(Venda::class);
+        return $this->belongsTo(
+            Romaneio::class,
+            'romaneio_id'
+        );
     }
 
-    /**
-     * Vincula o item da devolução ao item original da venda.
-     * ATENÇÃO: Certifique-se de que no Model 'ItemVenda' exista a linha: protected $table = 'Item_Vendas';
-     */
-    public function itemVenda()
+    public function entrega(): BelongsTo
     {
-        return $this->belongsTo(ItemVenda::class, 'venda_item_id');
+        return $this->belongsTo(
+            Entrega::class,
+            'entrega_id'
+        );
     }
 
-    public function produto()
+    public function romaneioItem(): BelongsTo
     {
-        return $this->belongsTo(Produto::class);
+        return $this->belongsTo(
+            RomaneioItem::class,
+            'romaneio_item_id'
+        );
     }
 
-    /**
-     * Vincula ao funcionário/usuário que registrou a devolução
-     */
-    public function usuario()
+    public function entregaItem(): BelongsTo
     {
-        return $this->belongsTo(Funcionario::class, 'criado_por');
+        return $this->belongsTo(
+            EntregaItem::class,
+            'entrega_item_id'
+        );
     }
 
-    // 🛠️ Status Helpers
-
-    public function isPendente()
+    public function cliente(): BelongsTo
     {
-        return $this->status === 'pendente';
+        return $this->belongsTo(
+            Cliente::class,
+            'cliente_id'
+        );
     }
 
-    public function isAprovada()
+    public function venda(): BelongsTo
     {
-        return $this->status === 'aprovada';
+        return $this->belongsTo(
+            Venda::class,
+            'venda_id'
+        );
     }
 
-    public function isRejeitada()
+    public function itemVenda(): BelongsTo
+    {
+        return $this->belongsTo(
+            ItemVenda::class,
+            'venda_item_id'
+        );
+    }
+
+    public function orcamentoOrigem(): BelongsTo
+    {
+        return $this->belongsTo(
+            Orcamento::class,
+            'orcamento_origem_id'
+        );
+    }
+
+    public function orcamentoReposicao(): BelongsTo
+    {
+        return $this->belongsTo(
+            Orcamento::class,
+            'orcamento_reposicao_id'
+        );
+    }
+
+    public function produto(): BelongsTo
+    {
+        return $this->belongsTo(
+            Produto::class,
+            'produto_id'
+        );
+    }
+
+    public function criadoPor(): BelongsTo
+    {
+        return $this->belongsTo(
+            Funcionario::class,
+            'criado_por'
+        );
+    }
+
+    public function responsavelAnalise(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'responsavel_analise_id'
+        );
+    }
+
+    public function decididaPor(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'decidida_por'
+        );
+    }
+
+    public function concluidaPor(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'concluida_por'
+        );
+    }
+
+    public function empresa(): BelongsTo
+    {
+        return $this->belongsTo(
+            Empresa::class,
+            'empresa_id'
+        );
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(
+            DevolucaoLog::class,
+            'devolucao_id'
+        )->orderBy('created_at');
+    }
+
+    public function estaPendente(): bool
+    {
+        return in_array(
+            $this->status,
+            [
+                'pendente',
+                'aguardando_evidencias',
+                'em_analise',
+                'aguardando_decisao',
+                'aguardando_orcamento',
+                'orcamento_criado',
+                'aguardando_estoque',
+                'em_reposicao',
+            ],
+            true
+        );
+    }
+
+    public function estaAprovada(): bool
+    {
+        return in_array(
+            $this->status,
+            [
+                'aprovada',
+                'aprovada_troca',
+                'aprovada_devolucao',
+            ],
+            true
+        );
+    }
+
+    public function estaRejeitada(): bool
     {
         return $this->status === 'rejeitada';
     }
 
-    public function isConcluida()
+    public function estaConcluida(): bool
     {
         return $this->status === 'concluida';
+    }
+
+    public function estaCancelada(): bool
+    {
+        return $this->status === 'cancelada';
+    }
+
+    public function exigeOrcamentoReposicao(): bool
+    {
+        return in_array(
+            $this->tipo,
+            [
+                'troca',
+                'reposicao',
+            ],
+            true
+        );
+    }
+
+    public function possuiOrcamentoReposicao(): bool
+    {
+        return ! empty(
+            $this->orcamento_reposicao_id
+        );
+    }
+
+    public function movimentacaoEstoqueConcluida(): bool
+    {
+        return match ($this->destino_estoque) {
+            'sem_movimentacao' =>
+                true,
+
+            'quarentena',
+            'reintegracao' =>
+                ! empty($this->movimentacao_entrada_id),
+
+            'baixa_perda',
+            'reposicao_cliente' =>
+                ! empty($this->movimentacao_saida_id),
+
+            default =>
+                false,
+        };
+    }
+
+    public function podeConcluir(): bool
+    {
+        if ($this->estaRejeitada()) {
+            return ! empty(
+                $this->motivo_rejeicao
+            );
+        }
+
+        if (
+            $this->exigeOrcamentoReposicao()
+            && ! $this->possuiOrcamentoReposicao()
+        ) {
+            return false;
+        }
+
+        return
+            ! empty($this->decisao)
+            && $this->movimentacaoEstoqueConcluida();
+    }
+
+    public function isPendente(): bool
+    {
+        return $this->estaPendente();
+    }
+
+    public function isAprovada(): bool
+    {
+        return $this->estaAprovada();
+    }
+
+    public function isRejeitada(): bool
+    {
+        return $this->estaRejeitada();
+    }
+
+    public function isConcluida(): bool
+    {
+        return $this->estaConcluida();
     }
 }

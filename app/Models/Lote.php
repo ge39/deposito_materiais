@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\EstoqueService;
-Use App\Models\ItemOrcamentoLote;
 
 class Lote extends Model
 {
@@ -29,12 +27,13 @@ class Lote extends Model
     ];
 
     protected $casts = [
-        'quantidade' => 'float',
-        'quantidade_disponivel' => 'float',
-        'quantidade_reservada' => 'float',
-        'preco_compra' => 'float',
+        'quantidade' => 'decimal:3',
+        'quantidade_disponivel' => 'decimal:3',
+        'quantidade_reservada' => 'decimal:3',
+        'preco_compra' => 'decimal:2',
         'data_compra' => 'date',
         'validade_lote' => 'date',
+        'status' => 'integer',
     ];
 
     /*
@@ -45,89 +44,35 @@ class Lote extends Model
 
     public function produto()
     {
-        return $this->belongsTo(Produto::class);
+        return $this->belongsTo(
+            Produto::class,
+            'produto_id'
+        );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | ACCESSOR
-    |--------------------------------------------------------------------------
-    */
-
-    public function getDisponivelRealAttribute()
+    public function pedidoCompra()
     {
-        return $this->quantidade_disponivel - $this->quantidade_reservada;
+        return $this->belongsTo(
+            PedidoCompra::class,
+            'pedido_compra_id'
+        );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | REGRAS DE NEGÓCIO
-    |--------------------------------------------------------------------------
-    */
+    public function fornecedor()
+    {
+        return $this->belongsTo(
+            Fornecedor::class,
+            'fornecedor_id'
+        );
+    }
+
     public function itensOrcamento()
     {
-        return $this->hasMany(ItemOrcamentoLote::class);
+        return $this->hasMany(
+            ItemOrcamentoLote::class,
+            'lote_id'
+        );
     }
-
-    public function podeReservar($qtd)
-    {
-        return $this->disponivel_real >= $qtd;
-    }
-
-    public function reservar($qtd)
-    {
-        $disponivel = $this->disponivel_real;
-
-        if ($disponivel <= 0) {
-            return 0;
-        }
-
-        $qtdReservada = min($disponivel, $qtd);
-
-        $this->quantidade_reservada += $qtdReservada;
-        $this->save();
-
-        return $qtdReservada;
-    }
-
-    public function liberarReserva($qtd)
-    {
-        $this->quantidade_reservada -= $qtd;
-
-        if ($this->quantidade_reservada < 0) {
-            $this->quantidade_reservada = 0;
-        }
-
-        $this->save();
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | BOOT
-    |--------------------------------------------------------------------------
-    */
-
-    // protected static function booted()
-    // {
-    //     static::creating(function ($lote) {
-
-    //         if (empty($lote->numero_lote)) {
-    //             $lote->numero_lote = now()->format('YmdHis') . rand(100, 999);
-    //         }
-
-    //         if (!isset($lote->quantidade_disponivel)) {
-    //             $lote->quantidade_disponivel = $lote->quantidade ?? 0;
-    //         }
-
-    //         if (!isset($lote->quantidade_reservada)) {
-    //             $lote->quantidade_reservada = 0;
-    //         }
-
-    //         if (!isset($lote->status)) {
-    //             $lote->status = 1;
-    //         }
-    //     });
-    // }
 
     public function itens()
     {
@@ -136,38 +81,107 @@ class Lote extends Model
             'item_orcamento_lotes',
             'lote_id',
             'item_orcamento_id'
-        )->withPivot([
-            'quantidade_reservada',
-            'quantidade_atendida'
-        ])->withTimestamps();
+        )
+            ->withPivot([
+                'quantidade_reservada',
+                'quantidade_atendida',
+            ])
+            ->withTimestamps();
     }
-    
-    protected static function booted()
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACCESSORS
+    |--------------------------------------------------------------------------
+    */
+
+    public function getDisponivelRealAttribute(): float
     {
-        static::creating(function ($lote) {
+        return round(
+            (float) $this->quantidade_disponivel
+            - (float) $this->quantidade_reservada,
+            3
+        );
+    }
 
+    /*
+    |--------------------------------------------------------------------------
+    | REGRAS DE NEGÓCIO
+    |--------------------------------------------------------------------------
+    */
+
+    public function podeReservar(float $quantidade): bool
+    {
+        return $this->disponivel_real >= $quantidade;
+    }
+
+    public function reservar(float $quantidade): float
+    {
+        $disponivel = $this->disponivel_real;
+
+        if ($disponivel <= 0) {
+            return 0.0;
+        }
+
+        $quantidadeReservada = round(
+            min($disponivel, $quantidade),
+            3
+        );
+
+        $this->quantidade_reservada = round(
+            (float) $this->quantidade_reservada
+            + $quantidadeReservada,
+            3
+        );
+
+        $this->save();
+
+        return $quantidadeReservada;
+    }
+
+    public function liberarReserva(float $quantidade): void
+    {
+        $novaQuantidade = round(
+            (float) $this->quantidade_reservada
+            - $quantidade,
+            3
+        );
+
+        $this->quantidade_reservada = max(
+            0,
+            $novaQuantidade
+        );
+
+        $this->save();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | EVENTOS DO MODEL
+    |--------------------------------------------------------------------------
+    */
+
+    protected static function booted(): void
+    {
+        static::creating(function (Lote $lote): void {
             if (empty($lote->numero_lote)) {
-                $lote->numero_lote = now()->format('YmdHis') . rand(100, 999);
+                $lote->numero_lote =
+                    now()->format('YmdHis')
+                    . random_int(100, 999);
             }
 
-            if (!isset($lote->quantidade_disponivel)) {
-                $lote->quantidade_disponivel = $lote->quantidade ?? 0;
+            if ($lote->quantidade_disponivel === null) {
+                $lote->quantidade_disponivel =
+                    $lote->quantidade ?? 0;
             }
 
-            if (!isset($lote->quantidade_reservada)) {
+            if ($lote->quantidade_reservada === null) {
                 $lote->quantidade_reservada = 0;
             }
 
-            if (!isset($lote->status)) {
+            if ($lote->status === null) {
                 $lote->status = 1;
             }
         });
-
-        // 🔥 AQUI É O PONTO PRINCIPAL, calcula os lotes
-        // static::created(function ($lote) {
-
-        //     app(EstoqueService::class)
-        //         ->atenderPendentesPorProduto($lote->produto_id);
-        // });
     }
 }

@@ -42,8 +42,12 @@ class EntregaItem extends Model
         return $this->belongsTo(ItemVenda::class, 'venda_item_id');
     }
 
-    public function produto(): BelongsTo{
-        
+    public function produto(): BelongsTo
+    {
+        return $this->belongsTo(
+            Produto::class,
+            'produto_id'
+        );
     }
 
     public function itemOrcamento(): BelongsTo

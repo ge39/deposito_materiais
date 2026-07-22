@@ -12,15 +12,19 @@ class RomaneioOcorrenciaAnexo extends Model
     protected $fillable = [
         'romaneio_ocorrencia_id',
         'tipo',
+        'descricao',
         'nome_original',
         'caminho',
         'mime_type',
         'tamanho_bytes',
+        'capturado_em',
+        'hash_arquivo',
         'enviado_por',
     ];
 
     protected $casts = [
         'tamanho_bytes' => 'integer',
+        'capturado_em' => 'datetime',
     ];
 
     public function ocorrencia(): BelongsTo
@@ -37,5 +41,10 @@ class RomaneioOcorrenciaAnexo extends Model
             User::class,
             'enviado_por'
         );
+    }
+
+    public function ehFoto(): bool
+    {
+        return $this->tipo === 'Foto';
     }
 }

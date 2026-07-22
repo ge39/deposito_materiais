@@ -454,14 +454,30 @@
                 Acompanhamento da entrega e da operação logística vinculada.
             </small>
         </div>
-
+         
         <div class="d-flex gap-1">
             <a href="<?php echo e(route('entregas.index')); ?>"
                class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>
                 Voltar
             </a>
-
+            
+                        <?php if(
+                $entrega->romaneio
+                && $entrega->romaneio
+                    ->ocorrencias()
+                    ->exists()
+            ): ?>
+                <a href="<?php echo e(route(
+                        'romaneios.ocorrencias.index',
+                        $entrega->romaneio->id
+                    )); ?>"
+                class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Ocorrências
+                </a>
+            <?php endif; ?>
+        
             <button type="button"
                     onclick="window.print()"
                     class="btn btn-outline-dark btn-sm">
@@ -678,6 +694,53 @@
 
         
         <div class="col-md-8">
+            
+             
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <strong>
+                        <i class="bi bi-calendar-check me-2"></i>
+                        Resumo Operacional
+                    </strong>
+                </div>
+
+                <div class="card-body">
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            Data prevista entrega
+                        </small>
+
+                        <div class="fw-semibold">
+                            <?php echo e($dataPrevista
+                                ? $dataPrevista->format('d/m/Y')
+                                : '-'); ?>
+
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <small class="text-muted">Período</small>
+
+                        <div class="fw-semibold">
+                            <?php echo e($periodoEntrega
+                                ? ucfirst(
+                                    str_replace(
+                                        '_',
+                                        ' ',
+                                        $periodoEntrega
+                                    )
+                                )
+                                : '-'); ?>
+
+                        </div>
+                    </div>
+
+                    <div>
+                        <small class="text-muted">Observação</small>
+                        <div><?php echo e($observacaoEntrega ?? '-'); ?></div>
+                    </div>
+                </div>
+            </div>
 
             
             <div class="card shadow-sm mb-3">
@@ -844,7 +907,7 @@
                     </div>
                 </div>
             </div>
-
+            
             
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white">
@@ -1181,7 +1244,7 @@
         <div class="col-md-4">
 
             
-            <div class="card shadow-sm mb-3">
+            <!-- <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white">
                     <strong>
                         <i class="bi bi-calendar-check me-2"></i>
@@ -1225,7 +1288,7 @@
                         <div><?php echo e($observacaoEntrega ?? '-'); ?></div>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             
             <div class="card shadow-sm mb-3">

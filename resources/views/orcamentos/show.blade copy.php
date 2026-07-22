@@ -43,7 +43,7 @@
                 @foreach($orcamento->itens as $item)
                     <div class="d-flex justify-content-between p-2 border rounded">
                         <div>
-                            <strong>Produto:</strong> {{ $item->produto->descricao ?? '-' }} <br>
+                            <strong>Produto:</strong> {{ $item->produto->nome ?? '-' }} <br>
                             <strong>Fornecedor:</strong> {{ $item->produto->fornecedor->nome ?? '-' }}
                         </div>
                         <div>

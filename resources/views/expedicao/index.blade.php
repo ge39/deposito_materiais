@@ -443,85 +443,85 @@
                         @endphp
 
                         <div class="border rounded p-2 mb-2 bg-light">
-    @php
-        $badgeData = 'bg-secondary';
-        $textoData = $dataPrevista;
+                            @php
+                                $badgeData = 'bg-secondary';
+                                $textoData = $dataPrevista;
 
-        if (!empty($entrega->data_prevista_entrega)) {
-            $hoje = now()->startOfDay();
-            $prevista = \Carbon\Carbon::parse($entrega->data_prevista_entrega)->startOfDay();
+                                if (!empty($entrega->data_prevista_entrega)) {
+                                    $hoje = now()->startOfDay();
+                                    $prevista = \Carbon\Carbon::parse($entrega->data_prevista_entrega)->startOfDay();
 
-            if ($prevista->lt($hoje)) {
-                $badgeData = 'bg-danger';
-                $textoData = 'ATRASADA';
-            } elseif ($prevista->equalTo($hoje)) {
-                $badgeData = 'bg-success';
-                $textoData = 'HOJE';
-            } elseif ($prevista->equalTo($hoje->copy()->addDay())) {
-                $badgeData = 'bg-warning text-dark';
-                $textoData = 'AMANHÃ';
-            }
-        }
+                                    if ($prevista->lt($hoje)) {
+                                        $badgeData = 'bg-danger';
+                                        $textoData = 'ATRASADA';
+                                    } elseif ($prevista->equalTo($hoje)) {
+                                        $badgeData = 'bg-success';
+                                        $textoData = 'HOJE';
+                                    } elseif ($prevista->equalTo($hoje->copy()->addDay())) {
+                                        $badgeData = 'bg-warning text-dark';
+                                        $textoData = 'AMANHÃ';
+                                    }
+                                }
 
-        $badgePeriodo = match(strtolower($periodo)) {
-            'manha', 'manhã' => 'bg-warning text-dark',
-            'tarde' => 'bg-info text-dark',
-            'noite' => 'bg-dark',
-            default => 'bg-secondary',
-        };
-    @endphp
+                                $badgePeriodo = match(strtolower($periodo)) {
+                                    'manha', 'manhã' => 'bg-warning text-dark',
+                                    'tarde' => 'bg-info text-dark',
+                                    'noite' => 'bg-dark',
+                                    default => 'bg-secondary',
+                                };
+                            @endphp
 
-    <div class="d-flex justify-content-between align-items-start gap-2">
-        <div>
-            <div class="fw-semibold">
-                {{ $codigoEntrega }} - {{ $clienteEntrega }}
-            </div>
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <div class="fw-semibold">
+                                        {{ $codigoEntrega }} - {{ $clienteEntrega }}
+                                    </div>
 
-            <small class="text-muted d-block">
-                Orçamento: {{ $codigoOrcamento }}
-            </small>
+                                    <small class="text-muted d-block">
+                                        Orçamento: {{ $codigoOrcamento }}
+                                    </small>
 
-            <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
-                <span class="badge {{ $badgeData }}">
-                    <i class="bi bi-calendar-event me-1"></i>
-                    {{ $textoData }}
-                </span>
+                                    <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                        <span class="badge {{ $badgeData }}">
+                                            <i class="bi bi-calendar-event me-1"></i>
+                                            {{ $textoData }}
+                                        </span>
 
-                <span class="badge {{ $badgePeriodo }}">
-                    <i class="bi bi-clock me-1"></i>
-                    {{ ucfirst($periodo) }}
-                </span>
-            </div>
+                                        <span class="badge {{ $badgePeriodo }}">
+                                            <i class="bi bi-clock me-1"></i>
+                                            {{ ucfirst($periodo) }}
+                                        </span>
+                                    </div>
 
-            <small class="text-primary d-block mt-1">
-                <i class="bi bi-calendar-check me-1"></i>
-                Data Entrega:
-                <strong>{{ $dataPrevista }}</strong>
-            </small>
-        </div>
+                                    <small class="text-primary d-block mt-1">
+                                        <i class="bi bi-calendar-check me-1"></i>
+                                        Data Entrega:
+                                        <strong>{{ $dataPrevista }}</strong>
+                                    </small>
+                                </div>
 
-        <span class="badge bg-success">
-            {{ str_replace('_', ' ', $entrega->status) }}
-        </span>
-    </div>
+                                <span class="badge bg-success">
+                                    {{ str_replace('_', ' ', $entrega->status) }}
+                                </span>
+                            </div>
 
-    <small class="text-muted d-block mt-1">
-        <i class="bi bi-geo-alt me-1"></i>
-        {{ $entrega->endereco_entrega ?? $entrega->endereco_entrega_concatenado ?? 'Endereço não informado' }}
-    </small>
+                            <small class="text-muted d-block mt-1">
+                                <i class="bi bi-geo-alt me-1"></i>
+                                {{ $entrega->endereco_entrega ?? $entrega->endereco_entrega_concatenado ?? 'Endereço não informado' }}
+                            </small>
 
-    <div class="d-flex justify-content-end align-items-end mt-2">
-        <!-- <small class="text-muted">
-            Itens: {{ $entrega->itens->count() }}
-        </small> -->
+                            <div class="d-flex justify-content-end align-items-end mt-2">
+                                <!-- <small class="text-muted">
+                                    Itens: {{ $entrega->itens->count() }}
+                                </small> -->
 
-        <a href="{{ route('romaneios.create', ['entrega_id' => $entrega->id]) }}"
-           class="btn btn-success btn-sm">
-            <i class="bi bi-box-seam me-1"></i>
-            Separar
-        </a>
-    </div>
-</div>
+                                <a href="{{ route('romaneios.create', ['entrega_id' => $entrega->id]) }}"
+                                class="btn btn-success btn-sm">
+                                    <i class="bi bi-box-seam me-1"></i>
+                                    Separar
+                                </a>
+                            </div>
+                        </div>
                     @empty
                         <div class="text-muted text-center py-3">
                             <i class="bi bi-check2-circle fs-4 d-block mb-2"></i>

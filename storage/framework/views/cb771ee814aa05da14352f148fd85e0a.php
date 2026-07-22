@@ -607,7 +607,6 @@
                 'aguardando_liberacao' => 'bg-warning text-dark',
                 'liberada' => 'bg-success',
                 'em_rota' => 'bg-dark',
-                'no_destino' => 'bg-dark',
                 'entregue' => 'bg-success',
                 'entregue_parcial' => 'bg-warning text-dark',
                 'parcial' => 'bg-warning text-dark',
@@ -633,7 +632,6 @@
                 'aguardando_liberacao' => 'Aguardando liberação',
                 'liberada' => 'Liberada',
                 'em_rota' => 'Em rota',
-                'no_destino' => 'No destino',
                 'entregue' => 'Entregue',
                 'entregue_parcial' => 'Entregue parcialmente',
                 'parcial' => 'Parcial',
@@ -701,8 +699,7 @@
                 'aguardando_conferencia',
                 'aguardando_liberacao',
                 'liberada',
-                'em_rota',
-                'no_destino' =>
+                'em_rota' =>
                     $totalItens,
 
                 'entregue' =>
@@ -782,8 +779,7 @@
                 'aguardando_conferencia' =>
                     'table-info',
 
-                'em_rota',
-                'no_destino' =>
+                'em_rota' =>
                     'table-success',
 
                 'entregue' =>
@@ -893,8 +889,7 @@
                         'romaneio',
                 ],
 
-                'em_rota',
-                'no_destino' => [
+                'em_rota' => [
                     'titulo' =>
                         'Registrar retorno e resultado da entrega',
                     'icone' =>
@@ -934,7 +929,6 @@
                 $statusEntrega,
                 [
                     'em_rota',
-                    'no_destino',
                     'entregue',
                     'entregue_parcial',
                     'parcial',
@@ -989,51 +983,77 @@
             </td>
 
             <td class="documentos text-center">
-                <?php if(! empty($entrega->venda_id)): ?>
-                    <a href="<?php echo e(url(
-                            '/venda/'
-                            . $entrega->venda_id
-                            . '/cupom'
-                        )); ?>"
-                       target="_self"
-                       rel="noopener noreferrer"
-                       class="text-decoration-none fw-semibold">
+    <?php if(! empty($entrega->venda_id)): ?>
+        <a
+            href="<?php echo e(url(
+                '/venda/'
+                . $entrega->venda_id
+                . '/cupom'
+            )); ?>"
+            target="_self"
+            rel="noopener noreferrer"
+            class="text-decoration-none fw-semibold"
+            title="Abrir cupom da venda"
+        >
+            <i class="bi bi-receipt me-1"></i>
+            VEN-<?php echo e($entrega->venda_id); ?>
 
-                        <i class="bi bi-receipt me-1"></i>
-                        VEN-<?php echo e($entrega->venda_id); ?>
+        </a>
+    <?php else: ?>
+        <span class="text-muted">
+            <i class="bi bi-receipt me-1"></i>
+            Venda —
+        </span>
+    <?php endif; ?>
 
-                    </a>
-                <?php else: ?>
-                    <span class="text-muted">
-                        <i class="bi bi-receipt me-1"></i>
-                        Venda —
-                    </span>
-                <?php endif; ?>
+    <div class="linha-secundaria mt-1">
+        <?php if(
+            ! empty($entrega->orcamento_id)
+            && $entrega->orcamento
+        ): ?>
+            <?php
+                $numeroOrcamento =
+                    $entrega->orcamento->codigo_orcamento
+                    ?? 'ORÇ-' . $entrega->orcamento_id;
+            ?>
 
-                <?php if(! empty($entrega->orcamento_id)): ?>
-                    <?php if(Route::has('orcamentos.show')): ?>
-                        <a href="<?php echo e(route(
-                            'orcamentos.show',
-                            $entrega->orcamento_id
-                        )); ?>">
-                            <i class="bi bi-file-earmark-text me-1"></i>
-                            ORÇ-<?php echo e($entrega->orcamento_id); ?>
+            <?php if(Route::has('orcamentos.show')): ?>
+                <a
+                    href="<?php echo e(route(
+                        'orcamentos.show',
+                        $entrega->orcamento_id
+                    )); ?>"
+                    class="text-decoration-none fw-semibold"
+                    title="Abrir orçamento <?php echo e($numeroOrcamento); ?>"
+                >
+                    <i class="bi bi-file-earmark-text me-1"></i>
+                    Orçamento:
+                    <?php echo e($numeroOrcamento); ?>
 
-                        </a>
-                    <?php else: ?>
-                        <span class="text-muted">
-                            <i class="bi bi-file-earmark-text me-1"></i>
-                            ORÇ-<?php echo e($entrega->orcamento_id); ?>
+                </a>
+            <?php else: ?>
+                <span class="fw-semibold">
+                    <i class="bi bi-file-earmark-text me-1"></i>
+                    Orçamento:
+                    <?php echo e($numeroOrcamento); ?>
 
-                        </span>
-                    <?php endif; ?>
-                <?php else: ?>
-                    <span class="text-muted">
-                        <i class="bi bi-file-earmark-text me-1"></i>
-                        Orç. —
-                    </span>
-                <?php endif; ?>
-            </td>
+                </span>
+            <?php endif; ?>
+        <?php elseif(! empty($entrega->orcamento_id)): ?>
+            <span class="text-muted">
+                <i class="bi bi-file-earmark-text me-1"></i>
+                Orçamento:
+                ORÇ-<?php echo e($entrega->orcamento_id); ?>
+
+            </span>
+        <?php else: ?>
+            <span class="text-muted">
+                <i class="bi bi-file-earmark-text me-1"></i>
+                Orçamento não informado
+            </span>
+        <?php endif; ?>
+    </div>
+</td>
 
             <td class="text-center">
                 <div class="fw-semibold">
@@ -1101,95 +1121,147 @@
 
             <td class="text-center">
                 <div class="d-flex justify-content-center gap-1 flex-nowrap">
+
+                    
                     <a href="<?php echo e(route(
                             'entregas.show',
                             $entrega->id
                         )); ?>"
-                       class="btn btn-outline-primary btn-sm acao-btn"
-                       title="Visualizar entrega">
+                    class="btn btn-outline-primary btn-sm acao-btn"
+                    title="Visualizar entrega">
 
                         <i class="bi bi-eye"></i>
                     </a>
 
-                    <?php if($tipoAcaoOperacional === 'romaneio'): ?>
+                    
+                    <?php
+                        $podeOperarRomaneio = in_array(
+                            $statusEntrega,
+                            [
+                                'aguardando_separacao',
+                                'separando',
+                                'em_preparacao',
+                                'pronta_para_carregamento',
+                                'carregando',
+                                'carregado',
+                                'carregada',
+                                'aguardando_conferencia',
+                                'aguardando_liberacao',
+                                'liberada',
+                            ],
+                            true
+                        );
+
+                        $podeRegistrarRetorno = in_array(
+                            $statusEntrega,
+                            [
+                                'em_rota',
+                            ],
+                            true
+                        );
+
+                        $podeConsultarTratativa = in_array(
+                            $statusEntrega,
+                            [
+                                'entregue_parcial',
+                                'parcial',
+                                'nao_entregue',
+                                'recusada',
+                                'reagendada',
+                                'devolvida',
+                                'devolvido',
+                            ],
+                            true
+                        );
+                    ?>
+
+                    <?php if($podeOperarRomaneio): ?>
                         <a href="<?php echo e(route(
                                 'romaneios.create',
                                 [
-                                    'entrega_id' =>
-                                        $entrega->id,
+                                    'entrega_id' => $entrega->id,
                                 ]
                             )); ?>"
-                           class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
-                           title="<?php echo e($acaoOperacional['titulo']); ?>">
+                        class="btn btn-outline-secondary btn-sm acao-btn"
+                        title="Operação do romaneio">
 
-                            <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
+                            <i class="bi bi-clipboard-check"></i>
                         </a>
+                    <?php else: ?>
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-sm acao-btn"
+                                title="Operação do romaneio indisponível neste status"
+                                disabled>
 
-                    <?php elseif($tipoAcaoOperacional === 'retorno'): ?>
+                            <i class="bi bi-clipboard-check"></i>
+                        </button>
+                    <?php endif; ?>
+
+                    
+                    <?php if($podeRegistrarRetorno): ?>
                         <a href="<?php echo e(route(
                                 'entregas.retorno',
                                 $entrega->id
                             )); ?>"
-                           class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
-                           title="<?php echo e($acaoOperacional['titulo']); ?>">
+                        class="btn btn-outline-success btn-sm acao-btn"
+                        title="Registrar retorno e resultado da entrega">
 
-                            <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
+                            <i class="bi bi-arrow-return-left"></i>
                         </a>
+                    <?php else: ?>
+                        <button type="button"
+                                class="btn btn-outline-success btn-sm acao-btn"
+                                title="Retorno disponível quando a entrega estiver em rota"
+                                disabled>
 
-                    <?php elseif($tipoAcaoOperacional === 'visualizar'): ?>
+                            <i class="bi bi-arrow-return-left"></i>
+                        </button>
+                    <?php endif; ?>
+
+                    
+                    <?php if($podeConsultarTratativa): ?>
                         <a href="<?php echo e(route(
                                 'entregas.show',
                                 $entrega->id
                             )); ?>"
-                           class="btn <?php echo e($acaoOperacional['classe']); ?> btn-sm acao-btn"
-                           title="<?php echo e($acaoOperacional['titulo']); ?>">
+                        class="btn btn-outline-warning btn-sm acao-btn"
+                        title="Consultar tratativa da entrega">
 
-                            <i class="bi <?php echo e($acaoOperacional['icone']); ?>"></i>
+                            <i class="bi bi-clipboard-pulse"></i>
                         </a>
-
                     <?php else: ?>
                         <button type="button"
-                                class="btn btn-outline-secondary btn-sm acao-btn"
-                                title="Nenhuma operação disponível para este status"
+                                class="btn btn-outline-warning btn-sm acao-btn"
+                                title="A entrega ainda não possui tratativa"
                                 disabled>
 
-                            <i class="bi bi-clipboard-x"></i>
+                            <i class="bi bi-clipboard-pulse"></i>
                         </button>
                     <?php endif; ?>
 
+                    
                     <?php if($podeCancelar): ?>
-                        <form method="POST"
-                              action="<?php echo e(route(
-                                  'entregas.cancelar',
-                                  $entrega->id
-                              )); ?>">
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm acao-btn"
+                                title="Cancelar entrega"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalCancelarEntrega"
+                                data-entrega-id="<?php echo e($entrega->id); ?>"
+                                data-entrega-codigo="<?php echo e($entrega->codigo_entrega
+                                    ?? "#{$entrega->id}"); ?>">
 
-                            <?php echo csrf_field(); ?>
-                            <?php echo method_field('PATCH'); ?>
-
-                            <input type="hidden"
-                                   name="motivo"
-                                   value="Cancelada pelo painel de entregas.">
-
-                            <button type="submit"
-                                    class="btn btn-outline-danger btn-sm acao-btn"
-                                    title="Cancelar entrega"
-                                    onclick="return confirm(
-                                        'Deseja realmente cancelar esta entrega?'
-                                    )">
-
-                                <i class="bi bi-x-circle"></i>
-                            </button>
-                        </form>
+                            <i class="bi bi-x-circle"></i>
+                        </button>
                     <?php else: ?>
                         <button type="button"
                                 class="btn btn-outline-danger btn-sm acao-btn"
-                                title="Cancelamento indisponível para este status"
+                                title="Cancelamento indisponível neste status"
                                 disabled>
 
                             <i class="bi bi-x-circle"></i>
                         </button>
                     <?php endif; ?>
+
                 </div>
             </td>
         </tr>

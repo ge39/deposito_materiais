@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RomaneioEquipe extends Model
 {
@@ -11,6 +12,7 @@ class RomaneioEquipe extends Model
     protected $fillable = [
         'romaneio_id',
         'motorista_id',
+        'ajudante_id',
         'veiculo_id',
         'status',
         'atribuido_por',
@@ -26,28 +28,56 @@ class RomaneioEquipe extends Model
         'liberado_em' => 'datetime',
     ];
 
-    public function romaneio()
+    public function romaneio(): BelongsTo
     {
-        return $this->belongsTo(Romaneio::class, 'romaneio_id');
+        return $this->belongsTo(
+            Romaneio::class,
+            'romaneio_id'
+        );
     }
 
-    public function motorista()
+    public function motorista(): BelongsTo
     {
-        return $this->belongsTo(Funcionario::class, 'motorista_id');
+        return $this->belongsTo(
+            Funcionario::class,
+            'motorista_id'
+        );
     }
 
-    public function veiculo()
+    public function ajudante(): BelongsTo
     {
-        return $this->belongsTo(Veiculo::class, 'veiculo_id');
+        return $this->belongsTo(
+            Funcionario::class,
+            'ajudante_id'
+        );
     }
 
-    public function atribuidoPor()
+    public function veiculo(): BelongsTo
     {
-        return $this->belongsTo(Funcionario::class, 'atribuido_por');
+        return $this->belongsTo(
+            Veiculo::class,
+            'veiculo_id'
+        );
     }
 
-    public function liberadoPor()
+    public function usuarioAtribuicao(): BelongsTo
     {
-        return $this->belongsTo(Funcionario::class, 'liberado_por');
+        return $this->belongsTo(
+            User::class,
+            'atribuido_por'
+        );
+    }
+
+    public function usuarioLiberacao(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'liberado_por'
+        );
+    }
+
+    public function estaAtiva(): bool
+    {
+        return $this->status === 'Ativa';
     }
 }
