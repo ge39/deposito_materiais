@@ -113,6 +113,340 @@ class EntregaService
         });
     }
 
+    public function criarEntregaFracionada(
+        Entrega $entregaOrigem,
+        array $itens,
+        array $dados = []
+    ): Entrega {
+        return DB::transaction(function () use (
+            $entregaOrigem,
+            $itens,
+            $dados
+        ) {
+            $entregaOrigem = Entrega::query()
+                ->with('itens')
+                ->lockForUpdate()
+                ->findOrFail($entregaOrigem->id);
+
+            if (empty($itens)) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        'A entrega fracionada precisa possuir pelo menos um item.',
+                ]);
+            }
+
+            $itensInformados = collect($itens)
+                ->map(function ($item) {
+                    if (! is_array($item)) {
+                        throw ValidationException::withMessages([
+                            'itens' =>
+                                'Os itens da entrega fracionada são inválidos.',
+                        ]);
+                    }
+
+                    $itemOrigemId = (int) (
+                        $item['entrega_item_origem_id']
+                        ?? 0
+                    );
+
+                    $quantidade = round(
+                        (float) ($item['quantidade'] ?? 0),
+                        2
+                    );
+
+                    if (
+                        $itemOrigemId <= 0
+                        || $quantidade <= 0
+                    ) {
+                        throw ValidationException::withMessages([
+                            'itens' =>
+                                'Informe um item de origem e uma quantidade válida para o fracionamento.',
+                        ]);
+                    }
+
+                    return [
+                        'entrega_item_origem_id' =>
+                            $itemOrigemId,
+
+                        'quantidade' =>
+                            $quantidade,
+                    ];
+                })
+                ->values();
+
+            if (
+                $itensInformados
+                    ->pluck('entrega_item_origem_id')
+                    ->unique()
+                    ->count()
+                !== $itensInformados->count()
+            ) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        'O mesmo item de origem foi informado mais de uma vez no fracionamento.',
+                ]);
+            }
+
+            $itensOrigemPorId = $entregaOrigem
+                ->itens
+                ->whereIn(
+                    'id',
+                    $itensInformados->pluck(
+                        'entrega_item_origem_id'
+                    )
+                )
+                ->keyBy('id');
+
+            if (
+                $itensOrigemPorId->count()
+                !== $itensInformados->count()
+            ) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        'Um ou mais itens informados não pertencem à entrega de origem.',
+                ]);
+            }
+
+            foreach ($itensInformados as $itemInformado) {
+                $itemOrigem = $itensOrigemPorId->get(
+                    $itemInformado['entrega_item_origem_id']
+                );
+
+                if (
+                    $itemInformado['quantidade']
+                    - (float) $itemOrigem->quantidade_prevista
+                    >= 0.001
+                ) {
+                    throw ValidationException::withMessages([
+                        'itens' =>
+                            "A quantidade fracionada do item #{$itemOrigem->id} ultrapassa a quantidade prevista.",
+                    ]);
+                }
+            }
+
+            $entregasFilhasAtivas = Entrega::query()
+                ->with('itens')
+                ->where(
+                    'entrega_origem_id',
+                    $entregaOrigem->id
+                )
+                ->where(
+                    'status',
+                    '<>',
+                    'Cancelada'
+                )
+                ->lockForUpdate()
+                ->get();
+
+            if ($entregasFilhasAtivas->count() > 1) {
+                throw ValidationException::withMessages([
+                    'entrega' =>
+                        "A entrega {$entregaOrigem->codigo_entrega} possui mais de uma entrega filha ativa.",
+                ]);
+            }
+
+            $entregaFilhaExistente =
+                $entregasFilhasAtivas->first();
+
+            if ($entregaFilhaExistente) {
+                $itensFilhosPorOrigem = $entregaFilhaExistente
+                    ->itens
+                    ->keyBy('entrega_item_origem_id');
+
+                if (
+                    $itensFilhosPorOrigem->count()
+                    !== $itensInformados->count()
+                ) {
+                    throw ValidationException::withMessages([
+                        'entrega' =>
+                            "A entrega complementar {$entregaFilhaExistente->codigo_entrega} já existe com uma composição diferente.",
+                    ]);
+                }
+
+                foreach ($itensInformados as $itemInformado) {
+                    $itemFilho = $itensFilhosPorOrigem->get(
+                        $itemInformado[
+                            'entrega_item_origem_id'
+                        ]
+                    );
+
+                    if (
+                        ! $itemFilho
+                        || abs(
+                            (float) $itemFilho
+                                ->quantidade_prevista
+                            - $itemInformado['quantidade']
+                        ) >= 0.001
+                    ) {
+                        throw ValidationException::withMessages([
+                            'entrega' =>
+                                "O saldo atual é diferente da entrega complementar {$entregaFilhaExistente->codigo_entrega} já criada.",
+                        ]);
+                    }
+                }
+
+                return $entregaFilhaExistente;
+            }
+
+            $entregaPrincipalId = (int) (
+                $entregaOrigem->entrega_principal_id
+                ?: $entregaOrigem->id
+            );
+
+            $dataPrevista =
+                $dados['data_prevista']
+                ?? $entregaOrigem->data_prevista_entrega
+                ?? $entregaOrigem->data_prevista
+                ?? now()->toDateString();
+
+            $observacaoInformada = trim(
+                (string) ($dados['observacao'] ?? '')
+            );
+
+            $observacaoFracionamento =
+                'Entrega complementar gerada pelo fracionamento da entrega '
+                . $entregaOrigem->codigo_entrega
+                . '.';
+
+            $observacao = $observacaoInformada !== ''
+                ? $observacaoFracionamento
+                    . PHP_EOL
+                    . $observacaoInformada
+                : $observacaoFracionamento;
+
+            $entregaFilha = Entrega::create([
+                'entrega_origem_id' =>
+                    $entregaOrigem->id,
+
+                'entrega_principal_id' =>
+                    $entregaPrincipalId,
+
+                'orcamento_id' =>
+                    $entregaOrigem->orcamento_id,
+
+                'venda_id' =>
+                    $entregaOrigem->venda_id,
+
+                'codigo_entrega' =>
+                    $this->gerarCodigo(),
+
+                'data_prevista' =>
+                    $dataPrevista,
+
+                'data_prevista_entrega' =>
+                    $dados['data_prevista_entrega']
+                    ?? $dataPrevista,
+
+                'periodo_entrega' =>
+                    $dados['periodo_entrega']
+                    ?? $entregaOrigem->periodo_entrega,
+
+                'observacao_entrega' =>
+                    $observacao,
+
+                'data_realizada' =>
+                    null,
+
+                'status' =>
+                    'Aguardando_separacao',
+
+                /*
+                * O fracionamento não cria uma nova cobrança
+                * automaticamente para a mesma venda.
+                */
+                'cobrar_frete' =>
+                    $dados['cobrar_frete'] ?? false,
+
+                'valor_frete' =>
+                    $dados['valor_frete'] ?? 0,
+
+                'tipo_entrega' =>
+                    $entregaOrigem->tipo_entrega
+                    ?? 'entrega',
+
+                'usar_endereco_cliente' =>
+                    $entregaOrigem->usar_endereco_cliente,
+
+                'endereco_entrega' =>
+                    $entregaOrigem->endereco_entrega,
+
+                'responsavel_recebimento' =>
+                    $entregaOrigem->responsavel_recebimento,
+
+                'telefone_recebimento' =>
+                    $entregaOrigem->telefone_recebimento,
+
+                'motorista_id' =>
+                    $dados['motorista_id'] ?? null,
+
+                'veiculo_id' =>
+                    $dados['veiculo_id'] ?? null,
+
+                'ordem_rota' =>
+                    null,
+
+                'observacao' =>
+                    $observacao,
+            ]);
+
+            foreach ($itensInformados as $itemInformado) {
+                $itemOrigem = $itensOrigemPorId->get(
+                    $itemInformado['entrega_item_origem_id']
+                );
+
+                $itemPrincipalId = (int) (
+                    $itemOrigem->entrega_item_principal_id
+                    ?: $itemOrigem->id
+                );
+
+                EntregaItem::create([
+                    'entrega_id' =>
+                        $entregaFilha->id,
+
+                    'entrega_item_origem_id' =>
+                        $itemOrigem->id,
+
+                    'entrega_item_principal_id' =>
+                        $itemPrincipalId,
+
+                    'item_orcamento_id' =>
+                        $itemOrigem->item_orcamento_id,
+
+                    'venda_item_id' =>
+                        $itemOrigem->venda_item_id,
+
+                    'quantidade_prevista' =>
+                        $itemInformado['quantidade'],
+
+                    'quantidade_entregue' =>
+                        0,
+
+                    'quantidade_recusada' =>
+                        0,
+
+                    'quantidade_devolvida' =>
+                        0,
+
+                    'quantidade_avariada' =>
+                        0,
+
+                    'motivo_nao_entrega' =>
+                        null,
+
+                    'status' =>
+                        'Pendente',
+
+                    'observacao' =>
+                        $observacaoInformada !== ''
+                            ? $observacaoInformada
+                            : null,
+                ]);
+            }
+
+            return $entregaFilha->fresh('itens');
+        });
+    }
+
     public function gerarEntregaDoOrcamento(Orcamento $orcamento): ?Entrega
     {
         return DB::transaction(function () use ($orcamento) {
@@ -273,59 +607,6 @@ class EntregaService
             ]);
         });
     }
-
-    // private function gerarRomaneioDaEntrega(Entrega $entrega): Romaneio
-    // {
-    //     $entrega->loadMissing('itens');
-
-    //     $romaneioExistente = Romaneio::query()
-    //         ->where('entrega_id', $entrega->id)
-    //         ->whereNotIn('status', [
-    //             'Fechado',
-    //             'Cancelado',
-    //         ])
-    //         ->latest('id')
-    //         ->first();
-
-    //     if ($romaneioExistente) {
-    //         return $romaneioExistente->load('itens');
-    //     }
-
-    //     $romaneio = Romaneio::create([
-    //         'entrega_id' => $entrega->id,
-    //         'criado_por' => auth()->id(),
-    //         'codigo_romaneio' => $this->gerarCodigoRomaneio(),
-    //         'token_abertura' => Str::random(64),
-    //         'token_fechamento' => Str::random(64),
-    //         'status' => 'Montagem',
-    //         'veiculo_id' => $entrega->veiculo_id,
-    //         'motorista_id' => $entrega->motorista_id,
-    //         'data_emissao' => now(),
-    //         'percentual_carregado' => 0,
-    //     ]);
-
-    //     foreach ($entrega->itens->values() as $indice => $item) {
-    //         RomaneioItem::create([
-    //             'romaneio_id' => $romaneio->id,
-    //             'entrega_item_id' => $item->id,
-    //             'ordem' => $indice + 1,
-    //             'quantidade_prevista' => $item->quantidade_prevista,
-    //             'quantidade_separada' => 0,
-    //             'quantidade_conferida_separacao' => 0,
-    //             'quantidade_conferida' => 0,
-    //             'quantidade_carregada' => 0,
-    //             'quantidade_conferida_saida' => 0,
-    //             'quantidade_entregue' => 0,
-    //             'quantidade_devolvida' => 0,
-    //             'quantidade_recusada' => 0,
-    //             'quantidade_avariada' => 0,
-    //             'quantidade_perdida' => 0,
-    //             'status' => 'Pendente',
-    //         ]);
-    //     }
-
-    //     return $romaneio->fresh('itens');
-    // }
 
     private function registrarBackupFaturamento(Entrega $entrega, Venda $venda, Orcamento $orcamento): void
     {

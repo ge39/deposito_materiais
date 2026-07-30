@@ -474,6 +474,1251 @@
 </nav>
 
 <main class="container mt-4">
+ <?php if(isset($bloqueioEdicao)): ?>
+    <div id="configuracao-bloqueio-edicao"
+         class="d-none"
+         data-recurso-tipo="<?php echo e($bloqueioEdicaoRecursoTipo ?? ''); ?>"
+         data-recurso-id="<?php echo e($bloqueioEdicaoRecursoId ?? ''); ?>"
+         data-token="<?php echo e($bloqueioEdicaoToken ?? ''); ?>"
+         data-pode-editar="<?php echo e(($podeEditarArquivo ?? false)
+                ? '1'
+                : '0'); ?>"
+         data-mensagem="<?php echo e($mensagemBloqueioEdicao ?? ''); ?>"
+         data-url-adquirir="<?php echo e(route('edicao-bloqueios.adquirir')); ?>"
+         data-url-renovar="<?php echo e(route('edicao-bloqueios.renovar')); ?>"
+         data-url-liberar="<?php echo e(route('edicao-bloqueios.liberar')); ?>"
+         data-url-retorno="<?php echo e(route('entregas.index')); ?>">
+    </div>
+
+    <script>
+        document.addEventListener(
+            'DOMContentLoaded',
+            function () {
+                const elementoConfiguracao =
+                    document.getElementById(
+                        'configuracao-bloqueio-edicao'
+                    );
+
+                if (! elementoConfiguracao) {
+                    return;
+                }
+
+                const configuracao = {
+                    recursoTipo:
+                        elementoConfiguracao
+                            .dataset
+                            .recursoTipo,
+
+                    recursoId:
+                        Number(
+                            elementoConfiguracao
+                                .dataset
+                                .recursoId
+                        ),
+
+                    token:
+                        elementoConfiguracao
+                            .dataset
+                            .token,
+
+                    podeEditar:
+                        elementoConfiguracao
+                            .dataset
+                            .podeEditar
+                        === '1',
+
+                    mensagem:
+                        elementoConfiguracao
+                            .dataset
+                            .mensagem,
+
+                    urlAdquirir:
+                        elementoConfiguracao
+                            .dataset
+                            .urlAdquirir,
+
+                    urlRenovar:
+                        elementoConfiguracao
+                            .dataset
+                            .urlRenovar,
+
+                    urlLiberar:
+                        elementoConfiguracao
+                            .dataset
+                            .urlLiberar,
+
+                    urlRetorno:
+                        elementoConfiguracao
+                            .dataset
+                            .urlRetorno,
+
+                    csrf:
+                        document.querySelector(
+                            'meta[name="csrf-token"]'
+                        )?.content
+                        ?? '',
+                };
+
+                const areaPrincipal =
+                    document.querySelector(
+                        'main'
+                    );
+
+                if (
+                    ! areaPrincipal
+                    || ! configuracao.recursoTipo
+                    || ! configuracao.recursoId
+                ) {
+                    return;
+                }
+
+                const formularios =
+                    Array.from(
+                        areaPrincipal
+                            .querySelectorAll(
+                                'form'
+                            )
+                    );
+
+                const formulariosMutacao =
+                    formularios.filter(
+                        function (formulario) {
+                            return (
+                                formulario
+                                    .getAttribute(
+                                        'method'
+                                    )
+                                ?? 'GET'
+                            ).toUpperCase()
+                                !== 'GET';
+                        }
+                    );
+
+                const formulariosNavegacao =
+                    formularios.filter(
+                        function (formulario) {
+                            return (
+                                formulario
+                                    .getAttribute(
+                                        'method'
+                                    )
+                                ?? 'GET'
+                            ).toUpperCase()
+                                === 'GET';
+                        }
+                    );
+
+                let formularioEmEnvio =
+                    false;
+
+                let navegacaoEmAndamento =
+                    false;
+
+                let bloqueioProprio =
+                    configuracao.podeEditar;
+
+                let renovacaoEmAndamento =
+                    false;
+
+                let aquisicaoEmAndamento =
+                    false;
+
+                let liberacaoEmAndamento =
+                    null;
+
+                let intervaloRenovacao =
+                    null;
+
+                let intervaloAquisicao =
+                    null;
+
+                let mensagemErroLiberacao =
+                    'Não foi possível finalizar a edição. Tente novamente.';
+
+                function pararRenovacao() {
+                    if (! intervaloRenovacao) {
+                        return;
+                    }
+
+                    window.clearInterval(
+                        intervaloRenovacao
+                    );
+
+                    intervaloRenovacao =
+                        null;
+                }
+
+                function pararAquisicao() {
+                    if (! intervaloAquisicao) {
+                        return;
+                    }
+
+                    window.clearInterval(
+                        intervaloAquisicao
+                    );
+
+                    intervaloAquisicao =
+                        null;
+                }
+
+                function inserirToken(
+                    formulario
+                ) {
+                    let campo =
+                        formulario
+                            .querySelector(
+                                'input[name="bloqueio_edicao_token"]'
+                            );
+
+                    if (! campo) {
+                        campo =
+                            document.createElement(
+                                'input'
+                            );
+
+                        campo.type =
+                            'hidden';
+
+                        campo.name =
+                            'bloqueio_edicao_token';
+
+                        formulario.appendChild(
+                            campo
+                        );
+                    }
+
+                    campo.value =
+                        configuracao.token;
+                }
+
+                function dadosBloqueio() {
+                    return {
+                        recurso_tipo:
+                            configuracao
+                                .recursoTipo,
+
+                        recurso_id:
+                            configuracao
+                                .recursoId,
+
+                        token:
+                            configuracao.token,
+                    };
+                }
+
+                function marcarBloqueioLiberado() {
+                    bloqueioProprio =
+                        false;
+
+                    configuracao.podeEditar =
+                        false;
+
+                    pararRenovacao();
+                    pararAquisicao();
+                }
+
+                function tornarSomenteConsulta(
+                    mensagem
+                ) {
+                    configuracao.podeEditar =
+                        false;
+
+                    formulariosMutacao.forEach(
+                        function (formulario) {
+                            formulario
+                                .querySelectorAll(
+                                    'input:not([type="hidden"]), select, textarea, button'
+                                )
+                                .forEach(
+                                    function (controle) {
+                                        if (
+                                            ! controle
+                                                .disabled
+                                        ) {
+                                            controle
+                                                .dataset
+                                                .desabilitadoPeloBloqueio =
+                                                    '1';
+
+                                            controle.disabled =
+                                                true;
+                                        }
+                                    }
+                                );
+                        }
+                    );
+
+                    areaPrincipal
+                        .querySelectorAll(
+                            '[data-requer-edicao]'
+                        )
+                        .forEach(
+                            function (elemento) {
+                                if (
+                                    ! elemento
+                                        .classList
+                                        .contains(
+                                            'disabled'
+                                        )
+                                ) {
+                                    elemento
+                                        .dataset
+                                        .desabilitadoPeloBloqueio =
+                                            '1';
+                                }
+
+                                elemento
+                                    .classList
+                                    .add(
+                                        'disabled'
+                                    );
+
+                                elemento
+                                    .setAttribute(
+                                        'aria-disabled',
+                                        'true'
+                                    );
+                            }
+                        );
+
+                    const alerta =
+                        document.getElementById(
+                            'alerta-bloqueio-edicao'
+                        );
+
+                    if (! alerta) {
+                        return;
+                    }
+
+                    alerta.className =
+                        'alert alert-warning border-warning shadow-sm';
+
+                    alerta.innerHTML =
+                        '<div class="fw-bold mb-1">'
+                        + '<i class="bi bi-lock-fill me-1"></i>'
+                        + 'Arquivo indisponível para edição'
+                        + '</div>'
+                        + '<div class="mensagem-bloqueio"></div>'
+                        + '<small class="d-block mt-1">'
+                        + 'Os dados permanecem disponíveis somente para consulta.'
+                        + '</small>';
+
+                    alerta
+                        .querySelector(
+                            '.mensagem-bloqueio'
+                        )
+                        .textContent =
+                            mensagem
+                            ?? 'Esta entrega está sendo editada em outra sessão.';
+                }
+
+                async function finalizarEdicao() {
+                    const botao =
+                        document.getElementById(
+                            'finalizar-edicao-arquivo'
+                        );
+
+                    if (botao) {
+                        botao.disabled =
+                            true;
+                    }
+
+                    const liberou =
+                        await liberarBloqueio();
+
+                    if (! liberou) {
+                        if (botao) {
+                            botao.disabled =
+                                false;
+                        }
+
+                        window.alert(
+                            mensagemErroLiberacao
+                        );
+
+                        return;
+                    }
+
+                    navegacaoEmAndamento =
+                        true;
+
+                    window.location.assign(
+                        configuracao.urlRetorno
+                    );
+                }
+
+                function atualizarAlertaEdicao() {
+                    const alerta =
+                        document.getElementById(
+                            'alerta-bloqueio-edicao'
+                        );
+
+                    if (! alerta) {
+                        return;
+                    }
+
+                    alerta.className =
+                        'alert alert-info border-info py-2 d-flex align-items-center justify-content-between gap-3';
+
+                    alerta.innerHTML =
+                        '<span>'
+                        + '<i class="bi bi-unlock-fill me-1"></i>'
+                        + 'Este arquivo está reservado para sua edição.'
+                        + '</span>'
+                        + '<button type="button" '
+                        + 'id="finalizar-edicao-arquivo" '
+                        + 'class="btn btn-outline-dark btn-sm">'
+                        + '<i class="bi bi-check2-circle me-1"></i>'
+                        + 'Finalizar edição'
+                        + '</button>';
+
+                    document
+                        .getElementById(
+                            'finalizar-edicao-arquivo'
+                        )
+                        ?.addEventListener(
+                            'click',
+                            finalizarEdicao
+                        );
+                }
+
+                function iniciarRenovacao() {
+                    if (intervaloRenovacao) {
+                        return;
+                    }
+
+                    intervaloRenovacao =
+                        window.setInterval(
+                            renovarBloqueio,
+                            60000
+                        );
+                }
+
+                function iniciarEsperaEdicao() {
+                    if (intervaloAquisicao) {
+                        return;
+                    }
+
+                    intervaloAquisicao =
+                        window.setInterval(
+                            tentarAdquirirBloqueio,
+                            3000
+                        );
+                }
+
+                function habilitarEdicao(
+                    token
+                ) {
+                    configuracao.token =
+                        token;
+
+                    configuracao.podeEditar =
+                        true;
+
+                    configuracao.mensagem =
+                        null;
+
+                    bloqueioProprio =
+                        true;
+
+                    pararAquisicao();
+
+                    areaPrincipal
+                        .querySelectorAll(
+                            '[data-desabilitado-pelo-bloqueio="1"]'
+                        )
+                        .forEach(
+                            function (elemento) {
+                                if (
+                                    'disabled'
+                                    in elemento
+                                ) {
+                                    elemento.disabled =
+                                        false;
+                                }
+
+                                elemento
+                                    .classList
+                                    .remove(
+                                        'disabled'
+                                    );
+
+                                elemento
+                                    .removeAttribute(
+                                        'aria-disabled'
+                                    );
+
+                                delete elemento
+                                    .dataset
+                                    .desabilitadoPeloBloqueio;
+                            }
+                        );
+
+                    formulariosMutacao.forEach(
+                        function (formulario) {
+                            inserirToken(
+                                formulario
+                            );
+                        }
+                    );
+
+                    atualizarAlertaEdicao();
+                    iniciarRenovacao();
+                }
+
+                async function tentarAdquirirBloqueio() {
+                    if (
+                        aquisicaoEmAndamento
+                        || configuracao.podeEditar
+                        || navegacaoEmAndamento
+                        || document.visibilityState
+                            === 'hidden'
+                    ) {
+                        return;
+                    }
+
+                    aquisicaoEmAndamento =
+                        true;
+
+                    try {
+                        const resposta =
+                            await fetch(
+                                configuracao
+                                    .urlAdquirir,
+                                {
+                                    method:
+                                        'POST',
+
+                                    headers: {
+                                        'Accept':
+                                            'application/json',
+
+                                        'Content-Type':
+                                            'application/json',
+
+                                        'X-CSRF-TOKEN':
+                                            configuracao
+                                                .csrf,
+                                    },
+
+                                    credentials:
+                                        'same-origin',
+
+                                    cache:
+                                        'no-store',
+
+                                    body:
+                                        JSON.stringify({
+                                            recurso_tipo:
+                                                configuracao
+                                                    .recursoTipo,
+
+                                            recurso_id:
+                                                configuracao
+                                                    .recursoId,
+                                        }),
+                                }
+                            );
+
+                        if (! resposta.ok) {
+                            return;
+                        }
+
+                        const estado =
+                            await resposta.json();
+
+                        if (
+                            estado.pode_editar
+                            && estado.token
+                        ) {
+                            configuracao.token =
+                                estado.token;
+
+                            configuracao.podeEditar =
+                                true;
+
+                            bloqueioProprio =
+                                true;
+
+                            /*
+                            * Recarregamos para recuperar os dados
+                            * mais recentes antes da edição.
+                            */
+                            window.location.reload();
+
+                            return;
+                        }
+
+                        if (
+                            estado.mensagem
+                            && estado.mensagem
+                                !== configuracao
+                                    .mensagem
+                        ) {
+                            configuracao.mensagem =
+                                estado.mensagem;
+
+                            tornarSomenteConsulta(
+                                estado.mensagem
+                            );
+                        }
+                    } catch (erro) {
+                        /*
+                        * A próxima tentativa sincronizará novamente.
+                        */
+                    } finally {
+                        aquisicaoEmAndamento =
+                            false;
+                    }
+                }
+
+                async function renovarBloqueio() {
+                    if (
+                        renovacaoEmAndamento
+                        || ! bloqueioProprio
+                        || navegacaoEmAndamento
+                        || document.visibilityState
+                            === 'hidden'
+                    ) {
+                        return;
+                    }
+
+                    renovacaoEmAndamento =
+                        true;
+
+                    try {
+                        const resposta =
+                            await fetch(
+                                configuracao
+                                    .urlRenovar,
+                                {
+                                    method:
+                                        'PATCH',
+
+                                    headers: {
+                                        'Accept':
+                                            'application/json',
+
+                                        'Content-Type':
+                                            'application/json',
+
+                                        'X-CSRF-TOKEN':
+                                            configuracao
+                                                .csrf,
+                                    },
+
+                                    credentials:
+                                        'same-origin',
+
+                                    cache:
+                                        'no-store',
+
+                                    body:
+                                        JSON.stringify(
+                                            dadosBloqueio()
+                                        ),
+                                }
+                            );
+
+                        if (! resposta.ok) {
+                            const dados =
+                                await resposta
+                                    .json()
+                                    .catch(
+                                        function () {
+                                            return {};
+                                        }
+                                    );
+
+                            bloqueioProprio =
+                                false;
+
+                            configuracao
+                                .podeEditar =
+                                    false;
+
+                            pararRenovacao();
+
+                            tornarSomenteConsulta(
+                                dados.message
+                                ?? 'Sua sessão de edição não está mais ativa.'
+                            );
+
+                            iniciarEsperaEdicao();
+                        }
+                    } catch (erro) {
+                        /*
+                        * Uma falha transitória não remove o bloqueio.
+                        */
+                    } finally {
+                        renovacaoEmAndamento =
+                            false;
+                    }
+                }
+
+                async function executarLiberacao() {
+                    if (! bloqueioProprio) {
+                        return true;
+                    }
+
+                    try {
+                        const resposta =
+                            await fetch(
+                                configuracao
+                                    .urlLiberar,
+                                {
+                                    method:
+                                        'POST',
+
+                                    headers: {
+                                        'Accept':
+                                            'application/json',
+
+                                        'Content-Type':
+                                            'application/json',
+
+                                        'X-CSRF-TOKEN':
+                                            configuracao
+                                                .csrf,
+                                    },
+
+                                    credentials:
+                                        'same-origin',
+
+                                    cache:
+                                        'no-store',
+
+                                    keepalive:
+                                        true,
+
+                                    body:
+                                        JSON.stringify(
+                                            dadosBloqueio()
+                                        ),
+                                }
+                            );
+
+                        if (resposta.ok) {
+                            marcarBloqueioLiberado();
+
+                            return true;
+                        }
+
+                        const dados =
+                            await resposta
+                                .json()
+                                .catch(
+                                    function () {
+                                        return {};
+                                    }
+                                );
+
+                        mensagemErroLiberacao =
+                            dados.message
+                            ?? 'Não foi possível liberar a edição. Tente novamente.';
+
+                        return false;
+                    } catch (erro) {
+                        mensagemErroLiberacao =
+                            'Não foi possível comunicar com o servidor para liberar a edição.';
+
+                        return false;
+                    }
+                }
+
+                async function liberarBloqueio() {
+                    if (! bloqueioProprio) {
+                        return true;
+                    }
+
+                    if (liberacaoEmAndamento) {
+                        return liberacaoEmAndamento;
+                    }
+
+                    liberacaoEmAndamento =
+                        executarLiberacao();
+
+                    try {
+                        return await liberacaoEmAndamento;
+                    } finally {
+                        liberacaoEmAndamento =
+                            null;
+                    }
+                }
+
+                async function navegarAposLiberar(
+                    destino
+                ) {
+                    if (navegacaoEmAndamento) {
+                        return;
+                    }
+
+                    navegacaoEmAndamento =
+                        true;
+
+                    const liberou =
+                        await liberarBloqueio();
+
+                    if (! liberou) {
+                        navegacaoEmAndamento =
+                            false;
+
+                        window.alert(
+                            mensagemErroLiberacao
+                        );
+
+                        return;
+                    }
+
+                    window.location.assign(
+                        destino
+                    );
+                }
+
+                function devePreservarBloqueio(
+                    elemento,
+                    destino
+                ) {
+                    if (
+                        elemento?.dataset
+                            ?.liberarBloqueioEdicao
+                        === '1'
+                    ) {
+                        return false;
+                    }
+
+                    if (
+                        elemento?.dataset
+                            ?.preservarBloqueioEdicao
+                        === '1'
+                    ) {
+                        return true;
+                    }
+
+                    if (
+                        configuracao.recursoTipo
+                            !== 'entrega'
+                        || destino.origin
+                            !== window.location.origin
+                    ) {
+                        return false;
+                    }
+
+                    const caminhoEntrega =
+                        '/entregas/'
+                        + configuracao.recursoId;
+
+                    if (
+                        destino.pathname
+                            === caminhoEntrega
+                        || destino.pathname.startsWith(
+                            caminhoEntrega + '/'
+                        )
+                    ) {
+                        return true;
+                    }
+
+                    return /^\/romaneios\/\d+(?:\/|$)/
+                        .test(
+                            destino.pathname
+                        );
+                }
+
+                formulariosMutacao.forEach(
+                    function (formulario) {
+                        formulario.addEventListener(
+                            'submit',
+                            function (evento) {
+                                if (
+                                    ! configuracao
+                                        .podeEditar
+                                ) {
+                                    evento.preventDefault();
+
+                                    return;
+                                }
+
+                                if (
+                                    ! evento.defaultPrevented
+                                ) {
+                                    /*
+                                    * Formulários operacionais mantêm
+                                    * o bloqueio durante o redirect.
+                                    */
+                                    formularioEmEnvio =
+                                        true;
+                                }
+                            }
+                        );
+
+                        const enviarNativamente =
+                            formulario.submit.bind(
+                                formulario
+                            );
+
+                        formulario.submit =
+                            function () {
+                                if (
+                                    ! configuracao
+                                        .podeEditar
+                                ) {
+                                    return;
+                                }
+
+                                formularioEmEnvio =
+                                    true;
+
+                                enviarNativamente();
+                            };
+                    }
+                );
+
+                formulariosNavegacao.forEach(
+                    function (formulario) {
+                        formulario.addEventListener(
+                            'submit',
+                            async function (evento) {
+                                if (
+                                    ! bloqueioProprio
+                                    || navegacaoEmAndamento
+                                ) {
+                                    return;
+                                }
+
+                                const destino =
+                                    new URL(
+                                        formulario.action
+                                        || window.location.href,
+                                        window.location.origin
+                                    );
+
+                                if (
+                                    devePreservarBloqueio(
+                                        formulario,
+                                        destino
+                                    )
+                                ) {
+                                    navegacaoEmAndamento =
+                                        true;
+
+                                    return;
+                                }
+
+                                evento.preventDefault();
+
+                                const dados =
+                                    new FormData(
+                                        formulario
+                                    );
+
+                                dados.forEach(
+                                    function (
+                                        valor,
+                                        chave
+                                    ) {
+                                        destino
+                                            .searchParams
+                                            .append(
+                                                chave,
+                                                valor
+                                            );
+                                    }
+                                );
+
+                                await navegarAposLiberar(
+                                    destino.toString()
+                                );
+                            }
+                        );
+                    }
+                );
+
+                areaPrincipal.addEventListener(
+                    'click',
+                    function (evento) {
+                        const elemento =
+                            evento.target.closest(
+                                '[data-requer-edicao]'
+                            );
+
+                        if (
+                            elemento
+                            && ! configuracao
+                                .podeEditar
+                        ) {
+                            evento.preventDefault();
+                            evento.stopPropagation();
+                        }
+                    },
+                    true
+                );
+
+                document.addEventListener(
+                    'click',
+                    async function (evento) {
+                        const link =
+                            evento.target.closest(
+                                'a[href]'
+                            );
+
+                        if (
+                            ! link
+                            || ! bloqueioProprio
+                            || navegacaoEmAndamento
+                            || evento.defaultPrevented
+                            || evento.button !== 0
+                            || evento.ctrlKey
+                            || evento.metaKey
+                            || evento.shiftKey
+                            || evento.altKey
+                            || link.target === '_blank'
+                            || link.hasAttribute(
+                                'download'
+                            )
+                            || link.classList
+                                .contains(
+                                    'disabled'
+                                )
+                        ) {
+                            return;
+                        }
+
+                        const href =
+                            link.getAttribute(
+                                'href'
+                            );
+
+                        if (
+                            ! href
+                            || href === '#'
+                            || href.startsWith('#')
+                            || href.startsWith(
+                                'javascript:'
+                            )
+                            || href.startsWith(
+                                'mailto:'
+                            )
+                            || href.startsWith(
+                                'tel:'
+                            )
+                        ) {
+                            return;
+                        }
+
+                        const destino =
+                            new URL(
+                                link.href,
+                                window.location.origin
+                            );
+
+                        if (
+                            devePreservarBloqueio(
+                                link,
+                                destino
+                            )
+                        ) {
+                            navegacaoEmAndamento =
+                                true;
+
+                            return;
+                        }
+
+                        evento.preventDefault();
+                        evento.stopImmediatePropagation();
+
+                        await navegarAposLiberar(
+                            destino.toString()
+                        );
+                    },
+                    true
+                );
+
+                const formularioLogout =
+                    document.querySelector(
+                        'form[action$="/logout"]'
+                    );
+
+                formularioLogout?.addEventListener(
+                    'submit',
+                    async function (evento) {
+                        if (
+                            ! bloqueioProprio
+                            || navegacaoEmAndamento
+                        ) {
+                            return;
+                        }
+
+                        evento.preventDefault();
+
+                        const liberou =
+                            await liberarBloqueio();
+
+                        if (! liberou) {
+                            window.alert(
+                                mensagemErroLiberacao
+                            );
+
+                            return;
+                        }
+
+                        formularioEmEnvio =
+                            true;
+
+                        HTMLFormElement
+                            .prototype
+                            .submit
+                            .call(
+                                formularioLogout
+                            );
+                    }
+                );
+
+                function liberarAoFechar() {
+                    if (
+                        ! bloqueioProprio
+                        || formularioEmEnvio
+                        || navegacaoEmAndamento
+                    ) {
+                        return;
+                    }
+
+                    const dados =
+                        new FormData();
+
+                    dados.append(
+                        '_token',
+                        configuracao.csrf
+                    );
+
+                    dados.append(
+                        'recurso_tipo',
+                        configuracao
+                            .recursoTipo
+                    );
+
+                    dados.append(
+                        'recurso_id',
+                        configuracao
+                            .recursoId
+                    );
+
+                    dados.append(
+                        'token',
+                        configuracao.token
+                    );
+
+                    navigator.sendBeacon(
+                        configuracao
+                            .urlLiberar,
+                        dados
+                    );
+                }
+
+                if (configuracao.podeEditar) {
+                    habilitarEdicao(
+                        configuracao.token
+                    );
+                } else {
+                    bloqueioProprio =
+                        false;
+
+                    tornarSomenteConsulta(
+                        configuracao.mensagem
+                    );
+
+                    iniciarEsperaEdicao();
+                }
+
+                document.addEventListener(
+                    'visibilitychange',
+                    function () {
+                        if (
+                            document.visibilityState
+                            !== 'visible'
+                            || navegacaoEmAndamento
+                        ) {
+                            return;
+                        }
+
+                        if (
+                            configuracao.podeEditar
+                        ) {
+                            renovarBloqueio();
+                        } else {
+                            tentarAdquirirBloqueio();
+                        }
+                    }
+                );
+
+                if (
+                    window.navigation
+                    && typeof window.navigation
+                        .addEventListener
+                        === 'function'
+                ) {
+                    window.navigation.addEventListener(
+                        'navigate',
+                        function (evento) {
+                            if (
+                                evento.navigationType
+                                    !== 'traverse'
+                                || ! bloqueioProprio
+                                || ! evento.destination
+                                    ?.url
+                            ) {
+                                return;
+                            }
+
+                            const destino =
+                                new URL(
+                                    evento.destination.url,
+                                    window.location.origin
+                                );
+
+                            if (
+                                devePreservarBloqueio(
+                                    null,
+                                    destino
+                                )
+                            ) {
+                                /*
+                                * Voltar ou avançar entre páginas do
+                                * mesmo fluxo operacional não libera
+                                * o bloqueio da entrega.
+                                */
+                                navegacaoEmAndamento =
+                                    true;
+                            }
+                        }
+                    );
+                }
+
+                window.addEventListener(
+                    'pageshow',
+                    function (evento) {
+                        if (! evento.persisted) {
+                            return;
+                        }
+
+                        /*
+                        * Uma página operacional restaurada pelo
+                        * BFCache não pode reutilizar controles e
+                        * token mantidos apenas na memória.
+                        * O reload executa novamente o middleware.
+                        */
+                        window.location.reload();
+                    }
+                );
+
+                window.addEventListener(
+                    'pagehide',
+                    liberarAoFechar
+                );
+            }
+        );
+    </script>
+<?php endif; ?>
+
     <?php echo $__env->yieldContent('content'); ?>
 </main>
 
@@ -515,6 +1760,7 @@
         });
     });
 </script>
+
 
 <?php echo $__env->yieldPushContent('scripts'); ?>
 

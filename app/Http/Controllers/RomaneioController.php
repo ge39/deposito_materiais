@@ -246,6 +246,241 @@ class RomaneioController extends Controller
 
     }
 
+    // public function create(Request $request)
+    // {
+    //     $entregaId = $request->integer(
+    //         'entrega_id'
+    //     );
+
+    //     if (
+    //         ! $entregaId
+    //         && $request->filled('entregas_id')
+    //     ) {
+    //         $entregaId = (int) $request->input(
+    //             'entregas_id'
+    //         );
+    //     }
+
+    //     $entregasDisponiveis = Entrega::query()
+    //         ->with([
+    //             'cliente',
+    //             'orcamento.cliente',
+    //             'venda.cliente',
+    //             'itens.vendaItem.produto',
+    //             'itens.itemOrcamento.produto',
+    //         ])
+    //         ->whereIn(
+    //             'status',
+    //             self::STATUS_ENTREGAS_OPERACIONAIS
+    //         )
+    //         ->when(
+    //             $entregaId,
+    //             fn ($query) =>
+    //                 $query->where(
+    //                     'id',
+    //                     $entregaId
+    //                 )
+    //         )
+    //         ->orderBy('data_prevista')
+    //         ->orderBy('id')
+    //         ->get();
+
+    //     if (
+    //         $entregaId
+    //         && $entregasDisponiveis->isEmpty()
+    //     ) {
+    //         return redirect()
+    //             ->route('entregas.index')
+    //             ->with(
+    //                 'error',
+    //                 'A entrega selecionada não está disponível para operação de romaneio.'
+    //             );
+    //     }
+
+    //     $romaneiosAtivos = collect();
+    //     $romaneioAtivo = null;
+
+    //     if ($entregaId) {
+    //         $romaneiosAtivos = Romaneio::query()
+    //             ->with(
+    //                 $this->relacionamentosOperacionais()
+    //             )
+    //             ->where(
+    //                 'entrega_id',
+    //                 $entregaId
+    //             )
+    //             ->whereNotIn('status', [
+    //                 'Fechado',
+    //                 'Cancelado',
+    //             ])
+    //             ->orderByDesc('id')
+    //             ->get();
+
+    //         $romaneioAtivo =
+    //             $romaneiosAtivos->first();
+    //     }
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Romaneios vinculados à saída do caminhão
+    //     |--------------------------------------------------------------------------
+    //     |
+    //     | Quando o romaneio atual já possui um veículo, carregamos todos os
+    //     | romaneios operacionais vinculados ao mesmo caminhão.
+    //     |
+    //     | Romaneios já em rota, em retorno, fechados ou cancelados não fazem
+    //     | parte da próxima saída física.
+    //     |
+    //     */
+
+    //     $romaneiosVinculadosSaida = collect();
+
+    //     if (
+    //         $romaneioAtivo
+    //         && ! empty($romaneioAtivo->veiculo_id)
+    //     ) {
+    //         $romaneiosVinculadosSaida = Romaneio::query()
+    //             ->with(
+    //                 $this->relacionamentosOperacionais()
+    //             )
+    //             ->where(
+    //                 'veiculo_id',
+    //                 $romaneioAtivo->veiculo_id
+    //             )
+    //             ->whereHas(
+    //                 'entrega',
+    //                 fn ($query) =>
+    //                     $query->whereNotIn('status', [
+    //                         'Entregue',
+    //                         'Cancelada',
+    //                         'Cancelado',
+    //                     ])
+    //             )
+    //             ->whereNotIn('status', [
+    //                 'Fechado',
+    //                 'Cancelado',
+    //                 'Em_rota',
+    //                 'Retornando',
+    //                 'Aguardando_conferencia_retorno',
+    //                 'Em_conferencia_retorno',
+    //                 'Aguardando_prestacao_contas',
+    //                 'Em_prestacao_contas',
+    //                 'Aguardando_fechamento',
+    //             ])
+    //             ->orderBy('ordem_execucao')
+    //             ->orderBy('id')
+    //             ->get();
+    //     }
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Classificação da saída
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $romaneiosLiberadosSaida =
+    //         $romaneiosVinculadosSaida
+    //             ->filter(
+    //                 fn ($item) =>
+    //                     $item->status === 'Liberado'
+    //             )
+    //             ->values();
+
+    //     $romaneiosPendentesSaida =
+    //         $romaneiosVinculadosSaida
+    //             ->reject(
+    //                 fn ($item) =>
+    //                     $item->status === 'Liberado'
+    //             )
+    //             ->values();
+
+    //     /*
+    //     * Detecta divergência de motorista entre os romaneios
+    //     * vinculados ao mesmo caminhão.
+    //     */
+    //     $romaneiosMotoristaDivergente =
+    //         collect();
+
+    //     if (
+    //         $romaneioAtivo
+    //         && ! empty($romaneioAtivo->motorista_id)
+    //     ) {
+    //         $romaneiosMotoristaDivergente =
+    //             $romaneiosLiberadosSaida
+    //                 ->filter(
+    //                     fn ($item) =>
+    //                         (int) $item->motorista_id
+    //                         !== (int) $romaneioAtivo
+    //                             ->motorista_id
+    //                 )
+    //                 ->values();
+    //     }
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Funcionários operacionais
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $funcionariosOperacionais =
+    //         Funcionario::query()
+    //             ->where(function ($query) {
+    //                 $query
+    //                     ->where('ativo', 1)
+    //                     ->orWhereNull('ativo');
+    //             })
+    //             ->orderBy('nome')
+    //             ->get();
+
+    //     $motoristas =
+    //         $funcionariosOperacionais
+    //             ->filter(function ($funcionario) {
+    //                 return strtolower(
+    //                     trim(
+    //                         (string) $funcionario->funcao
+    //                     )
+    //                 ) === 'motorista';
+    //             })
+    //             ->values();
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Veículos
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     $veiculos = Veiculo::query()
+    //         ->where(function ($query) {
+    //             $query
+    //                 ->where('ativo', 1)
+    //                 ->orWhereNull('ativo');
+    //         })
+    //         ->orderBy('placa')
+    //         ->get();
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | Retorno da view
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     return view(
+    //         'romaneios.create',
+    //         compact(
+    //             'entregasDisponiveis',
+    //             'funcionariosOperacionais',
+    //             'motoristas',
+    //             'veiculos',
+    //             'entregaId',
+    //             'romaneioAtivo',
+    //             'romaneiosAtivos',
+    //             'romaneiosVinculadosSaida',
+    //             'romaneiosLiberadosSaida',
+    //             'romaneiosPendentesSaida',
+    //             'romaneiosMotoristaDivergente'
+    //         )
+    //     );
+    // }
     public function create(Request $request)
     {
         $entregaId = $request->integer(
@@ -322,14 +557,51 @@ class RomaneioController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Romaneios vinculados à saída do caminhão
+        | Estados pertencentes à preparação da saída
         |--------------------------------------------------------------------------
         |
-        | Quando o romaneio atual já possui um veículo, carregamos todos os
-        | romaneios operacionais vinculados ao mesmo caminhão.
+        | Somente romaneios que ainda estão sendo preparados para a próxima
+        | viagem podem participar do agrupamento do caminhão.
         |
-        | Romaneios já em rota, em retorno, fechados ou cancelados não fazem
-        | parte da próxima saída física.
+        | Estados de rota, retorno, devolução, ocorrência, prestação de contas
+        | e fechamento pertencem a viagens anteriores e não podem bloquear uma
+        | nova saída física do veículo.
+        |
+        */
+
+        $statusRomaneiosPreparacaoSaida = [
+            'Montagem',
+            'Aguardando_separacao',
+            'Em_separacao',
+            'Aguardando_conferencia_separacao',
+            'Em_conferencia_separacao',
+            'Separacao_conferida',
+            'Aguardando_carregamento',
+            'Carregando',
+            'Aguardando_conferencia_saida',
+            'Em_conferencia_saida',
+            'Aguardando_liberacao',
+            'Liberado',
+        ];
+
+        $statusEntregasPreparacaoSaida = [
+            'Aguardando_separacao',
+            'Em_preparacao',
+            'Pronta_para_carregamento',
+            'Carregada',
+            'Liberada',
+        ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Romaneios vinculados à próxima saída do caminhão
+        |--------------------------------------------------------------------------
+        |
+        | Quando o romaneio atual possui um veículo, carregamos somente os
+        | romaneios pré-viagem vinculados ao mesmo caminhão.
+        |
+        | Romaneios em rota ou em qualquer etapa posterior não pertencem à
+        | próxima saída, mesmo que ainda possuam devoluções ou ocorrências.
         |
         */
 
@@ -347,26 +619,18 @@ class RomaneioController extends Controller
                     'veiculo_id',
                     $romaneioAtivo->veiculo_id
                 )
+                ->whereIn(
+                    'status',
+                    $statusRomaneiosPreparacaoSaida
+                )
                 ->whereHas(
                     'entrega',
                     fn ($query) =>
-                        $query->whereNotIn('status', [
-                            'Entregue',
-                            'Cancelada',
-                            'Cancelado',
-                        ])
+                        $query->whereIn(
+                            'status',
+                            $statusEntregasPreparacaoSaida
+                        )
                 )
-                ->whereNotIn('status', [
-                    'Fechado',
-                    'Cancelado',
-                    'Em_rota',
-                    'Retornando',
-                    'Aguardando_conferencia_retorno',
-                    'Em_conferencia_retorno',
-                    'Aguardando_prestacao_contas',
-                    'Em_prestacao_contas',
-                    'Aguardando_fechamento',
-                ])
                 ->orderBy('ordem_execucao')
                 ->orderBy('id')
                 ->get();
@@ -395,11 +659,16 @@ class RomaneioController extends Controller
                 ->values();
 
         /*
-        * Detecta divergência de motorista entre os romaneios
-        * vinculados ao mesmo caminhão.
+        |--------------------------------------------------------------------------
+        | Divergência de motorista
+        |--------------------------------------------------------------------------
+        |
+        | Detecta divergência de motorista entre os romaneios liberados
+        | vinculados à mesma próxima saída do caminhão.
+        |
         */
-        $romaneiosMotoristaDivergente =
-            collect();
+
+        $romaneiosMotoristaDivergente = collect();
 
         if (
             $romaneioAtivo
@@ -545,6 +814,15 @@ class RomaneioController extends Controller
         
     public function atualizarOperacao( Request $request, Romaneio $romaneio)
     {
+        $romaneio->loadMissing('entrega');
+
+        $exigirDataEntregaComplementar =
+            $request->input('acao') === 'concluir_montagem'
+            && (int) (
+                $romaneio->entrega?->entrega_origem_id
+                ?? 0
+            ) > 0;
+
         $acoesPermitidas = [
             'concluir_montagem',
             'salvar_andamento',
@@ -684,6 +962,15 @@ class RomaneioController extends Controller
                     'nullable',
                     'string',
                     'max:1000',
+                ],
+
+                'data_prevista_entrega' => [
+                    'nullable',
+                    Rule::requiredIf(
+                        $exigirDataEntregaComplementar
+                    ),
+                    'date',
+                    'after_or_equal:today',
                 ],
 
                 'observacao_retorno' => [
@@ -931,6 +1218,15 @@ class RomaneioController extends Controller
 
                 'observacao.max' =>
                     'A observação pode possuir no máximo 1000 caracteres.',
+
+                'data_prevista_entrega.required' =>
+                    'Informe a data prevista da entrega complementar.',
+
+                'data_prevista_entrega.date' =>
+                    'A data prevista da entrega complementar é inválida.',
+
+                'data_prevista_entrega.after_or_equal' =>
+                    'A data prevista da entrega complementar não pode ser anterior à data atual.',
 
                 'observacao_retorno.string' =>
                     'A observação do retorno deve ser um texto.',
@@ -1884,27 +2180,133 @@ class RomaneioController extends Controller
 
     }
 
+    // public function imprimir(Romaneio $romaneio)
+    // {
+    //     $romaneio->load([
+    //         ...$this->relacionamentosOperacionais(),
+    //         'finalizador',
+    //         'impressor',
+    //     ]);
+
+    //     $romaneio->setRelation(
+    //         'itens',
+    //         $romaneio->itens
+    //             ->sortBy(function ($item) {
+    //                 $produto = $item->entregaItem?->vendaItem?->produto
+    //                     ?? $item->entregaItem?->itemOrcamento?->produto;
+
+    //                 return $produto?->localizacao_estoque ?? 'ZZZ';
+    //             })
+    //             ->values()
+    //     );
+
+    //     return view('romaneios.imprimir', compact('romaneio'));
+    // }
     public function imprimir(Romaneio $romaneio)
     {
         $romaneio->load([
-            ...$this->relacionamentosOperacionais(),
+            'motorista',
+            'veiculo',
+            'criador',
+            'iniciador',
+            'carregador',
+            'conferente',
             'finalizador',
             'impressor',
+            'entrega.cliente',
+            'entrega.orcamento.cliente',
+            'entrega.venda.cliente',
+            'itens.entregaItem.entrega.cliente',
+            'itens.entregaItem.produto',
+            'itens.entregaItem.vendaItem.produto',
+            'itens.entregaItem.itemOrcamento.produto',
         ]);
 
         $romaneio->setRelation(
             'itens',
             $romaneio->itens
                 ->sortBy(function ($item) {
-                    $produto = $item->entregaItem?->vendaItem?->produto
-                        ?? $item->entregaItem?->itemOrcamento?->produto;
+                    $entregaItem = $item->entregaItem;
 
-                    return $produto?->localizacao_estoque ?? 'ZZZ';
+                    $produto = $entregaItem?->produto
+                        ?? $entregaItem?->vendaItem?->produto
+                        ?? $entregaItem?->itemOrcamento?->produto
+                        ?? null;
+
+                    return strtolower(
+                        trim(
+                            (string) (
+                                $produto?->localizacao_estoque
+                                ?? 'ZZZ'
+                            )
+                        )
+                    );
                 })
                 ->values()
         );
 
-        return view('romaneios.imprimir', compact('romaneio'));
+        $entrega = $romaneio->entrega;
+
+        $enderecoDestino = trim(
+            (string) (
+                $entrega?->endereco_entrega
+                ?? ''
+            )
+        );
+
+        if ($enderecoDestino === '') {
+            $enderecoDestino = trim(
+                (string) (
+                    $entrega?->endereco_entrega_concatenado
+                    ?? ''
+                )
+            );
+        }
+
+        $urlRota = null;
+        $qrCodeRota = null;
+
+        if ($enderecoDestino !== '') {
+            $urlRota =
+                'https://www.google.com/maps/dir/?api=1'
+                . '&destination='
+                . rawurlencode($enderecoDestino)
+                . '&travelmode=driving'
+                . '&dir_action=navigate';
+
+            $geradorQrCode =
+                new \Endroid\QrCode\Builder\Builder(
+                    writer:
+                        new \Endroid\QrCode\Writer\SvgWriter(),
+                    writerOptions: [],
+                    validateResult: false,
+                    data: $urlRota,
+                    encoding:
+                        new \Endroid\QrCode\Encoding\Encoding(
+                            'ISO-8859-1'
+                        ),
+                    errorCorrectionLevel:
+                        \Endroid\QrCode\ErrorCorrectionLevel::High,
+                    size: 300,
+                    margin: 10,
+                    roundBlockSizeMode:
+                        \Endroid\QrCode\RoundBlockSizeMode::Margin
+                );
+
+            $qrCodeRota = $geradorQrCode
+                ->build()
+                ->getDataUri();
+        }
+
+        return view(
+            'romaneios.imprimir',
+            compact(
+                'romaneio',
+                'enderecoDestino',
+                'urlRota',
+                'qrCodeRota'
+            )
+        );
     }
 
     public function imprimirNotaEntrega(Romaneio $romaneio)

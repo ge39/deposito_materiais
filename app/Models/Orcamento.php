@@ -26,20 +26,29 @@ class Orcamento extends Model
         'data_orcamento',
         'codigo_orcamento',
         'tipo_entrega',
+        'usar_endereco_cliente',
+        'endereco_entrega',
+        'responsavel_recebimento',
+        'telefone_recebimento',
+        'data_prevista_entrega',
+        'periodo_entrega',
+        'observacao_entrega',
         'status',
         'observacoes',
         'total',
         'ativo',
-        'editando_por',  // 🌟 ADICIONE ESTA LINHA
-        'editando_em',   // 🌟 ADICIONE ESTA LINHA
+        'editando_por',
+        'editando_em',
     ];
 
     protected $casts = [
-        'data_orcamento' => 'date',
-        'validade'       => 'date',
-        'total'          => 'decimal:2',
-        'ativo'          => 'boolean',
-        
+        'data_orcamento'         => 'date',
+        'validade'               => 'date',
+        'data_prevista_entrega'  => 'date',
+        'usar_endereco_cliente'  => 'boolean',
+        'total'                  => 'decimal:2',
+        'ativo'                  => 'boolean',
+        'editando_em'            => 'datetime',
     ];
 
 

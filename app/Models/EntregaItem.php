@@ -12,6 +12,8 @@ class EntregaItem extends Model
 
     protected $fillable = [
         'entrega_id',
+        'entrega_item_origem_id',
+        'entrega_item_principal_id',
         'item_orcamento_id',
         'venda_item_id',
         'quantidade_prevista',
@@ -35,6 +37,38 @@ class EntregaItem extends Model
     public function entrega(): BelongsTo
     {
         return $this->belongsTo(Entrega::class, 'entrega_id');
+    }
+
+    public function itemOrigem(): BelongsTo
+    {
+        return $this->belongsTo(
+            self::class,
+            'entrega_item_origem_id'
+        );
+    }
+
+    public function itemPrincipal(): BelongsTo
+    {
+        return $this->belongsTo(
+            self::class,
+            'entrega_item_principal_id'
+        );
+    }
+
+    public function itensFilhos(): HasMany
+    {
+        return $this->hasMany(
+            self::class,
+            'entrega_item_origem_id'
+        );
+    }
+
+    public function itensFracionados(): HasMany
+    {
+        return $this->hasMany(
+            self::class,
+            'entrega_item_principal_id'
+        );
     }
 
     public function vendaItem(): BelongsTo

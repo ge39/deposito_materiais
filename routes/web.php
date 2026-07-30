@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Sistema\BloqueioEdicaoController;
 
 use App\Http\Controllers\{
     AuthController,
@@ -44,6 +45,7 @@ use App\Http\Controllers\{
     EstoqueDivergenciaController,
     BackupController,
     RomaneioController,
+    RomaneioOcorrenciaController,
     ExpedicaoController,
     LocalizacaoEstoqueController,
     VeiculoController,
@@ -60,6 +62,26 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // ROTAS PROTEGIDAS
 // ===============================
 Route::middleware('auth')->group(function () {
+
+    Route::post(
+        '/edicao-bloqueios/adquirir',
+        [BloqueioEdicaoController::class, 'adquirir']
+    )->name('edicao-bloqueios.adquirir');
+
+    Route::get(
+        '/edicao-bloqueios/consultar',
+        [BloqueioEdicaoController::class, 'consultar']
+    )->name('edicao-bloqueios.consultar');
+
+    Route::patch(
+        '/edicao-bloqueios/renovar',
+        [BloqueioEdicaoController::class, 'renovar']
+    )->name('edicao-bloqueios.renovar');
+
+    Route::post(
+        '/edicao-bloqueios/liberar',
+        [BloqueioEdicaoController::class, 'liberar']
+    )->name('edicao-bloqueios.liberar');
 
     // DASHBOARD
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -178,13 +200,17 @@ Route::middleware('auth')->group(function () {
         Route::post('salvar', [DevolucaoController::class, 'salvar'])->name('salvar');
         Route::put('{devolucao}/aprovar', [DevolucaoController::class, 'aprovar'])->name('aprovar');
         Route::put('{devolucao}/rejeitar', [DevolucaoController::class, 'rejeitar'])->name('rejeitar');
+        Route::post('ocorrencias/{ocorrencia}/iniciar', [DevolucaoController::class, 'iniciarPorOcorrencia'])->name('ocorrencias.iniciar');
+        // Route::post('ocorrencias/{ocorrencia}/iniciar', [DevolucaoController::class, 'iniciarPorOcorrencia'])->name('ocorrencias.iniciar');
     });
 
     // 3. Resource limpo (Apenas os métodos padrão do CRUD que você não customizou acima)
+    Route::post('/devolucoes/{devolucao}/vale-troca',[DevolucaoController::class, 'gerarValeTroca'])->name('devolucoes.vale-troca');
     Route::resource('devolucoes', DevolucaoController::class)->except([
         'show', 'store' // Remove os métodos que entram em conflito com 'buscar', 'todas' e 'salvar'
     ]);
 
+   
 
     // ===============================
     // FORNECEDORES
@@ -216,7 +242,6 @@ Route::middleware('auth')->group(function () {
         'vendas' => PdvController::class,
         'itens_venda' => ItensVendaController::class,
         'frotas' => FrotaController::class,
-        'entregas' => EntregaController::class,
         'pos_venda' => PosVendaController::class,
     ]);
 
@@ -461,8 +486,6 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
-
-
 // Agrupadas por autenticação para garantir o user_id no PDV e na Gerência
 Route::middleware(['auth'])->group(function () {
     
@@ -533,43 +556,87 @@ Route::middleware(['auth'])
     });
 
    /*
-|--------------------------------------------------------------------------
-| ENTREGAS
-|--------------------------------------------------------------------------
-*/
+    |--------------------------------------------------------------------------
+    | ENTREGAS
+    |--------------------------------------------------------------------------
+    */
 
-Route::prefix('entregas')
-    ->name('entregas.')
-    ->group(function () {
+    Route::prefix('entregas')
+        ->name('entregas.')
+        ->group(function () {
+            Route::get(
+                '/',
+                [EntregaController::class, 'index']
+            )->name('index');
+
+        /*
+        |----------------------------------------------------------------------
+        | SINCRONIZAÇÃO DO INDEX
+        |----------------------------------------------------------------------
+        |
+        | Deve permanecer antes da rota dinâmica /{entrega}.
+        |
+        */
+
         Route::get(
-            '/',
-            [EntregaController::class, 'index']
-        )->name('index');
+            '/sincronizar-estados',
+            [EntregaController::class, 'sincronizarEstados']
+        )
+            ->middleware('auth')
+            ->name('sincronizar-estados');
+
+        /*
+        |----------------------------------------------------------------------
+        | RETORNO
+        |----------------------------------------------------------------------
+        */
 
         Route::get(
             '/{entrega}/retorno',
             [EntregaController::class, 'retorno']
-        )->name('retorno');
+        )
+            ->middleware(
+                'bloqueio.edicao:entrega,entrega,adquirir,id'
+            )
+            ->name('retorno');
 
         Route::patch(
             '/{entrega}/retorno',
             [EntregaController::class, 'registrarRetorno']
-        )->name('registrar-retorno');
+        )
+            ->middleware(
+                'bloqueio.edicao:entrega,entrega,validar,id'
+            )
+            ->name('registrar-retorno');
 
         Route::patch(
             '/{entrega}/retorno/iniciar-conferencia',
             [EntregaController::class, 'iniciarConferenciaRetorno']
-        )->name('iniciar-conferencia-retorno');
+        )
+            ->middleware(
+                'bloqueio.edicao:entrega,entrega,validar,id'
+            )
+            ->name('iniciar-conferencia-retorno');
 
         Route::patch(
             '/{entrega}/retorno/finalizar-conferencia',
             [EntregaController::class, 'finalizarConferenciaRetorno']
-        )->name('finalizar-conferencia-retorno');
+        )
+            ->middleware(
+                'bloqueio.edicao:entrega,entrega,validar,id'
+            )
+            ->name('finalizar-conferencia-retorno');
 
         Route::get(
             '/{entrega}/retorno/imprimir',
             [EntregaController::class, 'imprimirRelatorioRetorno']
         )->name('retorno.imprimir');
+
+        /*
+        |----------------------------------------------------------------------
+        | OPERAÇÕES
+        |----------------------------------------------------------------------
+        */
 
         Route::patch(
             '/{entrega}/separar',
@@ -594,77 +661,94 @@ Route::prefix('entregas')
         Route::get(
             '/{entrega}/atribuir-equipe',
             [EntregaController::class, 'atribuirEquipe']
-        )->name('atribuir-equipe');
+        )
+            ->middleware(
+                'bloqueio.edicao:entrega,entrega,adquirir,id'
+            )
+            ->name('atribuir-equipe');
 
         Route::put(
             '/{entrega}/atribuir-equipe',
             [EntregaController::class, 'salvarEquipe']
-        )->name('salvar-equipe');
+        )
+            ->middleware(
+                'bloqueio.edicao:entrega,entrega,validar,id'
+            )
+            ->name('salvar-equipe');
+
+        Route::get(
+            '/{romaneio}/nota-entrega',
+            [RomaneioController::class, 'imprimirNotaEntrega']
+        )->name('nota-entrega');
 
         /*
-         * A rota dinâmica deve permanecer por último.
-         */
+        |----------------------------------------------------------------------
+        | ROTA DINÂMICA — DEVE PERMANECER POR ÚLTIMO
+        |----------------------------------------------------------------------
+        */
+
         Route::get(
             '/{entrega}',
             [EntregaController::class, 'show']
-        )->name('show');
-
-        Route::get(
-        '/{romaneio}/nota-entrega',
-        [RomaneioController::class, 'imprimirNotaEntrega']
-        )->name('nota-entrega');
+        )
+            ->middleware(
+                'bloqueio.edicao:entrega,entrega,adquirir,id'
+            )
+            ->name('show');
     });
 
-        /*
-        * Esta rota não deve ficar dentro do prefixo entregas.
-        */
-        Route::resource(
-            'pedidos',
-            PedidoCompraController::class
-        );
+    /*
+    * Esta rota não deve ficar dentro do prefixo entregas.
+    */
+    Route::resource(
+        'pedidos',
+        PedidoCompraController::class
+    );
                 
-            // EXPEDIÇÃO
-            Route::prefix('expedicao')->name('expedicao.')->group(function () {
-                Route::get('/', [ExpedicaoController::class, 'index'])
-                    ->name('index');
+    // EXPEDIÇÃO
+    Route::prefix('expedicao')->name('expedicao.')->group(function () {
+        Route::get('/', [ExpedicaoController::class, 'index'])
+            ->name('index');
 
-                Route::get('/romaneio/{romaneio}', [ExpedicaoController::class, 'show'])
-                    ->name('show');
+        Route::get('/romaneio/{romaneio}', [ExpedicaoController::class, 'show'])
+            ->name('show');
 
-                Route::get('/romaneio/{romaneio}/atribuir-equipe', [ExpedicaoController::class, 'atribuirEquipe'])
-                    ->name('atribuir-equipe');
+        Route::get('/romaneio/{romaneio}/atribuir-equipe', [ExpedicaoController::class, 'atribuirEquipe'])
+            ->name('atribuir-equipe');
 
-                Route::put('/romaneio/{romaneio}/salvar-equipe', [ExpedicaoController::class, 'salvarEquipe'])
-                    ->name('salvar-equipe');
+        Route::put('/romaneio/{romaneio}/salvar-equipe', [ExpedicaoController::class, 'salvarEquipe'])
+            ->name('salvar-equipe');
 
-                Route::get('/romaneio/{romaneio}/operacao', [ExpedicaoController::class, 'operacao'])
-                    ->name('operacao');
+        Route::get('/romaneio/{romaneio}/operacao', [ExpedicaoController::class, 'operacao'])
+            ->name('operacao');
 
-                Route::post('/romaneio/{romaneio}/iniciar-separacao', [ExpedicaoController::class, 'iniciarSeparacao'])
-                    ->name('iniciar-separacao');
+        Route::post('/romaneio/{romaneio}/iniciar-separacao', [ExpedicaoController::class, 'iniciarSeparacao'])
+            ->name('iniciar-separacao');
 
-                Route::post('/romaneio/{romaneio}/iniciar-carregamento', [ExpedicaoController::class, 'iniciarCarregamento'])
-                    ->name('iniciar-carregamento');
+        Route::post('/romaneio/{romaneio}/iniciar-carregamento', [ExpedicaoController::class, 'iniciarCarregamento'])
+            ->name('iniciar-carregamento');
 
-                Route::post('/romaneio/{romaneio}/finalizar-carregamento', [ExpedicaoController::class, 'finalizarCarregamento'])
-                    ->name('finalizar-carregamento');
+        Route::post('/romaneio/{romaneio}/finalizar-carregamento', [ExpedicaoController::class, 'finalizarCarregamento'])
+            ->name('finalizar-carregamento');
 
-                Route::post('/romaneio/{romaneio}/liberar-rota', [ExpedicaoController::class, 'liberarRota'])
-                    ->name('liberar-rota');
-            });
+        Route::post('/romaneio/{romaneio}/liberar-rota', [ExpedicaoController::class, 'liberarRota'])
+            ->name('liberar-rota');
+    });
 
-    
-            // LOCALIZAÇÕES DE ESTOQUE
-            Route::prefix('localizacoes-estoque')->name('localizacoes-estoque.')
-            ->group(function () {
-                Route::get('/', [LocalizacaoEstoqueController::class, 'index'])->name('index');
-                Route::get('/criar', [LocalizacaoEstoqueController::class, 'create'])->name('create');
-                Route::post('/', [LocalizacaoEstoqueController::class, 'store'])->name('store');
-                Route::get('/{localizacaoEstoque}/editar', [LocalizacaoEstoqueController::class, 'edit'])->name('edit');
-                Route::put('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'update'])->name('update');
-                Route::delete('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'destroy'])->name('destroy');
-                // Route::get('/romaneios/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('romaneios.imprimir');
-            });
+
+    // LOCALIZAÇÕES DE ESTOQUE
+    Route::prefix('localizacoes-estoque')->name('localizacoes-estoque.')->group(function () {
+        Route::get('/', [LocalizacaoEstoqueController::class, 'index'])->name('index');
+        Route::get('/criar', [LocalizacaoEstoqueController::class, 'create'])->name('create');
+        Route::post('/', [LocalizacaoEstoqueController::class, 'store'])->name('store');
+        Route::get('/{localizacaoEstoque}/editar', [LocalizacaoEstoqueController::class, 'edit'])->name('edit');
+        Route::put('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'update'])->name('update');
+        Route::delete('/{localizacaoEstoque}', [LocalizacaoEstoqueController::class, 'destroy'])->name('destroy');
+        // Route::get('/romaneios/{romaneio}/imprimir', [RomaneioController::class, 'imprimir'])->name('romaneios.imprimir');
+        
+    });
+            
+           
 
     // Veiculos
     Route::prefix('veiculos')->name('veiculos.')->group(function () {
@@ -677,45 +761,71 @@ Route::prefix('entregas')
         Route::delete('/{veiculo}', [VeiculoController::class, 'destroy'])->name('destroy');
     });
 
-        Route::resource('veiculos', VeiculoController::class);
-  
-        // Frota
-        Route::prefix('frota')
-            ->name('frota.')
-            ->group(function () {
+    Route::resource('veiculos', VeiculoController::class);
 
-                Route::get(
-                    'classes/{tipoVeiculo}',
-                    [FrotaController::class, 'classesPorTipo']
-                )->name('classes');
+    // Frota
+    Route::prefix('frota')
+        ->name('frota.')
+        ->group(function () {
 
-                Route::get(
-                    'carrocerias/{classeVeiculo}',
-                    [FrotaController::class, 'carroceriasPorClasse']
-                )->name('carrocerias');
+            Route::get(
+                'classes/{tipoVeiculo}',
+                [FrotaController::class, 'classesPorTipo']
+            )->name('classes');
 
-        });
+            Route::get(
+                'carrocerias/{classeVeiculo}',
+                [FrotaController::class, 'carroceriasPorClasse']
+            )->name('carrocerias');
+
+    });
         
-        // ===============================
-// ROMANEIOS — FASE 3
-// ===============================
-Route::prefix('romaneios')
-    ->name('romaneios.')
-    ->group(function () {
+
+
+
+    // ===============================
+    // ROMANEIOS — FASE 3
+    // ===============================
+
+    Route::prefix('romaneios')
+        ->name('romaneios.')
+        ->group(function () {
+
+        /*
+        |--------------------------------------------------------------------------
+        | ROTAS FIXAS
+        |--------------------------------------------------------------------------
+        */
+
         Route::get(
             '/',
             [RomaneioController::class, 'index']
         )->name('index');
 
         Route::get(
-            '/criar',
+            '/create',
             [RomaneioController::class, 'create']
-        )->name('create');
+        )
+            ->middleware('bloqueio.edicao:entrega,entrega_id,adquirir,id')
+            ->name('create');
+
+        Route::post(
+            '/entrega/{entrega}',
+            [RomaneioController::class, 'storeDaEntrega']
+        )
+            ->middleware('bloqueio.edicao:entrega,entrega,validar,id')
+            ->name('store-entrega');
 
         Route::post(
             '/',
             [RomaneioController::class, 'store']
         )->name('store');
+
+        /*
+        |--------------------------------------------------------------------------
+        | DOCUMENTOS E OPERAÇÃO
+        |--------------------------------------------------------------------------
+        */
 
         Route::post(
             '/{romaneio}/registrar-impressao',
@@ -735,99 +845,112 @@ Route::prefix('romaneios')
         Route::get(
             '/{romaneio}/separacao',
             [RomaneioController::class, 'separacao']
-        )->name('separacao');
+        )
+            ->middleware('bloqueio.edicao:entrega,romaneio,adquirir,entrega_id')
+            ->name('separacao');
 
         Route::put(
             '/{romaneio}/operacao',
             [RomaneioController::class, 'atualizarOperacao']
-        )->name('operacao.update');
+        )
+            ->middleware('bloqueio.edicao:entrega,romaneio,validar,entrega_id')
+            ->name('operacao.update');
 
         Route::post(
             '/{romaneio}/cancelar',
             [RomaneioController::class, 'cancelar']
         )->name('cancelar');
 
+    /*
+    |--------------------------------------------------------------------------
+    | TRIAGEM DAS OCORRÊNCIAS
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/{romaneio}/ocorrencias/triagem',
+        [RomaneioOcorrenciaController::class, 'triagem']
+    )
+        ->middleware(
+            'bloqueio.edicao:entrega,romaneio,adquirir,entrega_id'
+        )
+        ->name('ocorrencias.triagem');
+
+    Route::patch(
+        '/{romaneio}/ocorrencias/triagem',
+        [RomaneioOcorrenciaController::class, 'salvarTriagem']
+    )
+        ->middleware(
+            'bloqueio.edicao:entrega,romaneio,validar,entrega_id'
+        )
+        ->name('ocorrencias.triagem.salvar');
+
+    Route::patch(
+        '/{romaneio}/ocorrencias/triagem/finalizar',
+        [RomaneioOcorrenciaController::class, 'finalizarTriagem']
+    )
+        ->middleware(
+            'bloqueio.edicao:entrega,romaneio,validar,entrega_id'
+        )
+        ->name('ocorrencias.triagem.finalizar');
+
         /*
         |--------------------------------------------------------------------------
-        | OCORRÊNCIAS DO ROMANEIO
+        | TRATATIVAS DAS OCORRÊNCIAS
         |--------------------------------------------------------------------------
         */
 
         Route::get(
             '/{romaneio}/ocorrencias',
-            [
-                \App\Http\Controllers\RomaneioOcorrenciaController::class,
-                'index',
-            ]
+            [RomaneioOcorrenciaController::class, 'index']
         )->name('ocorrencias.index');
 
         Route::patch(
             '/{romaneio}/ocorrencias/{ocorrencia}/responsavel',
-            [
-                \App\Http\Controllers\RomaneioOcorrenciaController::class,
-                'atribuirResponsavel',
-            ]
+            [RomaneioOcorrenciaController::class, 'atribuirResponsavel']
         )->name('ocorrencias.responsavel');
 
         Route::post(
             '/{romaneio}/ocorrencias/{ocorrencia}/evidencias',
-            [
-                \App\Http\Controllers\RomaneioOcorrenciaController::class,
-                'anexarEvidencia',
-            ]
+            [RomaneioOcorrenciaController::class, 'anexarEvidencia']
         )->name('ocorrencias.evidencias.store');
 
         Route::delete(
             '/{romaneio}/ocorrencias/{ocorrencia}/evidencias/{anexo}',
-            [
-                \App\Http\Controllers\RomaneioOcorrenciaController::class,
-                'removerEvidencia',
-            ]
+            [RomaneioOcorrenciaController::class, 'removerEvidencia']
         )->name('ocorrencias.evidencias.destroy');
 
         Route::patch(
             '/{romaneio}/ocorrencias/{ocorrencia}/autorizar',
-            [
-                \App\Http\Controllers\RomaneioOcorrenciaController::class,
-                'autorizar',
-            ]
+            [RomaneioOcorrenciaController::class, 'autorizar']
         )->name('ocorrencias.autorizar');
 
         Route::patch(
             '/{romaneio}/ocorrencias/{ocorrencia}/decisao',
-            [
-                \App\Http\Controllers\RomaneioOcorrenciaController::class,
-                'registrarDecisao',
-            ]
+            [RomaneioOcorrenciaController::class, 'registrarDecisao']
         )->name('ocorrencias.decisao');
 
         Route::patch(
             '/{romaneio}/ocorrencias/{ocorrencia}/liberar-fechamento',
-            [
-                \App\Http\Controllers\RomaneioOcorrenciaController::class,
-                'liberarFechamento',
-            ]
+            [RomaneioOcorrenciaController::class, 'liberarFechamento']
         )->name('ocorrencias.liberar-fechamento');
 
         Route::patch(
             '/{romaneio}/ocorrencias/{ocorrencia}/resolver',
-            [
-                \App\Http\Controllers\RomaneioOcorrenciaController::class,
-                'resolver',
-            ]
+            [RomaneioOcorrenciaController::class, 'resolver']
         )->name('ocorrencias.resolver');
 
         Route::patch(
             '/{romaneio}/ocorrencias/{ocorrencia}/cancelar',
-            [
-                \App\Http\Controllers\RomaneioOcorrenciaController::class,
-                'cancelar',
-            ]
+            [RomaneioOcorrenciaController::class, 'cancelar']
         )->name('ocorrencias.cancelar');
 
         /*
-         * Esta rota genérica deve permanecer por último.
-         */
+        |--------------------------------------------------------------------------
+        | ROTA GENÉRICA — DEVE PERMANECER POR ÚLTIMO
+        |--------------------------------------------------------------------------
+        */
+
         Route::get(
             '/{romaneio}',
             [RomaneioController::class, 'show']

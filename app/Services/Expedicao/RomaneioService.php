@@ -3,9 +3,11 @@
 namespace App\Services\Expedicao;
 
 use App\Models\Entrega;
+use App\Models\EntregaFracionamento;
 use App\Models\EntregaItem;
 use App\Models\Romaneio;
 use App\Models\RomaneioItem;
+use App\Services\Entregas\EntregaService;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -41,7 +43,8 @@ class RomaneioService
 
     public function __construct(
         private readonly RomaneioEventoService $eventoService,
-        private readonly RomaneioOcorrenciaService $ocorrenciaService
+        private readonly RomaneioOcorrenciaService $ocorrenciaService,
+        private readonly EntregaService $entregaService
     ) {
     }
 
@@ -217,6 +220,7 @@ class RomaneioService
         });
     }
 
+
     public function atualizarOperacao(Romaneio $romaneio,string $acao, array $dados = []): Romaneio 
     {
         return DB::transaction(function () use (
@@ -320,6 +324,11 @@ class RomaneioService
                         $dados
                     ),
 
+                'finalizar_triagem_retorno' =>
+                    $this->finalizarTriagemRetorno(
+                        $romaneio
+                    ),
+
                 'iniciar_conferencia_retorno' =>
                     $this->iniciarConferenciaRetorno(
                         $romaneio,
@@ -370,93 +379,6 @@ class RomaneioService
         });
     }
 
-    // private function concluirMontagem( Romaneio $romaneio, array $dados): Romaneio 
-    // {
-    //     $romaneio->load('itens');
-
-    //     if ($romaneio->itens->isEmpty()) {
-    //         throw ValidationException::withMessages([
-    //             'itens' =>
-    //                 'O romaneio não possui itens para concluir a montagem.',
-    //         ]);
-    //     }
-
-    //     $motoristaId = (int) (
-    //         $dados['motorista_id']
-    //         ?? $romaneio->motorista_id
-    //         ?? 0
-    //     );
-
-    //     $veiculoId = (int) (
-    //         $dados['veiculo_id']
-    //         ?? $romaneio->veiculo_id
-    //         ?? 0
-    //     );
-
-    //     if ($motoristaId <= 0) {
-    //         throw ValidationException::withMessages([
-    //             'motorista_id' =>
-    //                 'Defina o motorista antes de concluir a montagem.',
-    //         ]);
-    //     }
-
-    //     if ($veiculoId <= 0) {
-    //         throw ValidationException::withMessages([
-    //             'veiculo_id' =>
-    //                 'Defina o veículo antes de concluir a montagem.',
-    //         ]);
-    //     }
-
-    //     foreach ($romaneio->itens as $item) {
-    //         if ((float) $item->quantidade_prevista <= 0) {
-    //             throw ValidationException::withMessages([
-    //                 'itens' =>
-    //                     "O item #{$item->entrega_item_id} possui quantidade prevista inválida.",
-    //             ]);
-    //         }
-    //     }
-
-    //     $statusAnterior = $romaneio->status;
-
-    //     $romaneio->update([
-    //         'motorista_id' =>
-    //             $motoristaId,
-
-    //         'veiculo_id' =>
-    //             $veiculoId,
-
-    //         'observacao' =>
-    //             array_key_exists('observacao', $dados)
-    //                 ? ($dados['observacao'] ?: null)
-    //                 : $romaneio->observacao,
-
-    //         'status' =>
-    //             self::STATUS_AGUARDANDO_SEPARACAO,
-
-    //         'percentual_carregado' =>
-    //             0,
-    //     ]);
-
-    //     $this->atualizarStatusEntregas(
-    //         $romaneio,
-    //         'Aguardando_separacao'
-    //     );
-
-    //     $romaneio->refresh();
-
-    //     $this->eventoService->registrarTransicao(
-    //         romaneio: $romaneio,
-    //         evento: 'Montagem concluída',
-    //         etapa: 'Montagem',
-    //         statusAnterior: $statusAnterior,
-    //         statusNovo: $romaneio->status
-    //     );
-
-    //     return $this->carregarRomaneio(
-    //         $romaneio
-    //     );
-    // }
-
     private function concluirMontagem(Romaneio $romaneio, array $dados): Romaneio 
     {
         $romaneio->load('itens');
@@ -476,6 +398,11 @@ class RomaneioService
                 ]);
             }
         }
+
+        $this->atualizarDataPrevistaEntregaComplementar(
+            $romaneio,
+            $dados
+        );
 
         /*
         * Motorista e veículo são opcionais durante a montagem.
@@ -539,6 +466,84 @@ class RomaneioService
         return $this->carregarRomaneio(
             $romaneio
         );
+    }
+
+    private function atualizarDataPrevistaEntregaComplementar(
+        Romaneio $romaneio,
+        array $dados
+    ): void {
+        $entrega = Entrega::query()
+            ->lockForUpdate()
+            ->find($romaneio->entrega_id);
+
+        if (! $entrega) {
+            throw ValidationException::withMessages([
+                'entrega' =>
+                    'Não foi possível localizar a entrega vinculada ao romaneio.',
+            ]);
+        }
+
+        $entregaComplementar =
+            (int) $entrega->entrega_origem_id > 0;
+
+        if (! $entregaComplementar) {
+            if (
+                array_key_exists(
+                    'data_prevista_entrega',
+                    $dados
+                )
+            ) {
+                throw ValidationException::withMessages([
+                    'data_prevista_entrega' =>
+                        'A alteração da data nesta etapa é permitida somente para entregas complementares.',
+                ]);
+            }
+
+            return;
+        }
+
+        $dataInformada = trim(
+            (string) (
+                $dados['data_prevista_entrega']
+                ?? ''
+            )
+        );
+
+        if ($dataInformada === '') {
+            throw ValidationException::withMessages([
+                'data_prevista_entrega' =>
+                    'Informe a data prevista da entrega complementar.',
+            ]);
+        }
+
+        try {
+            $dataPrevista = \Carbon\Carbon::parse(
+                $dataInformada
+            )->startOfDay();
+        } catch (\Throwable) {
+            throw ValidationException::withMessages([
+                'data_prevista_entrega' =>
+                    'A data prevista da entrega complementar é inválida.',
+            ]);
+        }
+
+        if ($dataPrevista->lt(now()->startOfDay())) {
+            throw ValidationException::withMessages([
+                'data_prevista_entrega' =>
+                    'A data prevista da entrega complementar não pode ser anterior à data atual.',
+            ]);
+        }
+
+        $dataPrevistaFormatada =
+            $dataPrevista->toDateString();
+
+        $entrega->update([
+            'data_prevista' =>
+                $dataPrevistaFormatada,
+
+            'data_prevista_entrega' =>
+                $dataPrevistaFormatada,
+        ]);
     }
 
     private function salvarAndamento(Romaneio $romaneio, array $dados): Romaneio 
@@ -1086,7 +1091,7 @@ class RomaneioService
     }
 
     private function registrarSaida(Romaneio $romaneio, array $dados): Romaneio 
-     {
+    {
         $romaneio->refresh();
 
         $motoristaId = (int) (
@@ -1114,9 +1119,35 @@ class RomaneioService
         }
 
         /*
-            * Localiza e bloqueia todos os romaneios operacionais
-            * vinculados ao mesmo caminhão.
-            */
+        |--------------------------------------------------------------------------
+        | Estados de entrega pertencentes à preparação da saída
+        |--------------------------------------------------------------------------
+        |
+        | Estados posteriores à saída, como retorno, ocorrência, devolução,
+        | prestação de contas e fechamento, não pertencem à próxima viagem.
+        |
+        */
+
+        $statusEntregasPreparacaoSaida = [
+            'Aguardando_separacao',
+            'Em_preparacao',
+            'Pronta_para_carregamento',
+            'Carregada',
+            'Liberada',
+        ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Romaneios vinculados à próxima saída do caminhão
+        |--------------------------------------------------------------------------
+        |
+        | STATUS_QUE_RESERVAM_SALDO contém exclusivamente os estados:
+        | Montagem até Liberado.
+        |
+        | Em_rota e todos os estados pós-viagem ficam fora desta consulta.
+        |
+        */
+
         $romaneiosDoVeiculo = Romaneio::query()
             ->with([
                 'entrega',
@@ -1128,26 +1159,31 @@ class RomaneioService
                 'veiculo_id',
                 $veiculoId
             )
+            ->whereIn(
+                'status',
+                [
+                    self::STATUS_MONTAGEM,
+                    self::STATUS_AGUARDANDO_SEPARACAO,
+                    self::STATUS_EM_SEPARACAO,
+                    self::STATUS_AGUARDANDO_CONFERENCIA_SEPARACAO,
+                    self::STATUS_EM_CONFERENCIA_SEPARACAO,
+                    self::STATUS_SEPARACAO_CONFERIDA,
+                    self::STATUS_AGUARDANDO_CARREGAMENTO,
+                    self::STATUS_CARREGANDO,
+                    self::STATUS_AGUARDANDO_CONFERENCIA_SAIDA,
+                    self::STATUS_EM_CONFERENCIA_SAIDA,
+                    self::STATUS_AGUARDANDO_LIBERACAO,
+                    self::STATUS_LIBERADO,
+                ]
+            )
             ->whereHas(
                 'entrega',
                 fn ($query) =>
-                    $query->whereNotIn('status', [
-                        'Entregue',
-                        'Cancelada',
-                        'Cancelado',
-                    ])
+                    $query->whereIn(
+                        'status',
+                        $statusEntregasPreparacaoSaida
+                    )
             )
-            ->whereNotIn('status', [
-                self::STATUS_FECHADO,
-                self::STATUS_CANCELADO,
-                self::STATUS_EM_ROTA,
-                self::STATUS_RETORNANDO,
-                self::STATUS_AGUARDANDO_CONFERENCIA_RETORNO,
-                self::STATUS_EM_CONFERENCIA_RETORNO,
-                self::STATUS_AGUARDANDO_PRESTACAO_CONTAS,
-                self::STATUS_EM_PRESTACAO_CONTAS,
-                self::STATUS_AGUARDANDO_FECHAMENTO,
-            ])
             ->lockForUpdate()
             ->orderBy('ordem_execucao')
             ->orderBy('id')
@@ -1161,9 +1197,11 @@ class RomaneioService
         }
 
         /*
-            * Confirma que o romaneio usado para registrar a saída
-            * pertence ao conjunto encontrado para o caminhão.
-            */
+        |--------------------------------------------------------------------------
+        | Confirmação do romaneio atual
+        |--------------------------------------------------------------------------
+        */
+
         if (
             ! $romaneiosDoVeiculo->contains(
                 fn ($item) =>
@@ -1178,9 +1216,14 @@ class RomaneioService
         }
 
         /*
-            * Se existir qualquer romaneio anterior à liberação,
-            * o caminhão deverá permanecer aguardando na doca.
-            */
+        |--------------------------------------------------------------------------
+        | Romaneios ainda não liberados
+        |--------------------------------------------------------------------------
+        |
+        | Somente cargas pertencentes à próxima viagem podem bloquear a saída.
+        |
+        */
+
         $romaneiosPendentes = $romaneiosDoVeiculo
             ->filter(
                 fn ($item) =>
@@ -1213,16 +1256,18 @@ class RomaneioService
 
             throw ValidationException::withMessages([
                 'romaneios_pendentes' =>
-                    'O caminhão possui cargas ainda não liberadas e deverá aguardar: '
+                    'O caminhão possui cargas da próxima viagem ainda não liberadas e deverá aguardar: '
                     . $descricaoPendentes
                     . '.',
             ]);
         }
 
         /*
-            * Todos os romaneios liberados vinculados ao caminhão
-            * devem possuir o mesmo motorista.
-            */
+        |--------------------------------------------------------------------------
+        | Conferência do motorista
+        |--------------------------------------------------------------------------
+        */
+
         $romaneioMotoristaDivergente =
             $romaneiosDoVeiculo->first(
                 fn ($item) =>
@@ -1248,9 +1293,11 @@ class RomaneioService
         }
 
         /*
-            * Todos os documentos precisam ter sido impressos
-            * antes da confirmação da saída.
-            */
+        |--------------------------------------------------------------------------
+        | Conferência da impressão
+        |--------------------------------------------------------------------------
+        */
+
         $romaneioNaoImpresso =
             $romaneiosDoVeiculo->first(
                 fn ($item) =>
@@ -1268,9 +1315,11 @@ class RomaneioService
         }
 
         /*
-            * IDs que obrigatoriamente devem ser confirmados
-            * pelo operador.
-            */
+        |--------------------------------------------------------------------------
+        | Romaneios confirmados pelo operador
+        |--------------------------------------------------------------------------
+        */
+
         $idsEsperados = $romaneiosDoVeiculo
             ->pluck('id')
             ->map(
@@ -1316,9 +1365,11 @@ class RomaneioService
         $dataSaida = now();
 
         /*
-            * Todos os romaneios liberados e confirmados do
-            * caminhão iniciam a viagem simultaneamente.
-            */
+        |--------------------------------------------------------------------------
+        | Registro da saída conjunta
+        |--------------------------------------------------------------------------
+        */
+
         foreach (
             $romaneiosDoVeiculo
             as $romaneioDaViagem
@@ -1382,7 +1433,8 @@ class RomaneioService
         return $this->carregarRomaneio(
             $romaneio
         );
-        }
+
+    }
 
         private function registrarRetorno(Romaneio $romaneio, array $dados): Romaneio 
         {
@@ -1640,10 +1692,8 @@ class RomaneioService
             );
         }
 
-        private function iniciarConferenciaRetorno(
-            Romaneio $romaneio,
-            array $dados
-        ): Romaneio {
+        private function iniciarConferenciaRetorno(Romaneio $romaneio, array $dados ): Romaneio 
+        {
             $conferenteId = $this->validarFuncionario(
                 $dados,
                 'retorno_conferido_por',
@@ -1684,15 +1734,303 @@ class RomaneioService
             );
         }
 
-        private function finalizarConferenciaRetorno(Romaneio $romaneio, array $dados): Romaneio 
-        {
+        private function finalizarConferenciaRetorno(
+                Romaneio $romaneio,
+                    array $dados
+                ): Romaneio {
+                    $usuarioId = Auth::id();
+
+                    if (! $usuarioId) {
+                        throw ValidationException::withMessages([
+                            'usuario' =>
+                                'Não foi possível identificar o responsável pela conclusão do retorno.',
+                    ]);
+                }
+
             $romaneio->load([
-                'itens.entregaItem',
+                'itens.entregaItem.vendaItem.lote',
+                'ocorrencias' => fn ($query) =>
+                    $query
+                        ->whereNotIn(
+                            'status',
+                            [
+                                'Cancelada',
+                            ]
+                        )
+                        ->orderBy('id'),
+                'ocorrencias.avaliacoes',
             ]);
+
+            $ocorrencias = $romaneio->ocorrencias
+                ->filter(
+                    fn ($ocorrencia) =>
+                        $ocorrencia->status !== 'Cancelada'
+                )
+                ->values();
+
+            if ($ocorrencias->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'ocorrencias' =>
+                        'Nenhum produto com problema foi identificado na triagem do retorno.',
+                ]);
+            }
+
+            $ocorrenciasPendentes = $ocorrencias
+                ->filter(
+                    fn ($ocorrencia) =>
+                        $ocorrencia->triagem_status !== 'Concluida'
+                )
+                ->values();
+
+            if ($ocorrenciasPendentes->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'ocorrencias' =>
+                        'Existem produtos com avaliação visual pendente. Conclua todas as avaliações antes de finalizar o retorno.',
+                ]);
+            }
+
+            $mapeamentoClassificacoes = [
+                'Devolucao' => [
+                    'campo' =>
+                        'quantidade_devolvida',
+
+                    'exige_avaliacao' =>
+                        true,
+                ],
+
+                'Recusa' => [
+                    'campo' =>
+                        'quantidade_recusada',
+
+                    'exige_avaliacao' =>
+                        true,
+                ],
+
+                'Avaria' => [
+                    'campo' =>
+                        'quantidade_avariada',
+
+                    'exige_avaliacao' =>
+                        true,
+                ],
+
+                'Extravio' => [
+                    'campo' =>
+                        'quantidade_perdida',
+
+                    'exige_avaliacao' =>
+                        false,
+                ],
+            ];
+
+            $itensConsolidados = [];
+
+            foreach ($romaneio->itens as $romaneioItem) {
+                $quantidadeSaida = round(
+                    (float) $romaneioItem
+                        ->quantidade_conferida_saida,
+                    3
+                );
+
+                if ($quantidadeSaida <= 0) {
+                    throw ValidationException::withMessages([
+                        'itens' =>
+                            "O item #{$romaneioItem->entrega_item_id} não possui quantidade conferida na saída.",
+                    ]);
+                }
+
+                $quantidadesResultado = [
+                    'quantidade_devolvida' =>
+                        0.0,
+
+                    'quantidade_recusada' =>
+                        0.0,
+
+                    'quantidade_avariada' =>
+                        0.0,
+
+                    'quantidade_perdida' =>
+                        0.0,
+                ];
+
+                $ocorrenciasDoItem = $ocorrencias
+                    ->filter(
+                        fn ($ocorrencia) =>
+                            (int) $ocorrencia->romaneio_item_id
+                            === (int) $romaneioItem->id
+                    )
+                    ->values();
+
+                foreach ($ocorrenciasDoItem as $ocorrencia) {
+                    $classificacao = trim(
+                        (string) (
+                            $ocorrencia->classificacao_final
+                            ?: $ocorrencia->classificacao_inicial
+                        )
+                    );
+
+                    if (! isset(
+                        $mapeamentoClassificacoes[$classificacao]
+                    )) {
+                        throw ValidationException::withMessages([
+                            'ocorrencias' =>
+                                "A ocorrência #{$ocorrencia->id} possui uma classificação inválida.",
+                        ]);
+                    }
+
+                    $quantidadeOcorrencia = round(
+                        (float) $ocorrencia->quantidade_envolvida,
+                        3
+                    );
+
+                    if ($quantidadeOcorrencia <= 0) {
+                        throw ValidationException::withMessages([
+                            'ocorrencias' =>
+                                "A ocorrência #{$ocorrencia->id} não possui uma quantidade válida.",
+                        ]);
+                    }
+
+                    $configuracao =
+                        $mapeamentoClassificacoes[$classificacao];
+
+                    if ($configuracao['exige_avaliacao']) {
+                        $loteOrigemId =
+                            $romaneioItem
+                                ->entregaItem
+                                ?->vendaItem
+                                ?->lote_id
+                            ?? $romaneioItem
+                                ->entregaItem
+                                ?->vendaItem
+                                ?->lote
+                                ?->id;
+
+                        if (! $loteOrigemId) {
+                            throw ValidationException::withMessages([
+                                'lote' =>
+                                    "O item #{$romaneioItem->entrega_item_id} não possui o lote original utilizado na saída. A movimentação de retorno foi bloqueada.",
+                            ]);
+                        }
+
+                        if ($ocorrencia->avaliacoes->isEmpty()) {
+                            throw ValidationException::withMessages([
+                                'avaliacoes' =>
+                                    "A ocorrência #{$ocorrencia->id} não possui avaliação física.",
+                            ]);
+                        }
+
+                        $quantidadeAvaliada = round(
+                            (float) $ocorrencia
+                                ->avaliacoes
+                                ->sum('quantidade'),
+                            3
+                        );
+
+                        if (
+                            abs(
+                                $quantidadeAvaliada
+                                - $quantidadeOcorrencia
+                            ) >= 0.001
+                        ) {
+                            throw ValidationException::withMessages([
+                                'avaliacoes' =>
+                                    "A soma das avaliações da ocorrência #{$ocorrencia->id} deve ser igual à quantidade afetada.",
+                            ]);
+                        }
+
+                        foreach (
+                            $ocorrencia->avaliacoes
+                            as $avaliacao
+                        ) {
+                            if (
+                                (int) $avaliacao->lote_id
+                                !== (int) $loteOrigemId
+                            ) {
+                                throw ValidationException::withMessages([
+                                    'lote' =>
+                                        "A avaliação #{$avaliacao->id} não preservou o lote original do item #{$romaneioItem->entrega_item_id}.",
+                                ]);
+                            }
+                        }
+                    }
+
+                    $campoQuantidade =
+                        $configuracao['campo'];
+
+                    $quantidadesResultado[$campoQuantidade] =
+                        round(
+                            $quantidadesResultado[$campoQuantidade]
+                            + $quantidadeOcorrencia,
+                            3
+                        );
+                }
+
+                $quantidadeComProblema = round(
+                    array_sum($quantidadesResultado),
+                    3
+                );
+
+                if ($quantidadeComProblema > $quantidadeSaida) {
+                    throw ValidationException::withMessages([
+                        'itens' =>
+                            "A quantidade total com problema do item #{$romaneioItem->entrega_item_id} ultrapassa a quantidade conferida na saída.",
+                    ]);
+                }
+
+                /*
+                * A parte do produto que não recebeu ocorrência
+                * foi entregue normalmente e não precisa ser
+                * reavaliada pelo operador.
+                */
+                $quantidadeEntregue = round(
+                    $quantidadeSaida
+                    - $quantidadeComProblema,
+                    3
+                );
+
+                $itensConsolidados[] = [
+                    'romaneio_item_id' =>
+                        $romaneioItem->id,
+
+                    'entrega_item_id' =>
+                        $romaneioItem->entrega_item_id,
+
+                    'quantidade_entregue' =>
+                        $quantidadeEntregue,
+
+                    'quantidade_devolvida' =>
+                        $quantidadesResultado[
+                            'quantidade_devolvida'
+                        ],
+
+                    'quantidade_recusada' =>
+                        $quantidadesResultado[
+                            'quantidade_recusada'
+                        ],
+
+                    'quantidade_avariada' =>
+                        $quantidadesResultado[
+                            'quantidade_avariada'
+                        ],
+
+                    'quantidade_perdida' =>
+                        $quantidadesResultado[
+                            'quantidade_perdida'
+                        ],
+                ];
+            }
+
+            $statusAnterior = $romaneio->status;
 
             $this->salvarDadosOperacionais(
                 $romaneio,
-                $dados
+                [
+                    'itens' =>
+                        $itensConsolidados,
+
+                    'retorno_conferido_por' =>
+                        $usuarioId,
+                ]
             );
 
             $romaneio->refresh();
@@ -1701,73 +2039,61 @@ class RomaneioService
                 'itens.entregaItem',
             ]);
 
-            $this->validarConferenciaRetornoCompleta(
-                $romaneio
-            );
-
-            $statusAnterior = $romaneio->status;
-
             /*
-            * Primeiro consolida o resultado definitivo das entregas
-            * e dos respectivos itens.
+            * Consolida o resultado definitivo somente depois
+            * que toda a triagem visual estiver concluída.
             */
             $this->atualizarResultadoFinalEntregas(
                 $romaneio
             );
 
             /*
-            * Gera ocorrências apenas para quantidades devolvidas,
-            * recusadas, avariadas ou extraviadas/perdidas.
-            *
-            * O serviço também altera o romaneio para
-            * Aguardando_tratativa_ocorrencia quando houver
-            * alguma ocorrência operacional.
+            * As ocorrências já foram criadas durante a triagem.
+            * Neste ponto o fluxo apenas segue para a tratativa.
             */
-            $ocorrenciasCriadas =
-                $this->ocorrenciaService
-                    ->criarOcorrenciasDoRetorno(
-                        $romaneio
-                    );
+            $romaneio->update([
+                'status' =>
+                    self::STATUS_AGUARDANDO_TRATATIVA_OCORRENCIA,
 
-            if ($ocorrenciasCriadas->isEmpty()) {
-                /*
-                * Sem divergências materiais, o fluxo segue
-                * normalmente para a prestação de contas.
-                */
-                $romaneio->update([
-                    'status' =>
-                        self::STATUS_AGUARDANDO_PRESTACAO_CONTAS,
-                ]);
-            } else {
-                /*
-                * Mantém explicitamente o estado de tratativa.
-                * Essa atualização também protege o fluxo caso
-                * o serviço de ocorrências seja alterado depois.
-                */
-                $romaneio->update([
-                    'status' =>
-                        self::STATUS_AGUARDANDO_TRATATIVA_OCORRENCIA,
-                ]);
-            }
+                'data_retorno' =>
+                    $romaneio->data_retorno ?? now(),
+
+                'retorno_registrado_por' =>
+                    $romaneio->retorno_registrado_por
+                    ?? $usuarioId,
+            ]);
 
             $romaneio->refresh();
 
             $quantidadeOcorrencias =
-                $ocorrenciasCriadas->count();
+                $ocorrencias->count();
+
+            $quantidadeAfetada = round(
+                (float) $ocorrencias
+                    ->sum('quantidade_envolvida'),
+                3
+            );
 
             $observacaoEvento =
-                $quantidadeOcorrencias === 0
-                    ? 'Conferência concluída sem divergências materiais. O romaneio foi encaminhado para prestação de contas.'
-                    : (
-                        'Conferência concluída com '
-                        . $quantidadeOcorrencias
-                        . (
-                            $quantidadeOcorrencias === 1
-                                ? ' ocorrência material. '
-                                : ' ocorrências materiais. '
-                        )
-                        . 'O romaneio foi encaminhado para tratativa das ocorrências.'
-                    );
+                $dados['observacao_retorno']
+                ?? (
+                    'Triagem do retorno concluída com '
+                    . $quantidadeOcorrencias
+                    . (
+                        $quantidadeOcorrencias === 1
+                            ? ' ocorrência material'
+                            : ' ocorrências materiais'
+                    )
+                    . ' e '
+                    . number_format(
+                        $quantidadeAfetada,
+                        3,
+                        ',',
+                        '.'
+                    )
+                    . ' unidade(s) afetada(s). '
+                    . 'O romaneio foi encaminhado para tratativa.'
+                );
 
             $this->eventoService->registrarTransicao(
                 romaneio: $romaneio,
@@ -1783,9 +2109,491 @@ class RomaneioService
             );
         }
 
-        private function atualizarResultadoFinalEntregas(Romaneio $romaneio): void 
-        {
+        private function finalizarTriagemRetorno(
+            Romaneio $romaneio): Romaneio {
+            $usuarioId = Auth::id();
+
+            if (! $usuarioId) {
+                throw ValidationException::withMessages([
+                    'usuario' =>
+                        'Não foi possível identificar o responsável pela conclusão do retorno.',
+                ]);
+            }
+
             $romaneio->load([
+                'itens.entregaItem.vendaItem.lote',
+                'itens.entregaItem.itemOrcamento',
+
+                'ocorrencias' => fn ($query) =>
+                    $query
+                        ->whereNotIn(
+                            'status',
+                            [
+                                'Cancelada',
+                            ]
+                        )
+                        ->orderBy('id'),
+
+                'ocorrencias.avaliacoes',
+            ]);
+
+            $ocorrencias = $romaneio->ocorrencias
+                ->values();
+
+            if ($ocorrencias->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'ocorrencias' =>
+                        'Nenhum produto com problema foi informado. Se a entrega ocorreu normalmente, utilize o fluxo de retorno normal.',
+                ]);
+            }
+
+            $ocorrenciasPendentes = $ocorrencias
+                ->filter(
+                    fn ($ocorrencia) =>
+                        $ocorrencia->triagem_status
+                            !== 'Concluida'
+                )
+                ->values();
+
+            if ($ocorrenciasPendentes->isNotEmpty()) {
+                $quantidadePendente =
+                    $ocorrenciasPendentes->count();
+
+                throw ValidationException::withMessages([
+                    'triagem' =>
+                        'Ainda existem '
+                        . $quantidadePendente
+                        . (
+                            $quantidadePendente === 1
+                                ? ' produto com triagem pendente.'
+                                : ' produtos com triagem pendente.'
+                        ),
+                ]);
+            }
+
+            $itensDoRomaneio = $romaneio->itens
+                ->keyBy(
+                    fn ($romaneioItem) =>
+                        (int) $romaneioItem->id
+                );
+
+            $ocorrenciaSemItemValido = $ocorrencias
+                ->first(function ($ocorrencia) use (
+                    $itensDoRomaneio
+                ) {
+                    $romaneioItemId = (int) (
+                        $ocorrencia->romaneio_item_id
+                        ?? 0
+                    );
+
+                    return
+                        $romaneioItemId <= 0
+                        || ! $itensDoRomaneio->has(
+                            $romaneioItemId
+                        );
+                });
+
+            if ($ocorrenciaSemItemValido) {
+                throw ValidationException::withMessages([
+                    'ocorrencias' =>
+                        "A ocorrência #{$ocorrenciaSemItemValido->id} não está vinculada a um item válido deste romaneio.",
+                ]);
+            }
+
+            $ocorrenciasPorItem = $ocorrencias
+                ->groupBy(
+                    fn ($ocorrencia) =>
+                        (int) $ocorrencia
+                            ->romaneio_item_id
+                );
+
+            $itens = [];
+
+            foreach (
+                $romaneio->itens
+                as $romaneioItem
+            ) {
+                $quantidadeSaida = round(
+                    (float) (
+                        $romaneioItem
+                            ->quantidade_conferida_saida
+                        ?? 0
+                    ),
+                    3
+                );
+
+                $ocorrenciasDoItem =
+                    $ocorrenciasPorItem->get(
+                        (int) $romaneioItem->id,
+                        collect()
+                    );
+
+                $quantidades = [
+                    'Devolucao' => 0.0,
+                    'Recusa' => 0.0,
+                    'Avaria' => 0.0,
+                    'Extravio' => 0.0,
+                ];
+
+                $descricoes = [];
+
+                $loteOrigemId =
+                    $this->resolverLoteOrigemIdRetorno(
+                        $romaneioItem
+                    );
+
+                foreach (
+                    $ocorrenciasDoItem
+                    as $ocorrencia
+                ) {
+                    $classificacao = trim(
+                        (string) (
+                            $ocorrencia
+                                ->classificacao_final
+                            ?: $ocorrencia
+                                ->classificacao_inicial
+                            ?? ''
+                        )
+                    );
+
+                    if (! array_key_exists(
+                        $classificacao,
+                        $quantidades
+                    )) {
+                        throw ValidationException::withMessages([
+                            'ocorrencias' =>
+                                "A ocorrência #{$ocorrencia->id} possui uma classificação de retorno inválida.",
+                        ]);
+                    }
+
+                    $quantidadeOcorrencia = round(
+                        (float) (
+                            $ocorrencia
+                                ->quantidade_envolvida
+                            ?? 0
+                        ),
+                        3
+                    );
+
+                    if ($quantidadeOcorrencia <= 0) {
+                        throw ValidationException::withMessages([
+                            'ocorrencias' =>
+                                "A ocorrência #{$ocorrencia->id} não possui uma quantidade válida.",
+                        ]);
+                    }
+
+                    if (in_array(
+                        $classificacao,
+                        [
+                            'Devolucao',
+                            'Recusa',
+                            'Avaria',
+                        ],
+                        true
+                    )) {
+                        if ($ocorrencia->avaliacoes->isEmpty()) {
+                            throw ValidationException::withMessages([
+                                'triagem' =>
+                                    "A ocorrência #{$ocorrencia->id} não possui avaliações físicas.",
+                            ]);
+                        }
+
+                        if (! $loteOrigemId) {
+                            throw ValidationException::withMessages([
+                                'lote' =>
+                                    "O item #{$romaneioItem->entrega_item_id} não possui um único lote original identificado. A consolidação foi bloqueada sem aplicar FIFO.",
+                            ]);
+                        }
+
+                        $quantidadeAvaliada = round(
+                            (float) $ocorrencia
+                                ->avaliacoes
+                                ->sum(
+                                    fn ($avaliacao) =>
+                                        (float) (
+                                            $avaliacao
+                                                ->quantidade
+                                            ?? 0
+                                        )
+                                ),
+                            3
+                        );
+
+                        if (
+                            abs(
+                                $quantidadeAvaliada
+                                - $quantidadeOcorrencia
+                            ) >= 0.001
+                        ) {
+                            throw ValidationException::withMessages([
+                                'triagem' =>
+                                    "A quantidade avaliada na ocorrência #{$ocorrencia->id} não corresponde à quantidade envolvida.",
+                            ]);
+                        }
+
+                        $avaliacaoComLoteIncorreto =
+                            $ocorrencia->avaliacoes
+                                ->contains(
+                                    fn ($avaliacao) =>
+                                        (int) (
+                                            $avaliacao->lote_id
+                                            ?? 0
+                                        )
+                                        !== $loteOrigemId
+                                );
+
+                        if ($avaliacaoComLoteIncorreto) {
+                            throw ValidationException::withMessages([
+                                'lote' =>
+                                    "A ocorrência #{$ocorrencia->id} não preservou o lote original utilizado na saída do item #{$romaneioItem->entrega_item_id}.",
+                            ]);
+                        }
+                    }
+
+                    $quantidades[$classificacao] =
+                        round(
+                            $quantidades[$classificacao]
+                            + $quantidadeOcorrencia,
+                            3
+                        );
+
+                    $descricao = trim(
+                        (string) (
+                            $ocorrencia->descricao
+                            ?? ''
+                        )
+                    );
+
+                    if ($descricao !== '') {
+                        $descricoes[] =
+                            $descricao;
+                    }
+                }
+
+                $quantidadeComProblema = round(
+                    array_sum($quantidades),
+                    3
+                );
+
+                if (
+                    $quantidadeComProblema
+                    > $quantidadeSaida
+                ) {
+                    throw ValidationException::withMessages([
+                        'itens' =>
+                            "A soma das ocorrências do item #{$romaneioItem->entrega_item_id} ultrapassa a quantidade conferida na saída.",
+                    ]);
+                }
+
+                $quantidadeEntregue = round(
+                    $quantidadeSaida
+                    - $quantidadeComProblema,
+                    3
+                );
+
+                $observacao = trim(
+                    implode(
+                        ' | ',
+                        array_unique(
+                            $descricoes
+                        )
+                    )
+                );
+
+                if (
+                    mb_strlen($observacao)
+                    > 500
+                ) {
+                    $observacao = mb_substr(
+                        $observacao,
+                        0,
+                        500
+                    );
+                }
+
+                $itens[] = [
+                    'romaneio_item_id' =>
+                        $romaneioItem->id,
+
+                    'entrega_item_id' =>
+                        $romaneioItem
+                            ->entrega_item_id,
+
+                    'quantidade_entregue' =>
+                        $quantidadeEntregue,
+
+                    'quantidade_devolvida' =>
+                        $quantidades['Devolucao'],
+
+                    'quantidade_recusada' =>
+                        $quantidades['Recusa'],
+
+                    'quantidade_avariada' =>
+                        $quantidades['Avaria'],
+
+                    'quantidade_perdida' =>
+                        $quantidades['Extravio'],
+
+                    'observacao' =>
+                        $observacao !== ''
+                            ? $observacao
+                            : null,
+                ];
+            }
+
+            $statusAnterior =
+                $romaneio->status;
+
+            $this->salvarDadosOperacionais(
+                $romaneio,
+                [
+                    'itens' =>
+                        $itens,
+                ]
+            );
+
+            $romaneio->refresh();
+
+            $romaneio->load([
+                'itens.entregaItem',
+                'ocorrencias.avaliacoes',
+            ]);
+
+            $this->atualizarResultadoFinalEntregas(
+                $romaneio
+            );
+
+            $romaneio->update([
+                'status' =>
+                    self::STATUS_AGUARDANDO_TRATATIVA_OCORRENCIA,
+
+                'data_retorno' =>
+                    $romaneio->data_retorno
+                    ?? now(),
+
+                'retorno_registrado_por' =>
+                    $romaneio->retorno_registrado_por
+                    ?? $usuarioId,
+            ]);
+
+            $romaneio->refresh();
+
+            $quantidadeProdutos =
+                $romaneio->itens->count();
+
+            $quantidadeProdutosComProblema =
+                $ocorrenciasPorItem->count();
+
+            $quantidadeProdutosNormais =
+                max(
+                    0,
+                    $quantidadeProdutos
+                    - $quantidadeProdutosComProblema
+                );
+
+            $this->eventoService
+                ->registrarTransicao(
+                    romaneio: $romaneio,
+                    evento:
+                        'Triagem do retorno concluída',
+
+                    etapa:
+                        'Triagem_retorno',
+
+                    statusAnterior:
+                        $statusAnterior,
+
+                    statusNovo:
+                        $romaneio->status,
+
+                    observacao:
+                        $quantidadeProdutosComProblema
+                        . (
+                            $quantidadeProdutosComProblema
+                                === 1
+                                ? ' produto com ocorrência e '
+                                : ' produtos com ocorrência e '
+                        )
+                        . $quantidadeProdutosNormais
+                        . (
+                            $quantidadeProdutosNormais
+                                === 1
+                                ? ' produto confirmado como entregue normalmente.'
+                                : ' produtos confirmados como entregues normalmente.'
+                        )
+                        . ' As ocorrências permanecem abertas para tratativa administrativa, sem movimentação de estoque nesta etapa.'
+                );
+
+            return $this->carregarRomaneio(
+                $romaneio
+            );
+        }
+
+        private function resolverLoteOrigemIdRetorno(
+            RomaneioItem $romaneioItem
+        ): ?int {
+            $entregaItem =
+                $romaneioItem->entregaItem;
+
+            $loteVendaId = (int) (
+                $entregaItem
+                    ?->vendaItem
+                    ?->lote_id
+                ?? $entregaItem
+                    ?->vendaItem
+                    ?->lote
+                    ?->id
+                ?? 0
+            );
+
+            if ($loteVendaId > 0) {
+                return $loteVendaId;
+            }
+
+            $itemOrcamentoId = (int) (
+                $entregaItem
+                    ?->item_orcamento_id
+                ?? 0
+            );
+
+            if ($itemOrcamentoId <= 0) {
+                return null;
+            }
+
+            $loteIds = DB::table(
+                'item_orcamento_lotes'
+            )
+                ->where(
+                    'item_orcamento_id',
+                    $itemOrcamentoId
+                )
+                ->pluck('lote_id')
+                ->map(
+                    fn ($loteId) =>
+                        (int) $loteId
+                )
+                ->filter(
+                    fn (int $loteId) =>
+                        $loteId > 0
+                )
+                ->unique()
+                ->values();
+
+            /*
+            * Retorno não seleciona lote por FIFO.
+            * O fallback do orçamento só é seguro quando existe
+            * exatamente um lote original vinculado ao item.
+            */
+            if ($loteIds->count() !== 1) {
+                return null;
+            }
+
+            return (int) $loteIds->first();
+        }
+
+        public function atualizarResultadoFinalEntregas(Romaneio $romaneio,bool $tratativaFinalizada = false): void 
+        {
+            $romaneio->loadMissing([
                 'itens.entregaItem',
             ]);
 
@@ -1811,8 +2619,10 @@ class RomaneioService
 
             foreach ($itensPorEntrega as $entregaId => $itensRomaneio) {
                 /*
-                * Atualiza primeiro cada item da entrega com o resultado
-                * definitivo registrado no retorno do romaneio.
+                * Cada item da entrega é recalculado a partir de todos os
+                * romaneios válidos vinculados a ele. A consolidação não soma
+                * o valor já salvo em entrega_itens, portanto pode ser
+                * executada novamente sem duplicar quantidades.
                 */
                 foreach ($itensRomaneio as $romaneioItem) {
                     $entregaItem = $romaneioItem->entregaItem;
@@ -1824,82 +2634,122 @@ class RomaneioService
                         ]);
                     }
 
+                    $resultadoConsolidado = DB::table(
+                        'romaneio_itens as ri'
+                    )
+                        ->join(
+                            'romaneios as r',
+                            'r.id',
+                            '=',
+                            'ri.romaneio_id'
+                        )
+                        ->where(
+                            'ri.entrega_item_id',
+                            $entregaItem->id
+                        )
+                        ->where(function ($query) {
+                            $query
+                                ->whereNull('ri.status')
+                                ->orWhere(
+                                    'ri.status',
+                                    '<>',
+                                    self::STATUS_CANCELADO
+                                );
+                        })
+                        ->where(function ($query) {
+                            $query
+                                ->whereNull('r.status')
+                                ->orWhere(
+                                    'r.status',
+                                    '<>',
+                                    self::STATUS_CANCELADO
+                                );
+                        })
+                        ->selectRaw(
+                            'COALESCE(SUM(ri.quantidade_entregue), 0) as quantidade_entregue'
+                        )
+                        ->selectRaw(
+                            'COALESCE(SUM(ri.quantidade_devolvida), 0) as quantidade_devolvida'
+                        )
+                        ->selectRaw(
+                            'COALESCE(SUM(ri.quantidade_recusada), 0) as quantidade_recusada'
+                        )
+                        ->selectRaw(
+                            'COALESCE(SUM(ri.quantidade_avariada), 0) as quantidade_avariada'
+                        )
+                        ->selectRaw(
+                            'COALESCE(SUM(ri.quantidade_perdida), 0) as quantidade_perdida'
+                        )
+                        ->first();
+
                     $quantidadePrevista = round(
                         (float) $entregaItem->quantidade_prevista,
-                        2
+                        3
                     );
 
-                    $quantidadeJaEntregue = round(
+                    $quantidadeEntregue = round(
                         (float) (
-                            $entregaItem->quantidade_entregue
+                            $resultadoConsolidado
+                                ?->quantidade_entregue
                             ?? 0
                         ),
-                        2
-                    );
-
-                    $quantidadeEntregueNoRomaneio = round(
-                        (float) (
-                            $romaneioItem->quantidade_entregue
-                            ?? 0
-                        ),
-                        2
+                        3
                     );
 
                     $quantidadeDevolvida = round(
                         (float) (
-                            $romaneioItem->quantidade_devolvida
+                            $resultadoConsolidado
+                                ?->quantidade_devolvida
                             ?? 0
                         ),
-                        2
+                        3
                     );
 
                     $quantidadeRecusada = round(
                         (float) (
-                            $romaneioItem->quantidade_recusada
+                            $resultadoConsolidado
+                                ?->quantidade_recusada
                             ?? 0
                         ),
-                        2
+                        3
                     );
 
                     $quantidadeAvariada = round(
                         (float) (
-                            $romaneioItem->quantidade_avariada
+                            $resultadoConsolidado
+                                ?->quantidade_avariada
                             ?? 0
                         ),
-                        2
+                        3
                     );
 
                     $quantidadePerdida = round(
                         (float) (
-                            $romaneioItem->quantidade_perdida
+                            $resultadoConsolidado
+                                ?->quantidade_perdida
                             ?? 0
                         ),
-                        2
+                        3
                     );
 
-                    $novaQuantidadeEntregue = round(
-                        $quantidadeJaEntregue
-                        + $quantidadeEntregueNoRomaneio,
-                        2
+                    $quantidadeResultado = round(
+                        $quantidadeEntregue
+                        + $quantidadeDevolvida
+                        + $quantidadeRecusada
+                        + $quantidadeAvariada
+                        + $quantidadePerdida,
+                        3
                     );
 
-                    /*
-                    * Impede que reprocessamentos ou inconsistências façam
-                    * a quantidade entregue ultrapassar a prevista.
-                    */
-                    $novaQuantidadeEntregue = min(
-                        $novaQuantidadeEntregue,
-                        $quantidadePrevista
-                    );
-
-                    $saldoPendente = round(
-                        max(
-                            0,
-                            $quantidadePrevista
-                            - $novaQuantidadeEntregue
-                        ),
-                        2
-                    );
+                    if (
+                        $quantidadeResultado
+                        > $quantidadePrevista + 0.001
+                    ) {
+                        throw ValidationException::withMessages([
+                            'entrega_item' =>
+                                "O resultado consolidado do item da entrega #{$entregaItem->id} ultrapassa a quantidade prevista.",
+                        ]);
+                    }
 
                     $possuiResultadoNaoEntregue =
                         $quantidadeDevolvida > 0
@@ -1909,10 +2759,16 @@ class RomaneioService
 
                     $statusItem = match (true) {
                         $quantidadePrevista > 0
-                            && $saldoPendente < 0.005 =>
+                            && abs(
+                                $quantidadeEntregue
+                                - $quantidadePrevista
+                            ) < 0.001 =>
                                 'Entregue',
 
-                        $novaQuantidadeEntregue <= 0
+                        $quantidadeEntregue > 0 =>
+                            'Entregue_parcial',
+
+                        $quantidadeEntregue <= 0
                             && $possuiResultadoNaoEntregue =>
                                 'Devolvido',
 
@@ -1920,13 +2776,21 @@ class RomaneioService
                             'Pendente',
                     };
 
-                    $entregaItem->update([
-                        'quantidade_entregue' =>
-                            $novaQuantidadeEntregue,
+                    DB::table('entrega_itens')
+                        ->where('id', $entregaItem->id)
+                        ->update([
+                            'quantidade_entregue' =>
+                                $quantidadeEntregue,
 
-                        'status' =>
-                            $statusItem,
-                    ]);
+                            'quantidade_devolvida' =>
+                                $quantidadeDevolvida,
+
+                            'status' =>
+                                $statusItem,
+
+                            'updated_at' =>
+                                now(),
+                        ]);
                 }
 
                 /*
@@ -1971,6 +2835,108 @@ class RomaneioService
                     2
                 );
 
+                /*
+                * Consolida todos os resultados dos romaneios válidos
+                * relacionados à entrega.
+                */
+                $resultadoEntrega = DB::table(
+                    'romaneio_itens as ri'
+                )
+                    ->join(
+                        'romaneios as r',
+                        'r.id',
+                        '=',
+                        'ri.romaneio_id'
+                    )
+                    ->join(
+                        'entrega_itens as ei',
+                        'ei.id',
+                        '=',
+                        'ri.entrega_item_id'
+                    )
+                    ->where(
+                        'ei.entrega_id',
+                        $entrega->id
+                    )
+                    ->where(function ($query) {
+                        $query
+                            ->whereNull('ri.status')
+                            ->orWhere(
+                                'ri.status',
+                                '<>',
+                                self::STATUS_CANCELADO
+                            );
+                    })
+                    ->where(function ($query) {
+                        $query
+                            ->whereNull('r.status')
+                            ->orWhere(
+                                'r.status',
+                                '<>',
+                                self::STATUS_CANCELADO
+                            );
+                    })
+                    ->selectRaw(
+                        'COALESCE(SUM(ri.quantidade_entregue), 0) as quantidade_entregue'
+                    )
+                    ->selectRaw(
+                        'COALESCE(SUM(ri.quantidade_devolvida), 0) as quantidade_devolvida'
+                    )
+                    ->selectRaw(
+                        'COALESCE(SUM(ri.quantidade_recusada), 0) as quantidade_recusada'
+                    )
+                    ->selectRaw(
+                        'COALESCE(SUM(ri.quantidade_avariada), 0) as quantidade_avariada'
+                    )
+                    ->selectRaw(
+                        'COALESCE(SUM(ri.quantidade_perdida), 0) as quantidade_perdida'
+                    )
+                    ->first();
+
+                $quantidadeNaoEntregueTotal = round(
+                    (float) (
+                        $resultadoEntrega
+                            ?->quantidade_devolvida
+                        ?? 0
+                    )
+                    + (float) (
+                        $resultadoEntrega
+                            ?->quantidade_recusada
+                        ?? 0
+                    )
+                    + (float) (
+                        $resultadoEntrega
+                            ?->quantidade_avariada
+                        ?? 0
+                    )
+                    + (float) (
+                        $resultadoEntrega
+                            ?->quantidade_perdida
+                        ?? 0
+                    ),
+                    3
+                );
+
+                $quantidadeResultadoTotal = round(
+                    (float) (
+                        $resultadoEntrega
+                            ?->quantidade_entregue
+                        ?? 0
+                    )
+                    + $quantidadeNaoEntregueTotal,
+                    3
+                );
+
+                $resultadoTotalApurado =
+                    $quantidadePrevistaTotal > 0
+                    && abs(
+                        $quantidadeResultadoTotal
+                        - $quantidadePrevistaTotal
+                    ) < 0.001;
+
+                $possuiOcorrencia =
+                    $quantidadeNaoEntregueTotal > 0;
+
                 $todosItensEntregues = $entrega->itens
                     ->every(function ($item) {
                         $quantidadePrevista = round(
@@ -1997,6 +2963,11 @@ class RomaneioService
                         && $todosItensEntregues =>
                             'Entregue',
 
+                    $tratativaFinalizada
+                        && $resultadoTotalApurado
+                        && $possuiOcorrencia =>
+                            'Entregue_finalizada_com_ocorrencia',
+
                     $quantidadeEntregueTotal > 0 =>
                         'Entregue_parcial',
 
@@ -2009,7 +2980,8 @@ class RomaneioService
                         $statusEntrega,
 
                     'data_realizada' =>
-                        now(),
+                        $entrega->data_realizada
+                        ?? now(),
                 ]);
             }
         }
@@ -2041,10 +3013,8 @@ class RomaneioService
             );
         }
 
-        private function finalizarPrestacaoContas(
-            Romaneio $romaneio,
-            array $dados
-        ): Romaneio {
+        private function finalizarPrestacaoContas(Romaneio $romaneio, array $dados): Romaneio 
+        {
             $romaneio->load('itens');
 
             $this->salvarDadosOperacionais(
@@ -2208,10 +3178,8 @@ class RomaneioService
             );
         }
 
-        private function salvarDadosOperacionais(
-            Romaneio $romaneio,
-            array $dados
-        ): void {
+        private function salvarDadosOperacionais(Romaneio $romaneio, array $dados): void 
+        {
             if (array_key_exists('observacao', $dados)) {
                 $romaneio->update([
                     'observacao' =>
@@ -2353,11 +3321,8 @@ class RomaneioService
             }
         }
 
-        private function preencherQuantidade(
-            array &$atualizacao,
-            array $dadosItem,
-            string $campo
-        ): void {
+        private function preencherQuantidade(array &$atualizacao, array $dadosItem, string $campo): void 
+        {
             if (! array_key_exists($campo, $dadosItem)) {
                 return;
             }
@@ -2377,10 +3342,8 @@ class RomaneioService
             $atualizacao[$campo] = $quantidade;
         }
 
-        private function resolverStatusItem(
-            RomaneioItem $item,
-            array $atualizacao
-        ): string {
+        private function resolverStatusItem(RomaneioItem $item, array $atualizacao): string 
+        {
             $dados = array_merge(
                 $item->only([
                     'quantidade_prevista',
@@ -2674,11 +3637,11 @@ class RomaneioService
         }
 
         private function criarRomaneioDoSaldo(
-                Romaneio $romaneioOrigem,
-                Collection $itensComSaldo,
-                array $dados,
-                bool $aguardandoEstoque
-            ): Romaneio {
+            Romaneio $romaneioOrigem,
+            Collection $itensComSaldo,
+            array $dados,
+            bool $aguardandoEstoque
+        ): Romaneio {
             $motoristaId = ! empty(
                 $dados['proximo_motorista_id']
             )
@@ -2705,9 +3668,175 @@ class RomaneioService
                     . $observacaoInformada
                 : $observacaoTipo;
 
+            $motivoFracionamento = $aguardandoEstoque
+                ? 'Falta_estoque'
+                : 'Fracionamento_carga';
+
+            foreach ($itensComSaldo as $itemOrigem) {
+                $itemOrigem->loadMissing(
+                    'entregaItem.entrega'
+                );
+            }
+
+            $entregasOrigem = $itensComSaldo
+                ->pluck('entregaItem.entrega')
+                ->filter()
+                ->unique('id')
+                ->values();
+
+            if ($entregasOrigem->count() !== 1) {
+                throw ValidationException::withMessages([
+                    'fracionamento' =>
+                        'O fracionamento deve gerar uma nova entrega para cada entrega de origem.',
+                ]);
+            }
+
+            $entregaOrigem = $entregasOrigem->first();
+
+            $itensEntregaFracionada = $itensComSaldo
+                ->map(function (RomaneioItem $itemOrigem) {
+                    return [
+                        'entrega_item_origem_id' =>
+                            $itemOrigem->entrega_item_id,
+
+                        'quantidade' =>
+                            $this->calcularSaldoSeparacao(
+                                $itemOrigem
+                            ),
+                    ];
+                })
+                ->values()
+                ->all();
+
+            /*
+            * A entrega física complementar é criada antes do romaneio.
+            * Assim ela possui código, data, período, equipe e status próprios
+            * e aparece normalmente no módulo de Entregas.
+            */
+            $entregaFilha = $this
+                ->entregaService
+                ->criarEntregaFracionada(
+                    $entregaOrigem,
+                    $itensEntregaFracionada,
+                    [
+                        'data_prevista' =>
+                            $dados['data_prevista_saldo']
+                            ?? null,
+
+                        'data_prevista_entrega' =>
+                            $dados['data_prevista_saldo']
+                            ?? null,
+
+                        'motorista_id' =>
+                            $motoristaId,
+
+                        'veiculo_id' =>
+                            $veiculoId,
+
+                        'observacao' =>
+                            $observacaoInformada,
+                    ]
+                );
+
+            $entregaFilha->load('itens');
+
+            $itensEntregaDestinoPorOrigem = $entregaFilha
+                ->itens
+                ->keyBy('entrega_item_origem_id');
+
+            /*
+            * Uma finalização repetida da mesma separação não pode gerar
+            * outro romaneio para o mesmo saldo. Isso pode acontecer quando
+            * a operação retorna da conferência para a separação.
+            */
+            $romaneioFilho = $this
+                ->localizarRomaneioFilhoAtivoDoSaldo(
+                    $romaneioOrigem
+            );
+
+            if ($romaneioFilho) {
+                if (
+                    (int) $romaneioFilho->entrega_id
+                    !== (int) $entregaFilha->id
+                ) {
+                    throw ValidationException::withMessages([
+                        'fracionamento' =>
+                            "O romaneio complementar {$romaneioFilho->codigo_romaneio} não está vinculado à entrega complementar {$entregaFilha->codigo_entrega}.",
+                    ]);
+                }
+
+                $romaneioFilho->load(
+                    'itens.entregaItem'
+                );
+
+                $itensDestinoPorOrigem = $romaneioFilho
+                    ->itens
+                    ->filter(
+                        fn (RomaneioItem $item) =>
+                            (int) $item->romaneio_item_origem_id > 0
+                    )
+                    ->keyBy('romaneio_item_origem_id');
+
+                if (
+                    $itensDestinoPorOrigem->count()
+                    !== $itensComSaldo->count()
+                ) {
+                    throw ValidationException::withMessages([
+                        'fracionamento' =>
+                            "O romaneio complementar {$romaneioFilho->codigo_romaneio} já existe com uma composição diferente. Revise ou cancele esse romaneio antes de finalizar novamente a separação.",
+                    ]);
+                }
+
+                foreach ($itensComSaldo as $itemOrigem) {
+                    $saldo = $this->calcularSaldoSeparacao(
+                        $itemOrigem
+                    );
+
+                    $itemDestino = $itensDestinoPorOrigem->get(
+                        $itemOrigem->id
+                    );
+
+                    if (
+                        ! $itemDestino
+                        || (int) (
+                            $itemDestino
+                                ->entregaItem
+                                ?->entrega_item_origem_id
+                            ?? 0
+                        )
+                            !== (int) $itemOrigem->entrega_item_id
+                        || abs(
+                            (float) $itemDestino->quantidade_prevista
+                            - $saldo
+                        ) >= 0.001
+                    ) {
+                        throw ValidationException::withMessages([
+                            'fracionamento' =>
+                                "O saldo atual do item #{$itemOrigem->entrega_item_id} é diferente do saldo já encaminhado ao romaneio {$romaneioFilho->codigo_romaneio}. Revise ou cancele o romaneio complementar antes de finalizar novamente.",
+                        ]);
+                    }
+
+                    $this->registrarEntregaFracionada(
+                        $romaneioOrigem,
+                        $romaneioFilho,
+                        $itemOrigem,
+                        $itemDestino,
+                        $saldo,
+                        $motivoFracionamento,
+                        $observacaoInformada
+                    );
+                }
+
+                return $romaneioFilho->load([
+                    'itens',
+                    'motorista',
+                    'veiculo',
+                ]);
+            }
+
             $novoRomaneio = Romaneio::create([
                 'entrega_id' =>
-                    $romaneioOrigem->entrega_id,
+                    $entregaFilha->id,
 
                 'romaneio_origem_id' =>
                     $romaneioOrigem->id,
@@ -2764,7 +3893,19 @@ class RomaneioService
                     continue;
                 }
 
-                RomaneioItem::create([
+                $entregaItemDestino =
+                    $itensEntregaDestinoPorOrigem->get(
+                        $itemOrigem->entrega_item_id
+                    );
+
+                if (! $entregaItemDestino) {
+                    throw ValidationException::withMessages([
+                        'fracionamento' =>
+                            "Não foi possível localizar o item complementar do item #{$itemOrigem->entrega_item_id}.",
+                    ]);
+                }
+
+                $itemDestino = RomaneioItem::create([
                     'romaneio_id' =>
                         $novoRomaneio->id,
 
@@ -2772,7 +3913,7 @@ class RomaneioService
                         $itemOrigem->id,
 
                     'entrega_item_id' =>
-                        $itemOrigem->entrega_item_id,
+                        $entregaItemDestino->id,
 
                     'ordem' =>
                         $indice + 1,
@@ -2813,6 +3954,16 @@ class RomaneioService
                     'status' =>
                         'Pendente',
                 ]);
+
+                $this->registrarEntregaFracionada(
+                    $romaneioOrigem,
+                    $novoRomaneio,
+                    $itemOrigem,
+                    $itemDestino,
+                    $saldo,
+                    $motivoFracionamento,
+                    $observacaoInformada
+                );
             }
 
             $novoRomaneio->refresh();
@@ -2828,12 +3979,174 @@ class RomaneioService
             ]);
         }
 
-        private function validarConferenciaSeparacaoCompleta(
-            Romaneio $romaneio
+        private function localizarRomaneioFilhoAtivoDoSaldo(
+            Romaneio $romaneioOrigem
+        ): ?Romaneio {
+            $romaneiosFilhos = Romaneio::query()
+                ->where(
+                    'romaneio_origem_id',
+                    $romaneioOrigem->id
+                )
+                ->where(
+                    'status',
+                    '<>',
+                    self::STATUS_CANCELADO
+                )
+                ->lockForUpdate()
+                ->get();
+
+            if ($romaneiosFilhos->count() > 1) {
+                throw ValidationException::withMessages([
+                    'fracionamento' =>
+                        "O romaneio {$romaneioOrigem->codigo_romaneio} possui mais de um romaneio complementar ativo. Corrija a duplicidade antes de continuar.",
+                ]);
+            }
+
+            return $romaneiosFilhos->first();
+        }
+
+        private function registrarEntregaFracionada(
+            Romaneio $romaneioOrigem,
+            Romaneio $romaneioDestino,
+            RomaneioItem $itemOrigem,
+            RomaneioItem $itemDestino,
+            float $quantidade,
+            string $motivo,
+            string $observacao
         ): void {
-            $this->validarSeparacaoCompleta(
-                $romaneio
+            $itemOrigem->loadMissing('entregaItem');
+            $itemDestino->loadMissing('entregaItem');
+
+            $entregaItemOrigem =
+                $itemOrigem->entregaItem;
+
+            $entregaItemDestino =
+                $itemDestino->entregaItem;
+
+            $entregaId = (int) (
+                $entregaItemOrigem?->entrega_id
+                ?? 0
             );
+
+            $entregaDestinoId = (int) (
+                $entregaItemDestino?->entrega_id
+                ?? 0
+            );
+
+            if (
+                $entregaId <= 0
+                || ! $entregaItemOrigem
+            ) {
+                throw ValidationException::withMessages([
+                    'fracionamento' =>
+                        "Não foi possível identificar a entrega vinculada ao item #{$itemOrigem->entrega_item_id}.",
+                ]);
+            }
+
+            if (
+                $entregaDestinoId <= 0
+                || ! $entregaItemDestino
+            ) {
+                throw ValidationException::withMessages([
+                    'fracionamento' =>
+                        "Não foi possível identificar a entrega complementar vinculada ao item #{$itemDestino->entrega_item_id}.",
+                ]);
+            }
+
+            if (
+                (int) $romaneioOrigem->entrega_id
+                    !== $entregaId
+                || (int) $romaneioDestino->entrega_id
+                    !== $entregaDestinoId
+            ) {
+                throw ValidationException::withMessages([
+                    'fracionamento' =>
+                        'Os romaneios do fracionamento não correspondem às entregas de origem e destino dos itens.',
+                ]);
+            }
+
+            if (
+                (int) $entregaItemDestino
+                    ->entrega_item_origem_id
+                !== (int) $entregaItemOrigem->id
+            ) {
+                throw ValidationException::withMessages([
+                    'fracionamento' =>
+                        "O item complementar #{$entregaItemDestino->id} não referencia o item de origem #{$entregaItemOrigem->id}.",
+                ]);
+            }
+
+            $fracionamento = EntregaFracionamento::query()
+                ->firstOrNew([
+                    'romaneio_item_origem_id' =>
+                        $itemOrigem->id,
+
+                    'romaneio_item_destino_id' =>
+                        $itemDestino->id,
+                ]);
+
+            if (
+                $fracionamento->exists
+                && ! empty($fracionamento->motivo)
+                && $fracionamento->motivo !== $motivo
+            ) {
+                throw ValidationException::withMessages([
+                    'fracionamento' =>
+                        "O fracionamento do item #{$itemOrigem->entrega_item_id} já foi registrado com outro motivo.",
+                ]);
+            }
+
+            $fracionamento->fill([
+                'entrega_id' =>
+                    $entregaId,
+
+                'entrega_destino_id' =>
+                    $entregaDestinoId,
+
+                'entrega_item_origem_id' =>
+                    $entregaItemOrigem->id,
+
+                'entrega_item_destino_id' =>
+                    $entregaItemDestino->id,
+
+                'romaneio_origem_id' =>
+                    $romaneioOrigem->id,
+
+                'romaneio_destino_id' =>
+                    $romaneioDestino->id,
+
+                'romaneio_item_origem_id' =>
+                    $itemOrigem->id,
+
+                'romaneio_item_destino_id' =>
+                    $itemDestino->id,
+
+                'quantidade' =>
+                    round($quantidade, 2),
+
+                'motivo' =>
+                    $motivo,
+
+                'observacao' =>
+                    $observacao !== ''
+                        ? $observacao
+                        : null,
+            ]);
+
+            if (! $fracionamento->exists) {
+                $fracionamento->criado_por =
+                    Auth::id();
+            }
+
+            $fracionamento->save();
+        }
+
+        private function validarConferenciaSeparacaoCompleta(
+                Romaneio $romaneio
+            ): void {
+                $this->validarSeparacaoCompleta(
+                    $romaneio
+                );
 
             foreach ($romaneio->itens as $item) {
                 if ($item->possuiDivergenciaSeparacao()) {
@@ -2847,7 +4160,7 @@ class RomaneioService
 
         private function validarCarregamentoCompleto(
             Romaneio $romaneio
-        ): void {
+            ): void {
             $this->validarConferenciaSeparacaoCompleta(
                 $romaneio
             );
@@ -2869,7 +4182,7 @@ class RomaneioService
 
         private function validarConferenciaSaidaCompleta(
             Romaneio $romaneio
-        ): void {
+            ): void {
             $this->validarCarregamentoCompleto(
                 $romaneio
             );
@@ -2886,7 +4199,7 @@ class RomaneioService
 
         private function validarConferenciaRetornoCompleta(
             Romaneio $romaneio
-        ): void {
+            ): void {
             foreach ($romaneio->itens as $item) {
                 if (empty($item->retorno_conferido_por)) {
                     throw ValidationException::withMessages([
@@ -2899,7 +4212,7 @@ class RomaneioService
 
         private function validarPrestacaoContas(
             Romaneio $romaneio
-        ): void {
+            ): void {
             if ($romaneio->possuiOcorrenciaBloqueante()) {
                 throw ValidationException::withMessages([
                     'ocorrencias' =>
@@ -3026,11 +4339,13 @@ class RomaneioService
             }
         }
 
-       private function validarAcaoPermitida(Romaneio $romaneio, string $acao): void
-        {
-            $statusNormalizado = $this->normalizarStatus(
-                $romaneio->status
-            );
+        private function validarAcaoPermitida(
+                Romaneio $romaneio,
+                string $acao
+            ): void {
+                $statusNormalizado = $this->normalizarStatus(
+                    $romaneio->status
+                );
 
             if ($acao === 'navegar_etapa') {
                 if (in_array(
@@ -3119,6 +4434,7 @@ class RomaneioService
                 self::STATUS_EM_ROTA,
                 self::STATUS_RETORNANDO => [
                     'registrar_retorno',
+                    'finalizar_triagem_retorno',
                 ],
 
                 self::STATUS_AGUARDANDO_CONFERENCIA_RETORNO => [
@@ -3158,7 +4474,11 @@ class RomaneioService
                     ]),
             };
 
-            if (! in_array($acao, $acoesPermitidas, true)) {
+            if (! in_array(
+                $acao,
+                $acoesPermitidas,
+                true
+            )) {
                 throw ValidationException::withMessages([
                     'acao' =>
                         "A ação {$acao} não é permitida para o status {$romaneio->status}.",
@@ -4062,73 +5382,10 @@ class RomaneioService
             };
         }
 
-        // private function prepararRetornoParaEtapa(Romaneio $romaneio, string $etapaDestino): void 
-        // {
-        //     $dados = match ($etapaDestino) {
-        //         'montagem' => [
-        //             'data_inicio_separacao' => null,
-        //             'data_fim_separacao' => null,
-        //             'data_inicio_conferencia_separacao' => null,
-        //             'data_fim_conferencia_separacao' => null,
-        //             'data_inicio_carregamento' => null,
-        //             'data_fim_carregamento' => null,
-        //             'data_inicio_conferencia_saida' => null,
-        //             'data_fim_conferencia_saida' => null,
-        //             'data_saida' => null,
-        //         ],
-
-        //         'separacao' => [
-        //             'data_inicio_separacao' => now(),
-        //             'data_fim_separacao' => null,
-        //             'data_inicio_conferencia_separacao' => null,
-        //             'data_fim_conferencia_separacao' => null,
-        //             'data_inicio_carregamento' => null,
-        //             'data_fim_carregamento' => null,
-        //             'data_inicio_conferencia_saida' => null,
-        //             'data_fim_conferencia_saida' => null,
-        //             'data_saida' => null,
-        //         ],
-
-        //         'conferencia_separacao' => [
-        //             'data_inicio_conferencia_separacao' => now(),
-        //             'data_fim_conferencia_separacao' => null,
-        //             'data_inicio_carregamento' => null,
-        //             'data_fim_carregamento' => null,
-        //             'data_inicio_conferencia_saida' => null,
-        //             'data_fim_conferencia_saida' => null,
-        //             'data_saida' => null,
-        //         ],
-
-        //         'carregamento' => [
-        //             'data_inicio_carregamento' => now(),
-        //             'data_fim_carregamento' => null,
-        //             'data_inicio_conferencia_saida' => null,
-        //             'data_fim_conferencia_saida' => null,
-        //             'data_saida' => null,
-        //         ],
-
-        //         'conferencia_saida' => [
-        //             'data_inicio_conferencia_saida' => now(),
-        //             'data_fim_conferencia_saida' => null,
-        //             'data_saida' => null,
-        //         ],
-
-        //         'liberacao' => [
-        //             'data_saida' => null,
-        //         ],
-
-        //         default => [],
-        //     };
-
-        //     if (! empty($dados)) {
-        //         $romaneio->update($dados);
-        //     }
-        // }
-
         private function adicionarHistoricoNaObservacao(
-            ?string $observacaoAtual,
-            string $registro
-        ): string {
+                ?string $observacaoAtual,
+                string $registro
+            ): string {
             $linha = sprintf(
                 '[%s] %s',
                 now()->format('d/m/Y H:i'),
@@ -4215,7 +5472,7 @@ class RomaneioService
             array $dados,
             string $campo,
             string $mensagem
-        ): int {
+            ): int {
             $funcionarioId = (int) (
                 $dados[$campo] ?? 0
             );
@@ -4230,9 +5487,9 @@ class RomaneioService
         }
 
         private function buscarItensParaRomaneio(
-            array $entregasIds,
-            array $entregaItensIds
-        ): EloquentCollection {
+                array $entregasIds,
+                array $entregaItensIds
+            ): EloquentCollection {
             $query = EntregaItem::query()
                 ->with([
                     'entrega',
@@ -4282,8 +5539,8 @@ class RomaneioService
         }
 
         private function validarEntregasDosItens(
-            Collection $entregaItens
-        ): void {
+                Collection $entregaItens
+            ): void {
             $entregas = $entregaItens
                 ->pluck('entrega')
                 ->filter()
@@ -4307,9 +5564,9 @@ class RomaneioService
         }
 
         private function prepararItensDoRomaneio(
-            Collection $entregaItens,
-            Collection $itensComQuantidade
-        ): Collection {
+                Collection $entregaItens,
+                Collection $itensComQuantidade
+            ): Collection {
             $quantidadesInformadas =
                 $itensComQuantidade->keyBy(
                     'entrega_item_id'
@@ -4360,9 +5617,9 @@ class RomaneioService
         }
 
         private function localizarDadosDoItem(
-            Collection $itensRecebidos,
-            RomaneioItem $romaneioItem
-        ): ?array {
+                Collection $itensRecebidos,
+                RomaneioItem $romaneioItem
+            ): ?array {
             $dadosItem = $itensRecebidos->first(
                 function ($item) use ($romaneioItem) {
                     if (! is_array($item)) {
@@ -4385,9 +5642,9 @@ class RomaneioService
         }
 
         private function atualizarStatusEntregas(
-            Romaneio $romaneio,
-            string $status
-        ): void {
+                Romaneio $romaneio,
+                string $status
+            ): void {
             $entregasIds = $romaneio->itens()
                 ->with('entregaItem')
                 ->get()
@@ -4404,8 +5661,8 @@ class RomaneioService
         }
 
         private function atualizarPercentualCarregado(
-            Romaneio $romaneio
-        ): void {
+                Romaneio $romaneio
+            ): void {
             $romaneio->loadMissing('itens');
 
             $totalPrevisto = (float) $romaneio
@@ -4431,8 +5688,8 @@ class RomaneioService
         }
 
         private function bloquearRomaneio(
-            int $romaneioId
-        ): Romaneio {
+                int $romaneioId
+            ): Romaneio {
             return Romaneio::query()
                 ->with([
                     'itens',
@@ -4443,8 +5700,8 @@ class RomaneioService
         }
 
         private function carregarRomaneio(
-            Romaneio $romaneio
-        ): Romaneio {
+                Romaneio $romaneio
+            ): Romaneio {
             $romaneio->refresh();
 
             return $romaneio->load([

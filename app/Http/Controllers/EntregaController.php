@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-
+use Illuminate\Http\JsonResponse;
 use App\Models\Entrega;
 use App\Models\Funcionario;
 use App\Models\Veiculo;
 use App\Models\Romaneio;
 use App\Services\Expedicao\RomaneioService;
+use App\Services\Sistema\BloqueioEdicaoService;
 use Illuminate\Validation\Rule;
 use App\Services\Entregas\EntregaService;
 
@@ -16,13 +18,18 @@ use Throwable;
 
 class EntregaController extends Controller
 {
-   public function __construct(EntregaService $entregaService, RomaneioService $romaneioService) 
+   public function __construct(
+        EntregaService $entregaService,
+        RomaneioService $romaneioService,
+        BloqueioEdicaoService $bloqueioEdicaoService
+    )
    {
         $this->entregaService = $entregaService;
         $this->romaneioService = $romaneioService;
+        $this->bloqueioEdicaoService = $bloqueioEdicaoService;
     }
 
-   public function index(Request $request)
+    public function index(Request $request)
     {
         $dadosValidados = $request->validate(
             [
@@ -109,6 +116,12 @@ class EntregaController extends Controller
             'entregue_parcial' =>
                 'Entregue_parcial',
 
+            'entregue_finalizada_com_ocorrencia' =>
+                'Entregue_finalizada_com_ocorrencia',
+
+            'finalizada_com_ocorrencia' =>
+                'Entregue_finalizada_com_ocorrencia',
+
             'nao_entregue' =>
                 'Nao_entregue',
 
@@ -145,7 +158,7 @@ class EntregaController extends Controller
             ? \Carbon\Carbon::parse(
                 $dadosValidados['data_fim']
             )->endOfDay()
-            : now()->endOfDay();
+            : now()->addDays(30)->endOfDay();
 
         $query = Entrega::query()
         ->with([
@@ -154,6 +167,7 @@ class EntregaController extends Controller
             'itens',
             'itens.vendaItem.produto',
             'itens.itemOrcamento.produto',
+            'bloqueioEdicaoAtivo.usuario',
         ])
         ->whereBetween(
             'data_prevista',
@@ -216,6 +230,98 @@ class EntregaController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        $usuarioId = (int) (
+            $request->user()?->id
+            ?? 0
+        );
+
+        $sessaoId = $request
+            ->session()
+            ->getId();
+
+        $entregas
+            ->getCollection()
+            ->each(function (Entrega $entrega) use (
+                $usuarioId,
+                $sessaoId
+            ) {
+                $bloqueio =
+                    $entrega->bloqueioEdicaoAtivo;
+
+                $bloqueada = $bloqueio
+                    && ! $this
+                        ->bloqueioEdicaoService
+                        ->podeEditar(
+                            $bloqueio,
+                            $usuarioId,
+                            $sessaoId
+                        );
+
+                $entrega->setAttribute(
+                    'edicao_bloqueada',
+                    (bool) $bloqueada
+                );
+
+                $entrega->setAttribute(
+                    'edicao_bloqueio_mensagem',
+                    $bloqueada
+                        ? $this
+                            ->bloqueioEdicaoService
+                            ->mensagemBloqueio(
+                                $bloqueio
+                            )
+                        : null
+                );
+            });
+
+        /*
+        * A tratativa pertence ao romaneio que gerou as ocorrências,
+        * e não à tela de consulta da entrega.
+        *
+        * A busca é feita uma única vez para todas as entregas da página,
+        * evitando consultas dentro da Blade e o problema de N+1.
+        * Quando houver mais de um romaneio para a mesma entrega,
+        * utilizamos o mais recente que realmente possui ocorrências.
+        */
+        $entregasIdsDaPagina = $entregas
+            ->getCollection()
+            ->pluck('id')
+            ->map(
+                fn ($entregaId) =>
+                    (int) $entregaId
+            )
+            ->filter(
+                fn (int $entregaId) =>
+                    $entregaId > 0
+            )
+            ->values();
+
+        $romaneiosTratativa = collect();
+
+        if ($entregasIdsDaPagina->isNotEmpty()) {
+            $romaneiosTratativa = Romaneio::query()
+                ->select([
+                    'id',
+                    'entrega_id',
+                    'status',
+                ])
+                ->whereIn(
+                    'entrega_id',
+                    $entregasIdsDaPagina
+                )
+                ->whereHas('ocorrencias')
+                ->orderByDesc('id')
+                ->get()
+                ->unique(
+                    fn (Romaneio $romaneio) =>
+                        (int) $romaneio->entrega_id
+                )
+                ->keyBy(
+                    fn (Romaneio $romaneio) =>
+                        (int) $romaneio->entrega_id
+                );
+        }
+
         $resumo = [
             'pendente_pagamento' =>
                 Entrega::where(
@@ -248,9 +354,12 @@ class EntregaController extends Controller
                 )->count(),
 
             'entregues' =>
-                Entrega::where(
+                Entrega::whereIn(
                     'status',
-                    'Entregue'
+                    [
+                        'Entregue',
+                        'Entregue_finalizada_com_ocorrencia',
+                    ]
                 )->count(),
 
             'parciais' =>
@@ -281,6 +390,7 @@ class EntregaController extends Controller
                         'status',
                         [
                             'Entregue',
+                            'Entregue_finalizada_com_ocorrencia',
                             'Cancelada',
                             'Devolvida',
                         ]
@@ -292,6 +402,7 @@ class EntregaController extends Controller
             'entregas.index',
             compact(
                 'entregas',
+                'romaneiosTratativa',
                 'resumo',
                 'dataInicio',
                 'dataFim'
@@ -299,15 +410,205 @@ class EntregaController extends Controller
         );
     }
 
+    public function sincronizarEstados(Request $request): JsonResponse 
+    {
+        $dadosValidados = $request->validate([
+            'entregas_ids' => [
+                'required',
+                'array',
+                'min:1',
+                'max:100',
+            ],
+
+            'entregas_ids.*' => [
+                'required',
+                'integer',
+                'distinct',
+                'min:1',
+            ],
+        ]);
+
+        $entregasIds = collect(
+            $dadosValidados['entregas_ids']
+        )
+            ->map(
+                fn ($entregaId) =>
+                    (int) $entregaId
+            )
+            ->unique()
+            ->values();
+
+        $entregas = Entrega::query()
+            ->select([
+                'id',
+                'status',
+                'updated_at',
+            ])
+            ->with([
+                'bloqueioEdicaoAtivo.usuario',
+            ])
+            ->whereIn(
+                'id',
+                $entregasIds
+            )
+            ->get()
+            ->keyBy(
+                fn (Entrega $entrega) =>
+                    (int) $entrega->id
+            );
+
+        $usuarioId = (int) (
+            $request->user()?->id
+            ?? 0
+        );
+
+        $sessaoId = $request
+            ->session()
+            ->getId();
+
+        $resultados = $entregasIds
+            ->map(function (
+                int $entregaId
+            ) use (
+                $entregas,
+                $usuarioId,
+                $sessaoId
+            ) {
+                $entrega = $entregas->get(
+                    $entregaId
+                );
+
+                if (! $entrega) {
+                    return [
+                        'entrega_id' =>
+                            $entregaId,
+
+                        'existe' =>
+                            false,
+
+                        'status' =>
+                            null,
+
+                        'bloqueado' =>
+                            false,
+
+                        'pode_editar' =>
+                            false,
+
+                        'usuario_id' =>
+                            null,
+
+                        'mensagem' =>
+                            null,
+                    ];
+                }
+
+                $bloqueio =
+                    $entrega->bloqueioEdicaoAtivo;
+
+                $podeEditar = ! $bloqueio
+                    || $this
+                        ->bloqueioEdicaoService
+                        ->podeEditar(
+                            $bloqueio,
+                            $usuarioId,
+                            $sessaoId
+                        );
+
+                return [
+                    'entrega_id' =>
+                        (int) $entrega->id,
+
+                    'existe' =>
+                        true,
+
+                    'status' =>
+                        strtolower(
+                            trim(
+                                (string) $entrega->status
+                            )
+                        ),
+
+                    'bloqueado' =>
+                        (bool) $bloqueio,
+
+                    'pode_editar' =>
+                        (bool) $podeEditar,
+
+                    'usuario_id' =>
+                        $bloqueio
+                            ? (int) $bloqueio
+                                ->usuario_id
+                            : null,
+
+                    'mensagem' =>
+                        $bloqueio
+                        && ! $podeEditar
+                            ? $this
+                                ->bloqueioEdicaoService
+                                ->mensagemBloqueio(
+                                    $bloqueio
+                                )
+                            : null,
+
+                    'atualizado_em' =>
+                        $entrega->updated_at
+                            ?->toIso8601String(),
+                ];
+            })
+            ->values();
+
+        return response()
+            ->json([
+                'resultados' =>
+                    $resultados,
+            ])
+            ->header(
+                'Cache-Control',
+                'no-store, no-cache, must-revalidate'
+            );
+    }
+
     public function show(Entrega $entrega)
     {
+        $romaneio = Romaneio::query()
+            ->with([
+                'motorista',
+                'veiculo',
+            ])
+            ->where(
+                'entrega_id',
+                $entrega->id
+            )
+            ->where(
+                'status',
+                '<>',
+                'Cancelado'
+            )
+            ->latest('id')
+            ->first();
+
+        /*
+        * Um romaneio cancelado só pode ser exibido quando a entrega
+        * realmente não possui nenhum outro romaneio operacional.
+        */
+        if (! $romaneio) {
+            $romaneio = Romaneio::query()
+                ->with([
+                    'motorista',
+                    'veiculo',
+                ])
+                ->where(
+                    'entrega_id',
+                    $entrega->id
+                )
+                ->latest('id')
+                ->first();
+        }
+
         $entrega->load([
             'motorista',
             'veiculo',
-
-            'romaneio',
-            'romaneio.motorista',
-            'romaneio.veiculo',
 
             'venda',
             'venda.cliente',
@@ -322,7 +623,91 @@ class EntregaController extends Controller
             'itens.itemOrcamento.produto',
         ]);
 
-        return view('entregas.show', compact('entrega'));
+        $entrega->setRelation(
+            'romaneio',
+            $romaneio
+        );
+
+        $entregaItensIds = $entrega->itens
+            ->pluck('id')
+            ->map(
+                fn ($entregaItemId) =>
+                    (int) $entregaItemId
+            )
+            ->filter(
+                fn (int $entregaItemId) =>
+                    $entregaItemId > 0
+            )
+            ->values();
+
+        $resultadosItens = collect();
+
+        if ($entregaItensIds->isNotEmpty()) {
+            $resultadosItens = DB::table(
+                'romaneio_itens as ri'
+            )
+                ->join(
+                    'romaneios as r',
+                    'r.id',
+                    '=',
+                    'ri.romaneio_id'
+                )
+                ->whereIn(
+                    'ri.entrega_item_id',
+                    $entregaItensIds
+                )
+                ->where(function ($query) {
+                    $query
+                        ->whereNull('ri.status')
+                        ->orWhere(
+                            'ri.status',
+                            '<>',
+                            'Cancelado'
+                        );
+                })
+                ->where(function ($query) {
+                    $query
+                        ->whereNull('r.status')
+                        ->orWhere(
+                            'r.status',
+                            '<>',
+                            'Cancelado'
+                        );
+                })
+                ->groupBy('ri.entrega_item_id')
+                ->selectRaw(
+                    'ri.entrega_item_id'
+                )
+                ->selectRaw(
+                    'COALESCE(SUM(ri.quantidade_entregue), 0) as quantidade_entregue'
+                )
+                ->selectRaw(
+                    'COALESCE(SUM(ri.quantidade_devolvida), 0) as quantidade_devolvida'
+                )
+                ->selectRaw(
+                    'COALESCE(SUM(ri.quantidade_recusada), 0) as quantidade_recusada'
+                )
+                ->selectRaw(
+                    'COALESCE(SUM(ri.quantidade_avariada), 0) as quantidade_avariada'
+                )
+                ->selectRaw(
+                    'COALESCE(SUM(ri.quantidade_perdida), 0) as quantidade_perdida'
+                )
+                ->get()
+                ->keyBy(
+                    fn ($resultado) =>
+                        (int) $resultado
+                            ->entrega_item_id
+                );
+        }
+
+        return view(
+            'entregas.show',
+            compact(
+                'entrega',
+                'resultadosItens'
+            )
+        );
     }
 
     public function separar(Entrega $entrega)
@@ -820,11 +1205,17 @@ class EntregaController extends Controller
         try {
             $romaneio = Romaneio::query()
                 ->with('itens')
-                ->where('entrega_id', $entrega->id)
-                ->whereNotIn('status', [
-                    'Fechado',
-                    'Cancelado',
-                ])
+                ->where(
+                    'entrega_id',
+                    $entrega->id
+                )
+                ->whereNotIn(
+                    'status',
+                    [
+                        'Fechado',
+                        'Cancelado',
+                    ]
+                )
                 ->latest('id')
                 ->first();
 
@@ -835,21 +1226,26 @@ class EntregaController extends Controller
                 ]);
             }
 
-            if (! in_array(
-                $romaneio->status,
-                [
-                    'Em_rota',
-                    'Retornando',
-                ],
-                true
-            )) {
+            if (
+                ! in_array(
+                    $romaneio->status,
+                    [
+                        'Em_rota',
+                        'Retornando',
+                    ],
+                    true
+                )
+            ) {
                 throw ValidationException::withMessages([
                     'romaneio' =>
                         'O romaneio não está disponível para registro de retorno.',
                 ]);
             }
 
-            if ($dadosBasicos['tipo_retorno'] === 'normal') {
+            if (
+                $dadosBasicos['tipo_retorno']
+                === 'normal'
+            ) {
                 $itens = $romaneio->itens
                     ->map(function ($romaneioItem) {
                         $quantidadeSaida = round(
@@ -863,7 +1259,8 @@ class EntregaController extends Controller
                                 $romaneioItem->id,
 
                             'entrega_item_id' =>
-                                $romaneioItem->entrega_item_id,
+                                $romaneioItem
+                                    ->entrega_item_id,
 
                             'quantidade_entregue' =>
                                 $quantidadeSaida,
@@ -976,53 +1373,69 @@ class EntregaController extends Controller
                     ]
                 );
 
-                $itens = $dadosOcorrencia['itens'];
+                $itens =
+                    $dadosOcorrencia['itens'];
 
                 $observacaoRetorno = trim(
                     (string) (
-                        $dadosBasicos['observacao_retorno']
+                        $dadosBasicos[
+                            'observacao_retorno'
+                        ]
                         ?? ''
                     )
                 );
 
-                $possuiOcorrenciaProduto = collect($itens)
-                    ->contains(function ($item) {
-                        return
-                            round(
-                                (float) (
-                                    $item['quantidade_devolvida']
-                                    ?? 0
-                                ),
-                                2
-                            ) > 0
-                            || round(
-                                (float) (
-                                    $item['quantidade_recusada']
-                                    ?? 0
-                                ),
-                                2
-                            ) > 0
-                            || round(
-                                (float) (
-                                    $item['quantidade_avariada']
-                                    ?? 0
-                                ),
-                                2
-                            ) > 0
-                            || round(
-                                (float) (
-                                    $item['quantidade_perdida']
-                                    ?? 0
-                                ),
-                                2
-                            ) > 0
-                            || trim(
-                                (string) (
-                                    $item['observacao']
-                                    ?? ''
-                                )
-                            ) !== '';
-                    });
+                $possuiOcorrenciaProduto =
+                    collect($itens)
+                        ->contains(
+                            function ($item) {
+                                return
+                                    round(
+                                        (float) (
+                                            $item[
+                                                'quantidade_devolvida'
+                                            ]
+                                            ?? 0
+                                        ),
+                                        2
+                                    ) > 0
+                                    || round(
+                                        (float) (
+                                            $item[
+                                                'quantidade_recusada'
+                                            ]
+                                            ?? 0
+                                        ),
+                                        2
+                                    ) > 0
+                                    || round(
+                                        (float) (
+                                            $item[
+                                                'quantidade_avariada'
+                                            ]
+                                            ?? 0
+                                        ),
+                                        2
+                                    ) > 0
+                                    || round(
+                                        (float) (
+                                            $item[
+                                                'quantidade_perdida'
+                                            ]
+                                            ?? 0
+                                        ),
+                                        2
+                                    ) > 0
+                                    || trim(
+                                        (string) (
+                                            $item[
+                                                'observacao'
+                                            ]
+                                            ?? ''
+                                        )
+                                    ) !== '';
+                            }
+                        );
 
                 if (
                     ! $possuiOcorrenciaProduto
@@ -1035,18 +1448,28 @@ class EntregaController extends Controller
                 }
             }
 
-            $itensDoRomaneio = $romaneio->itens
-                ->keyBy('id');
+            $itensDoRomaneio =
+                $romaneio->itens
+                    ->keyBy('id');
 
-            foreach ($itens as $indice => $dadosItem) {
-                $romaneioItem = $itensDoRomaneio->get(
-                    (int) $dadosItem['romaneio_item_id']
-                );
+            foreach (
+                $itens
+                as $indice => $dadosItem
+            ) {
+                $romaneioItem =
+                    $itensDoRomaneio->get(
+                        (int) $dadosItem[
+                            'romaneio_item_id'
+                        ]
+                    );
 
                 if (
                     ! $romaneioItem
-                    || (int) $romaneioItem->entrega_item_id
-                        !== (int) $dadosItem['entrega_item_id']
+                    || (int) $romaneioItem
+                        ->entrega_item_id
+                        !== (int) $dadosItem[
+                            'entrega_item_id'
+                        ]
                 ) {
                     throw ValidationException::withMessages([
                         "itens.{$indice}.romaneio_item_id" =>
@@ -1061,27 +1484,37 @@ class EntregaController extends Controller
                 );
 
                 $quantidadeEntregue = round(
-                    (float) $dadosItem['quantidade_entregue'],
+                    (float) $dadosItem[
+                        'quantidade_entregue'
+                    ],
                     2
                 );
 
                 $quantidadeDevolvida = round(
-                    (float) $dadosItem['quantidade_devolvida'],
+                    (float) $dadosItem[
+                        'quantidade_devolvida'
+                    ],
                     2
                 );
 
                 $quantidadeRecusada = round(
-                    (float) $dadosItem['quantidade_recusada'],
+                    (float) $dadosItem[
+                        'quantidade_recusada'
+                    ],
                     2
                 );
 
                 $quantidadeAvariada = round(
-                    (float) $dadosItem['quantidade_avariada'],
+                    (float) $dadosItem[
+                        'quantidade_avariada'
+                    ],
                     2
                 );
 
                 $quantidadePerdida = round(
-                    (float) $dadosItem['quantidade_perdida'],
+                    (float) $dadosItem[
+                        'quantidade_perdida'
+                    ],
                     2
                 );
 
@@ -1094,7 +1527,10 @@ class EntregaController extends Controller
                     2
                 );
 
-                if ($totalResultado !== $quantidadeSaida) {
+                if (
+                    $totalResultado
+                    !== $quantidadeSaida
+                ) {
                     throw ValidationException::withMessages([
                         "itens.{$indice}.quantidade_entregue" =>
                             'A soma do resultado do produto deve ser igual à quantidade que saiu no romaneio: '
@@ -1109,24 +1545,42 @@ class EntregaController extends Controller
                 }
             }
 
-            $this->romaneioService->atualizarOperacao(
-                $romaneio,
-                'registrar_retorno',
-                [
-                    'tipo_retorno' =>
-                        $dadosBasicos['tipo_retorno'],
+            $this->romaneioService
+                ->atualizarOperacao(
+                    $romaneio,
+                    'registrar_retorno',
+                    [
+                        'tipo_retorno' =>
+                            $dadosBasicos[
+                                'tipo_retorno'
+                            ],
 
-                    'itens' =>
-                        $itens,
+                        'itens' =>
+                            $itens,
 
-                    'observacao_retorno' =>
-                        $observacaoRetorno,
-                ]
-            );
+                        'observacao_retorno' =>
+                            $observacaoRetorno,
+                    ]
+                );
 
-            if ($dadosBasicos['tipo_retorno'] === 'normal') {
+            if (
+                $dadosBasicos['tipo_retorno']
+                === 'normal'
+            ) {
+                /*
+                * O retorno normal conclui o fluxo operacional.
+                * O middleware liberará o bloqueio dentro da
+                * mesma transação da operação.
+                */
+                $request->attributes->set(
+                    'liberarBloqueioEdicaoAoConcluir',
+                    true
+                );
+
                 return redirect()
-                    ->route('entregas.index')
+                    ->route(
+                        'entregas.index'
+                    )
                     ->with(
                         'success',
                         'Entrega finalizada normalmente. O romaneio foi encaminhado para a prestação de contas.'
@@ -1142,12 +1596,18 @@ class EntregaController extends Controller
                     'success',
                     'Retorno com ocorrência registrado. O romaneio está aguardando a conferência física.'
                 );
-        } catch (ValidationException $e) {
+        } catch (
+            ValidationException $e
+        ) {
             return redirect()
                 ->back()
                 ->withInput()
-                ->withErrors($e->errors());
-        } catch (Throwable $e) {
+                ->withErrors(
+                    $e->errors()
+                );
+        } catch (
+            Throwable $e
+        ) {
             return redirect()
                 ->back()
                 ->withInput()

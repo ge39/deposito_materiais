@@ -13,6 +13,9 @@ class EntregaFracionamento extends Model
 
     protected $fillable = [
         'entrega_id',
+        'entrega_destino_id',
+        'entrega_item_origem_id',
+        'entrega_item_destino_id',
         'romaneio_origem_id',
         'romaneio_destino_id',
         'romaneio_item_origem_id',
@@ -21,6 +24,7 @@ class EntregaFracionamento extends Model
         'motivo',
         'observacao',
         'criado_por',
+
     ];
 
     protected $casts = [
@@ -33,6 +37,30 @@ class EntregaFracionamento extends Model
         return $this->belongsTo(
             Entrega::class,
             'entrega_id'
+        );
+    }
+
+    public function entregaDestino(): BelongsTo
+    {
+        return $this->belongsTo(
+            Entrega::class,
+            'entrega_destino_id'
+        );
+    }
+
+    public function entregaItemOrigem(): BelongsTo
+    {
+        return $this->belongsTo(
+            EntregaItem::class,
+            'entrega_item_origem_id'
+        );
+    }
+
+    public function entregaItemDestino(): BelongsTo
+    {
+        return $this->belongsTo(
+            EntregaItem::class,
+            'entrega_item_destino_id'
         );
     }
 

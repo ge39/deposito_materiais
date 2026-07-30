@@ -11,6 +11,35 @@ class Devolucao extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDENTES = [
+        'pendente',
+        'aguardando_evidencias',
+        'em_analise',
+        'aguardando_decisao',
+        'aguardando_orcamento',
+        'orcamento_criado',
+        'aguardando_estoque',
+        'em_reposicao',
+    ];
+
+    public const STATUS_APROVADOS = [
+        'aprovada',
+        'aprovada_troca',
+        'aprovada_devolucao',
+    ];
+
+    public const STATUS_CONCLUIDOS = [
+        'aprovada',
+        'aprovada_troca',
+        'aprovada_devolucao',
+        'concluida',
+    ];
+
+    public const TIPOS_COM_REPOSICAO = [
+        'troca',
+        'reposicao',
+    ];
+
     protected $table = 'devolucoes';
 
     protected $fillable = [
@@ -60,7 +89,25 @@ class Devolucao extends Model
     ];
 
     protected $casts = [
+        'romaneio_ocorrencia_id' => 'integer',
+        'romaneio_id' => 'integer',
+        'entrega_id' => 'integer',
+        'romaneio_item_id' => 'integer',
+        'entrega_item_id' => 'integer',
+        'cliente_id' => 'integer',
+        'venda_id' => 'integer',
+        'venda_item_id' => 'integer',
+        'orcamento_origem_id' => 'integer',
+        'orcamento_reposicao_id' => 'integer',
+        'produto_id' => 'integer',
         'quantidade' => 'decimal:3',
+        'movimentacao_entrada_id' => 'integer',
+        'movimentacao_saida_id' => 'integer',
+        'criado_por' => 'integer',
+        'responsavel_analise_id' => 'integer',
+        'decidida_por' => 'integer',
+        'concluida_por' => 'integer',
+        'empresa_id' => 'integer',
         'analise_iniciada_em' => 'datetime',
         'decidida_em' => 'datetime',
         'concluida_em' => 'datetime',
@@ -157,7 +204,7 @@ class Devolucao extends Model
     public function criadoPor(): BelongsTo
     {
         return $this->belongsTo(
-            Funcionario::class,
+            User::class,
             'criado_por'
         );
     }
@@ -202,20 +249,27 @@ class Devolucao extends Model
         )->orderBy('created_at');
     }
 
+    public function lotes(): HasMany
+    {
+        return $this->hasMany(
+            DevolucaoLote::class,
+            'devolucao_id'
+        )->orderBy('id');
+    }
+
+    public function movimentacoes(): HasMany
+    {
+        return $this->hasMany(
+            EstoqueMovimentacao::class,
+            'devolucao_id'
+        )->orderBy('registrada_em');
+    }
+
     public function estaPendente(): bool
     {
         return in_array(
             $this->status,
-            [
-                'pendente',
-                'aguardando_evidencias',
-                'em_analise',
-                'aguardando_decisao',
-                'aguardando_orcamento',
-                'orcamento_criado',
-                'aguardando_estoque',
-                'em_reposicao',
-            ],
+            self::STATUS_PENDENTES,
             true
         );
     }
@@ -224,11 +278,7 @@ class Devolucao extends Model
     {
         return in_array(
             $this->status,
-            [
-                'aprovada',
-                'aprovada_troca',
-                'aprovada_devolucao',
-            ],
+            self::STATUS_APROVADOS,
             true
         );
     }
@@ -238,9 +288,17 @@ class Devolucao extends Model
         return $this->status === 'rejeitada';
     }
 
+    /**
+     * Os estados aprovados já representam o encerramento operacional
+     * da devolução e liberam a resolução da ocorrência vinculada.
+     */
     public function estaConcluida(): bool
     {
-        return $this->status === 'concluida';
+        return in_array(
+            $this->status,
+            self::STATUS_CONCLUIDOS,
+            true
+        );
     }
 
     public function estaCancelada(): bool
@@ -248,50 +306,66 @@ class Devolucao extends Model
         return $this->status === 'cancelada';
     }
 
+    public function estaEncerrada(): bool
+    {
+        return
+            $this->estaConcluida()
+            || $this->estaRejeitada()
+            || $this->estaCancelada();
+    }
+
     public function exigeOrcamentoReposicao(): bool
     {
         return in_array(
             $this->tipo,
-            [
-                'troca',
-                'reposicao',
-            ],
+            self::TIPOS_COM_REPOSICAO,
             true
         );
     }
 
     public function possuiOrcamentoReposicao(): bool
     {
-        return ! empty(
-            $this->orcamento_reposicao_id
-        );
+        return ! empty($this->orcamento_reposicao_id);
     }
 
     public function movimentacaoEstoqueConcluida(): bool
     {
+        /*
+         * Fluxo novo: cada linha da triagem possui tratamento próprio.
+         * A devolução só pode avançar quando todos os detalhes estiverem
+         * processados ou cancelados.
+         */
+        if ($this->lotes()->exists()) {
+            return ! $this->lotes()
+                ->where('status_processamento', 'Pendente')
+                ->exists();
+        }
+
+        /*
+         * Compatibilidade com devoluções antigas que ainda guardam
+         * somente uma movimentação no cabeçalho.
+         */
         return match ($this->destino_estoque) {
-            'sem_movimentacao' =>
-                true,
+            'sem_movimentacao' => true,
 
             'quarentena',
-            'reintegracao' =>
-                ! empty($this->movimentacao_entrada_id),
+            'reintegracao' => ! empty($this->movimentacao_entrada_id),
 
             'baixa_perda',
-            'reposicao_cliente' =>
-                ! empty($this->movimentacao_saida_id),
+            'reposicao_cliente' => ! empty($this->movimentacao_saida_id),
 
-            default =>
-                false,
+            default => false,
         };
     }
 
     public function podeConcluir(): bool
     {
+        if ($this->estaConcluida()) {
+            return true;
+        }
+
         if ($this->estaRejeitada()) {
-            return ! empty(
-                $this->motivo_rejeicao
-            );
+            return ! empty($this->motivo_rejeicao);
         }
 
         if (

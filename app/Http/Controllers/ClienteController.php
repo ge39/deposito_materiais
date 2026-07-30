@@ -31,35 +31,167 @@ class ClienteController extends Controller
        
     // }
 
-    public function index(Request $request)
-    {
-        $clientes = Cliente::with('credito')
-            ->orderBy('nome')
-            ->paginate(15);
+    // public function index(Request $request)
+    // {
+    //     $clientes = Cliente::with('credito')
+    //         ->orderBy('nome')
+    //         ->paginate(15);
 
-        return view('clientes.index', compact('clientes'));
+    //     return view('clientes.index', compact('clientes'));
+    // }
+
+    public function index(Request $request)
+{
+    $clientes = Cliente::query()
+        ->with('credito')
+        ->where('ativo', 1)
+        ->orderBy('nome')
+        ->paginate(15)
+        ->withQueryString();
+
+    return view(
+        'clientes.index',
+        compact('clientes')
+    );
+}
+
+    public function buscar(Request $request)
+    {
+        $dadosValidados = $request->validate(
+            [
+                'busca' => [
+                    'nullable',
+                    'string',
+                    'max:255',
+                ],
+
+                'tipo' => [
+                    'nullable',
+                    'in:fisica,juridica',
+                ],
+            ],
+            [
+                'busca.string' =>
+                    'O termo informado para busca é inválido.',
+
+                'busca.max' =>
+                    'O termo de busca pode possuir no máximo 255 caracteres.',
+
+                'tipo.in' =>
+                    'O tipo de cliente informado é inválido.',
+            ]
+        );
+
+        $busca = trim(
+            (string) (
+                $dadosValidados['busca']
+                ?? ''
+            )
+        );
+
+        $tipo = $dadosValidados['tipo'] ?? null;
+
+        $documentoNumerico = preg_replace(
+            '/\D/',
+            '',
+            $busca
+        );
+
+        $clientes = Cliente::query()
+            ->with('credito')
+            ->where('ativo', 1)
+            ->when(
+                $busca !== '',
+                function ($query) use (
+                    $busca,
+                    $documentoNumerico
+                ) {
+                    $query->where(
+                        function ($subQuery) use (
+                            $busca,
+                            $documentoNumerico
+                        ) {
+                            $subQuery
+                                ->where(
+                                    'nome',
+                                    'like',
+                                    '%' . $busca . '%'
+                                )
+                                ->orWhere(
+                                    'cpf_cnpj',
+                                    'like',
+                                    '%' . $busca . '%'
+                                );
+
+                            if ($documentoNumerico !== '') {
+                                $subQuery->orWhereRaw(
+                                    "
+                                        REPLACE(
+                                            REPLACE(
+                                                REPLACE(
+                                                    REPLACE(
+                                                        cpf_cnpj,
+                                                        '.',
+                                                        ''
+                                                    ),
+                                                    '-',
+                                                    ''
+                                                ),
+                                                '/',
+                                                ''
+                                            ),
+                                            ' ',
+                                            ''
+                                        ) LIKE ?
+                                    ",
+                                    [
+                                        '%' . $documentoNumerico . '%',
+                                    ]
+                                );
+                            }
+                        }
+                    );
+                }
+            )
+            ->when(
+                ! empty($tipo),
+                function ($query) use ($tipo) {
+                    $query->where(
+                        'tipo',
+                        $tipo
+                    );
+                }
+            )
+            ->orderBy('nome')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view(
+            'clientes.index',
+            compact('clientes')
+        );
     }
 
     // Cliente credito
-    public function buscar (Request $request){
-         $credito = \App\Models\ClienteCredito::where('cliente_id', $cliente->id)
-            ->latest('id')
-            ->first();
+    // public function buscar (Request $request){
+    //      $credito = \App\Models\ClienteCredito::where('cliente_id', $cliente->id)
+    //         ->latest('id')
+    //         ->first();
             
-         $clientes = Cliente::query()
-            ->where('ativo', 1)
-            ->when($request->busca, function($query, $busca) {
-                $query->where('nome', 'like', "%{$busca}%")
-                      ->orWhere('cpf_cnpj', 'like', "%{$busca}%");
-            })
-            ->when($request->tipo, function($query, $tipo) {
-                $query->where('tipo', $tipo);
-            })
-            ->orderBy('nome')
-            ->paginate(15);
+    //      $clientes = Cliente::query()
+    //         ->where('ativo', 1)
+    //         ->when($request->busca, function($query, $busca) {
+    //             $query->where('nome', 'like', "%{$busca}%")
+    //                   ->orWhere('cpf_cnpj', 'like', "%{$busca}%");
+    //         })
+    //         ->when($request->tipo, function($query, $tipo) {
+    //             $query->where('tipo', $tipo);
+    //         })
+    //         ->orderBy('nome')
+    //         ->paginate(15);
 
-        return view('clientes.index', compact('clientes'));
-    }
+    //     return view('clientes.index', compact('clientes'));
+    // }
 
     // Listar clientes inativos
     public function inativos()

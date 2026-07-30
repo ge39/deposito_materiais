@@ -7,7 +7,9 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Database\QueryException; // 👈 ADICIONADO
 use Illuminate\Http\Request;
+use App\Http\Middleware\BloqueioEdicaoMiddleware;
 use App\Http\Middleware\IdentificaTerminal;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,10 +19,26 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
+            'bloqueio.edicao' => BloqueioEdicaoMiddleware::class,
             'terminal' => IdentificaTerminal::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->render(function (HttpException $e, Request $request) {
+            if ($e->getStatusCode() !== 423) {
+                return null;
+            }
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                ], 423);
+            }
+
+            return back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        });
         
         // 🔴 [TRATAMENTO NOVO] CAPTURA QUEDA DE CONEXÃO COM O BANCO DE DADOS
         $exceptions->render(function (QueryException $e, Request $request) {

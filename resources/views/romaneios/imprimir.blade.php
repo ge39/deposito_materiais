@@ -2,7 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Romaneio {{ $romaneio->codigo_romaneio ?? $romaneio->id }}</title>
+
+    <title>
+        Romaneio
+        {{ $romaneio->codigo_romaneio ?? $romaneio->id }}
+    </title>
 
     <style>
         @page {
@@ -73,13 +77,65 @@
             text-transform: uppercase;
         }
 
+        .destino-conteudo {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .destino-dados {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .destino-dados div {
+            margin-bottom: 4px;
+        }
+
+        .qr-rota {
+            width: 112px;
+            flex: 0 0 112px;
+            text-align: center;
+            border-left: 1px solid #999;
+            padding-left: 12px;
+        }
+
+        .qr-rota-titulo {
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .qr-rota img {
+            display: block;
+            width: 102px;
+            height: 102px;
+            margin: 0 auto 3px;
+        }
+
+        .qr-rota-instrucao {
+            font-size: 9px;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+
+        .qr-indisponivel {
+            font-size: 10px;
+            font-weight: bold;
+            color: #555;
+            border: 1px dashed #777;
+            padding: 8px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 6px;
         }
 
-        th, td {
+        th,
+        td {
             border: 1px solid #000;
             padding: 5px;
             vertical-align: top;
@@ -141,16 +197,36 @@
 <body>
 
 <div class="no-print">
-    <button onclick="window.print()">Imprimir Romaneio</button>
+    <button type="button" onclick="window.print()">
+        Imprimir Romaneio
+    </button>
 </div>
 
 @php
     $entrega = $romaneio->entrega;
-    $orcamento = $entrega->orcamento ?? null;
-    $venda = $entrega->venda ?? null;
-    $cliente = $entrega->cliente ?? $orcamento->cliente ?? null;
 
-    $codigoRomaneio = $romaneio->codigo_romaneio ?? 'ROM-' . $romaneio->id;
+    $orcamento =
+        $entrega?->orcamento
+        ?? null;
+
+    $venda =
+        $entrega?->venda
+        ?? null;
+
+    $cliente =
+        $entrega?->cliente
+        ?? $orcamento?->cliente
+        ?? $venda?->cliente
+        ?? null;
+
+    $codigoRomaneio =
+        $romaneio->codigo_romaneio
+        ?? 'ROM-' . $romaneio->id;
+
+    $enderecoExibicao =
+        $enderecoDestino !== ''
+            ? $enderecoDestino
+            : 'Endereço não informado';
 
     $vias = [
         'VIA 1 - EXPEDIÇÃO',
@@ -162,104 +238,323 @@
     <section class="pagina-romaneio">
 
         <div class="cabecalho">
-            <div class="titulo">ROMANEIO DE ENTREGA</div>
-            <div class="subtitulo">{{ $via }}</div>
+            <div class="titulo">
+                ROMANEIO DE ENTREGA
+            </div>
 
-            <div class="linha">
-                <div><strong>Romaneio:</strong> {{ $codigoRomaneio }}</div>
-                <div><strong>Página:</strong> {{ $indexVia + 1 }} de {{ count($vias) }}</div>
+            <div class="subtitulo">
+                {{ $via }}
             </div>
 
             <div class="linha">
-                <div><strong>Emissão:</strong> {{ optional($romaneio->data_emissao ?? $romaneio->created_at)->format('d/m/Y H:i') }}</div>
-                <div><strong>Status:</strong> {{ $romaneio->status ?? 'Gerado' }}</div>
-            </div>
-        </div>
+                <div>
+                    <strong>Romaneio:</strong>
+                    {{ $codigoRomaneio }}
+                </div>
 
-        <div class="box">
-            <div class="box-title">Documentos Vinculados</div>
-
-            <div class="linha">
-                <div><strong>Venda:</strong> {{ $entrega && $entrega->venda_id ? 'VEN-' . $entrega->venda_id : '—' }}</div>
-                <div><strong>Entrega:</strong> {{ $entrega ? 'ENT-' . $entrega->id : '—' }}</div>
-                <div><strong>Orçamento:</strong> {{ $orcamento ? 'ORÇ-' . $orcamento->id : ($entrega->orcamento_id ?? '—') }}</div>
-            </div>
-        </div>
-
-        <div class="box">
-            <div class="box-title">Cliente e Destino</div>
-
-            <div><strong>Cliente:</strong> {{ $cliente->nome ?? 'Cliente não informado' }}</div>
-            <div><strong>Endereço:</strong> {{ $entrega->endereco_entrega ?? $entrega->endereco_entrega_concatenado ?? 'Endereço não informado' }}</div>
-            <div><strong>Período:</strong> {{ $entrega->periodo_entrega ?? 'Não informado' }}</div>
-            <div><strong>Observação:</strong> {{ $entrega->observacao_entrega ?? $romaneio->observacao ?? '—' }}</div>
-        </div>
-
-        <div class="box">
-            <div class="box-title">Veículo e Responsáveis</div>
-
-            <div class="linha">
-                <div><strong>Motorista:</strong> {{ $romaneio->motorista->name ?? $romaneio->motorista->nome ?? 'Não definido' }}</div>
-                <div><strong>Veículo:</strong> {{ $romaneio->veiculo->placa ?? 'Não definido' }}</div>
+                <div>
+                    <strong>Página:</strong>
+                    {{ $indexVia + 1 }}
+                    de
+                    {{ count($vias) }}
+                </div>
             </div>
 
             <div class="linha">
-                <div><strong>Início Separação:</strong> {{ optional($romaneio->data_inicio_separacao)->format('d/m/Y H:i') ?? '—' }}</div>
-                <div><strong>Saída:</strong> {{ optional($romaneio->data_saida)->format('d/m/Y H:i') ?? '—' }}</div>
+                <div>
+                    <strong>Emissão:</strong>
+
+                    {{
+                        optional(
+                            $romaneio->data_emissao
+                            ?? $romaneio->created_at
+                        )->format('d/m/Y H:i')
+                    }}
+                </div>
+
+                <div>
+                    <strong>Status:</strong>
+                    {{ $romaneio->status ?? 'Gerado' }}
+                </div>
             </div>
         </div>
 
         <div class="box">
-            <div class="box-title">Itens para Separação / Carregamento</div>
+            <div class="box-title">
+                Documentos Vinculados
+            </div>
+
+            <div class="linha">
+                <div>
+                    <strong>Venda:</strong>
+
+                    {{
+                        $entrega?->venda_id
+                            ? 'VEN-' . $entrega->venda_id
+                            : '—'
+                    }}
+                </div>
+
+                <div>
+                    <strong>Entrega:</strong>
+
+                    {{
+                        $entrega
+                            ? 'ENT-' . $entrega->id
+                            : '—'
+                    }}
+                </div>
+
+                <div>
+                    <strong>Orçamento:</strong>
+
+                    {{
+                        $orcamento
+                            ? 'ORÇ-' . $orcamento->id
+                            : ($entrega?->orcamento_id ?? '—')
+                    }}
+                </div>
+            </div>
+        </div>
+
+        <div class="box">
+            <div class="box-title">
+                Cliente e Destino
+            </div>
+
+            <div class="destino-conteudo">
+                <div class="destino-dados">
+                    <div>
+                        <strong>Cliente:</strong>
+                        {{ $cliente?->nome ?? 'Cliente não informado' }}
+                    </div>
+
+                    <div>
+                        <strong>Endereço:</strong>
+                        {{ $enderecoExibicao }}
+                    </div>
+
+                    <div>
+                        <strong>Período:</strong>
+                        {{ $entrega?->periodo_entrega ?? 'Não informado' }}
+                    </div>
+
+                    <div>
+                        <strong>Observação:</strong>
+
+                        {{
+                            $entrega?->observacao_entrega
+                            ?? $romaneio->observacao
+                            ?? '—'
+                        }}
+                    </div>
+                </div>
+
+                @if($qrCodeRota && $urlRota)
+                    <div class="qr-rota">
+                        <div class="qr-rota-titulo">
+                            ROTA DA ENTREGA
+                        </div>
+
+                        <a
+                            href="{{ $urlRota }}"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            <img
+                                src="{{ $qrCodeRota }}"
+                                alt="QR Code da rota da entrega"
+                            >
+                        </a>
+
+                        <div class="qr-rota-instrucao">
+                            ESCANEIE COM O VEÍCULO PARADO
+                        </div>
+                    </div>
+                @else
+                    <div class="qr-rota">
+                        <div class="qr-indisponivel">
+                            QR CODE INDISPONÍVEL<br>
+                            ENDEREÇO NÃO INFORMADO
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="box">
+            <div class="box-title">
+                Veículo e Responsáveis
+            </div>
+
+            <div class="linha">
+                <div>
+                    <strong>Motorista:</strong>
+
+                    {{
+                        $romaneio->motorista?->name
+                        ?? $romaneio->motorista?->nome
+                        ?? 'Não definido'
+                    }}
+                </div>
+
+                <div>
+                    <strong>Veículo:</strong>
+                    {{ $romaneio->veiculo?->placa ?? 'Não definido' }}
+                </div>
+            </div>
+
+            <div class="linha">
+                <div>
+                    <strong>Início Separação:</strong>
+
+                    {{
+                        optional(
+                            $romaneio->data_inicio_separacao
+                        )->format('d/m/Y H:i')
+                        ?? '—'
+                    }}
+                </div>
+
+                <div>
+                    <strong>Saída:</strong>
+
+                    {{
+                        optional(
+                            $romaneio->data_saida
+                        )->format('d/m/Y H:i')
+                        ?? '—'
+                    }}
+                </div>
+            </div>
+        </div>
+
+        <div class="box">
+            <div class="box-title">
+                Itens para Separação / Carregamento
+            </div>
 
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 5%;" class="text-center">#</th>
-                        <th style="width: 38%;">Produto</th>
-                        <th style="width: 18%;">Localização</th>
-                        <th style="width: 13%;" class="text-end">Prevista</th>
-                        <th style="width: 13%;" class="text-end">Carregada</th>
-                        <th style="width: 13%;" class="text-center">Conferência</th>
+                        <th
+                            style="width: 5%;"
+                            class="text-center"
+                        >
+                            #
+                        </th>
+
+                        <th style="width: 38%;">
+                            Produto
+                        </th>
+
+                        <th style="width: 18%;">
+                            Localização
+                        </th>
+
+                        <th
+                            style="width: 13%;"
+                            class="text-end"
+                        >
+                            Prevista
+                        </th>
+
+                        <th
+                            style="width: 13%;"
+                            class="text-end"
+                        >
+                            Carregada
+                        </th>
+
+                        <th
+                            style="width: 13%;"
+                            class="text-center"
+                        >
+                            Conferência
+                        </th>
                     </tr>
                 </thead>
 
                 <tbody>
                     @forelse($romaneio->itens as $i => $item)
                         @php
-                            $entregaItem = $item->entregaItem;
+                            $entregaItem =
+                                $item->entregaItem;
 
-                            $produto = $entregaItem->produto
-                                ?? $entregaItem->vendaItem->produto
-                                ?? $entregaItem->itemOrcamento->produto
+                            $produto =
+                                $entregaItem?->produto
+                                ?? $entregaItem?->vendaItem?->produto
+                                ?? $entregaItem?->itemOrcamento?->produto
                                 ?? null;
 
-                            $localizacao = $produto->localizacao_estoque ?? '—';
+                            $localizacao =
+                                $produto?->localizacao_estoque
+                                ?? '—';
                         @endphp
 
                         <tr>
-                            <td class="text-center">{{ $i + 1 }}</td>
+                            <td class="text-center">
+                                {{ $i + 1 }}
+                            </td>
 
                             <td>
-                                <strong>{{ $produto->nome ?? 'Produto não identificado' }}</strong><br>
-                                <small>Cód.: {{ $produto->id ?? '—' }}</small>
+                                <strong>
+                                    {{
+                                        $produto?->nome
+                                        ?? 'Produto não identificado'
+                                    }}
+                                </strong>
+
+                                <br>
+
+                                <small>
+                                    Cód.:
+                                    {{ $produto?->id ?? '—' }}
+                                </small>
                             </td>
 
-                            <td>{{ $localizacao }}</td>
+                            <td>
+                                {{ $localizacao }}
+                            </td>
 
                             <td class="text-end">
-                                {{ number_format((float) ($item->quantidade_prevista ?? 0), 2, ',', '.') }}
+                                {{
+                                    number_format(
+                                        (float) (
+                                            $item->quantidade_prevista
+                                            ?? 0
+                                        ),
+                                        2,
+                                        ',',
+                                        '.'
+                                    )
+                                }}
                             </td>
 
                             <td class="text-end">
-                                {{ number_format((float) ($item->quantidade_carregada ?? 0), 2, ',', '.') }}
+                                {{
+                                    number_format(
+                                        (float) (
+                                            $item->quantidade_carregada
+                                            ?? 0
+                                        ),
+                                        2,
+                                        ',',
+                                        '.'
+                                    )
+                                }}
                             </td>
 
-                            <td class="text-center">[ &nbsp;&nbsp; ]</td>
+                            <td class="text-center">
+                                [ &nbsp;&nbsp; ]
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center">
+                            <td
+                                colspan="6"
+                                class="text-center"
+                            >
                                 Nenhum item encontrado para este romaneio.
                             </td>
                         </tr>
@@ -269,15 +564,34 @@
         </div>
 
         <div class="assinaturas">
-            <div class="assinatura">Expedição</div>
-            <div class="assinatura">Motorista</div>
-            <div class="assinatura">Cliente</div>
+            <div class="assinatura">
+                Expedição
+            </div>
+
+            <div class="assinatura">
+                Motorista
+            </div>
+
+            <div class="assinatura">
+                Cliente
+            </div>
         </div>
 
         <div class="rodape">
-            <span>{{ $codigoRomaneio }}</span>
-            <span>{{ $via }}</span>
-            <span>Página {{ $indexVia + 1 }} de {{ count($vias) }}</span>
+            <span>
+                {{ $codigoRomaneio }}
+            </span>
+
+            <span>
+                {{ $via }}
+            </span>
+
+            <span>
+                Página
+                {{ $indexVia + 1 }}
+                de
+                {{ count($vias) }}
+            </span>
         </div>
 
     </section>

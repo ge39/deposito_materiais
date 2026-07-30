@@ -37,6 +37,8 @@
         'no_destino' => 'No destino',
         'entregue' => 'Entregue',
         'entregue_parcial' => 'Entregue parcial',
+        'entregue_finalizada_com_ocorrencia' =>
+            'Entregue Finalizada com ocorrência',
         'nao_entregue' => 'Não entregue',
         'recusada' => 'Recusada',
         'reagendada' => 'Reagendada',
@@ -56,6 +58,8 @@
         'no_destino' => 'bg-primary',
         'entregue' => 'bg-success',
         'entregue_parcial' => 'bg-warning text-dark',
+        'entregue_finalizada_com_ocorrencia' =>
+            'bg-warning text-dark',
         'nao_entregue' => 'bg-danger',
         'recusada' => 'bg-danger',
         'reagendada' => 'bg-warning text-dark',
@@ -74,6 +78,7 @@
         'em_rota' => 85,
         'no_destino' => 90,
         'entregue_parcial' => 95,
+        'entregue_finalizada_com_ocorrencia' => 100,
         'nao_entregue' => 95,
         'recusada' => 95,
         'reagendada' => 95,
@@ -102,14 +107,162 @@
         ?? $entrega->observacao
         ?? null;
 
-    $totalItens = collect($entrega->itens ?? [])->count();
+    $resultadosItens = collect(
+        $resultadosItens ?? []
+    );
 
-    $itensEntregues = collect($entrega->itens ?? [])
-        ->filter(function ($item) {
-            return strtolower(
-                trim((string) $item->status)
-            ) === 'entregue';
-        })
+    $resolverResultadoItem = function (
+        $entregaItem
+    ) use ($resultadosItens) {
+        $quantidadePrevista = round(
+            (float) (
+                $entregaItem?->quantidade_prevista
+                ?? 0
+            ),
+            3
+        );
+
+        $resultado = $resultadosItens->get(
+            (int) (
+                $entregaItem?->id
+                ?? 0
+            )
+        );
+
+        $quantidadeEntregue = round(
+            (float) (
+                $resultado?->quantidade_entregue
+                ?? $entregaItem?->quantidade_entregue
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeDevolvida = round(
+            (float) (
+                $resultado?->quantidade_devolvida
+                ?? $entregaItem?->quantidade_devolvida
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeRecusada = round(
+            (float) (
+                $resultado?->quantidade_recusada
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeAvariada = round(
+            (float) (
+                $resultado?->quantidade_avariada
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadePerdida = round(
+            (float) (
+                $resultado?->quantidade_perdida
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeComOcorrencia = round(
+            $quantidadeDevolvida
+            + $quantidadeRecusada
+            + $quantidadeAvariada
+            + $quantidadePerdida,
+            3
+        );
+
+        $quantidadeApurada = round(
+            min(
+                $quantidadePrevista,
+                $quantidadeEntregue
+                + $quantidadeComOcorrencia
+            ),
+            3
+        );
+
+        $saldo = round(
+            max(
+                $quantidadePrevista
+                - $quantidadeApurada,
+                0
+            ),
+            3
+        );
+
+        $statusOriginal = strtolower(
+            trim(
+                str_replace(
+                    ' ',
+                    '_',
+                    (string) (
+                        $entregaItem?->status
+                        ?? 'pendente'
+                    )
+                )
+            )
+        );
+
+        $status = match (true) {
+            $saldo < 0.001
+                && $quantidadeComOcorrencia > 0 =>
+                    'finalizado_com_ocorrencia',
+
+            $saldo < 0.001
+                && $quantidadePrevista > 0 =>
+                    'entregue',
+
+            $quantidadeEntregue > 0 =>
+                    'entregue_parcial',
+
+            $quantidadeComOcorrencia > 0 =>
+                    'ocorrencia_pendente',
+
+            default =>
+                    $statusOriginal,
+        };
+
+        return [
+            'quantidade_prevista' =>
+                $quantidadePrevista,
+
+            'quantidade_entregue' =>
+                $quantidadeEntregue,
+
+            'quantidade_com_ocorrencia' =>
+                $quantidadeComOcorrencia,
+
+            'quantidade_apurada' =>
+                $quantidadeApurada,
+
+            'saldo' =>
+                $saldo,
+
+            'status' =>
+                $status,
+        ];
+    };
+
+    $totalItens = collect(
+        $entrega->itens ?? []
+    )->count();
+
+    $itensEntregues = collect(
+        $entrega->itens ?? []
+    )
+        ->filter(
+            fn ($item) =>
+                $resolverResultadoItem(
+                    $item
+                )['saldo'] < 0.001
+        )
         ->count();
 
     $mapsUrl = $entrega->endereco_entrega
@@ -303,6 +456,7 @@
                 [
                     'entregue',
                     'entregue_parcial',
+                    'entregue_finalizada_com_ocorrencia',
                     'nao_entregue',
                     'recusada',
                     'reagendada',
@@ -461,12 +615,12 @@
                 Voltar
             </a>
             
-                        @if(
-                $entrega->romaneio
-                && $entrega->romaneio
-                    ->ocorrencias()
-                    ->exists()
-            )
+                @if(
+                    $entrega->romaneio
+                    && $entrega->romaneio
+                        ->ocorrencias()
+                        ->exists()
+                )
                 <a href="{{ route(
                         'romaneios.ocorrencias.index',
                         $entrega->romaneio->id
@@ -1030,6 +1184,10 @@
                                         'em_rota' => 'bg-dark',
                                         'entregue' => 'bg-success',
                                         'entregue_parcial' => 'bg-warning text-dark',
+                                        'finalizado_com_ocorrencia' =>
+                                            'bg-warning text-dark',
+                                        'ocorrencia_pendente' =>
+                                            'bg-danger',
                                         'recusado' => 'bg-danger',
                                         'devolvido' => 'bg-danger',
                                         'avariado' => 'bg-danger',
@@ -1077,42 +1235,65 @@
                                             ?? 0
                                         );
 
-                                        $quantidadePrevista = (float) (
-                                            $entregaItem?->quantidade_prevista
-                                            ?? $quantidadeBase
-                                        );
-
-                                        $quantidadeEntregue = (float) (
-                                            $entregaItem?->quantidade_entregue
-                                            ?? 0
-                                        );
-
-                                        $saldo = max(
-                                            $quantidadePrevista
-                                            - $quantidadeEntregue,
-                                            0
-                                        );
-
-                                        $statusItem = strtolower(
-                                            trim(
-                                                str_replace(
-                                                    ' ',
-                                                    '_',
-                                                    (string) (
-                                                        $entregaItem?->status
-                                                        ?? 'pendente'
-                                                    )
+                                        $resultadoOperacional =
+                                            $entregaItem
+                                                ? $resolverResultadoItem(
+                                                    $entregaItem
                                                 )
-                                            )
-                                        );
+                                                : [
+                                                    'quantidade_prevista' =>
+                                                        $quantidadeBase,
 
-                                        $statusItemLabel = ucfirst(
-                                            str_replace(
-                                                '_',
-                                                ' ',
-                                                $statusItem
-                                            )
-                                        );
+                                                    'quantidade_entregue' =>
+                                                        0,
+
+                                                    'quantidade_com_ocorrencia' =>
+                                                        0,
+
+                                                    'quantidade_apurada' =>
+                                                        0,
+
+                                                    'saldo' =>
+                                                        $quantidadeBase,
+
+                                                    'status' =>
+                                                        'pendente',
+                                                ];
+
+                                        $quantidadePrevista =
+                                            (float) $resultadoOperacional[
+                                                'quantidade_prevista'
+                                            ];
+
+                                        $quantidadeEntregue =
+                                            (float) $resultadoOperacional[
+                                                'quantidade_entregue'
+                                            ];
+
+                                        $saldo =
+                                            (float) $resultadoOperacional[
+                                                'saldo'
+                                            ];
+
+                                        $statusItem =
+                                            (string) $resultadoOperacional[
+                                                'status'
+                                            ];
+
+                                        $statusItemLabel = [
+                                            'finalizado_com_ocorrencia' =>
+                                                'Finalizado com ocorrência',
+
+                                            'ocorrencia_pendente' =>
+                                                'Ocorrência pendente',
+                                        ][$statusItem]
+                                            ?? ucfirst(
+                                                str_replace(
+                                                    '_',
+                                                    ' ',
+                                                    $statusItem
+                                                )
+                                            );
 
                                         $observacaoItem =
                                             $entregaItem?->observacao

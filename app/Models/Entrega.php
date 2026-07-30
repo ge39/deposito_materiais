@@ -32,6 +32,8 @@ class Entrega extends Model
     'veiculo_id',
     'ordem_rota',
     'observacao',
+    'entrega_origem_id',
+    'entrega_principal_id',
     ];
 
     protected $casts = [
@@ -43,6 +45,55 @@ class Entrega extends Model
         'valor_frete' => 'decimal:2',
         'ordem_rota' => 'integer',
     ];
+
+    public function entregaOrigem()
+    {
+        return $this->belongsTo(
+            self::class,
+            'entrega_origem_id'
+        );
+    }
+
+    public function entregaPrincipal()
+    {
+        return $this->belongsTo(
+            self::class,
+            'entrega_principal_id'
+        );
+    }
+
+    public function entregasFilhas()
+    {
+        return $this->hasMany(
+            self::class,
+            'entrega_origem_id'
+        );
+    }
+
+    public function entregasFracionadas()
+    {
+        return $this->hasMany(
+            self::class,
+            'entrega_principal_id'
+        );
+    }
+
+    public function bloqueioEdicaoAtivo()
+    {
+        return $this->hasOne(
+            EdicaoBloqueio::class,
+            'recurso_id'
+        )
+            ->where(
+                'recurso_tipo',
+                'entrega'
+            )
+            ->where(
+                'expira_em',
+                '>',
+                now()
+            );
+    }
 
     public function motorista()
     {

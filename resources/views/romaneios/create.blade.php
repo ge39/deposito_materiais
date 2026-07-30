@@ -3,13 +3,32 @@
 @section('content')
 
 @php
-    $entregas = collect($entregasDisponiveis ?? [])->filter()->values();
+    $entregas = collect(
+        $entregasDisponiveis ?? []
+    )
+        ->filter()
+        ->values();
+
     $entregaPrincipal = $entregas->first();
 
-    $romaneioAtivo = $romaneioAtivo
-        ?? $entregaPrincipal?->romaneioAtivo
-        ?? $entregaPrincipal?->romaneio
-        ?? null;
+    $forcarNovoRomaneio = request()->boolean(
+        'novo'
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Romaneio operacional
+    |--------------------------------------------------------------------------
+    |
+    | O controller é a única fonte responsável por localizar o romaneio ativo.
+    | A Blade não deve recuperar o relacionamento romaneio(), pois ele também
+    | pode retornar registros históricos cancelados.
+    |
+    */
+
+    $romaneioAtivo = $forcarNovoRomaneio
+        ? null
+        : ($romaneioAtivo ?? null);
 
     $criandoRomaneio = ! $romaneioAtivo;
 
@@ -134,6 +153,30 @@
     $observacaoRomaneio = old(
         'observacao',
         $romaneioAtivo?->observacao
+    );
+
+    $entregaComplementar =
+        (int) (
+            $entregaPrincipal?->entrega_origem_id
+            ?? 0
+        ) > 0;
+
+    $podeEditarDataEntregaComplementar =
+        ! $criandoRomaneio
+        && $statusOriginal === 'montagem'
+        && $entregaComplementar;
+
+    $dataPrevistaEntregaComplementar =
+        $entregaPrincipal?->data_prevista_entrega
+        ?? $entregaPrincipal?->data_prevista;
+
+    $dataPrevistaEntregaComplementar = old(
+        'data_prevista_entrega',
+        $dataPrevistaEntregaComplementar
+            ? \Carbon\Carbon::parse(
+                $dataPrevistaEntregaComplementar
+            )->format('Y-m-d')
+            : null
     );
 
     $formAction = $criandoRomaneio
@@ -898,161 +941,161 @@
 
                     <div class="operation-description">
                        @if($criandoRomaneio)
-    <button type="submit"
-            class="btn btn-primary btn-sm"
-            id="btnPrincipal">
-        <i class="bi bi-check-circle me-1"></i>
-        Criar Romaneio
-    </button>
-
-        @elseif($statusOriginal === 'montagem')
             <button type="submit"
-                    name="acao"
-                    value="concluir_montagem"
                     class="btn btn-primary btn-sm"
                     id="btnPrincipal">
                 <i class="bi bi-check-circle me-1"></i>
-                Concluir Montagem
+                Criar Romaneio
             </button>
 
-        @elseif($statusOriginal === 'aguardando_separacao')
+            @elseif($statusOriginal === 'montagem')
+                <button type="submit"
+                        name="acao"
+                        value="concluir_montagem"
+                        class="btn btn-primary btn-sm"
+                        id="btnPrincipal">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Concluir Montagem
+                </button>
+
+            @elseif($statusOriginal === 'aguardando_separacao')
+                <button type="submit"
+                        name="acao"
+                        value="iniciar_separacao"
+                        class="btn btn-warning btn-sm"
+                        id="btnPrincipal">
+                    <i class="bi bi-play-circle me-1"></i>
+                    Iniciar Separação
+                </button>
+
+            @elseif($statusOriginal === 'em_separacao')
+                <button type="submit"
+                        name="acao"
+                        value="finalizar_separacao"
+                        class="btn btn-warning btn-sm"
+                        id="btnPrincipal">
+                    <i class="bi bi-box-seam me-1"></i>
+                    Finalizar Separação
+                </button>
+
+            @elseif($statusOriginal === 'aguardando_conferencia_separacao')
+                <button type="submit"
+                        name="acao"
+                        value="iniciar_conferencia_separacao"
+                        class="btn btn-info btn-sm"
+                        id="btnPrincipal">
+                    <i class="bi bi-clipboard2-check me-1"></i>
+                    Iniciar Conferência
+                </button>
+
+            @elseif($statusOriginal === 'em_conferencia_separacao')
+                <button type="submit"
+                        name="acao"
+                        value="finalizar_conferencia_separacao"
+                        class="btn btn-info btn-sm"
+                        id="btnPrincipal">
+                    <i class="bi bi-check2-all me-1"></i>
+                    Finalizar Conferência
+                </button>
+
+            @elseif(in_array(
+                $statusOriginal,
+                [
+                    'separacao_conferida',
+                    'aguardando_carregamento',
+                ],
+                true
+            ))
+                <button type="submit"
+                        name="acao"
+                        value="iniciar_carregamento"
+                        class="btn btn-primary btn-sm"
+                        id="btnPrincipal">
+                    <i class="bi bi-play-circle me-1"></i>
+                    Iniciar Carregamento
+                </button>
+
+            @elseif($statusOriginal === 'carregando')
+                <button type="submit"
+                        name="acao"
+                        value="finalizar_carregamento"
+                        class="btn btn-primary btn-sm"
+                        id="btnPrincipal">
+                    <i class="bi bi-truck-front me-1"></i>
+                    Finalizar Carregamento
+                </button>
+
+            @elseif($statusOriginal === 'aguardando_conferencia_saida')
+                <button type="submit"
+                        name="acao"
+                        value="iniciar_conferencia_saida"
+                        class="btn btn-info btn-sm"
+                        id="btnPrincipal">
+                    <i class="bi bi-clipboard-data me-1"></i>
+                    Iniciar Conf. Saída
+                </button>
+
+            @elseif($statusOriginal === 'em_conferencia_saida')
+                <button type="submit"
+                        name="acao"
+                        value="finalizar_conferencia_saida"
+                        class="btn btn-info btn-sm"
+                        id="btnPrincipal">
+                    <i class="bi bi-check2-all me-1"></i>
+                    Finalizar Conf. Saída
+                </button>
+
+            @elseif($statusOriginal === 'aguardando_liberacao')
+            @php
+                $romaneioImpresso =
+                    ! empty($romaneioAtivo?->impresso_em);
+            @endphp
+
+            <button type="submit"
+                    form="formImprimirRomaneio"
+                    class="btn btn-outline-dark btn-sm js-imprimir-romaneio">
+                <i class="bi bi-printer me-1"></i>
+
+                {{ $romaneioImpresso
+                    ? 'Imprimir novamente'
+                    : 'Imprimir Romaneio' }}
+            </button>
+
             <button type="submit"
                     name="acao"
-                    value="iniciar_separacao"
-                    class="btn btn-warning btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-play-circle me-1"></i>
-                Iniciar Separação
+                    value="liberar_veiculo"
+                    class="btn btn-success btn-sm"
+                    id="btnPrincipal"
+                    @disabled(! $romaneioImpresso)>
+
+                <i class="bi bi-shield-check me-1"></i>
+                Liberar Veículo
             </button>
 
-        @elseif($statusOriginal === 'em_separacao')
-            <button type="submit"
-                    name="acao"
-                    value="finalizar_separacao"
-                    class="btn btn-warning btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-box-seam me-1"></i>
-                Finalizar Separação
-            </button>
+            @if(! $romaneioImpresso)
+                <span class="small text-danger align-self-center">
+                    <i class="bi bi-lock me-1"></i>
+                    Imprima o romaneio para liberar o veículo.
+                </span>
+            @endif
 
-        @elseif($statusOriginal === 'aguardando_conferencia_separacao')
-            <button type="submit"
-                    name="acao"
-                    value="iniciar_conferencia_separacao"
-                    class="btn btn-info btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-clipboard2-check me-1"></i>
-                Iniciar Conferência
-            </button>
+            @elseif($statusOriginal === 'liberado')
+                <button type="button"
+                        class="btn btn-dark btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalConfirmacaoSaida">
+                    <i class="bi bi-truck me-1"></i>
+                    Conferir documentos e registrar saída
+                </button>
 
-        @elseif($statusOriginal === 'em_conferencia_separacao')
-            <button type="submit"
-                    name="acao"
-                    value="finalizar_conferencia_separacao"
-                    class="btn btn-info btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-check2-all me-1"></i>
-                Finalizar Conferência
-            </button>
-
-        @elseif(in_array(
-            $statusOriginal,
-            [
-                'separacao_conferida',
-                'aguardando_carregamento',
-            ],
-            true
-        ))
-            <button type="submit"
-                    name="acao"
-                    value="iniciar_carregamento"
-                    class="btn btn-primary btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-play-circle me-1"></i>
-                Iniciar Carregamento
-            </button>
-
-        @elseif($statusOriginal === 'carregando')
-            <button type="submit"
-                    name="acao"
-                    value="finalizar_carregamento"
-                    class="btn btn-primary btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-truck-front me-1"></i>
-                Finalizar Carregamento
-            </button>
-
-        @elseif($statusOriginal === 'aguardando_conferencia_saida')
-            <button type="submit"
-                    name="acao"
-                    value="iniciar_conferencia_saida"
-                    class="btn btn-info btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-clipboard-data me-1"></i>
-                Iniciar Conf. Saída
-            </button>
-
-        @elseif($statusOriginal === 'em_conferencia_saida')
-            <button type="submit"
-                    name="acao"
-                    value="finalizar_conferencia_saida"
-                    class="btn btn-info btn-sm"
-                    id="btnPrincipal">
-                <i class="bi bi-check2-all me-1"></i>
-                Finalizar Conf. Saída
-            </button>
-
-       @elseif($statusOriginal === 'aguardando_liberacao')
-        @php
-            $romaneioImpresso =
-                ! empty($romaneioAtivo?->impresso_em);
-        @endphp
-
-        <button type="submit"
-                form="formImprimirRomaneio"
-                class="btn btn-outline-dark btn-sm js-imprimir-romaneio">
-            <i class="bi bi-printer me-1"></i>
-
-            {{ $romaneioImpresso
-                ? 'Imprimir novamente'
-                : 'Imprimir Romaneio' }}
-        </button>
-
-        <button type="submit"
-                name="acao"
-                value="liberar_veiculo"
-                class="btn btn-success btn-sm"
-                id="btnPrincipal"
-                @disabled(! $romaneioImpresso)>
-
-            <i class="bi bi-shield-check me-1"></i>
-            Liberar Veículo
-        </button>
-
-        @if(! $romaneioImpresso)
-            <span class="small text-danger align-self-center">
-                <i class="bi bi-lock me-1"></i>
-                Imprima o romaneio para liberar o veículo.
-            </span>
-        @endif
-
-        @elseif($statusOriginal === 'liberado')
-            <button type="button"
-                    class="btn btn-dark btn-sm"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modalConfirmacaoSaida">
-                <i class="bi bi-truck me-1"></i>
-                Conferir documentos e registrar saída
-            </button>
-
-        @elseif($statusOriginal === 'em_rota')
-            <button type="button"
-                    class="btn btn-dark btn-sm"
-                    disabled>
-                <i class="bi bi-sign-turn-right me-1"></i>
-                Veículo em Rota
-            </button>
-        @endif
+            @elseif($statusOriginal === 'em_rota')
+                <button type="button"
+                        class="btn btn-dark btn-sm"
+                        disabled>
+                    <i class="bi bi-sign-turn-right me-1"></i>
+                    Veículo em Rota
+                </button>
+            @endif
                     </div>
 
                     @if($romaneioAtivo)
@@ -1201,6 +1244,27 @@
                                        value="{{ $veiculoSelecionado }}">
                             @endif
                         </div>
+
+                        @if($podeEditarDataEntregaComplementar)
+                            <div class="col-lg-3">
+                                <label for="data_prevista_entrega"
+                                       class="form-label">
+                                    Data prevista da entrega
+                                </label>
+
+                                <input type="date"
+                                       id="data_prevista_entrega"
+                                       name="data_prevista_entrega"
+                                       class="form-control form-control-sm"
+                                       value="{{ $dataPrevistaEntregaComplementar }}"
+                                       min="{{ now()->format('Y-m-d') }}"
+                                       required>
+
+                                <div class="form-text">
+                                    Altera somente esta entrega complementar.
+                                </div>
+                            </div>
+                        @endif
 
                         @if($statusOriginal === 'em_separacao')
                             <div class="col-lg-3">
@@ -2337,310 +2401,9 @@
             </div>
         </div>
     </div>
-@endif
+    @endif
     @endif
 </div>
-
-<!-- <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('formRomaneio');
-
-        if (!form) {
-            return;
-        }
-
-        const rows = [
-            ...document.querySelectorAll('.item-row')
-        ];
-
-        const summaryExpected =
-            document.getElementById('summaryExpected');
-
-        const summaryCompleted =
-            document.getElementById('summaryCompleted');
-
-        const summaryPending =
-            document.getElementById('summaryPending');
-
-        const summaryPercent =
-            document.getElementById('summaryPercent');
-
-        const summaryProgress =
-            document.getElementById('summaryProgress');
-
-        const nextStep =
-            document.getElementById('nextStep');
-
-        const nextStepTitle =
-            document.getElementById('nextStepTitle');
-
-        const btnPrincipal =
-            document.getElementById('btnPrincipal');
-
-        const parseNumber = value => {
-            const parsed = Number.parseFloat(value);
-
-            return Number.isFinite(parsed)
-                ? parsed
-                : 0;
-        };
-
-        const formatNumber = value => {
-            return value.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-            });
-        };
-
-        const atualizarResumo = () => {
-            let previsto = 0;
-            let informado = 0;
-
-            rows.forEach(row => {
-                previsto += parseNumber(
-                    row.dataset.prevista
-                );
-
-                const inputAtivo =
-                    row.querySelector(
-                        '[data-active-quantity]'
-                    );
-
-                if (inputAtivo) {
-                    informado += parseNumber(
-                        inputAtivo.value
-                    );
-                } else {
-                    informado += parseNumber(
-                        row.dataset.prevista
-                    );
-                }
-            });
-
-            const pendente = Math.max(
-                previsto - informado,
-                0
-            );
-
-            const percentual = previsto > 0
-                ? Math.min(
-                    (informado / previsto) * 100,
-                    100
-                )
-                : 0;
-
-            if (summaryExpected) {
-                summaryExpected.textContent =
-                    formatNumber(previsto);
-            }
-
-            if (summaryCompleted) {
-                summaryCompleted.textContent =
-                    formatNumber(informado);
-            }
-
-            if (summaryPending) {
-                summaryPending.textContent =
-                    formatNumber(pendente);
-            }
-
-            if (summaryPercent) {
-                summaryPercent.textContent =
-                    `${percentual.toFixed(0)}%`;
-            }
-
-            if (summaryProgress) {
-                summaryProgress.style.width =
-                    `${percentual}%`;
-            }
-
-            const concluido =
-                Math.abs(previsto - informado) < 0.001;
-
-            if (nextStep) {
-                nextStep.classList.toggle(
-                    'ready',
-                    concluido
-                );
-            }
-
-            if (nextStepTitle) {
-                nextStepTitle.textContent = concluido
-                    ? 'Etapa pronta para conclusão.'
-                    : 'Existem quantidades pendentes.';
-            }
-
-            if (btnPrincipal) {
-                const acao = btnPrincipal.value ?? '';
-
-                const exigeQuantidadeCompleta = [
-                    'finalizar_separacao',
-                    'finalizar_conferencia_separacao',
-                    'finalizar_carregamento',
-                    'finalizar_conferencia_saida',
-                ].includes(acao);
-
-                if (exigeQuantidadeCompleta) {
-                    btnPrincipal.disabled = ! concluido;
-                }
-            }
-        };
-
-        document
-            .querySelectorAll('[data-active-quantity]')
-            .forEach(input => {
-                input.addEventListener(
-                    'input',
-                    atualizarResumo
-                );
-            });
-
-        /*
-        |--------------------------------------------------------------------------
-        | Navegação auditável entre etapas
-        |--------------------------------------------------------------------------
-        */
-
-        const modalNavegarElemento =
-            document.getElementById(
-                'modalNavegarEtapa'
-            );
-
-       const etapaDestino =
-            document.getElementById('etapa_destino_modal');
-
-        const motivoMovimentacao =
-            document.getElementById('motivo_movimentacao_modal');
-
-        const btnConfirmarNavegacao =
-
-    document.getElementById('btnConfirmarNavegacao');
-
-        const motivoMovimentacao =
-            document.getElementById(
-                'motivoMovimentacao'
-            );
-
-        const btnConfirmarNavegacao =
-            document.getElementById(
-                'btnConfirmarNavegacao'
-            );
-
-        let etapaDestinoSelecionada = null;
-
-        const removerCamposNavegacaoAnteriores = () => {
-            form
-                .querySelectorAll(
-                    '[data-campo-navegacao="true"]'
-                )
-                .forEach(input => input.remove());
-        };
-
-        document
-            .querySelectorAll(
-                '.workflow-navigation-button'
-            )
-            .forEach(button => {
-                button.addEventListener(
-                    'click',
-                    () => {
-                        etapaDestinoSelecionada =
-                            button.dataset.etapaDestino;
-
-                        if (etapaDestinoLabel) {
-                            etapaDestinoLabel.value =
-                                button.dataset.etapaLabel
-                                ?? '';
-                        }
-
-                        if (motivoMovimentacao) {
-                            motivoMovimentacao.value = '';
-
-                            motivoMovimentacao
-                                .classList
-                                .remove('is-invalid');
-                        }
-
-                        if (!modalNavegarElemento) {
-                            return;
-                        }
-
-                        bootstrap.Modal
-                            .getOrCreateInstance(
-                                modalNavegarElemento
-                            )
-                            .show();
-                    }
-                );
-            });
-
-        btnConfirmarNavegacao
-            ?.addEventListener(
-                'click',
-                () => {
-                    const motivo =
-                        motivoMovimentacao
-                            ?.value
-                            .trim()
-                        ?? '';
-
-                    if (
-                        !etapaDestinoSelecionada
-                        || motivo.length < 5
-                    ) {
-                        motivoMovimentacao
-                            ?.classList
-                            .add('is-invalid');
-
-                        motivoMovimentacao?.focus();
-
-                        return;
-                    }
-
-                    motivoMovimentacao
-                        ?.classList
-                        .remove('is-invalid');
-
-                    removerCamposNavegacaoAnteriores();
-
-                    const campos = {
-                        acao: 'navegar_etapa',
-                        etapa_destino:
-                            etapaDestinoSelecionada,
-                        motivo_movimentacao:
-                            motivo,
-                    };
-
-                    Object.entries(campos)
-                        .forEach(
-                            ([nome, valor]) => {
-                                const input =
-                                    document.createElement(
-                                        'input'
-                                    );
-
-                                input.type = 'hidden';
-                                input.name = nome;
-                                input.value = valor;
-
-                                input.dataset
-                                    .campoNavegacao =
-                                    'true';
-
-                                form.appendChild(input);
-                            }
-                        );
-
-                    btnConfirmarNavegacao.disabled =
-                        true;
-
-                    form.submit();
-                }
-            );
-
-        atualizarResumo();
-    });
-</script> -->
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {

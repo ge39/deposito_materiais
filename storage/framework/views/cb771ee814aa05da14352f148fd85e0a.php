@@ -594,6 +594,33 @@
                 )
             );
 
+            $romaneioTratativa = (
+                $romaneiosTratativa
+                ?? collect()
+            )->get(
+                (int) $entrega->id
+            );
+
+            $edicaoBloqueada = (bool) (
+                $entrega->edicao_bloqueada
+                ?? false
+            );
+
+            $mensagemBloqueio = (string) (
+                $entrega->edicao_bloqueio_mensagem
+                ?? ''
+            );
+
+            $usuarioBloqueio =
+                $entrega
+                    ->bloqueioEdicaoAtivo
+                    ?->usuario;
+
+            $nomeUsuarioBloqueio =
+                $usuarioBloqueio?->nome
+                ?? $usuarioBloqueio?->name
+                ?? null;
+
             $statusClasses = [
                 'pendente_pagamento' => 'bg-secondary',
                 'aguardando_separacao' => 'bg-secondary',
@@ -944,7 +971,16 @@
             );
         ?>
 
-        <tr class="<?php echo e($linhaClasse); ?>">
+        <tr class="<?php echo e($linhaClasse); ?>"
+            data-entrega-id="<?php echo e($entrega->id); ?>"
+            data-bloqueio-ativo="<?php echo e($entrega->bloqueioEdicaoAtivo
+                    ? '1'
+                    : '0'); ?>"
+            data-bloqueio-usuario-id="<?php echo e($entrega->bloqueioEdicaoAtivo
+                    ? (int) $entrega
+                        ->bloqueioEdicaoAtivo
+                        ->usuario_id
+                    : ''); ?>">
             <td>
                 <div class="entrega-codigo">
                     <?php echo e($entrega->codigo_entrega
@@ -964,6 +1000,24 @@
 
                     </span>
                 </div>
+
+                <?php if($edicaoBloqueada): ?>
+                    <div class="mt-1"
+                         title="<?php echo e($mensagemBloqueio); ?>">
+
+                        <span class="badge bg-warning text-dark border border-dark">
+                            <i class="bi bi-lock-fill me-1"></i>
+                            EM EDIÇÃO
+                        </span>
+
+                        <?php if($nomeUsuarioBloqueio): ?>
+                            <div class="linha-secundaria text-danger mt-1">
+                                Por <?php echo e($nomeUsuarioBloqueio); ?>
+
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </td>
 
             <td class="col-texto">
@@ -1172,10 +1226,13 @@
                                 'devolvido',
                             ],
                             true
-                        );
+                        ) && $romaneioTratativa;
                     ?>
 
-                    <?php if($podeOperarRomaneio): ?>
+                    <?php if(
+                        $podeOperarRomaneio
+                        && ! $edicaoBloqueada
+                    ): ?>
                         <a href="<?php echo e(route(
                                 'romaneios.create',
                                 [
@@ -1190,7 +1247,9 @@
                     <?php else: ?>
                         <button type="button"
                                 class="btn btn-outline-secondary btn-sm acao-btn"
-                                title="Operação do romaneio indisponível neste status"
+                                title="<?php echo e($edicaoBloqueada
+                                        ? $mensagemBloqueio
+                                        : 'Operação do romaneio indisponível neste status'); ?>"
                                 disabled>
 
                             <i class="bi bi-clipboard-check"></i>
@@ -1198,7 +1257,10 @@
                     <?php endif; ?>
 
                     
-                    <?php if($podeRegistrarRetorno): ?>
+                    <?php if(
+                        $podeRegistrarRetorno
+                        && ! $edicaoBloqueada
+                    ): ?>
                         <a href="<?php echo e(route(
                                 'entregas.retorno',
                                 $entrega->id
@@ -1211,7 +1273,9 @@
                     <?php else: ?>
                         <button type="button"
                                 class="btn btn-outline-success btn-sm acao-btn"
-                                title="Retorno disponível quando a entrega estiver em rota"
+                                title="<?php echo e($edicaoBloqueada
+                                        ? $mensagemBloqueio
+                                        : 'Retorno disponível quando a entrega estiver em rota'); ?>"
                                 disabled>
 
                             <i class="bi bi-arrow-return-left"></i>
@@ -1221,8 +1285,11 @@
                     
                     <?php if($podeConsultarTratativa): ?>
                         <a href="<?php echo e(route(
-                                'entregas.show',
-                                $entrega->id
+                                'romaneios.ocorrencias.index',
+                                [
+                                    'romaneio' =>
+                                        $romaneioTratativa->id,
+                                ]
                             )); ?>"
                         class="btn btn-outline-warning btn-sm acao-btn"
                         title="Consultar tratativa da entrega">
@@ -1232,7 +1299,21 @@
                     <?php else: ?>
                         <button type="button"
                                 class="btn btn-outline-warning btn-sm acao-btn"
-                                title="A entrega ainda não possui tratativa"
+                                title="<?php echo e(in_array(
+                                        $statusEntrega,
+                                        [
+                                            'entregue_parcial',
+                                            'parcial',
+                                            'nao_entregue',
+                                            'recusada',
+                                            'reagendada',
+                                            'devolvida',
+                                            'devolvido',
+                                        ],
+                                        true
+                                    )
+                                        ? 'Nenhum romaneio com ocorrência foi encontrado para esta entrega'
+                                        : 'A entrega ainda não possui tratativa'); ?>"
                                 disabled>
 
                             <i class="bi bi-clipboard-pulse"></i>
@@ -1240,7 +1321,10 @@
                     <?php endif; ?>
 
                     
-                    <?php if($podeCancelar): ?>
+                    <?php if(
+                        $podeCancelar
+                        && ! $edicaoBloqueada
+                    ): ?>
                         <button type="button"
                                 class="btn btn-outline-danger btn-sm acao-btn"
                                 title="Cancelar entrega"
@@ -1255,7 +1339,9 @@
                     <?php else: ?>
                         <button type="button"
                                 class="btn btn-outline-danger btn-sm acao-btn"
-                                title="Cancelamento indisponível neste status"
+                                title="<?php echo e($edicaoBloqueada
+                                        ? $mensagemBloqueio
+                                        : 'Cancelamento indisponível neste status'); ?>"
                                 disabled>
 
                             <i class="bi bi-x-circle"></i>
@@ -1512,5 +1598,196 @@
     </div>
 </div>
 
+    <div id="configuracao-sincronizacao-entregas"
+         class="d-none"
+         data-url-consultar="<?php echo e(route('edicao-bloqueios.consultar')); ?>">
+    </div>
+
+    <script>
+        window.addEventListener(
+            'pageshow',
+            function (evento) {
+                if (evento.persisted) {
+                    /*
+                    * A lista restaurada pelo BFCache pode conter
+                    * o estado anterior dos bloqueios. O reload
+                    * força uma nova consulta ao servidor.
+                    */
+                    window.location.reload();
+                }
+            }
+        );
+
+        document.addEventListener(
+            'DOMContentLoaded',
+            function () {
+                const configuracao =
+                    document.getElementById(
+                        'configuracao-sincronizacao-entregas'
+                    );
+
+                const linhas = Array.from(
+                    document.querySelectorAll(
+                        '#tabela-entregas tbody tr[data-entrega-id]'
+                    )
+                );
+
+                if (
+                    ! configuracao
+                    || linhas.length === 0
+                ) {
+                    return;
+                }
+
+                let consultaEmAndamento =
+                    false;
+
+                async function sincronizarBloqueios() {
+                    if (
+                        consultaEmAndamento
+                        || document.visibilityState
+                            === 'hidden'
+                    ) {
+                        return;
+                    }
+
+                    consultaEmAndamento = true;
+
+                    try {
+                        const url = new URL(
+                            configuracao
+                                .dataset
+                                .urlConsultar,
+                            window.location.origin
+                        );
+
+                        url.searchParams.set(
+                            'recurso_tipo',
+                            'entrega'
+                        );
+
+                        linhas.forEach(
+                            function (linha) {
+                                url.searchParams.append(
+                                    'recursos_ids[]',
+                                    linha.dataset
+                                        .entregaId
+                                );
+                            }
+                        );
+
+                        const resposta = await fetch(
+                            url.toString(),
+                            {
+                                headers: {
+                                    'Accept':
+                                        'application/json',
+                                },
+                                credentials:
+                                    'same-origin',
+                                cache:
+                                    'no-store',
+                            }
+                        );
+
+                        if (! resposta.ok) {
+                            return;
+                        }
+
+                        const dados =
+                            await resposta.json();
+
+                        const estados = new Map(
+                            (
+                                dados.resultados
+                                ?? []
+                            ).map(
+                                function (estado) {
+                                    return [
+                                        String(
+                                            estado
+                                                .recurso_id
+                                        ),
+                                        estado,
+                                    ];
+                                }
+                            )
+                        );
+
+                        const mudou =
+                            linhas.some(
+                                function (linha) {
+                                    const estado =
+                                        estados.get(
+                                            linha.dataset
+                                                .entregaId
+                                        );
+
+                                    const ativoAtual =
+                                        linha.dataset
+                                            .bloqueioAtivo
+                                        === '1';
+
+                                    const ativoNovo =
+                                        Boolean(
+                                            estado
+                                                ?.bloqueado
+                                        );
+
+                                    const usuarioAtual =
+                                        linha.dataset
+                                            .bloqueioUsuarioId
+                                        ?? '';
+
+                                    const usuarioNovo =
+                                        estado
+                                            ?.usuario_id
+                                            ? String(
+                                                estado
+                                                    .usuario_id
+                                            )
+                                            : '';
+
+                                    return (
+                                        ativoAtual
+                                            !== ativoNovo
+                                        || usuarioAtual
+                                            !== usuarioNovo
+                                    );
+                                }
+                            );
+
+                        if (mudou) {
+                            window.location.reload();
+                        }
+                    } catch (erro) {
+                        /*
+                        * A próxima consulta tentará sincronizar novamente.
+                        */
+                    } finally {
+                        consultaEmAndamento =
+                            false;
+                    }
+                }
+
+                window.setInterval(
+                    sincronizarBloqueios,
+                    3000
+                );
+
+                document.addEventListener(
+                    'visibilitychange',
+                    function () {
+                        if (
+                            document.visibilityState
+                            === 'visible'
+                        ) {
+                            sincronizarBloqueios();
+                        }
+                    }
+                );
+            }
+        );
+    </script>
 <?php $__env->stopSection(); ?>
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/entregas/index.blade.php ENDPATH**/ ?>

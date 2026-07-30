@@ -2,258 +2,538 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Cupom de Devolução - Duas Vias</title>
+
+    <title>
+        {{ isset($valeCompra)
+            ? 'Vale-troca '.$valeCompra->codigo
+            : 'Comprovante de devolução #'.$devolucao->id }}
+    </title>
+
     <style>
         @page {
-            size: 215mm 315mm;
-            margin: 4mm;
+            size: A4 portrait;
+            margin: 7mm;
         }
 
-        body { 
-            font-family: Arial, sans-serif; 
-            font-size: 12px; 
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            background-color: #fff;
-            color: #000;
-        }
-
-       .sheet {
-        width: 100%;
-        height: auto; /* permite que o conteúdo se ajuste à altura da folha */
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start; /* evita excesso de espaço vertical */
-        padding: 0;
-        box-sizing: border-box;
-        }   
-        .ticket {
-        width: 95%; /* de calc(100% - 8mm) para 95% da largura da folha */
-        max-width: 800px; /* limita a largura máxima para impressoras comuns */
-        background: #fff;
-        border: 2px dashed #444;
-        border-radius: 8px;
-        padding: 8px;
-        box-sizing: border-box;
-        page-break-inside: avoid;
-        margin: 0 auto;
-    }
-    
-
-        .ticket {
-            width: calc(100% - 8mm);
-            background: #fff;
-            border: 2px dashed #444;
-            border-radius: 8px;
-            padding: 12px;
+        * {
             box-sizing: border-box;
-            page-break-inside: avoid;
-            margin: 0 auto 12px auto;
         }
 
-        .ticket-label {
-            text-align: center;
-            font-weight: bold;
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 6px;
-        }
-
-        .header h1 {
-            font-size: 1.2rem;
+        body {
             margin: 0;
-            font-weight: bold;
-            color: #222;
+            color: #111111;
+            background: #ffffff;
+            font-family: DejaVu Sans, Arial, sans-serif;
+            font-size: 8px;
+            line-height: 1.25;
         }
 
-        .header p {
-            font-size: 10px;
-            margin: 2px 0;
-            color: #333;
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        hr {
-            border: 1px dashed #444;
-            margin: 6px 0;
+        .documento {
+            width: 100%;
+            border: 1px solid #222222;
+            page-break-inside: avoid;
         }
 
-        .cliente, .devolucao {
-            margin-top: 8px;
-        }
-
-        .cliente p, .devolucao p {
-            margin: 3px 0;
-        }
-
-        /* Vale Troca destacado */
-        .vale-troca {
-            text-align: center;
-            background: #f0f0f0;
-            border-radius: 6px;
-            padding: 6px 0;
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 8px;
-            color: #222;
-        }
-
-        /* Devolução */
-        .devolucao {
-          background-color: transparent; /* removido o fundo vermelho */
+        .cabecalho td {
             padding: 6px 8px;
-            border: 1px solid #e0a19a;
-            border-radius: 5px;
+            border: 1px solid #222222;
+            vertical-align: middle;
         }
 
-        .devolucao h3 {
-            font-size: 1.1rem;
+        .emitente {
+            width: 62%;
+        }
+
+        .identificacao {
+            width: 38%;
+            text-align: center;
+        }
+
+        .empresa-nome {
+            margin-bottom: 3px;
+            font-size: 15px;
             font-weight: bold;
-            color: #333;
-            margin-bottom: 4px;
+            text-transform: uppercase;
         }
 
-        .devolucao p strong {
-            color: #444;
+        .empresa-dados {
+            font-size: 7px;
+            line-height: 1.4;
         }
 
-        /* Valores destacados */
-        .devolucao p:last-child strong {
-            color: #d9534f;
-            font-weight: bold;
+        .tipo-documento {
             font-size: 13px;
-        }
-
-        /* Quantidade e motivo com leve destaque */
-        .devolucao p:nth-child(2),
-        .devolucao p:nth-child(4) {
-            color: #555;
-            font-weight: 600;
-        }
-
-        /* Observação */
-        .observacao {
-            margin-top: 8px;
-            font-size: 12px;
-            color: #d9534f;
             font-weight: bold;
-            padding: 6px 8px;
-            background-color: transparent; /* removido o fundo vermelho */
-            border-radius: 6px;
+            letter-spacing: .4px;
+            text-transform: uppercase;
         }
 
-        /* Assinaturas */
-        .customer-sign, .signature {
-            margin-top: 12px;
+        .via {
+            margin-top: 3px;
+            font-size: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .codigo {
+            margin-top: 5px;
+            padding-top: 4px;
+            border-top: 1px solid #555555;
+        }
+
+        .codigo-label {
+            display: block;
+            font-size: 6px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .codigo-valor {
+            display: block;
+            margin-top: 2px;
+            font-family: DejaVu Sans Mono, monospace;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: .5px;
+        }
+
+        .secao-titulo {
+            padding: 3px 5px;
+            border-top: 1px solid #222222;
+            border-bottom: 1px solid #222222;
+            font-size: 7px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .campos td {
+            padding: 4px 5px;
+            border-right: 1px solid #777777;
+            border-bottom: 1px solid #777777;
+            vertical-align: top;
+        }
+
+        .campos td:last-child {
+            border-right: 0;
+        }
+
+        .rotulo {
+            display: block;
+            margin-bottom: 2px;
+            font-size: 6px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .valor {
+            display: block;
+            min-height: 10px;
+            font-size: 8px;
+            font-weight: bold;
+        }
+
+        .produto th,
+        .produto td {
+            padding: 4px;
+            border: 1px solid #555555;
+        }
+
+        .produto th {
+            font-size: 6px;
+            font-weight: bold;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .produto td {
+            font-size: 8px;
+            vertical-align: top;
+        }
+
+        .produto .centro {
             text-align: center;
         }
 
-        .small-text {
-            font-size: 10px;
-            color: #555;
+        .produto .direita {
+            text-align: right;
+        }
+
+        .totais td {
+            padding: 5px 7px;
+            border-top: 1px solid #222222;
+            border-left: 1px solid #222222;
+            vertical-align: middle;
+        }
+
+        .totais td:first-child {
+            border-left: 0;
+        }
+
+        .total-descricao {
+            width: 65%;
+            font-size: 7px;
+            font-weight: bold;
+            text-align: right;
+            text-transform: uppercase;
+        }
+
+        .total-valor {
+            width: 35%;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .observacoes {
+            min-height: 31px;
+            padding: 5px;
+            border-top: 1px solid #222222;
+        }
+
+        .observacoes-titulo {
+            margin-bottom: 3px;
+            font-size: 6px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .observacoes p {
+            margin: 2px 0;
+        }
+
+        .assinaturas {
+            border-top: 1px solid #222222;
+        }
+
+        .assinaturas td {
+            width: 50%;
+            padding: 15px 15px 4px;
+            text-align: center;
+        }
+
+        .linha-assinatura {
+            padding-top: 3px;
+            border-top: 1px solid #333333;
+            font-size: 7px;
+        }
+
+        .rodape {
+            padding: 4px 6px;
+            border-top: 1px solid #222222;
+            font-size: 6px;
+            text-align: center;
+        }
+
+        .linha-corte {
+            position: relative;
+            height: 9mm;
+            border-bottom: 1px dashed #555555;
+        }
+
+        .linha-corte span {
+            position: absolute;
+            bottom: -4px;
+            left: 45%;
+            padding: 0 5px;
+            background: #ffffff;
+            font-size: 6px;
+            text-transform: uppercase;
         }
     </style>
 </head>
+
 <body>
 @php
-    $empresa = $empresa ?? \App\Models\Empresa::first();
+    $produto = $devolucao->produto
+        ?? $devolucao->itemVenda?->produto;
+
+    $possuiVale = isset($valeCompra) && $valeCompra;
+
+    $codigoDocumento = $possuiVale
+        ? $valeCompra->codigo
+        : 'DEV-'.str_pad(
+            (string) $devolucao->id,
+            6,
+            '0',
+            STR_PAD_LEFT
+        );
+
+    $tituloDocumento = $possuiVale
+        ? 'Vale-troca'
+        : 'Comprovante de devolução';
+
+    $dataEmissao = $possuiVale && $valeCompra->created_at
+        ? \Carbon\Carbon::parse($valeCompra->created_at)
+        : now();
+
+    $dataValidade = $possuiVale && $valeCompra->validade_em
+        ? \Carbon\Carbon::parse($valeCompra->validade_em)
+        : $dataEmissao->copy()->addDays(7);
+
+    $quantidade = (float) $devolucao->quantidade;
+
+    $valorUnitario = (float) (
+        $valorUnitarioPago
+        ?? $produto?->preco_venda
+        ?? 0
+    );
+
+    $valorTotal = (float) (
+        $valeCompra->valor
+        ?? $valorTotalEstornado
+        ?? ($quantidade * $valorUnitario)
+    );
+
+    $documentoCliente = $cliente->cpf
+        ?? $cliente->cnpj
+        ?? 'Não informado';
+
+    $enderecoEmpresa = collect([
+        $empresa->endereco ?? null,
+        $empresa->numero ?? null,
+        $empresa->complemento ?? null,
+        $empresa->bairro ?? null,
+        $empresa->cidade ?? null,
+        $empresa->estado ?? null,
+        $empresa->cep ?? null,
+    ])->filter()->implode(' - ');
+
+    $enderecoCliente = collect([
+        $cliente->endereco ?? null,
+        $cliente->numero ?? null,
+        $cliente->complemento ?? null,
+        $cliente->bairro ?? null,
+        $cliente->cidade ?? null,
+        $cliente->estado ?? null,
+    ])->filter()->implode(' - ');
+
+    $vias = [
+        'Via estabelecimento',
+        'Via cliente',
+    ];
 @endphp
 
-<div class="sheet">
+@foreach ($vias as $indice => $via)
+    <section class="documento">
+        <table class="cabecalho">
+            <tr>
+                <td class="emitente">
+                    <div class="empresa-nome">
+                        {{ $empresa->nome ?? 'Empresa não informada' }}
+                    </div>
 
-    <!-- VIA Loja -->
-    <div class="ticket">
-        <div class="ticket-label">VIA LOJA</div>
+                    <div class="empresa-dados">
+                        {{ $enderecoEmpresa ?: 'Endereço não informado' }}
 
-        <div class="header">
-            <h1>{{ $empresa->nome ?? '---' }}</h1>
-            <p><strong>Data:</strong> {{ \Carbon\Carbon::now()->format('d/m/Y') }}</p>
-            <p>{{ $empresa->endereco ?? '---' }} {{ $empresa->numero ?? '' }} {{ $empresa->complemento ?? '' }}</p>
-            <p>{{ $empresa->bairro ?? '---' }} - {{ $empresa->cidade ?? '---' }} - {{ $empresa->estado ?? '' }} - CEP {{ $empresa->cep ?? '---' }}</p>
-            <p>Tel: {{ $empresa->telefone ?? '---' }} | Email: {{ $empresa->email ?? '---' }}</p>
-            <hr>
-        </div>
+                        <br>
 
-        <div class="cliente">
-            <div class="vale-troca">VALE TROCA</div>
+                        Telefone:
+                        {{ $empresa->telefone ?? 'Não informado' }}
 
-            <h3>Cliente:</h3>
-            <p><strong>Nome:</strong> {{ $cliente->nome ?? '---' }}</p>
-            <p><strong>CPF/CNPJ:</strong> {{ $cliente->cpf ?? $cliente->cnpj ?? '---' }}</p>
-            <p><strong>Endereço:</strong> {{ $cliente->endereco ?? '---' }}</p>
-            <p><strong>Telefone:</strong> {{ $cliente->telefone ?? '---' }}</p>
-        </div>
+                        @if (! empty($empresa->email))
+                            | E-mail: {{ $empresa->email }}
+                        @endif
+                    </div>
+                </td>
 
-        <div class="devolucao">
-            <h3>Devolução - {{ $devolucao->produto->nome ?? '---' }} - 000{{ $devolucao->produto->id ?? '---' }}</h3>
-            <p><strong>Produto devolvido:</strong> {{ $devolucao->produto->nome ?? '---' }}</p>
-            <p><strong>Quantidade:</strong> {{ $devolucao->quantidade }}</p>
-            <p><strong>V.Unitario:</strong> R$ {{ number_format($devolucao->produto->preco_venda ?? 0, 2, ',', '.') }}</p>
-            <p><strong>Motivo:</strong> {{ $devolucao->motivo }}</p>
-            <p><strong>Status:</strong> {{ ucfirst($devolucao->status) }}</p>
-            <p><strong>Valor a ser restituído:</strong> 
-                R$ {{ number_format($devolucao->quantidade * ($devolucao->produto->preco_venda ?? 0), 2, ',', '.') }}
+                <td class="identificacao">
+                    <div class="tipo-documento">
+                        {{ $tituloDocumento }}
+                    </div>
+
+                    <div class="via">{{ $via }}</div>
+
+                    <div class="codigo">
+                        <span class="codigo-label">
+                            Código de controle
+                        </span>
+
+                        <span class="codigo-valor">
+                            {{ $codigoDocumento }}
+                        </span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="secao-titulo">Identificação do documento</div>
+
+        <table class="campos">
+            <tr>
+                <td style="width: 20%;">
+                    <span class="rotulo">Devolução</span>
+                    <span class="valor">#{{ $devolucao->id }}</span>
+                </td>
+
+                <td style="width: 20%;">
+                    <span class="rotulo">Ocorrência</span>
+                    <span class="valor">
+                        {{ $devolucao->romaneio_ocorrencia_id
+                            ? '#'.$devolucao->romaneio_ocorrencia_id
+                            : 'Não vinculada' }}
+                    </span>
+                </td>
+
+                <td style="width: 30%;">
+                    <span class="rotulo">Data de emissão</span>
+                    <span class="valor">
+                        {{ $dataEmissao->format('d/m/Y H:i') }}
+                    </span>
+                </td>
+
+                <td style="width: 30%;">
+                    <span class="rotulo">Validade</span>
+                    <span class="valor">
+                        {{ $dataValidade->format('d/m/Y') }}
+                    </span>
+                </td>
+            </tr>
+        </table>
+
+        <div class="secao-titulo">Dados do cliente</div>
+
+        <table class="campos">
+            <tr>
+                <td style="width: 45%;">
+                    <span class="rotulo">Nome/Razão social</span>
+                    <span class="valor">
+                        {{ $cliente->nome ?? 'Não informado' }}
+                    </span>
+                </td>
+
+                <td style="width: 25%;">
+                    <span class="rotulo">CPF/CNPJ</span>
+                    <span class="valor">{{ $documentoCliente }}</span>
+                </td>
+
+                <td style="width: 30%;">
+                    <span class="rotulo">Telefone</span>
+                    <span class="valor">
+                        {{ $cliente->telefone ?? 'Não informado' }}
+                    </span>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="3">
+                    <span class="rotulo">Endereço</span>
+                    <span class="valor">
+                        {{ $enderecoCliente ?: 'Não informado' }}
+                    </span>
+                </td>
+            </tr>
+        </table>
+
+        <div class="secao-titulo">Mercadoria devolvida</div>
+
+        <table class="produto">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Código</th>
+                    <th style="width: 42%;">Descrição do produto</th>
+                    <th style="width: 13%;" class="centro">Quantidade</th>
+                    <th style="width: 17%;" class="direita">Valor unitário</th>
+                    <th style="width: 18%;" class="direita">Valor do crédito</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>
+                        {{ str_pad(
+                            (string) ($produto->id ?? 0),
+                            5,
+                            '0',
+                            STR_PAD_LEFT
+                        ) }}
+                    </td>
+
+                    <td>
+                        <strong>
+                            {{ $produto->nome ?? 'Produto não encontrado' }}
+                        </strong>
+                    </td>
+
+                    <td class="centro">
+                        {{ number_format($quantidade, 3, ',', '.') }}
+                    </td>
+
+                    <td class="direita">
+                        R$ {{ number_format($valorUnitario, 2, ',', '.') }}
+                    </td>
+
+                    <td class="direita">
+                        R$ {{ number_format($valorTotal, 2, ',', '.') }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="totais">
+            <tr>
+                <td class="total-descricao">
+                    Valor total do crédito
+                </td>
+
+                <td class="total-valor">
+                    R$ {{ number_format($valorTotal, 2, ',', '.') }}
+                </td>
+            </tr>
+        </table>
+
+        <div class="observacoes">
+            <div class="observacoes-titulo">
+                Informações complementares
+            </div>
+
+            <p>
+                <strong>Motivo:</strong>
+                {{ $devolucao->motivo }}
             </p>
+
+            @if ($possuiVale)
+                <p>
+                    Voucher pessoal e vinculado ao cliente identificado.
+                    Validade até
+                    <strong>{{ $dataValidade->format('d/m/Y') }}</strong>.
+                    Status:
+                    <strong>{{ strtoupper($valeCompra->status) }}</strong>.
+                </p>
+            @endif
         </div>
 
-        <div class="observacao">
-            Observação: O cliente tem até <strong>7 dias</strong> para efetuar a troca do produto.
+        <table class="assinaturas">
+            <tr>
+                <td>
+                    <div class="linha-assinatura">
+                        Assinatura do cliente
+                    </div>
+                </td>
+
+                <td>
+                    <div class="linha-assinatura">
+                        Responsável pela emissão
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <footer class="rodape">
+            Documento vinculado à devolução #{{ $devolucao->id }}
+            | Controle: {{ $codigoDocumento }}
+        </footer>
+    </section>
+
+    @if ($indice === 0)
+        <div class="linha-corte">
+            <span>Linha de corte</span>
         </div>
-
-        <div class="customer-sign">
-            <p>Assinatura do Cliente: ____________________________</p>
-            <p>Telefone para contato: ____________________________</p>
-        </div>
-    </div>
-
-    <!-- VIA CLIENTE -->
-    <div class="ticket">
-        <div class="ticket-label">VIA CLIENTE</div>
-
-        <div class="header">
-            <h1>{{ $empresa->nome ?? '---' }}</h1>
-            <p><strong>Data:</strong> {{ \Carbon\Carbon::now()->format('d/m/Y') }}</p>
-            <p>{{ $empresa->endereco ?? '---' }} {{ $empresa->numero ?? '' }} {{ $empresa->complemento ?? '' }}</p>
-            <p>{{ $empresa->bairro ?? '---' }} - {{ $empresa->cidade ?? '---' }} - {{ $empresa->estado ?? '' }} - CEP {{ $empresa->cep ?? '---' }}</p>
-            <p>Tel: {{ $empresa->telefone ?? '---' }} | Email: {{ $empresa->email ?? '---' }}</p>
-            <hr>
-        </div>
-
-        <div class="cliente">
-            <div class="vale-troca">VALE TROCA</div>
-
-            <h3>Cliente:</h3>
-            <p><strong>Nome:</strong> {{ $cliente->nome ?? '---' }}</p>
-            <p><strong>CPF/CNPJ:</strong> {{ $cliente->cpf ?? $cliente->cnpj ?? '---' }}</p>
-            <p><strong>Endereço:</strong> {{ $cliente->endereco ?? '---' }}</p>
-            <p><strong>Telefone:</strong> {{ $cliente->telefone ?? '---' }}</p>
-        </div>
-
-        <div class="devolucao">
-            <h3>Devolução - {{ $devolucao->produto->nome ?? '---' }} - 000{{ $devolucao->produto->id ?? '---' }}</h3>
-            <p><strong>Produto devolvido:</strong> {{ $devolucao->produto->nome ?? '---' }}</p>
-            <p><strong>Quantidade:</strong> {{ $devolucao->quantidade }}</p>
-            <p><strong>Motivo:</strong> {{ $devolucao->motivo }}</p>
-            <p><strong>Status:</strong> {{ ucfirst($devolucao->status) }}</p>
-            <p><strong>Valor a ser restituído:</strong> 
-                R$ {{ number_format($devolucao->quantidade * ($devolucao->produto->preco_venda ?? 0), 2, ',', '.') }}
-            </p>
-        </div>
-
-        <div class="observacao">
-            Observação: O cliente tem até <strong>7 dias</strong> para efetuar a troca do produto.
-        </div>
-
-        <div class="signature">
-            <p>___________________________________</p>
-            <p>Assinatura do Responsável</p>
-        </div>
-    </div>
-
-</div>
+    @endif
+@endforeach
 </body>
 </html>

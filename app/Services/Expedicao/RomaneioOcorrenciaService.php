@@ -17,8 +17,8 @@ use Illuminate\Validation\ValidationException;
 class RomaneioOcorrenciaService
 {
     public function criarOcorrenciasDoRetorno(
-        Romaneio $romaneio
-    ): Collection {
+            Romaneio $romaneio
+        ): Collection {
         return DB::transaction(function () use ($romaneio) {
             $usuarioId = Auth::id();
 
@@ -166,7 +166,7 @@ class RomaneioOcorrenciaService
     public function atribuirResponsavel(
         RomaneioOcorrencia $ocorrencia,
         int $responsavelId
-    ): RomaneioOcorrencia {
+     ): RomaneioOcorrencia {
         return DB::transaction(
             function () use (
                 $ocorrencia,
@@ -250,7 +250,7 @@ class RomaneioOcorrenciaService
     public function registrarAnexo(
         RomaneioOcorrencia $ocorrencia,
         array $dados
-    ): RomaneioOcorrenciaAnexo {
+        ): RomaneioOcorrenciaAnexo {
         return DB::transaction(
             function () use (
                 $ocorrencia,
@@ -358,7 +358,7 @@ class RomaneioOcorrenciaService
 
     public function liberarFechamentoLogistico(
         RomaneioOcorrencia $ocorrencia
-    ): RomaneioOcorrencia {
+        ): RomaneioOcorrencia {
         return DB::transaction(
             function () use ($ocorrencia) {
                 $ocorrencia = RomaneioOcorrencia::query()
@@ -595,6 +595,7 @@ class RomaneioOcorrenciaService
                 'Reintegracao',
                 'Perda',
                 'Reposicao',
+                'Tratamento_individual',
             ];
 
             if (! in_array($classificacaoFinal, $classificacoesPermitidas, true)) {
@@ -616,9 +617,34 @@ class RomaneioOcorrenciaService
             }
 
             $ocorrencia = RomaneioOcorrencia::query()
-                ->with(['anexos', 'responsavelAnalise'])
+                ->with([
+                    'anexos',
+                    'responsavelAnalise',
+                    'avaliacoes',
+                ])
                 ->lockForUpdate()
                 ->findOrFail($ocorrencia->id);
+
+            /*
+             * Quando a triagem detalhada existe, seus destinos são a
+             * fonte oficial. O operador não pode reduzi-los manualmente
+             * a um único destino no cabeçalho da ocorrência.
+             */
+            if (
+                $ocorrencia->triagem_status === 'Concluida'
+                && $ocorrencia->avaliacoes->isNotEmpty()
+            ) {
+                $destinosTriagem = $ocorrencia->avaliacoes
+                    ->pluck('destino_sugerido')
+                    ->filter()
+                    ->unique()
+                    ->values();
+
+                $destinoEstoque =
+                    $destinosTriagem->count() === 1
+                        ? (string) $destinosTriagem->first()
+                        : 'Tratamento_individual';
+            }
 
             if ($ocorrencia->estaResolvida() || $ocorrencia->estaCancelada()) {
                 throw ValidationException::withMessages([
@@ -680,80 +706,150 @@ class RomaneioOcorrenciaService
         });
     }
 
-    public function resolver(RomaneioOcorrencia $ocorrencia, string $solucao): RomaneioOcorrencia
+    public function resolver(RomaneioOcorrencia $ocorrencia, string $solucao): RomaneioOcorrencia 
     {
-        return DB::transaction(function () use ($ocorrencia, $solucao) {
-            $usuarioId = Auth::id();
-            $solucao = trim($solucao);
+        return DB::transaction(
+            function () use ($ocorrencia, $solucao) {
+                $usuarioId = Auth::id();
+                $solucao = trim($solucao);
 
-            if (! $usuarioId) {
-                throw ValidationException::withMessages([
-                    'usuario' => 'Não foi possível identificar o usuário responsável pela resolução.',
+                if (! $usuarioId) {
+                    throw ValidationException::withMessages([
+                        'usuario' =>
+                            'Não foi possível identificar o usuário responsável pela resolução.',
+                    ]);
+                }
+
+                if (mb_strlen($solucao) < 5) {
+                    throw ValidationException::withMessages([
+                        'solucao' =>
+                            'Descreva a solução aplicada à ocorrência.',
+                    ]);
+                }
+
+                $ocorrencia = RomaneioOcorrencia::query()
+                    ->lockForUpdate()
+                    ->findOrFail($ocorrencia->id);
+
+                if (
+                    $ocorrencia->estaResolvida()
+                    || $ocorrencia->estaCancelada()
+                ) {
+                    throw ValidationException::withMessages([
+                        'ocorrencia' =>
+                            'A ocorrência já está encerrada.',
+                    ]);
+                }
+
+                if (
+                    ! $ocorrencia->decidida_por
+                    || ! $ocorrencia->classificacao_final
+                ) {
+                    throw ValidationException::withMessages([
+                        'decisao' =>
+                            'Registre a decisão administrativa antes de resolver a ocorrência.',
+                    ]);
+                }
+
+                if (
+                    ! $ocorrencia
+                        ->permite_fechamento_logistico
+                ) {
+                    throw ValidationException::withMessages([
+                        'fechamento_logistico' =>
+                            'Libere o fechamento logístico antes de resolver a ocorrência.',
+                    ]);
+                }
+
+                /*
+                * Destinos que exigem tratamento pelo fluxo real
+                * de devoluções e estoque por lote.
+                */
+                $destinosComDevolucao = [
+                    'Quarentena',
+                    'Reintegracao',
+                    'Perda',
+                    'Reposicao',
+                ];
+
+                $exigeDevolucao = in_array(
+                    $ocorrencia->destino_estoque,
+                    $destinosComDevolucao,
+                    true
+                );
+
+                if ($exigeDevolucao) {
+                    $devolucao = \App\Models\Devolucao::query()
+                        ->where(
+                            'romaneio_ocorrencia_id',
+                            $ocorrencia->id
+                        )
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (! $devolucao) {
+                        throw ValidationException::withMessages([
+                            'devolucao' =>
+                                'Registre a devolução do material antes de resolver esta ocorrência.',
+                        ]);
+                    }
+
+                    if (! $devolucao->estaConcluida()) {
+                        $statusDevolucao = str_replace(
+                            '_',
+                            ' ',
+                            (string) $devolucao->status
+                        );
+
+                        throw ValidationException::withMessages([
+                            'devolucao' =>
+                                'A devolução #'
+                                . $devolucao->id
+                                . ' ainda está em '
+                                . $statusDevolucao
+                                . '. Conclua o fluxo da devolução antes de resolver a ocorrência.',
+                        ]);
+                    }
+                }
+
+                $statusAnterior = $ocorrencia->status;
+
+                $ocorrencia->update([
+                    'status' =>
+                        'Resolvida',
+
+                    'resolvida_por' =>
+                        $usuarioId,
+
+                    'resolvida_em' =>
+                        now(),
+
+                    'solucao' =>
+                        $solucao,
+
+                    'bloqueia_operacao' =>
+                        false,
+
+                    'permite_fechamento_logistico' =>
+                        true,
+                ]);
+
+                $this->registrarHistorico(
+                    ocorrencia: $ocorrencia,
+                    statusAnterior: $statusAnterior,
+                    statusNovo: 'Resolvida',
+                    evento: 'Ocorrência resolvida',
+                    descricao: $solucao
+                );
+
+                return $ocorrencia->fresh([
+                    'anexos',
+                    'historicos',
+                    'responsavelAnalise',
+                    'devolucao',
                 ]);
             }
-
-            if (mb_strlen($solucao) < 5) {
-                throw ValidationException::withMessages([
-                    'solucao' => 'Descreva a solução aplicada à ocorrência.',
-                ]);
-            }
-
-            $ocorrencia = RomaneioOcorrencia::query()
-                ->lockForUpdate()
-                ->findOrFail($ocorrencia->id);
-
-            if ($ocorrencia->estaResolvida() || $ocorrencia->estaCancelada()) {
-                throw ValidationException::withMessages([
-                    'ocorrencia' => 'A ocorrência já está encerrada.',
-                ]);
-            }
-
-            if (! $ocorrencia->decidida_por || ! $ocorrencia->classificacao_final) {
-                throw ValidationException::withMessages([
-                    'decisao' => 'Registre a decisão administrativa antes de resolver a ocorrência.',
-                ]);
-            }
-
-            if (! $ocorrencia->permite_fechamento_logistico) {
-                throw ValidationException::withMessages([
-                    'fechamento_logistico' => 'Libere o fechamento logístico antes de resolver a ocorrência.',
-                ]);
-            }
-
-            if (
-                in_array($ocorrencia->destino_estoque, ['Perda', 'Reintegracao', 'Reposicao'], true)
-                && ! $ocorrencia->movimentacao_estoque_id
-            ) {
-                throw ValidationException::withMessages([
-                    'movimentacao_estoque_id' => 'Vincule a movimentação de estoque antes de resolver a ocorrência.',
-                ]);
-            }
-
-            $statusAnterior = $ocorrencia->status;
-
-            $ocorrencia->update([
-                'status' => 'Resolvida',
-                'resolvida_por' => $usuarioId,
-                'resolvida_em' => now(),
-                'solucao' => $solucao,
-                'bloqueia_operacao' => false,
-                'permite_fechamento_logistico' => true,
-            ]);
-
-            $this->registrarHistorico(
-                ocorrencia: $ocorrencia,
-                statusAnterior: $statusAnterior,
-                statusNovo: 'Resolvida',
-                evento: 'Ocorrência resolvida',
-                descricao: $solucao
-            );
-
-            return $ocorrencia->fresh([
-                'anexos',
-                'historicos',
-                'responsavelAnalise',
-            ]);
-        });
+        );
     }
 
     public function cancelar(RomaneioOcorrencia $ocorrencia, string $justificativa): RomaneioOcorrencia
@@ -815,16 +911,10 @@ class RomaneioOcorrenciaService
         });
     }
 
-    private function resultadosComOcorrencia(
-        RomaneioItem $romaneioItem
-    ): array {
-        $resultados = [];
-
+    private function resultadosComOcorrencia(RomaneioItem $romaneioItem): array 
+    {
         $mapeamentos = [
-            [
-                'campo' =>
-                    'quantidade_devolvida',
-
+            'quantidade_devolvida' => [
                 'tipo' =>
                     'Devolução de material',
 
@@ -840,10 +930,8 @@ class RomaneioOcorrenciaService
                 'destino_estoque' =>
                     'Quarentena',
             ],
-            [
-                'campo' =>
-                    'quantidade_recusada',
 
+            'quantidade_recusada' => [
                 'tipo' =>
                     'Material recusado pelo cliente',
 
@@ -859,10 +947,8 @@ class RomaneioOcorrenciaService
                 'destino_estoque' =>
                     'Quarentena',
             ],
-            [
-                'campo' =>
-                    'quantidade_avariada',
 
+            'quantidade_avariada' => [
                 'tipo' =>
                     'Material avariado',
 
@@ -878,10 +964,8 @@ class RomaneioOcorrenciaService
                 'destino_estoque' =>
                     'Quarentena',
             ],
-            [
-                'campo' =>
-                    'quantidade_perdida',
 
+            'quantidade_perdida' => [
                 'tipo' =>
                     'Possível extravio de material',
 
@@ -899,121 +983,586 @@ class RomaneioOcorrenciaService
             ],
         ];
 
-        foreach ($mapeamentos as $mapeamento) {
+        $quantidadeSaida = round(
+            (float) (
+                $romaneioItem->quantidade_conferida_saida
+                ?? 0
+            ),
+            3
+        );
+
+        $resultados = [];
+        $quantidadeComOcorrencia = 0.0;
+
+        foreach (
+            $mapeamentos
+            as $campo => $mapeamento
+        ) {
             $quantidade = round(
                 (float) (
-                    $romaneioItem
-                        ->{$mapeamento['campo']}
+                    $romaneioItem->{$campo}
                     ?? 0
                 ),
                 3
             );
 
-            if ($quantidade <= 0) {
+            if ($quantidade < 0) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        "O item #{$romaneioItem->entrega_item_id} possui quantidade negativa no campo {$campo}.",
+                ]);
+            }
+
+            if ($quantidade === 0.0) {
                 continue;
             }
 
+            if ($quantidade > $quantidadeSaida) {
+                throw ValidationException::withMessages([
+                    'itens' =>
+                        "A quantidade com ocorrência do item #{$romaneioItem->entrega_item_id} ultrapassa a quantidade conferida na saída.",
+                ]);
+            }
+
+            $quantidadeComOcorrencia = round(
+                $quantidadeComOcorrencia
+                + $quantidade,
+                3
+            );
+
             $resultados[] = [
+                'campo' =>
+                    $campo,
+
                 'tipo' =>
                     $mapeamento['tipo'],
 
                 'classificacao' =>
-                    $mapeamento[
-                        'classificacao'
-                    ],
+                    $mapeamento['classificacao'],
 
                 'quantidade' =>
                     $quantidade,
 
                 'criticidade' =>
-                    $mapeamento[
-                        'criticidade'
-                    ],
+                    $mapeamento['criticidade'],
 
                 'exige_autorizacao' =>
-                    $mapeamento[
-                        'exige_autorizacao'
-                    ],
+                    $mapeamento['exige_autorizacao'],
 
                 'destino_estoque' =>
-                    $mapeamento[
-                        'destino_estoque'
-                    ],
+                    $mapeamento['destino_estoque'],
             ];
         }
 
-        return $resultados;
-    }
-
-    private function montarDescricao(
-        RomaneioItem $romaneioItem,
-        array $resultado
-    ): string {
-        $observacao = trim(
-            (string) (
-                $romaneioItem->observacao
-                ?? ''
-            )
-        );
-
-        $descricao =
-            $resultado['tipo']
-            . ' identificado no retorno. '
-            . 'Quantidade: '
-            . number_format(
-                (float) $resultado['quantidade'],
-                3,
-                ',',
-                '.'
-            )
-            . '.';
-
-        if ($observacao !== '') {
-            $descricao .= ' Observação: '
-                . $observacao;
-        }
-
-        return $descricao;
-    }
-
-    private function registrarHistorico(
-        RomaneioOcorrencia $ocorrencia,
-        ?string $statusAnterior,
-        string $statusNovo,
-        string $evento,
-        ?string $descricao = null
-    ): RomaneioOcorrenciaHistorico {
-        $usuarioId = Auth::id();
-
-        if (! $usuarioId) {
+        if ($quantidadeComOcorrencia > $quantidadeSaida) {
             throw ValidationException::withMessages([
-                'usuario' =>
-                    'Não foi possível identificar o usuário responsável pelo histórico.',
+                'itens' =>
+                    "A soma das ocorrências do item #{$romaneioItem->entrega_item_id} ultrapassa a quantidade conferida na saída.",
             ]);
+        
+        }
+        return $resultados;
+
         }
 
-        return RomaneioOcorrenciaHistorico::query()
-            ->create([
-                'romaneio_ocorrencia_id' =>
-                    $ocorrencia->id,
+        private function montarDescricao(
+            RomaneioItem $romaneioItem,
+            array $resultado
+        ): string {
+            /*
+             * Produto, lote e quantidade possuem campos próprios.
+             * A descrição da ocorrência deve conter somente o relato
+             * operacional informado durante a triagem.
+             */
+            return trim(
+                (string) (
+                    $romaneioItem->observacao
+                    ?? ''
+                )
+            );
+        }
 
-                'status_anterior' =>
-                    $statusAnterior,
+        private function registrarHistorico(
+            RomaneioOcorrencia $ocorrencia,
+            ?string $statusAnterior,
+            string $statusNovo,
+            string $evento,
+            ?string $descricao = null
+            ): RomaneioOcorrenciaHistorico {
+            $usuarioId = Auth::id();
 
-                'status_novo' =>
-                    $statusNovo,
+            if (! $usuarioId) {
+                throw ValidationException::withMessages([
+                    'usuario' =>
+                        'Não foi possível identificar o usuário responsável pelo histórico.',
+                ]);
+            }
 
-                'evento' =>
-                    $evento,
+            return RomaneioOcorrenciaHistorico::query()
+                ->create([
+                    'romaneio_ocorrencia_id' =>
+                        $ocorrencia->id,
 
-                'descricao' =>
-                    $descricao,
+                    'status_anterior' =>
+                        $statusAnterior,
 
-                'registrado_por' =>
-                    $usuarioId,
+                    'status_novo' =>
+                        $statusNovo,
 
-                'registrado_em' =>
-                    now(),
+                    'evento' =>
+                        $evento,
+
+                    'descricao' =>
+                        $descricao,
+
+                    'registrado_por' =>
+                        $usuarioId,
+
+                    'registrado_em' =>
+                        now(),
+                ]);
+        }
+
+    
+        public function prepararOcorrenciaDaTriagem(
+            Romaneio $romaneio,
+            RomaneioItem $romaneioItem,
+            string $classificacao,
+            float $quantidade,
+            ?string $observacao = null
+            ): RomaneioOcorrencia {
+            return DB::transaction(function () use (
+                $romaneio,
+                $romaneioItem,
+                $classificacao,
+                $quantidade,
+                $observacao
+            ) {
+            $usuarioId = Auth::id();
+
+            if (! $usuarioId) {
+                throw ValidationException::withMessages([
+                    'usuario' =>
+                        'Não foi possível identificar o responsável pela triagem.',
+                ]);
+            }
+
+            $romaneioBloqueado = Romaneio::query()
+                ->whereKey($romaneio->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $romaneioBloqueado) {
+                throw ValidationException::withMessages([
+                    'romaneio' =>
+                        'O romaneio informado não foi encontrado.',
+                ]);
+            }
+
+            if (! in_array(
+                $romaneioBloqueado->status,
+                [
+                    'Em_rota',
+                    'Retornando',
+                ],
+                true
+            )) {
+                throw ValidationException::withMessages([
+                    'romaneio' =>
+                        'O romaneio não está disponível para registrar a triagem do retorno.',
+                ]);
+            }
+
+            $mapeamentos = [
+                'Devolucao' => [
+                    'tipo' =>
+                        'Devolução de material',
+
+                    'criticidade' =>
+                        'Atencao',
+
+                    'exige_autorizacao' =>
+                        false,
+
+                    'destino_estoque' =>
+                        'Quarentena',
+                ],
+
+                'Recusa' => [
+                    'tipo' =>
+                        'Material recusado pelo cliente',
+
+                    'criticidade' =>
+                        'Atencao',
+
+                    'exige_autorizacao' =>
+                        false,
+
+                    'destino_estoque' =>
+                        'Quarentena',
+                ],
+
+                'Avaria' => [
+                    'tipo' =>
+                        'Material avariado',
+
+                    'criticidade' =>
+                        'Critico',
+
+                    'exige_autorizacao' =>
+                        true,
+
+                    'destino_estoque' =>
+                        'Quarentena',
+                ],
+
+                'Extravio' => [
+                    'tipo' =>
+                        'Possível extravio de material',
+
+                    'criticidade' =>
+                        'Critico',
+
+                    'exige_autorizacao' =>
+                        true,
+
+                    'destino_estoque' =>
+                        'Sem_movimentacao',
+                ],
+            ];
+
+            $classificacao = trim($classificacao);
+
+            if (! isset($mapeamentos[$classificacao])) {
+                throw ValidationException::withMessages([
+                    'tipo_resultado' =>
+                        'O tipo de problema informado é inválido.',
+                ]);
+            }
+
+            $configuracao = $mapeamentos[$classificacao];
+
+            $itemBloqueado = RomaneioItem::query()
+                ->with([
+                    'entregaItem.vendaItem.produto',
+                    'entregaItem.vendaItem.lote',
+                    'entregaItem.itemOrcamento.produto',
+                ])
+                ->whereKey($romaneioItem->id)
+                ->where(
+                    'romaneio_id',
+                    $romaneioBloqueado->id
+                )
+                ->lockForUpdate()
+                ->first();
+
+            if (! $itemBloqueado) {
+                throw ValidationException::withMessages([
+                    'romaneio_item_id' =>
+                        'O produto selecionado não pertence a este romaneio.',
+                ]);
+            }
+
+            $quantidade = round(
+                $quantidade,
+                3
+            );
+
+            if ($quantidade <= 0) {
+                throw ValidationException::withMessages([
+                    'quantidade_afetada' =>
+                        'A quantidade afetada deve ser maior que zero.',
+                ]);
+            }
+
+            $quantidadeSaida = round(
+                (float) (
+                    $itemBloqueado
+                        ->quantidade_conferida_saida
+                    ?? 0
+                ),
+                3
+            );
+
+            if ($quantidade > $quantidadeSaida) {
+                throw ValidationException::withMessages([
+                    'quantidade_afetada' =>
+                        'A quantidade afetada não pode ultrapassar a quantidade conferida na saída.',
+                ]);
+            }
+
+            $ocorrencia = RomaneioOcorrencia::query()
+                ->where(
+                    'romaneio_id',
+                    $romaneioBloqueado->id
+                )
+                ->where(
+                    'romaneio_item_id',
+                    $itemBloqueado->id
+                )
+                ->where(
+                    'tipo',
+                    $configuracao['tipo']
+                )
+                ->lockForUpdate()
+                ->first();
+
+            if (
+                $ocorrencia
+                && (
+                    in_array(
+                        $ocorrencia->status,
+                        [
+                            'Resolvida',
+                            'Cancelada',
+                        ],
+                        true
+                    )
+                    || ! empty(
+                        $ocorrencia->decidida_por
+                    )
+                    || $ocorrencia->triagem_status
+                        === 'Concluida'
+                )
+            ) {
+                throw ValidationException::withMessages([
+                    'romaneio_item_id' =>
+                        'Este problema já foi concluído ou encaminhado para decisão e não pode ser alterado.',
+                ]);
+            }
+
+            $consultaOutrasOcorrencias =
+                RomaneioOcorrencia::query()
+                    ->where(
+                        'romaneio_id',
+                        $romaneioBloqueado->id
+                    )
+                    ->where(
+                        'romaneio_item_id',
+                        $itemBloqueado->id
+                    )
+                    ->whereNotIn(
+                        'status',
+                        [
+                            'Cancelada',
+                        ]
+                    );
+
+            if ($ocorrencia) {
+                $consultaOutrasOcorrencias->where(
+                    'id',
+                    '<>',
+                    $ocorrencia->id
+                );
+            }
+
+            $quantidadeOutrasOcorrencias = round(
+                (float) $consultaOutrasOcorrencias
+                    ->sum('quantidade_envolvida'),
+                3
+            );
+
+            if (
+                round(
+                    $quantidadeOutrasOcorrencias
+                    + $quantidade,
+                    3
+                ) > $quantidadeSaida
+            ) {
+                throw ValidationException::withMessages([
+                    'quantidade_afetada' =>
+                        'A soma das quantidades com problema ultrapassa a quantidade conferida na saída.',
+                ]);
+            }
+
+            $equipe = RomaneioEquipe::query()
+                ->where(
+                    'romaneio_id',
+                    $romaneioBloqueado->id
+                )
+                ->where(
+                    'status',
+                    'Ativa'
+                )
+                ->latest('id')
+                ->first();
+
+            $resultado = [
+                'tipo' =>
+                    $configuracao['tipo'],
+
+                'classificacao' =>
+                    $classificacao,
+
+                'quantidade' =>
+                    $quantidade,
+
+                'criticidade' =>
+                    $configuracao['criticidade'],
+
+                'exige_autorizacao' =>
+                    $configuracao['exige_autorizacao'],
+
+                'destino_estoque' =>
+                    $configuracao['destino_estoque'],
+            ];
+
+            $descricao = trim(
+                (string) $observacao
+            );
+
+            if ($descricao === '') {
+                $descricao = $this->montarDescricao(
+                    $itemBloqueado,
+                    $resultado
+                );
+            }
+
+            if (! $ocorrencia) {
+                $ocorrencia = RomaneioOcorrencia::query()
+                    ->create([
+                        'romaneio_id' =>
+                            $romaneioBloqueado->id,
+
+                        'romaneio_equipe_id' =>
+                            $equipe?->id,
+
+                        'entrega_id' =>
+                            $romaneioBloqueado->entrega_id,
+
+                        'romaneio_item_id' =>
+                            $itemBloqueado->id,
+
+                        'entrega_item_id' =>
+                            $itemBloqueado->entrega_item_id,
+
+                        'quantidade_envolvida' =>
+                            $quantidade,
+
+                        'categoria' =>
+                            'Material',
+
+                        'tipo' =>
+                            $configuracao['tipo'],
+
+                        'classificacao_inicial' =>
+                            $classificacao,
+
+                        'classificacao_final' =>
+                            null,
+
+                        'criticidade' =>
+                            $configuracao['criticidade'],
+
+                        'etapa' =>
+                            'Retorno',
+
+                        'descricao' =>
+                            $descricao,
+
+                        'bloqueia_operacao' =>
+                            true,
+
+                        'exige_autorizacao' =>
+                            $configuracao['exige_autorizacao'],
+
+                        'status' =>
+                            'Aguardando_evidencias',
+
+                        'triagem_status' =>
+                            'Aguardando',
+
+                        'registrada_por' =>
+                            $usuarioId,
+
+                        'registrada_em' =>
+                            now(),
+
+                        'destino_estoque' =>
+                            $configuracao['destino_estoque'],
+
+                        'permite_fechamento_logistico' =>
+                            false,
+                    ]);
+
+                $this->registrarHistorico(
+                    ocorrencia: $ocorrencia,
+                    statusAnterior: null,
+                    statusNovo: $ocorrencia->status,
+                    evento:
+                        'Ocorrência criada na triagem do retorno',
+                    descricao:
+                        $descricao
+                );
+            } else {
+                $quantidadeAnterior = round(
+                    (float) (
+                        $ocorrencia
+                            ->quantidade_envolvida
+                        ?? 0
+                    ),
+                    3
+                );
+
+                $ocorrencia->update([
+                    'quantidade_envolvida' =>
+                        $quantidade,
+
+                    'descricao' =>
+                        $descricao,
+
+                    'classificacao_inicial' =>
+                        $classificacao,
+
+                    'criticidade' =>
+                        $configuracao['criticidade'],
+
+                    'exige_autorizacao' =>
+                        $configuracao['exige_autorizacao'],
+
+                    'destino_estoque' =>
+                        $configuracao['destino_estoque'],
+                ]);
+
+                if ($quantidadeAnterior !== $quantidade) {
+                    $this->registrarHistorico(
+                        ocorrencia: $ocorrencia,
+                        statusAnterior:
+                            $ocorrencia->status,
+                        statusNovo:
+                            $ocorrencia->status,
+                        evento:
+                            'Quantidade da ocorrência atualizada na triagem',
+                        descricao:
+                            'Quantidade alterada de '
+                            . number_format(
+                                $quantidadeAnterior,
+                                3,
+                                ',',
+                                '.'
+                            )
+                            . ' para '
+                            . number_format(
+                                $quantidade,
+                                3,
+                                ',',
+                                '.'
+                            )
+                            . '.'
+                    );
+                }
+            }
+
+            return $ocorrencia->fresh([
+                'anexos',
+                'avaliacoes',
+                'entregaItem.vendaItem.produto',
+                'entregaItem.vendaItem.lote',
+                'entregaItem.itemOrcamento.produto',
+                'romaneioItem.entregaItem.vendaItem.produto',
+                'romaneioItem.entregaItem.vendaItem.lote',
+                'romaneioItem.entregaItem.itemOrcamento.produto',
             ]);
+        });
     }
 }
