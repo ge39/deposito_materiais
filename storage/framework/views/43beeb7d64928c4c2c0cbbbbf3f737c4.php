@@ -84,7 +84,7 @@
 
     </div>
 
-    <!-- 👤 CLIENTE -->
+    <!-- DADOS DO CLIENTE -->
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-header bg-light fw-semibold">
             👤 Dados do Cliente
@@ -120,7 +120,7 @@
         </div>
     </div>
 
-    <!-- 📦 ITENS ATENDIDOS -->
+    <!-- ITENS ATENDIDOS -->
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-header bg-success text-white fw-semibold">
             📦 Itens Atendidos
@@ -133,6 +133,7 @@
                         <tr>
                             <th class="text-start">Produto</th>
                             <th>Qtd</th>
+                            <th>Unidade</th>
                             <th>Lote</th>
                             <th>Preço</th>
                             <th>Subtotal</th>
@@ -144,7 +145,7 @@
                             <tr class="text-center">
 
                                 <td class="text-start">
-                                    <?php echo e($item->produto->descricao ?? '-'); ?>
+                                    <?php echo e($item->produto?->nome ?? '-'); ?>
 
                                 </td>
 
@@ -154,10 +155,28 @@
                                 </td>
 
                                 <td>
-                                    <span class="badge bg-light text-dark">
-                                        <?php echo e($item->lote->numero_lote ?? '-'); ?>
+                                    <span class="badge bg-secondary">
+                                        <?php echo e($item->produto?->unidadeMedida?->sigla
+                                            ?? $item->produto?->unidadeMedida?->nome
+                                            ?? $item->produto?->unidade
+                                            ?? '-'); ?>
 
                                     </span>
+                                </td>
+
+                                <td>
+                                    <div class="d-flex flex-wrap justify-content-center gap-1">
+                                        <?php $__empty_2 = true; $__currentLoopData = $item->lotes->unique('id'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $lote): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
+                                            <span class="badge bg-light text-dark border">
+                                                <?php echo e($lote->numero_lote ?? '-'); ?>
+
+                                            </span>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
+                                            <span class="badge bg-light text-muted">
+                                                -
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
 
                                 <td>
@@ -166,14 +185,19 @@
                                 </td>
 
                                 <td class="fw-semibold text-success">
-                                    R$ <?php echo e(number_format($item->quantidade_atendida * $item->preco_unitario, 2, ',', '.')); ?>
+                                    R$ <?php echo e(number_format(
+                                        $item->quantidade_atendida * $item->preco_unitario,
+                                        2,
+                                        ',',
+                                        '.'
+                                    )); ?>
 
                                 </td>
 
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-3">
+                                <td colspan="6" class="text-center text-muted py-3">
                                     Nenhum item atendido.
                                 </td>
                             </tr>
@@ -184,7 +208,7 @@
         </div>
     </div>
 
-    <!-- ⏳ ITENS PENDENTES -->
+    <!-- ITENS PENDENTES -->
     <div class="card shadow-sm border-0">
         <div class="card-header bg-warning fw-semibold">
             ⏳ Itens Pendentes / Aguardando Estoque
@@ -197,6 +221,7 @@
                         <tr>
                             <th class="text-start">Produto</th>
                             <th>Pendente</th>
+                            <th>Unidade</th>
                             <th>Previsão</th>
                             <th>Status</th>
                         </tr>
@@ -207,7 +232,7 @@
                             <tr class="text-center">
 
                                 <td class="text-start">
-                                    <?php echo e($item->produto->descricao ?? '-'); ?>
+                                    <?php echo e($item->produto?->nome ?? '-'); ?>
 
                                 </td>
 
@@ -219,7 +244,17 @@
                                 </td>
 
                                 <td>
-                                    <?php echo e($item->previsao_entrega 
+                                    <span class="badge bg-secondary">
+                                        <?php echo e($item->produto?->unidadeMedida?->sigla
+                                            ?? $item->produto?->unidadeMedida?->nome
+                                            ?? $item->produto?->unidade
+                                            ?? '-'); ?>
+
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <?php echo e($item->previsao_entrega
                                         ? \Carbon\Carbon::parse($item->previsao_entrega)->format('d/m/Y')
                                         : '-'); ?>
 
@@ -234,7 +269,7 @@
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-3">
+                                <td colspan="5" class="text-center text-muted py-3">
                                     Nenhum item pendente.
                                 </td>
                             </tr>

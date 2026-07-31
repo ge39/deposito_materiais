@@ -79,7 +79,7 @@
 
     </div>
 
-    <!-- 👤 CLIENTE -->
+    <!-- DADOS DO CLIENTE -->
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-header bg-light fw-semibold">
             👤 Dados do Cliente
@@ -112,7 +112,7 @@
         </div>
     </div>
 
-    <!-- 📦 ITENS ATENDIDOS -->
+    <!-- ITENS ATENDIDOS -->
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-header bg-success text-white fw-semibold">
             📦 Itens Atendidos
@@ -125,6 +125,7 @@
                         <tr>
                             <th class="text-start">Produto</th>
                             <th>Qtd</th>
+                            <th>Unidade</th>
                             <th>Lote</th>
                             <th>Preço</th>
                             <th>Subtotal</th>
@@ -136,7 +137,7 @@
                             <tr class="text-center">
 
                                 <td class="text-start">
-                                    {{ $item->produto->descricao ?? '-' }}
+                                    {{ $item->produto?->nome ?? '-' }}
                                 </td>
 
                                 <td>
@@ -144,9 +145,28 @@
                                 </td>
 
                                 <td>
-                                    <span class="badge bg-light text-dark">
-                                        {{ $item->lote->numero_lote ?? '-' }}
+                                    <span class="badge bg-secondary">
+                                        {{
+                                            $item->produto?->unidadeMedida?->sigla
+                                            ?? $item->produto?->unidadeMedida?->nome
+                                            ?? $item->produto?->unidade
+                                            ?? '-'
+                                        }}
                                     </span>
+                                </td>
+
+                                <td>
+                                    <div class="d-flex flex-wrap justify-content-center gap-1">
+                                        @forelse($item->lotes->unique('id') as $lote)
+                                            <span class="badge bg-light text-dark border">
+                                                {{ $lote->numero_lote ?? '-' }}
+                                            </span>
+                                        @empty
+                                            <span class="badge bg-light text-muted">
+                                                -
+                                            </span>
+                                        @endforelse
+                                    </div>
                                 </td>
 
                                 <td>
@@ -154,13 +174,18 @@
                                 </td>
 
                                 <td class="fw-semibold text-success">
-                                    R$ {{ number_format($item->quantidade_atendida * $item->preco_unitario, 2, ',', '.') }}
+                                    R$ {{ number_format(
+                                        $item->quantidade_atendida * $item->preco_unitario,
+                                        2,
+                                        ',',
+                                        '.'
+                                    ) }}
                                 </td>
 
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-3">
+                                <td colspan="6" class="text-center text-muted py-3">
                                     Nenhum item atendido.
                                 </td>
                             </tr>
@@ -171,7 +196,7 @@
         </div>
     </div>
 
-    <!-- ⏳ ITENS PENDENTES -->
+    <!-- ITENS PENDENTES -->
     <div class="card shadow-sm border-0">
         <div class="card-header bg-warning fw-semibold">
             ⏳ Itens Pendentes / Aguardando Estoque
@@ -184,6 +209,7 @@
                         <tr>
                             <th class="text-start">Produto</th>
                             <th>Pendente</th>
+                            <th>Unidade</th>
                             <th>Previsão</th>
                             <th>Status</th>
                         </tr>
@@ -194,7 +220,7 @@
                             <tr class="text-center">
 
                                 <td class="text-start">
-                                    {{ $item->produto->descricao ?? '-' }}
+                                    {{ $item->produto?->nome ?? '-' }}
                                 </td>
 
                                 <td>
@@ -204,7 +230,18 @@
                                 </td>
 
                                 <td>
-                                    {{ $item->previsao_entrega 
+                                    <span class="badge bg-secondary">
+                                        {{
+                                            $item->produto?->unidadeMedida?->sigla
+                                            ?? $item->produto?->unidadeMedida?->nome
+                                            ?? $item->produto?->unidade
+                                            ?? '-'
+                                        }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {{ $item->previsao_entrega
                                         ? \Carbon\Carbon::parse($item->previsao_entrega)->format('d/m/Y')
                                         : '-' }}
                                 </td>
@@ -218,7 +255,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-3">
+                                <td colspan="5" class="text-center text-muted py-3">
                                     Nenhum item pendente.
                                 </td>
                             </tr>

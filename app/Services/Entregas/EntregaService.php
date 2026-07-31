@@ -114,10 +114,10 @@ class EntregaService
     }
 
     public function criarEntregaFracionada(
-        Entrega $entregaOrigem,
-        array $itens,
-        array $dados = []
-    ): Entrega {
+            Entrega $entregaOrigem,
+            array $itens,
+            array $dados = []
+        ): Entrega {
         return DB::transaction(function () use (
             $entregaOrigem,
             $itens,
@@ -447,84 +447,295 @@ class EntregaService
         });
     }
 
-    public function gerarEntregaDoOrcamento(Orcamento $orcamento): ?Entrega
-    {
-        return DB::transaction(function () use ($orcamento) {
+    public function gerarEntregaDoOrcamento(
+            Orcamento $orcamento
+        ): ?Entrega {
+        return DB::transaction(function () use (
+            $orcamento
+        ) {
             $orcamento->loadMissing([
                 'cliente',
                 'itens',
             ]);
 
-            if (($orcamento->tipo_entrega ?? null) !== 'entrega') {
+            if (
+                ($orcamento->tipo_entrega ?? null)
+                !== 'entrega'
+            ) {
                 return null;
             }
 
-            $entregaExistente = Entrega::query()
-                ->where('orcamento_id', $orcamento->id)
-                ->lockForUpdate()
-                ->first();
-
-            if ($entregaExistente) {
-                return $entregaExistente->load('itens');
-            }
-
             $cliente = $orcamento->cliente;
-            $endereco = $cliente?->endereco_entrega;
 
-            if (empty($endereco)) {
-                $endereco = trim(
-                    implode(
-                        ', ',
-                        array_filter([
-                            $cliente?->endereco,
-                            $cliente?->numero,
-                            $cliente?->bairro,
-                            $cliente?->cidade,
-                            $cliente?->estado,
-                            $cliente?->cep,
-                        ])
+            /*
+            * A fonte principal do endereço é o próprio orçamento.
+            * Esse campo já contém o endereço cadastrado ou o endereço
+            * manual informado durante a criação do orçamento.
+            */
+            $enderecoEntrega = trim(
+                (string) (
+                    $orcamento->endereco_entrega
+                    ?? ''
+                )
+            );
+
+            /*
+            * Compatibilidade com orçamentos antigos que ainda não
+            * possuem endereco_entrega preenchido.
+            */
+            if ($enderecoEntrega === '') {
+                $enderecoEntrega = trim(
+                    (string) (
+                        $cliente?->endereco_entrega
+                        ?? ''
                     )
                 );
             }
 
-            $entrega = Entrega::create([
-                'orcamento_id' => $orcamento->id,
-                'venda_id' => null,
-                'codigo_entrega' => $this->gerarCodigo(),
-                'data_prevista' => $orcamento->data_prevista_entrega ?? now()->toDateString(),
-                'data_prevista_entrega' => $orcamento->data_prevista_entrega ?? null,
-                'periodo_entrega' => $orcamento->periodo_entrega ?? null,
-                'observacao_entrega' => $orcamento->observacao_entrega ?? null,
-                'data_realizada' => null,
-                'status' => 'Pendente_pagamento',
-                'cobrar_frete' => $orcamento->cobrar_frete ?? 0,
-                'valor_frete' => $orcamento->valor_frete ?? 0,
-                'tipo_entrega' => $orcamento->tipo_entrega ?? 'entrega',
-                'usar_endereco_cliente' => 1,
-                'endereco_entrega' => $endereco,
-                'responsavel_recebimento' => $cliente?->nome,
-                'telefone_recebimento' => $cliente?->telefone,
-                'observacao' => 'Pré-entrega gerada automaticamente pelo orçamento #' . $orcamento->id,
-            ]);
+            if ($enderecoEntrega === '') {
+                $enderecoEntrega = collect([
+                    trim(
+                        (string) (
+                            $cliente?->endereco
+                            ?? ''
+                        )
+                    ),
 
-            foreach ($orcamento->itens as $item) {
-                EntregaItem::create([
-                    'entrega_id' => $entrega->id,
-                    'item_orcamento_id' => $item->id,
-                    'venda_item_id' => null,
-                    'quantidade_prevista' => $item->quantidade_atendida > 0
-                        ? $item->quantidade_atendida
-                        : $item->quantidade_solicitada,
-                    'quantidade_entregue' => 0,
-                    'quantidade_recusada' => 0,
-                    'quantidade_devolvida' => 0,
-                    'quantidade_avariada' => 0,
-                    'status' => 'Pendente',
-                    'observacao' => null,
+                    ! empty($cliente?->numero)
+                        ? 'Nº ' . trim(
+                            (string) $cliente->numero
+                        )
+                        : null,
+
+                    trim(
+                        (string) (
+                            $cliente?->complemento
+                            ?? ''
+                        )
+                    ) ?: null,
+
+                    trim(
+                        (string) (
+                            $cliente?->bairro
+                            ?? ''
+                        )
+                    ),
+
+                    trim(
+                        (string) (
+                            $cliente?->cidade
+                            ?? ''
+                        )
+                    ),
+
+                    strtoupper(
+                        trim(
+                            (string) (
+                                $cliente?->estado
+                                ?? ''
+                            )
+                        )
+                    ),
+
+                    ! empty($cliente?->cep)
+                        ? 'CEP ' . trim(
+                            (string) $cliente->cep
+                        )
+                        : null,
+                ])
+                    ->filter(
+                        fn ($valor) =>
+                            trim((string) $valor) !== ''
+                    )
+                    ->implode(', ');
+            }
+
+            if ($enderecoEntrega === '') {
+                throw ValidationException::withMessages([
+                    'endereco_entrega' =>
+                        'Não foi possível identificar o endereço da entrega informado no orçamento.',
                 ]);
             }
 
-            return $entrega->fresh('itens');
+            $responsavelRecebimento = trim(
+                (string) (
+                    $orcamento->responsavel_recebimento
+                    ?? ''
+                )
+            );
+
+            if ($responsavelRecebimento === '') {
+                $responsavelRecebimento = trim(
+                    (string) (
+                        $cliente?->nome
+                        ?? ''
+                    )
+                );
+            }
+
+            $telefoneRecebimento = trim(
+                (string) (
+                    $orcamento->telefone_recebimento
+                    ?? ''
+                )
+            );
+
+            if ($telefoneRecebimento === '') {
+                $telefoneRecebimento = trim(
+                    (string) (
+                        $cliente?->telefone
+                        ?? ''
+                    )
+                );
+            }
+
+            $dadosLogisticos = [
+                'data_prevista' =>
+                    $orcamento->data_prevista_entrega
+                    ?? now()->toDateString(),
+
+                'data_prevista_entrega' =>
+                    $orcamento->data_prevista_entrega
+                    ?? null,
+
+                'periodo_entrega' =>
+                    $orcamento->periodo_entrega
+                    ?? null,
+
+                'observacao_entrega' =>
+                    $orcamento->observacao_entrega
+                    ?? null,
+
+                'cobrar_frete' =>
+                    $orcamento->cobrar_frete
+                    ?? 0,
+
+                'valor_frete' =>
+                    $orcamento->valor_frete
+                    ?? 0,
+
+                'tipo_entrega' =>
+                    $orcamento->tipo_entrega
+                    ?? 'entrega',
+
+                'usar_endereco_cliente' =>
+                    (bool) (
+                        $orcamento
+                            ->usar_endereco_cliente
+                        ?? true
+                    ),
+
+                'endereco_entrega' =>
+                    $enderecoEntrega,
+
+                'responsavel_recebimento' =>
+                    $responsavelRecebimento
+                    ?: null,
+
+                'telefone_recebimento' =>
+                    $telefoneRecebimento
+                    ?: null,
+            ];
+
+            $entregaExistente = Entrega::query()
+                ->where(
+                    'orcamento_id',
+                    $orcamento->id
+                )
+                ->lockForUpdate()
+                ->first();
+
+            if ($entregaExistente) {
+                /*
+                * Permite corrigir uma pré-entrega ainda não iniciada.
+                * Entregas que já entraram na operação não têm seu
+                * endereço alterado silenciosamente.
+                */
+                if (
+                    in_array(
+                        $entregaExistente->status,
+                        [
+                            'Pendente_pagamento',
+                            'Aguardando_faturamento',
+                        ],
+                        true
+                    )
+                ) {
+                    $entregaExistente->update(
+                        $dadosLogisticos
+                    );
+                }
+
+                return $entregaExistente->load(
+                    'itens'
+                );
+            }
+
+            $entrega = Entrega::create(
+                array_merge(
+                    $dadosLogisticos,
+                    [
+                        'orcamento_id' =>
+                            $orcamento->id,
+
+                        'venda_id' =>
+                            null,
+
+                        'codigo_entrega' =>
+                            $this->gerarCodigo(),
+
+                        'data_realizada' =>
+                            null,
+
+                        'status' =>
+                            'Pendente_pagamento',
+
+                        'observacao' =>
+                            'Pré-entrega gerada automaticamente pelo orçamento #'
+                            . $orcamento->id,
+                    ]
+                )
+            );
+
+            foreach ($orcamento->itens as $item) {
+                EntregaItem::create([
+                    'entrega_id' =>
+                        $entrega->id,
+
+                    'item_orcamento_id' =>
+                        $item->id,
+
+                    'venda_item_id' =>
+                        null,
+
+                    'quantidade_prevista' =>
+                        $item->quantidade_atendida > 0
+                            ? $item->quantidade_atendida
+                            : $item->quantidade_solicitada,
+
+                    'quantidade_entregue' =>
+                        0,
+
+                    'quantidade_recusada' =>
+                        0,
+
+                    'quantidade_devolvida' =>
+                        0,
+
+                    'quantidade_avariada' =>
+                        0,
+
+                    'status' =>
+                        'Pendente',
+
+                    'observacao' =>
+                        null,
+                ]);
+            }
+
+            return $entrega->fresh(
+                'itens'
+            );
         });
     }
 
