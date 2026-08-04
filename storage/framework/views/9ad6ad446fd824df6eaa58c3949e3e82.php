@@ -1,8 +1,8 @@
-@extends('layouts.app')
 
-@section('content')
 
-@php
+<?php $__env->startSection('content'); ?>
+
+<?php
     $primeiraRotaDisponivel = static function (array $rotas): ?string {
         foreach ($rotas as $rota) {
             if (\Illuminate\Support\Facades\Route::has($rota)) {
@@ -29,7 +29,7 @@
     $rotaUnidadeMedida = $primeiraRotaDisponivel([
         'unidades-medida.index',
     ]);
-@endphp
+?>
 
 <style>
     body > div.container.mt-4 {
@@ -181,7 +181,7 @@
 
     <div class="card border-0 shadow-sm bg-white text-dark">
 
-        {{-- CABEÇALHO --}}
+        
         <div
             class="card-header produto-page-header
                    d-flex justify-content-between
@@ -201,7 +201,7 @@
             </div>
 
             <a
-                href="{{ route('produtos.index') }}"
+                href="<?php echo e(route('produtos.index')); ?>"
                 class="btn btn-outline-secondary">
 
                 <i class="bi bi-arrow-left me-1"></i>
@@ -212,8 +212,8 @@
 
         <div class="card-body p-3 p-lg-4">
 
-            {{-- ERRO DA SESSÃO --}}
-            @if(session('error'))
+            
+            <?php if(session('error')): ?>
                 <div
                     class="alert alert-danger
                            d-flex align-items-center"
@@ -222,13 +222,14 @@
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
 
                     <div>
-                        {{ session('error') }}
+                        <?php echo e(session('error')); ?>
+
                     </div>
                 </div>
-            @endif
+            <?php endif; ?>
 
-            {{-- ERROS DE VALIDAÇÃO --}}
-            @if($errors->any())
+            
+            <?php if($errors->any()): ?>
                 <div class="alert alert-danger" role="alert">
 
                     <div class="fw-semibold mb-1">
@@ -237,22 +238,22 @@
                     </div>
 
                     <ul class="mb-0 ps-3">
-                        @foreach($errors->all() as $erro)
-                            <li>{{ $erro }}</li>
-                        @endforeach
+                        <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $erro): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <li><?php echo e($erro); ?></li>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </ul>
 
                 </div>
-            @endif
+            <?php endif; ?>
 
             <form
-                action="{{ route('produtos.store') }}"
+                action="<?php echo e(route('produtos.store')); ?>"
                 method="POST"
                 enctype="multipart/form-data">
 
-                @csrf
+                <?php echo csrf_field(); ?>
 
-                {{-- 1. INFORMAÇÕES BÁSICAS --}}
+                
                 <div class="produto-section mb-4">
 
                     <h2 class="produto-section-title">
@@ -272,17 +273,32 @@
                             <input
                                 type="text"
                                 class="form-control
-                                       @error('nome') is-invalid @enderror"
+                                       <?php $__errorArgs = ['nome'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                 id="nome"
                                 name="nome"
-                                value="{{ old('nome') }}"
+                                value="<?php echo e(old('nome')); ?>"
                                 required>
 
-                            @error('nome')
+                            <?php $__errorArgs = ['nome'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                 <div class="invalid-feedback">
-                                    {{ $message }}
+                                    <?php echo e($message); ?>
+
                                 </div>
-                            @enderror
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                         </div>
 
@@ -295,16 +311,31 @@
                             <input
                                 type="text"
                                 class="form-control
-                                       @error('sku') is-invalid @enderror"
+                                       <?php $__errorArgs = ['sku'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                 id="sku"
                                 name="sku"
-                                value="{{ old('sku') }}">
+                                value="<?php echo e(old('sku')); ?>">
 
-                            @error('sku')
+                            <?php $__errorArgs = ['sku'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                 <div class="invalid-feedback">
-                                    {{ $message }}
+                                    <?php echo e($message); ?>
+
                                 </div>
-                            @enderror
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                         </div>
 
@@ -320,20 +351,35 @@
                             <input
                                 type="text"
                                 class="form-control
-                                       @error('codigo_barras') is-invalid @enderror"
+                                       <?php $__errorArgs = ['codigo_barras'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                 id="codigo_barras"
                                 name="codigo_barras"
-                                value="{{ old('codigo_barras') }}">
+                                value="<?php echo e(old('codigo_barras')); ?>">
 
-                            @error('codigo_barras')
+                            <?php $__errorArgs = ['codigo_barras'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                 <div class="invalid-feedback">
-                                    {{ $message }}
+                                    <?php echo e($message); ?>
+
                                 </div>
-                            @enderror
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                         </div>
 
-                        {{-- CATEGORIA --}}
+                        
                         <div class="col-md-3">
 
                             <label
@@ -347,9 +393,9 @@
                                     <span class="text-danger">*</span>
                                 </span>
 
-                                @if($rotaCategoria)
+                                <?php if($rotaCategoria): ?>
                                     <a
-                                        href="{{ route($rotaCategoria) }}"
+                                        href="<?php echo e(route($rotaCategoria)); ?>"
                                         target="_blank"
                                         rel="noopener"
                                         class="cadastro-auxiliar-link"
@@ -358,13 +404,20 @@
                                         <i class="bi bi-plus-circle"></i>
                                         Cadastrar
                                     </a>
-                                @endif
+                                <?php endif; ?>
 
                             </label>
 
                             <select
                                 class="form-select
-                                       @error('categoria_id') is-invalid @enderror"
+                                       <?php $__errorArgs = ['categoria_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                 id="categoria_id"
                                 name="categoria_id"
                                 required>
@@ -373,31 +426,38 @@
                                     Selecione...
                                 </option>
 
-                                @foreach($categorias as $categoria)
+                                <?php $__currentLoopData = $categorias; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $categoria): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option
-                                        value="{{ $categoria->id }}"
-                                        {{
-                                            old('categoria_id')
+                                        value="<?php echo e($categoria->id); ?>"
+                                        <?php echo e(old('categoria_id')
                                             == $categoria->id
                                                 ? 'selected'
-                                                : ''
-                                        }}>
+                                                : ''); ?>>
 
-                                        {{ $categoria->nome }}
+                                        <?php echo e($categoria->nome); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                             </select>
 
-                            @error('categoria_id')
+                            <?php $__errorArgs = ['categoria_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                 <div class="invalid-feedback">
-                                    {{ $message }}
+                                    <?php echo e($message); ?>
+
                                 </div>
-                            @enderror
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                         </div>
 
-                        {{-- FORNECEDOR --}}
+                        
                         <div class="col-md-3">
 
                             <label
@@ -411,9 +471,9 @@
                                     <span class="text-danger">*</span>
                                 </span>
 
-                                @if($rotaFornecedor)
+                                <?php if($rotaFornecedor): ?>
                                     <a
-                                        href="{{ route($rotaFornecedor) }}"
+                                        href="<?php echo e(route($rotaFornecedor)); ?>"
                                         target="_blank"
                                         rel="noopener"
                                         class="cadastro-auxiliar-link"
@@ -422,13 +482,20 @@
                                         <i class="bi bi-plus-circle"></i>
                                         Cadastrar
                                     </a>
-                                @endif
+                                <?php endif; ?>
 
                             </label>
 
                             <select
                                 class="form-select
-                                       @error('fornecedor_id') is-invalid @enderror"
+                                       <?php $__errorArgs = ['fornecedor_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                 id="fornecedor_id"
                                 name="fornecedor_id"
                                 required>
@@ -437,31 +504,38 @@
                                     Selecione...
                                 </option>
 
-                                @foreach($fornecedores as $fornecedor)
+                                <?php $__currentLoopData = $fornecedores; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $fornecedor): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option
-                                        value="{{ $fornecedor->id }}"
-                                        {{
-                                            old('fornecedor_id')
+                                        value="<?php echo e($fornecedor->id); ?>"
+                                        <?php echo e(old('fornecedor_id')
                                             == $fornecedor->id
                                                 ? 'selected'
-                                                : ''
-                                        }}>
+                                                : ''); ?>>
 
-                                        {{ $fornecedor->nome }}
+                                        <?php echo e($fornecedor->nome); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                             </select>
 
-                            @error('fornecedor_id')
+                            <?php $__errorArgs = ['fornecedor_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                 <div class="invalid-feedback">
-                                    {{ $message }}
+                                    <?php echo e($message); ?>
+
                                 </div>
-                            @enderror
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                         </div>
 
-                        {{-- MARCA --}}
+                        
                         <div class="col-md-3">
 
                             <label
@@ -472,9 +546,9 @@
 
                                 <span>Marca</span>
 
-                                @if($rotaMarca)
+                                <?php if($rotaMarca): ?>
                                     <a
-                                        href="{{ route($rotaMarca) }}"
+                                        href="<?php echo e(route($rotaMarca)); ?>"
                                         target="_blank"
                                         rel="noopener"
                                         class="cadastro-auxiliar-link"
@@ -483,13 +557,20 @@
                                         <i class="bi bi-plus-circle"></i>
                                         Cadastrar
                                     </a>
-                                @endif
+                                <?php endif; ?>
 
                             </label>
 
                             <select
                                 class="form-select
-                                       @error('marca_id') is-invalid @enderror"
+                                       <?php $__errorArgs = ['marca_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                 id="marca_id"
                                 name="marca_id">
 
@@ -497,30 +578,37 @@
                                     Selecione...
                                 </option>
 
-                                @foreach($marcas as $marca)
+                                <?php $__currentLoopData = $marcas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $marca): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option
-                                        value="{{ $marca->id }}"
-                                        {{
-                                            old('marca_id') == $marca->id
+                                        value="<?php echo e($marca->id); ?>"
+                                        <?php echo e(old('marca_id') == $marca->id
                                                 ? 'selected'
-                                                : ''
-                                        }}>
+                                                : ''); ?>>
 
-                                        {{ $marca->nome }}
+                                        <?php echo e($marca->nome); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                             </select>
 
-                            @error('marca_id')
+                            <?php $__errorArgs = ['marca_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                 <div class="invalid-feedback">
-                                    {{ $message }}
+                                    <?php echo e($message); ?>
+
                                 </div>
-                            @enderror
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                         </div>
 
-                        {{-- UNIDADE DE MEDIDA --}}
+                        
                         <div class="col-md-3">
 
                             <label
@@ -531,9 +619,9 @@
 
                                 <span>Unidade de Medida</span>
 
-                                @if($rotaUnidadeMedida)
+                                <?php if($rotaUnidadeMedida): ?>
                                     <a
-                                        href="{{ route($rotaUnidadeMedida) }}"
+                                        href="<?php echo e(route($rotaUnidadeMedida)); ?>"
                                         target="_blank"
                                         rel="noopener"
                                         class="cadastro-auxiliar-link"
@@ -542,13 +630,20 @@
                                         <i class="bi bi-plus-circle"></i>
                                         Cadastrar
                                     </a>
-                                @endif
+                                <?php endif; ?>
 
                             </label>
 
                             <select
                                 class="form-select
-                                       @error('unidade_medida_id') is-invalid @enderror"
+                                       <?php $__errorArgs = ['unidade_medida_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                 id="unidade_medida_id"
                                 name="unidade_medida_id">
 
@@ -556,31 +651,38 @@
                                     Selecione...
                                 </option>
 
-                                @foreach($unidadesMedida as $unidadeMedida)
+                                <?php $__currentLoopData = $unidadesMedida; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $unidadeMedida): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option
-                                        value="{{ $unidadeMedida->id }}"
-                                        {{
-                                            old('unidade_medida_id')
+                                        value="<?php echo e($unidadeMedida->id); ?>"
+                                        <?php echo e(old('unidade_medida_id')
                                             == $unidadeMedida->id
                                                 ? 'selected'
-                                                : ''
-                                        }}>
+                                                : ''); ?>>
 
-                                        {{ $unidadeMedida->nome }}
+                                        <?php echo e($unidadeMedida->nome); ?>
 
-                                        @if($unidadeMedida->sigla)
-                                            ({{ $unidadeMedida->sigla }})
-                                        @endif
+
+                                        <?php if($unidadeMedida->sigla): ?>
+                                            (<?php echo e($unidadeMedida->sigla); ?>)
+                                        <?php endif; ?>
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                             </select>
 
-                            @error('unidade_medida_id')
+                            <?php $__errorArgs = ['unidade_medida_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                 <div class="invalid-feedback">
-                                    {{ $message }}
+                                    <?php echo e($message); ?>
+
                                 </div>
-                            @enderror
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                         </div>
 
@@ -588,7 +690,7 @@
 
                 </div>
 
-                {{-- 2. CUSTOS --}}
+                
                 <div class="produto-section mb-4">
 
                     <h2 class="produto-section-title">
@@ -614,12 +716,10 @@
                                 class="form-control calc-trigger"
                                 id="preco_compra_atual"
                                 name="preco_compra_atual"
-                                value="{{
-                                    old(
+                                value="<?php echo e(old(
                                         'preco_compra_atual',
                                         '0.00'
-                                    )
-                                }}">
+                                    )); ?>">
 
                         </div>
 
@@ -639,12 +739,10 @@
                                 class="form-control calc-trigger"
                                 id="custo_frete_unidade"
                                 name="custo_frete_unidade"
-                                value="{{
-                                    old(
+                                value="<?php echo e(old(
                                         'custo_frete_unidade',
                                         '0.00'
-                                    )
-                                }}">
+                                    )); ?>">
 
                         </div>
 
@@ -664,12 +762,10 @@
                                 class="form-control calc-trigger"
                                 id="custo_imposto_entrada"
                                 name="custo_imposto_entrada"
-                                value="{{
-                                    old(
+                                value="<?php echo e(old(
                                         'custo_imposto_entrada',
                                         '0.00'
-                                    )
-                                }}">
+                                    )); ?>">
 
                         </div>
 
@@ -691,7 +787,7 @@
                                        text-danger fw-bold"
                                 id="custo_real_entrada"
                                 name="custo_real_entrada"
-                                value="{{ old('custo_real_entrada', '0.00') }}"
+                                value="<?php echo e(old('custo_real_entrada', '0.00')); ?>"
                                 readonly>
 
                         </div>
@@ -712,12 +808,10 @@
                                 class="form-control calc-trigger"
                                 id="percentual_imposto_saida"
                                 name="percentual_imposto_saida"
-                                value="{{
-                                    old(
+                                value="<?php echo e(old(
                                         'percentual_imposto_saida',
                                         '0.00'
-                                    )
-                                }}">
+                                    )); ?>">
 
                         </div>
 
@@ -737,12 +831,10 @@
                                 class="form-control calc-trigger"
                                 id="percentual_comissao"
                                 name="percentual_comissao"
-                                value="{{
-                                    old(
+                                value="<?php echo e(old(
                                         'percentual_comissao',
                                         '0.00'
-                                    )
-                                }}">
+                                    )); ?>">
 
                         </div>
 
@@ -762,19 +854,17 @@
                                 class="form-control calc-trigger"
                                 id="percentual_taxa_cartao"
                                 name="percentual_taxa_cartao"
-                                value="{{
-                                    old(
+                                value="<?php echo e(old(
                                         'percentual_taxa_cartao',
                                         '0.00'
-                                    )
-                                }}">
+                                    )); ?>">
 
                         </div>
 
                     </div>
 
                 </div>
-                                {{-- 3. TABELAS DE VENDA --}}
+                                
                 <div class="produto-section mb-4">
 
                     <h2 class="produto-section-title">
@@ -784,7 +874,7 @@
 
                     <div class="row g-3">
 
-                        {{-- TABELA 1 --}}
+                        
                         <div class="col-md-4">
 
                             <div
@@ -816,12 +906,10 @@
                                             class="form-control calc-trigger"
                                             id="markup_1"
                                             name="markup_1"
-                                            value="{{
-                                                old(
+                                            value="<?php echo e(old(
                                                     'markup_1',
                                                     '0.00'
-                                                )
-                                            }}">
+                                                )); ?>">
 
                                     </div>
 
@@ -841,12 +929,10 @@
                                             class="form-control calc-trigger"
                                             id="desconto_max_1"
                                             name="desconto_max_1"
-                                            value="{{
-                                                old(
+                                            value="<?php echo e(old(
                                                     'desconto_max_1',
                                                     '0.00'
-                                                )
-                                            }}">
+                                                )); ?>">
 
                                     </div>
 
@@ -869,12 +955,10 @@
                                                    text-primary"
                                             id="preco_venda"
                                             name="preco_venda"
-                                            value="{{
-                                                old(
+                                            value="<?php echo e(old(
                                                     'preco_venda',
                                                     '0.00'
-                                                )
-                                            }}">
+                                                )); ?>">
 
                                     </div>
 
@@ -884,7 +968,7 @@
 
                         </div>
 
-                        {{-- TABELA 2 --}}
+                        
                         <div class="col-md-4">
 
                             <div
@@ -916,12 +1000,10 @@
                                             class="form-control calc-trigger"
                                             id="markup_2"
                                             name="markup_2"
-                                            value="{{
-                                                old(
+                                            value="<?php echo e(old(
                                                     'markup_2',
                                                     '0.00'
-                                                )
-                                            }}">
+                                                )); ?>">
 
                                     </div>
 
@@ -941,12 +1023,10 @@
                                             class="form-control calc-trigger"
                                             id="desconto_max_2"
                                             name="desconto_max_2"
-                                            value="{{
-                                                old(
+                                            value="<?php echo e(old(
                                                     'desconto_max_2',
                                                     '0.00'
-                                                )
-                                            }}">
+                                                )); ?>">
 
                                     </div>
 
@@ -968,12 +1048,10 @@
                                                    border-info text-info"
                                             id="preco_venda_2"
                                             name="preco_venda_2"
-                                            value="{{
-                                                old(
+                                            value="<?php echo e(old(
                                                     'preco_venda_2',
                                                     '0.00'
-                                                )
-                                            }}">
+                                                )); ?>">
 
                                     </div>
 
@@ -983,7 +1061,7 @@
 
                         </div>
 
-                        {{-- TABELA 3 --}}
+                        
                         <div class="col-md-4">
 
                             <div
@@ -1015,12 +1093,10 @@
                                             class="form-control calc-trigger"
                                             id="markup_3"
                                             name="markup_3"
-                                            value="{{
-                                                old(
+                                            value="<?php echo e(old(
                                                     'markup_3',
                                                     '0.00'
-                                                )
-                                            }}">
+                                                )); ?>">
 
                                     </div>
 
@@ -1040,12 +1116,10 @@
                                             class="form-control calc-trigger"
                                             id="desconto_max_3"
                                             name="desconto_max_3"
-                                            value="{{
-                                                old(
+                                            value="<?php echo e(old(
                                                     'desconto_max_3',
                                                     '0.00'
-                                                )
-                                            }}">
+                                                )); ?>">
 
                                     </div>
 
@@ -1068,12 +1142,10 @@
                                                    text-success"
                                             id="preco_venda_3"
                                             name="preco_venda_3"
-                                            value="{{
-                                                old(
+                                            value="<?php echo e(old(
                                                     'preco_venda_3',
                                                     '0.00'
-                                                )
-                                            }}">
+                                                )); ?>">
 
                                     </div>
 
@@ -1087,7 +1159,7 @@
 
                 </div>
 
-                {{-- 4. CONTROLE FÍSICO --}}
+                
                 <div class="produto-section mb-4">
 
                     <h2 class="produto-section-title">
@@ -1112,12 +1184,10 @@
                                 class="form-control"
                                 id="quantidade_estoque"
                                 name="quantidade_estoque"
-                                value="{{
-                                    old(
+                                value="<?php echo e(old(
                                         'quantidade_estoque',
                                         0
-                                    )
-                                }}">
+                                    )); ?>">
 
                         </div>
 
@@ -1136,12 +1206,10 @@
                                 class="form-control"
                                 id="estoque_minimo"
                                 name="estoque_minimo"
-                                value="{{
-                                    old(
+                                value="<?php echo e(old(
                                         'estoque_minimo',
                                         0
-                                    )
-                                }}">
+                                    )); ?>">
 
                         </div>
 
@@ -1158,9 +1226,16 @@
 
                                 <select
                                     class="form-select
-                                           @error('localizacao_estoque_id')
+                                           <?php $__errorArgs = ['localizacao_estoque_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                            is-invalid
-                                           @enderror"
+                                           <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                     id="localizacao_estoque_id"
                                     name="localizacao_estoque_id">
 
@@ -1168,42 +1243,37 @@
                                         Selecione uma localização...
                                     </option>
 
-                                    @foreach(
-                                        $localizacoesEstoque
-                                        as $localizacao
-                                    )
+                                    <?php $__currentLoopData = $localizacoesEstoque; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $localizacao): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <option
-                                            value="{{ $localizacao->id }}"
-                                            {{
-                                                old(
+                                            value="<?php echo e($localizacao->id); ?>"
+                                            <?php echo e(old(
                                                     'localizacao_estoque_id'
                                                 ) == $localizacao->id
                                                     ? 'selected'
-                                                    : ''
-                                            }}>
+                                                    : ''); ?>>
 
-                                            {{ $localizacao->codigo }}
+                                            <?php echo e($localizacao->codigo); ?>
 
-                                            @if($localizacao->descricao)
+
+                                            <?php if($localizacao->descricao): ?>
                                                 -
-                                                {{ $localizacao->descricao }}
-                                            @endif
+                                                <?php echo e($localizacao->descricao); ?>
+
+                                            <?php endif; ?>
                                         </option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                                 </select>
 
-                                @if(
+                                <?php if(
                                     \Illuminate\Support\Facades\Route::has(
                                         'localizacoes-estoque.create'
                                     )
-                                )
+                                ): ?>
                                     <a
-                                        href="{{
-                                            route(
+                                        href="<?php echo e(route(
                                                 'localizacoes-estoque.create'
-                                            )
-                                        }}"
+                                            )); ?>"
                                         target="_blank"
                                         rel="noopener"
                                         class="btn btn-outline-primary"
@@ -1211,17 +1281,25 @@
 
                                         <i class="bi bi-plus-circle"></i>
                                     </a>
-                                @endif
+                                <?php endif; ?>
 
                             </div>
 
-                            @error('localizacao_estoque_id')
+                            <?php $__errorArgs = ['localizacao_estoque_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                 <div
                                     class="invalid-feedback d-block">
 
-                                    {{ $message }}
+                                    <?php echo e($message); ?>
+
                                 </div>
-                            @enderror
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                             <small class="text-muted">
                                 Escolha a posição física onde o produto
@@ -1243,7 +1321,7 @@
                                 class="form-control"
                                 id="peso"
                                 name="peso"
-                                value="{{ old('peso', '0.00') }}">
+                                value="<?php echo e(old('peso', '0.00')); ?>">
 
                         </div>
 
@@ -1260,7 +1338,7 @@
                                 class="form-control"
                                 id="largura"
                                 name="largura"
-                                value="{{ old('largura', '0.00') }}">
+                                value="<?php echo e(old('largura', '0.00')); ?>">
 
                         </div>
 
@@ -1277,7 +1355,7 @@
                                 class="form-control"
                                 id="altura"
                                 name="altura"
-                                value="{{ old('altura', '0.00') }}">
+                                value="<?php echo e(old('altura', '0.00')); ?>">
 
                         </div>
 
@@ -1297,12 +1375,10 @@
                                 class="form-control"
                                 id="profundidade"
                                 name="profundidade"
-                                value="{{
-                                    old(
+                                value="<?php echo e(old(
                                         'profundidade',
                                         '0.00'
-                                    )
-                                }}">
+                                    )); ?>">
 
                         </div>
 
@@ -1315,34 +1391,45 @@
                             <input
                                 type="file"
                                 class="form-control
-                                       @error('imagem') is-invalid @enderror"
+                                       <?php $__errorArgs = ['imagem'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                 id="imagem"
                                 name="imagem"
                                 accept="image/*"
                                 onchange="previewImage(event)">
 
-                            @error('imagem')
+                            <?php $__errorArgs = ['imagem'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                 <div class="invalid-feedback">
-                                    {{ $message }}
+                                    <?php echo e($message); ?>
+
                                 </div>
-                            @enderror
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                             <img
                                 id="imagemPreview"
-                                src="{{
-                                    asset(
+                                src="<?php echo e(asset(
                                         'image/produtos/'
                                         . 'produto-sem-imagem.PNG'
-                                    )
-                                }}"
+                                    )); ?>"
                                 onerror="
                                     this.onerror = null;
-                                    this.src = '{{
-                                        asset(
+                                    this.src = '<?php echo e(asset(
                                             'image/produtos/'
                                             . 'produto-sem-imagem.PNG'
-                                        )
-                                    }}';
+                                        )); ?>';
                                 "
                                 alt="Prévia da imagem"
                                 class="produto-image-preview mt-2">
@@ -1352,7 +1439,7 @@
                     </div>
 
                 </div>
-                                {{-- 5. ATRIBUTOS FISCAIS --}}
+                                
                 <div class="produto-section mb-4">
 
                     <h2 class="produto-section-title">
@@ -1374,7 +1461,7 @@
                                 id="ncm"
                                 name="ncm"
                                 maxlength="8"
-                                value="{{ old('ncm') }}">
+                                value="<?php echo e(old('ncm')); ?>">
 
                         </div>
 
@@ -1390,7 +1477,7 @@
                                 id="cest"
                                 name="cest"
                                 maxlength="7"
-                                value="{{ old('cest') }}">
+                                value="<?php echo e(old('cest')); ?>">
 
                         </div>
 
@@ -1406,7 +1493,7 @@
                                 id="cfop"
                                 name="cfop"
                                 maxlength="4"
-                                value="{{ old('cfop') }}">
+                                value="<?php echo e(old('cfop')); ?>">
 
                         </div>
 
@@ -1425,7 +1512,7 @@
                                 id="icms_csosn"
                                 name="icms_csosn"
                                 maxlength="4"
-                                value="{{ old('icms_csosn') }}">
+                                value="<?php echo e(old('icms_csosn')); ?>">
 
                         </div>
 
@@ -1445,33 +1532,27 @@
 
                                 <option
                                     value="0"
-                                    {{
-                                        old('origem', '0') === '0'
+                                    <?php echo e(old('origem', '0') === '0'
                                             ? 'selected'
-                                            : ''
-                                    }}>
+                                            : ''); ?>>
 
                                     0 - Nacional
                                 </option>
 
                                 <option
                                     value="1"
-                                    {{
-                                        old('origem') === '1'
+                                    <?php echo e(old('origem') === '1'
                                             ? 'selected'
-                                            : ''
-                                    }}>
+                                            : ''); ?>>
 
                                     1 - Estrangeira - Importação Direta
                                 </option>
 
                                 <option
                                     value="2"
-                                    {{
-                                        old('origem') === '2'
+                                    <?php echo e(old('origem') === '2'
                                             ? 'selected'
-                                            : ''
-                                    }}>
+                                            : ''); ?>>
 
                                     2 - Estrangeira - Adquirida no
                                     Mercado Interno
@@ -1494,7 +1575,7 @@
                                 class="form-control"
                                 id="descricao"
                                 name="descricao"
-                                rows="3">{{ old('descricao') }}</textarea>
+                                rows="3"><?php echo e(old('descricao')); ?></textarea>
 
                         </div>
 
@@ -1502,7 +1583,7 @@
 
                 </div>
 
-                {{-- 6. DISPONIBILIDADE E VALIDADE --}}
+                
                 <div class="produto-section mb-4">
 
                     <h2 class="produto-section-title">
@@ -1527,11 +1608,9 @@
                                     id="ativo"
                                     name="ativo"
                                     value="1"
-                                    {{
-                                        old('ativo', '1') === '1'
+                                    <?php echo e(old('ativo', '1') === '1'
                                             ? 'checked'
-                                            : ''
-                                    }}>
+                                            : ''); ?>>
 
                                 <label
                                     class="form-check-label"
@@ -1559,11 +1638,9 @@
                                     id="em_promocao"
                                     name="em_promocao"
                                     value="1"
-                                    {{
-                                        old('em_promocao', '0') === '1'
+                                    <?php echo e(old('em_promocao', '0') === '1'
                                             ? 'checked'
-                                            : ''
-                                    }}>
+                                            : ''); ?>>
 
                                 <label
                                     class="form-check-label"
@@ -1591,14 +1668,13 @@
                                     id="controla_validade"
                                     name="controla_validade"
                                     value="1"
-                                    {{
-                                        old(
+                                    <?php echo e(old(
                                             'controla_validade',
                                             '1'
                                         ) === '1'
                                             ? 'checked'
-                                            : ''
-                                    }}
+                                            : ''); ?>
+
                                     onchange="
                                         toggleValidade(this)
                                     ">
@@ -1628,18 +1704,33 @@
                             <input
                                 type="date"
                                 class="form-control
-                                       @error('validade_produto')
+                                       <?php $__errorArgs = ['validade_produto'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                        is-invalid
-                                       @enderror"
+                                       <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
                                 id="validade_produto"
                                 name="validade_produto"
-                                value="{{ old('validade_produto') }}">
+                                value="<?php echo e(old('validade_produto')); ?>">
 
-                            @error('validade_produto')
+                            <?php $__errorArgs = ['validade_produto'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                                 <div class="invalid-feedback">
-                                    {{ $message }}
+                                    <?php echo e($message); ?>
+
                                 </div>
-                            @enderror
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
 
                         </div>
 
@@ -1647,7 +1738,7 @@
 
                 </div>
 
-                {{-- BOTÕES --}}
+                
                 <div
                     class="produto-actions
                            d-flex justify-content-end
@@ -1890,4 +1981,5 @@
     );
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/produtos/create.blade.php ENDPATH**/ ?>

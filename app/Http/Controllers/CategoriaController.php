@@ -2,80 +2,281 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Categoria;
-use App\Models\Produto;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 class CategoriaController extends Controller
 {
-    // Listar todas as categorias
-    public function index()
+    public function __construct()
     {
-        $categorias = Categoria::all();
-        return view('categorias.index', compact('categorias'));
+        $this->middleware('auth');
+
+        $this->middleware(function ($request, $next) {
+            if (! in_array(auth()->user()->nivel_acesso, ['admin', 'gerente'])) {
+                abort(403, 'Acesso negado!');
+            }
+
+            return $next($request);
+        });
     }
 
-    // Criar nova categoria
-    public function create()
+    public function index(Request $request): View
     {
-        return view('categorias.create');
+        $busca = trim((string) $request->input('busca'));
+        $status = (string) $request->input('status', 'todos');
+
+        $registros = Categoria::query()
+            ->when($busca !== '', function ($query) use ($busca) {
+                $query->where(function ($subquery) use ($busca) {
+                    $subquery
+                        ->where('nome', 'like', "%{$busca}%")
+                        ->orWhere('descricao', 'like', "%{$busca}%");
+                });
+            })
+            ->when(
+                $status === 'ativos',
+                fn ($query) => $query->where('ativo', '1')
+            )
+            ->when(
+                $status === 'inativos',
+                fn ($query) => $query->where(function ($subquery) {
+                    $subquery
+                        ->whereNull('ativo')
+                        ->orWhere('ativo', '!=', '1');
+                })
+            )
+            ->orderBy('nome')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('cadastros-auxiliares.index', [
+            'registros' => $registros,
+            'routePrefix' => 'categorias',
+            'titulo' => 'Categorias',
+            'singular' => 'Categoria',
+            'subtitulo' => 'Organize os produtos por categoria comercial.',
+            'icone' => 'bi-tags',
+            'possuiSigla' => false,
+            'possuiDescricao' => true,
+            'totais' => $this->totais(),
+        ]);
     }
 
-    // Salvar nova categoria
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'nome' => 'required|string|max:255',
+        $nomeNormalizado = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim((string) $request->input('nome'))
+        );
+
+        $request->merge([
+            'nome' => $nomeNormalizado,
         ]);
 
-        Categoria::create($request->all());
+        $dados = $request->validate(
+            [
+                'nome' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('categorias', 'nome'),
+                ],
 
-        return redirect()->route('categorias.index')
-            ->with('success', 'Categoria criada com sucesso.');
+                'descricao' => [
+                    'nullable',
+                    'string',
+                ],
+
+                'ativo' => [
+                    'nullable',
+                    Rule::in(['0', '1']),
+                ],
+            ],
+            [
+                'nome.required' =>
+                    'Informe o nome da categoria.',
+
+                'nome.unique' =>
+                    'Já existe uma categoria cadastrada com esse nome.',
+            ]
+        );
+
+        $categoria = new Categoria();
+        $categoria->nome = $dados['nome'];
+
+        $categoria->descricao =
+            filled($dados['descricao'] ?? null)
+                ? trim($dados['descricao'])
+                : null;
+
+        $categoria->ativo =
+            $request->input('ativo', '0') === '1'
+                ? '1'
+                : '0';
+
+        $categoria->save();
+
+        return redirect()
+            ->route('categorias.index')
+            ->with(
+                'success',
+                'Categoria cadastrada com sucesso!'
+            );
     }
 
-    // Editar categoria
-    public function edit(Categoria $categoria)
-    {
-        return view('categorias.edit', compact('categoria'));
-    }
+    public function update(
+        Request $request,
+        Categoria $categoria
+    ): RedirectResponse {
+        $nomeNormalizado = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim((string) $request->input('nome'))
+        );
 
-    // Atualizar categoria
-    public function update(Request $request, Categoria $categoria)
-    {
-        $request->validate([
-            'nome' => 'required|string|max:255',
+        $request->merge([
+            'nome' => $nomeNormalizado,
         ]);
 
-        $categoria->update($request->all());
+        $dados = $request->validate(
+            [
+                'nome' => [
+                    'required',
+                    'string',
+                    'max:255',
 
-        return redirect()->route('categorias.index')
-            ->with('success', 'Categoria atualizada com sucesso.');
+                    Rule::unique(
+                        'categorias',
+                        'nome'
+                    )->ignore($categoria->id),
+                ],
+
+                'descricao' => [
+                    'nullable',
+                    'string',
+                ],
+
+                'ativo' => [
+                    'nullable',
+                    Rule::in(['0', '1']),
+                ],
+            ],
+            [
+                'nome.required' =>
+                    'Informe o nome da categoria.',
+
+                'nome.unique' =>
+                    'Já existe uma categoria cadastrada com esse nome.',
+            ]
+        );
+
+        $categoria->nome = $dados['nome'];
+
+        $categoria->descricao =
+            filled($dados['descricao'] ?? null)
+                ? trim($dados['descricao'])
+                : null;
+
+        $categoria->ativo =
+            $request->input('ativo', '0') === '1'
+                ? '1'
+                : '0';
+
+        $categoria->save();
+
+        return redirect()
+            ->route('categorias.index')
+            ->with(
+                'success',
+                'Categoria atualizada com sucesso!'
+            );
     }
 
-    // Excluir categoria
-    public function destroy(Categoria $categoria)
+    public function edit(Categoria $categoria): View
     {
-        $categoria->delete();
-
-        return redirect()->route('categorias.index')
-            ->with('success', 'Categoria excluída com sucesso.');
-    }
-
-    // ==========================
-    // MÉTODO PARA PREÇO MÉDIO
-    // ==========================
-    public function precoMedio($id)
-    {
-        $categoria = Categoria::findOrFail($id);
-
-        // Calcula a média de preços dos produtos ativos desta categoria
-        $precoMedio = Produto::where('categoria_id', $categoria->id)
-            ->where('ativo', 1) // opcional, se tiver campo ativo
-            ->avg('preco');
-
-        return response()->json([
-            'preco_medio' => $precoMedio ? round($precoMedio, 2) : 0
+        return view('cadastros-auxiliares.edit', [
+            'registro' => $categoria,
+            'routePrefix' => 'categorias',
+            'titulo' => 'Editar Categoria',
+            'singular' => 'Categoria',
+            'icone' => 'bi-tags',
+            'possuiSigla' => false,
+            'possuiDescricao' => true,
         ]);
+    }
+
+    // public function update(
+    //     Request $request,
+    //     Categoria $categoria
+    // ): RedirectResponse {
+    //     $dados = $request->validate([
+    //         'nome' => [
+    //             'required',
+    //             'string',
+    //             'max:255',
+    //         ],
+    //         'descricao' => [
+    //             'nullable',
+    //             'string',
+    //         ],
+    //         'ativo' => [
+    //             'nullable',
+    //             Rule::in(['0', '1']),
+    //         ],
+    //     ]);
+
+    //     $categoria->nome = trim($dados['nome']);
+    //     $categoria->descricao = filled($dados['descricao'] ?? null)
+    //         ? trim($dados['descricao'])
+    //         : null;
+    //     $categoria->ativo = $request->input('ativo', '0') === '1'
+    //         ? '1'
+    //         : '0';
+    //     $categoria->save();
+
+    //     return redirect()
+    //         ->route('categorias.index')
+    //         ->with('success', 'Categoria atualizada com sucesso!');
+    // }
+
+    public function alternarStatus(
+        Categoria $categoria
+    ): RedirectResponse {
+        $categoria->ativo = (string) $categoria->ativo === '1'
+            ? '0'
+            : '1';
+
+        $categoria->save();
+
+        return redirect()
+            ->route('categorias.index')
+            ->with(
+                'success',
+                'Status da categoria atualizado com sucesso!'
+            );
+    }
+
+    private function totais(): array
+    {
+        return [
+            'total' => Categoria::count(),
+
+            'ativos' => Categoria::where(
+                'ativo',
+                '1'
+            )->count(),
+
+            'inativos' => Categoria::where(
+                function ($query) {
+                    $query
+                        ->whereNull('ativo')
+                        ->orWhere('ativo', '!=', '1');
+                }
+            )->count(),
+        ];
     }
 }

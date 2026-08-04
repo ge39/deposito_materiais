@@ -956,3 +956,45 @@ Route::middleware(['auth'])
             [RomaneioController::class, 'show']
         )->name('show');
     });
+
+    
+    /*
+    |--------------------------------------------------------------------------
+    | CADASTROS AUXILIARES — adicionar dentro do grupo web autenticado
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('auth')->group(function () {
+        Route::get('/categorias', [CategoriaController::class, 'index'])
+            ->name('categorias.index');
+        Route::post('/categorias', [CategoriaController::class, 'store'])
+            ->name('categorias.store');
+        Route::get('/categorias/{categoria}/edit', [CategoriaController::class, 'edit'])
+            ->name('categorias.edit');
+        Route::put('/categorias/{categoria}', [CategoriaController::class, 'update'])
+            ->name('categorias.update');
+        Route::patch('/categorias/{categoria}/status', [CategoriaController::class, 'alternarStatus'])
+            ->name('categorias.alternar-status');
+
+        Route::get('/marcas', [MarcaController::class, 'index'])
+            ->name('marcas.index');
+        Route::post('/marcas', [MarcaController::class, 'store'])
+            ->name('marcas.store');
+        Route::get('/marcas/{marca}/edit', [MarcaController::class, 'edit'])
+            ->name('marcas.edit');
+        Route::put('/marcas/{marca}', [MarcaController::class, 'update'])
+            ->name('marcas.update');
+        Route::patch('/marcas/{marca}/status', [MarcaController::class, 'alternarStatus'])
+            ->name('marcas.alternar-status');
+
+        Route::get('/unidades-medida', [UnidadeMedidaController::class, 'index'])
+            ->name('unidades-medida.index');
+        Route::post('/unidades-medida', [UnidadeMedidaController::class, 'store'])
+            ->name('unidades-medida.store');
+        Route::get('/unidades-medida/{unidadeMedida}/edit', [UnidadeMedidaController::class, 'edit'])
+            ->name('unidades-medida.edit');
+        Route::put('/unidades-medida/{unidadeMedida}', [UnidadeMedidaController::class, 'update'])
+            ->name('unidades-medida.update');
+        Route::patch('/unidades-medida/{unidadeMedida}/status', [UnidadeMedidaController::class, 'alternarStatus'])
+            ->name('unidades-medida.alternar-status');
+    });
