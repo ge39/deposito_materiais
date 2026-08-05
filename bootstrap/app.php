@@ -8,6 +8,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Database\QueryException; // 👈 ADICIONADO
 use Illuminate\Http\Request;
 use App\Http\Middleware\BloqueioEdicaoMiddleware;
+use App\Http\Middleware\GarantirSessaoUnica;
 use App\Http\Middleware\IdentificaTerminal;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -18,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(append: [
+            GarantirSessaoUnica::class,
+        ]);
+
         $middleware->alias([
             'bloqueio.edicao' => BloqueioEdicaoMiddleware::class,
             'terminal' => IdentificaTerminal::class,

@@ -1,1 +1,0 @@
-<?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views\frotas\create.blade.php ENDPATH**/ ?>

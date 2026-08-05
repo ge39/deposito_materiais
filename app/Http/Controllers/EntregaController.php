@@ -177,6 +177,8 @@ class EntregaController extends Controller
             ]
         );
 
+        $statusFiltroAplicado = false;
+
         if (! empty(
             $dadosValidados['status'] ?? null
         )) {
@@ -187,6 +189,8 @@ class EntregaController extends Controller
             );
 
             if (isset($statusMap[$statusInformado])) {
+                $statusFiltroAplicado = true;
+
                 $query->where(
                     'status',
                     $statusMap[$statusInformado]
@@ -194,15 +198,34 @@ class EntregaController extends Controller
             }
         }
 
-        if (! empty(
-            $dadosValidados['codigo_entrega'] ?? null
-        )) {
+        $codigoEntregaInformado = trim(
+            (string) (
+                $dadosValidados['codigo_entrega']
+                ?? ''
+            )
+        );
+
+        if ($codigoEntregaInformado !== '') {
             $query->where(
                 'codigo_entrega',
                 'like',
-                '%' . trim(
-                    (string) $dadosValidados['codigo_entrega']
-                ) . '%'
+                '%' . $codigoEntregaInformado . '%'
+            );
+        }
+
+        /*
+        * Entregas concluídas não ocupam a grade operacional.
+        * Permanecem contabilizadas no card e podem ser localizadas
+        * pelo filtro de status ou pela busca do código da entrega.
+        */
+        if (
+            ! $statusFiltroAplicado
+            && $codigoEntregaInformado === ''
+        ) {
+            $query->where(
+                'status',
+                '<>',
+                'Entregue'
             );
         }
 

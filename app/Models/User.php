@@ -24,6 +24,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'sessao_ativa_hash',
     ];
 
     // Relacionamento com Funcionario

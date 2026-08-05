@@ -538,6 +538,34 @@
         </div>
     </div>
 
+    @php
+        $statusFiltroTabela = strtolower(
+            trim(
+                (string) request(
+                    'status',
+                    ''
+                )
+            )
+        );
+
+        $codigoFiltroTabela = trim(
+            (string) request(
+                'codigo_entrega',
+                ''
+            )
+        );
+
+        $buscaEntreguesAtiva =
+            $statusFiltroTabela === 'entregue'
+            || $codigoFiltroTabela !== '';
+
+        /*
+         * A entrega concluída permanece renderizada para continuar
+         * participando da sincronização dos bloqueios. Somente sua
+         * apresentação visual será controlada dentro da própria linha.
+         */
+    @endphp
+
     {{-- TABELA --}}
     <div class="card shadow-sm mb-3">
         <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
@@ -602,6 +630,11 @@
                 $entrega->edicao_bloqueada
                 ?? false
             );
+
+            $ocultarEntregaConcluida =
+                $statusEntrega === 'entregue'
+                && ! $buscaEntreguesAtiva
+                && ! $edicaoBloqueada;
 
             $mensagemBloqueio = (string) (
                 $entrega->edicao_bloqueio_mensagem
@@ -968,7 +1001,12 @@
             );
         @endphp
 
-        <tr class="{{ $linhaClasse }}"
+        <tr class="{{ trim(
+                $linhaClasse
+                . ($ocultarEntregaConcluida
+                    ? ' d-none'
+                    : '')
+            ) }}"
             data-entrega-id="{{ $entrega->id }}"
             data-bloqueio-ativo="{{
                 $entrega->bloqueioEdicaoAtivo
@@ -1363,7 +1401,11 @@
             </td>
         </tr>
 
-        <tr class="collapse linha-itens"
+        <tr class="collapse linha-itens {{
+                $ocultarEntregaConcluida
+                    ? 'd-none'
+                    : ''
+            }}"
             id="itens-entrega-{{ $entrega->id }}">
 
             <td colspan="8">

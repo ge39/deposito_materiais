@@ -537,6 +537,34 @@
         </div>
     </div>
 
+    <?php
+        $statusFiltroTabela = strtolower(
+            trim(
+                (string) request(
+                    'status',
+                    ''
+                )
+            )
+        );
+
+        $codigoFiltroTabela = trim(
+            (string) request(
+                'codigo_entrega',
+                ''
+            )
+        );
+
+        $buscaEntreguesAtiva =
+            $statusFiltroTabela === 'entregue'
+            || $codigoFiltroTabela !== '';
+
+        /*
+         * A entrega concluída permanece renderizada para continuar
+         * participando da sincronização dos bloqueios. Somente sua
+         * apresentação visual será controlada dentro da própria linha.
+         */
+    ?>
+
     
     <div class="card shadow-sm mb-3">
         <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
@@ -605,6 +633,11 @@
                 $entrega->edicao_bloqueada
                 ?? false
             );
+
+            $ocultarEntregaConcluida =
+                $statusEntrega === 'entregue'
+                && ! $buscaEntreguesAtiva
+                && ! $edicaoBloqueada;
 
             $mensagemBloqueio = (string) (
                 $entrega->edicao_bloqueio_mensagem
@@ -971,7 +1004,12 @@
             );
         ?>
 
-        <tr class="<?php echo e($linhaClasse); ?>"
+        <tr class="<?php echo e(trim(
+                $linhaClasse
+                . ($ocultarEntregaConcluida
+                    ? ' d-none'
+                    : '')
+            )); ?>"
             data-entrega-id="<?php echo e($entrega->id); ?>"
             data-bloqueio-ativo="<?php echo e($entrega->bloqueioEdicaoAtivo
                     ? '1'
@@ -1352,7 +1390,9 @@
             </td>
         </tr>
 
-        <tr class="collapse linha-itens"
+        <tr class="collapse linha-itens <?php echo e($ocultarEntregaConcluida
+                    ? 'd-none'
+                    : ''); ?>"
             id="itens-entrega-<?php echo e($entrega->id); ?>">
 
             <td colspan="8">
