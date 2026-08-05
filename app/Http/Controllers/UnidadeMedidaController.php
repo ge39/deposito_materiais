@@ -260,51 +260,6 @@ public function update(
         ]);
     }
 
-    public function update(
-        Request $request,
-        UnidadeMedida $unidadeMedida
-    ): RedirectResponse {
-        $dados = $request->validate([
-            'nome' => [
-                'required',
-                'string',
-                'max:50',
-            ],
-            'sigla' => [
-                'required',
-                'string',
-                'max:10',
-                Rule::unique(
-                    'unidades_medida',
-                    'sigla'
-                )->ignore($unidadeMedida->id),
-            ],
-            'ativo' => [
-                'nullable',
-                Rule::in(['0', '1']),
-            ],
-        ]);
-
-        $unidadeMedida->timestamps = false;
-        $unidadeMedida->nome = trim($dados['nome']);
-        $unidadeMedida->sigla = Str::upper(
-            trim($dados['sigla'])
-        );
-        $unidadeMedida->ativo =
-            $request->input('ativo', '0') === '1'
-                ? '1'
-                : '0';
-
-        $unidadeMedida->save();
-
-        return redirect()
-            ->route('unidades-medida.index')
-            ->with(
-                'success',
-                'Unidade de medida atualizada com sucesso!'
-            );
-    }
-
     public function alternarStatus(
         UnidadeMedida $unidadeMedida
     ): RedirectResponse {

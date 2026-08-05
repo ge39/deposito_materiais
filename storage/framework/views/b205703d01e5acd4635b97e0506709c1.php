@@ -8,13 +8,21 @@
     <title>Depósito de Materiais</title>
 
     
-    <link rel="icon" type="image/svg+xml"
-          href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏗️%3C/text%3E%3C/svg%3E">
+    <link
+        rel="icon"
+        type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏗️%3C/text%3E%3C/svg%3E">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+        rel="stylesheet">
 
-    <!-- <style>
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+        rel="stylesheet">
+
+    <!--
+    <style>
         html,
         body {
             min-height: 100%;
@@ -38,13 +46,13 @@
         .dropdown-submenu > .dropdown-menu {
             top: 0;
             left: 100%;
-            margin-left: 0.1rem;
+            margin-left: .1rem;
         }
 
         @media (max-width: 991px) {
             .dropdown-submenu > .dropdown-menu {
-                left: 0;
                 position: static;
+                left: 0;
                 margin-left: 1rem;
             }
         }
@@ -54,7 +62,8 @@
             pointer-events: none;
             opacity: .55;
         }
-    </style> -->
+    </style>
+    -->
 
     <?php echo $__env->yieldPushContent('styles'); ?>
 </head>
@@ -62,391 +71,759 @@
 <body>
 
 <?php
-    $canAccessAdmin = auth()->check() && in_array(auth()->user()->nivel_acesso, ['admin', 'gerente']);
+    $canAccessAdmin =
+        auth()->check()
+        && in_array(
+            auth()->user()->nivel_acesso,
+            ['admin', 'gerente']
+        );
 ?>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+
     <div class="container-fluid">
 
-        <a class="navbar-brand fw-bold" href="<?php echo e(route('dashboard')); ?>">
+        <a
+            class="navbar-brand fw-bold"
+            href="<?php echo e(route('dashboard')); ?>">
+
             🏗️ Depósito
         </a>
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu"
-                aria-controls="navbarMenu" aria-expanded="false" aria-label="Toggle navigation">
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarMenu"
+            aria-controls="navbarMenu"
+            aria-expanded="false"
+            aria-label="Toggle navigation">
+
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <div class="collapse navbar-collapse" id="navbarMenu">
+        <div
+            class="collapse navbar-collapse"
+            id="navbarMenu">
+
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
                 
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-box-seam me-1"></i>Produtos & Compras
-                    </a>
 
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="<?php echo e(route('produtos.index')); ?>">
-                                <i class="bi bi-box me-2"></i>Estoque / Produtos
-                            </a>
-                        </li>
+                    <a
+                        class="nav-link dropdown-toggle"
+                        href="#"
+                        data-bs-toggle="dropdown">
 
-                        <li>
-                            <a class="dropdown-item" href="<?php echo e(route('pedidos.index')); ?>">
-                                <i class="bi bi-cart-check me-2"></i>Pedido de Compra / Lotes
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="dropdown-item" href="<?php echo e(route('orcamentos.index')); ?>">
-                                <i class="bi bi-clipboard-data me-2"></i>Emissão Orçamento
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-cash-stack me-1"></i>Vendas
-                    </a>
-
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="<?php echo e(route('pdv.index')); ?>">
-                                <i class="bi bi-receipt-cutoff me-2"></i>PDV / Vendas
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="dropdown-item disabled" href="#">
-                                <i class="bi bi-list-ul me-2"></i>Itens Venda
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="dropdown-item" href="<?php echo e(route('devolucoes.index')); ?>">
-                                <i class="bi bi-arrow-counterclockwise me-2"></i>Troca / Devoluções
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-arrow-repeat me-1"></i>Pós-Venda
-                    </a>
-
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="<?php echo e(route('devolucoes.index')); ?>">
-                                <i class="bi bi-arrow-counterclockwise me-2"></i>Devoluções / Trocas
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-truck me-1"></i>Logística
+                        <i class="bi bi-box-seam me-1"></i>
+                        Produtos & Compras
                     </a>
 
                     <ul class="dropdown-menu">
 
                         <li>
-                            <a class="dropdown-item" href="<?php echo e(route('entregas.index')); ?>">
-                                <i class="bi bi-box-arrow-right me-2"></i>Entregas
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(route('produtos.index')); ?>">
+
+                                <i class="bi bi-box me-2"></i>
+                                Estoque / Produtos
                             </a>
                         </li>
 
                         <li>
-                            <a class="dropdown-item" href="<?php echo e(route('romaneios.index')); ?>">
-                                <i class="bi bi-card-checklist me-2"></i>Romaneios
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(route('pedidos.index')); ?>">
+
+                                <i class="bi bi-cart-check me-2"></i>
+                                Pedido de Compra / Lotes
                             </a>
                         </li>
 
                         <li>
-                            <a class="dropdown-item" href="<?php echo e(route('expedicao.index')); ?>">
-                                <i class="bi bi-truck-front me-2"></i>Expedição
-                            </a>
-                        </li>
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(route('orcamentos.index')); ?>">
 
-                        <li><hr class="dropdown-divider"></li>
-
-                        <li>
-                            <a class="dropdown-item" href="<?php echo e(route('localizacoes-estoque.index')); ?>">
-                                <i class="bi bi-geo-alt me-2"></i>Localizações de Estoque
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="dropdown-item disabled" href="#">
-                                <i class="bi bi-signpost-2 me-2"></i>Rotas
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="dropdown-item disabled" href="#">
-                                <i class="bi bi-truck me-2"></i>Frota
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="dropdown-item disabled" href="#">
-                                <i class="bi bi-person-badge me-2"></i>Motoristas
+                                <i class="bi bi-clipboard-data me-2"></i>
+                                Emissão Orçamento
                             </a>
                         </li>
 
                     </ul>
+
                 </li>
 
                 
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-gear-wide-connected me-1"></i>Administração
+
+                    <a
+                        class="nav-link dropdown-toggle"
+                        href="#"
+                        data-bs-toggle="dropdown">
+
+                        <i class="bi bi-cash-stack me-1"></i>
+                        Vendas
+                    </a>
+
+                    <ul class="dropdown-menu">
+
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(route('pdv.index')); ?>">
+
+                                <i class="bi bi-receipt-cutoff me-2"></i>
+                                PDV / Vendas
+                            </a>
+                        </li>
+
+                        <li>
+                            <a
+                                class="dropdown-item disabled"
+                                href="#">
+
+                                <i class="bi bi-list-ul me-2"></i>
+                                Itens Venda
+                            </a>
+                        </li>
+
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(route('devolucoes.index')); ?>">
+
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>
+                                Troca / Devoluções
+                            </a>
+                        </li>
+
+                    </ul>
+
+                </li>
+
+                
+                <li class="nav-item dropdown">
+
+                    <a
+                        class="nav-link dropdown-toggle"
+                        href="#"
+                        data-bs-toggle="dropdown">
+
+                        <i class="bi bi-arrow-repeat me-1"></i>
+                        Pós-Venda
+                    </a>
+
+                    <ul class="dropdown-menu">
+
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(route('devolucoes.index')); ?>">
+
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>
+                                Devoluções / Trocas
+                            </a>
+                        </li>
+
+                    </ul>
+
+                </li>
+
+                
+                <li class="nav-item dropdown">
+
+                    <a
+                        class="nav-link dropdown-toggle"
+                        href="#"
+                        data-bs-toggle="dropdown">
+
+                        <i class="bi bi-truck me-1"></i>
+                        Logística
+                    </a>
+
+                    <ul class="dropdown-menu">
+
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(route('entregas.index')); ?>">
+
+                                <i class="bi bi-box-arrow-right me-2"></i>
+                                Entregas
+                            </a>
+                        </li>
+
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(route('romaneios.index')); ?>">
+
+                                <i class="bi bi-card-checklist me-2"></i>
+                                Romaneios
+                            </a>
+                        </li>
+
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(route('expedicao.index')); ?>">
+
+                                <i class="bi bi-truck-front me-2"></i>
+                                Expedição
+                            </a>
+                        </li>
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(route('localizacoes-estoque.index')); ?>">
+
+                                <i class="bi bi-geo-alt me-2"></i>
+                                Localizações de Estoque
+                            </a>
+                        </li>
+
+                        <li>
+                            <a
+                                class="dropdown-item disabled"
+                                href="#">
+
+                                <i class="bi bi-signpost-2 me-2"></i>
+                                Rotas
+                            </a>
+                        </li>
+
+                        <li>
+                            <a
+                                class="dropdown-item disabled"
+                                href="#">
+
+                                <i class="bi bi-truck me-2"></i>
+                                Frota
+                            </a>
+                        </li>
+
+                        <li>
+                            <a
+                                class="dropdown-item disabled"
+                                href="#">
+
+                                <i class="bi bi-person-badge me-2"></i>
+                                Motoristas
+                            </a>
+                        </li>
+
+                    </ul>
+
+                </li>
+
+                
+                <li class="nav-item dropdown">
+
+                    <a
+                        class="nav-link dropdown-toggle
+                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                        href="#"
+                        data-bs-toggle="dropdown">
+
+                        <i class="bi bi-gear-wide-connected me-1"></i>
+                        Administração
                     </a>
 
                     <ul class="dropdown-menu">
 
                         
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#">
-                                <i class="bi bi-folder2-open me-2"></i>Cadastros
+
+                            <a
+                                class="dropdown-item dropdown-toggle
+                                       <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                href="#">
+
+                                <i class="bi bi-folder2-open me-2"></i>
+                                Cadastros
                             </a>
 
                             <ul class="dropdown-menu">
+
                                 <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('users.index') : '#'); ?>">
-                                        <i class="bi bi-person-gear me-2"></i>Usuários
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('users.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-person-gear me-2"></i>
+                                        Usuários
                                     </a>
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('empresa.index') : '#'); ?>">
-                                        <i class="bi bi-building me-2"></i>Empresa
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('empresa.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-building me-2"></i>
+                                        Empresa
                                     </a>
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('clientes.index') : '#'); ?>">
-                                        <i class="bi bi-people me-2"></i>Clientes
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('clientes.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-people me-2"></i>
+                                        Clientes
                                     </a>
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('fornecedores.index') : '#'); ?>">
-                                        <i class="bi bi-truck me-2"></i>Fornecedores
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('fornecedores.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-truck me-2"></i>
+                                        Fornecedores
                                     </a>
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('funcionarios.index') : '#'); ?>">
-                                        <i class="bi bi-person-badge me-2"></i>Funcionários
+                                    <hr class="dropdown-divider">
+                                </li>
+
+                                <li>
+                                    <h6 class="dropdown-header">
+                                        Cadastros de Produtos
+                                    </h6>
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('categorias.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-tags me-2"></i>
+                                        Categorias
                                     </a>
                                 </li>
+
                                 <li>
-                                    <a class="dropdown-item" href="<?php echo e(route('veiculos.index')); ?>">
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('marcas.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-bookmark-star me-2"></i>
+                                        Marcas
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('unidades-medida.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-rulers me-2"></i>
+                                        Unidades de Medida
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('funcionarios.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-person-badge me-2"></i>
+                                        Funcionários
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('veiculos.index')
+                                                : '#'); ?>">
+
                                         <i class="bi bi-truck-front me-2"></i>
                                         Veículos
                                     </a>
                                 </li>
+
                             </ul>
+
                         </li>
 
-                        <li><hr class="dropdown-divider"></li>
-
-                        
-                        <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#">
-                                <i class="bi bi-currency-dollar me-2"></i>Financeiro
-                            </a>
-
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('sangria-config.index') : '#'); ?>">
-                                        <i class="bi bi-cash-coin me-2"></i>Define Sangria
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('fechamento.lista') : '#'); ?>">
-                                        <i class="bi bi-safe me-2"></i>Fechamento de Caixa
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('limites-view') : '#'); ?>">
-                                        <i class="bi bi-credit-card-2-front me-2"></i>Controle Limite Crédito
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('auditoria_caixa.index') : '#'); ?>">
-                                        <i class="bi bi-clipboard-check me-2"></i>Relatório Auditoria de Caixa
-                                    </a>
-                                </li>
-                            </ul>
+                        <li>
+                            <hr class="dropdown-divider">
                         </li>
 
                         
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#">
-                                <i class="bi bi-boxes me-2"></i>Controle de Estoque
-                            </a>
 
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('estoque-divergencias.index') : '#'); ?>">
-                                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Divergências de Estoque
-                                    </a>
-                                </li>
+                            <a
+                                class="dropdown-item dropdown-toggle
+                                       <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                href="#">
 
-                                <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-clipboard-check me-2"></i>Inventário Geral
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-arrow-repeat me-2"></i>Ajustes de Estoque
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-clock-history me-2"></i>Movimentações de Estoque
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        
-                        <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#">
-                                <i class="bi bi-bar-chart-line me-2"></i>Relatórios
-                            </a>
-
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('relatorio.reposicao') : '#'); ?>">
-                                        <i class="bi bi-box-arrow-in-down me-2"></i>Orçamento / Repor Estoque
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('dashboard.movimentacoes') : '#'); ?>">
-                                        <i class="bi bi-graph-up-arrow me-2"></i>Orçamento / Dashboard
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        
-                        <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#">
-                                <i class="bi bi-shield-lock me-2"></i>Segurança
+                                <i class="bi bi-currency-dollar me-2"></i>
+                                Financeiro
                             </a>
 
                             <ul class="dropdown-menu">
 
                                 <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                                    </a>
-                                </li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('sangria-config.index')
+                                                : '#'); ?>">
 
-                                <li><hr class="dropdown-divider"></li>
-
-                                <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('backups.index') : '#'); ?>">
-                                        <i class="bi bi-database-check me-2"></i>Backup Manual
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-clock-history me-2"></i>Backup Automático
+                                        <i class="bi bi-cash-coin me-2"></i>
+                                        Define Sangria
                                     </a>
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-gear me-2"></i>Configuração do Backup
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('fechamento.lista')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-safe me-2"></i>
+                                        Fechamento de Caixa
                                     </a>
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-folder-check me-2"></i>Histórico de Backups
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('limites-view')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-credit-card-2-front me-2"></i>
+                                        Controle Limite Crédito
                                     </a>
                                 </li>
 
-                                <li><hr class="dropdown-divider"></li>
-
                                 <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-shield-check me-2"></i>Auditoria
-                                    </a>
-                                </li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('auditoria_caixa.index')
+                                                : '#'); ?>">
 
-                                <li>
-                                    <a class="dropdown-item disabled" href="#">
-                                        <i class="bi bi-file-earmark-text me-2"></i>Logs do Sistema
+                                        <i class="bi bi-clipboard-check me-2"></i>
+                                        Relatório Auditoria de Caixa
                                     </a>
                                 </li>
 
                             </ul>
+
                         </li>
 
                         
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>" href="#">
-                                <i class="bi bi-tags me-2"></i>Promoções & Descontos
+
+                            <a
+                                class="dropdown-item dropdown-toggle
+                                       <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                href="#">
+
+                                <i class="bi bi-boxes me-2"></i>
+                                Controle de Estoque
                             </a>
 
                             <ul class="dropdown-menu">
+
                                 <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('painel_promocao.index') : '#'); ?>">
-                                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('estoque-divergencias.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                                        Divergências de Estoque
                                     </a>
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('promocoes.index') : '#'); ?>">
-                                        <i class="bi bi-list-stars me-2"></i>Listar Promoções
+                                    <a
+                                        class="dropdown-item disabled"
+                                        href="#">
+
+                                        <i class="bi bi-clipboard-check me-2"></i>
+                                        Inventário Geral
                                     </a>
                                 </li>
 
                                 <li>
-                                    <a class="dropdown-item <?php echo e(!$canAccessAdmin ? 'disabled' : ''); ?>"
-                                       href="<?php echo e($canAccessAdmin ? route('promocoes.create') : '#'); ?>">
-                                        <i class="bi bi-plus-circle me-2"></i>Nova Promoção
+                                    <a
+                                        class="dropdown-item disabled"
+                                        href="#">
+
+                                        <i class="bi bi-arrow-repeat me-2"></i>
+                                        Ajustes de Estoque
                                     </a>
                                 </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item disabled"
+                                        href="#">
+
+                                        <i class="bi bi-clock-history me-2"></i>
+                                        Movimentações de Estoque
+                                    </a>
+                                </li>
+
                             </ul>
+
+                        </li>
+                                                
+                        <li class="dropdown-submenu">
+
+                            <a
+                                class="dropdown-item dropdown-toggle
+                                       <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                href="#">
+
+                                <i class="bi bi-bar-chart-line me-2"></i>
+                                Relatórios
+                            </a>
+
+                            <ul class="dropdown-menu">
+
+                                <li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('relatorio.reposicao')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-box-arrow-in-down me-2"></i>
+                                        Orçamento / Repor Estoque
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('dashboard.movimentacoes')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-graph-up-arrow me-2"></i>
+                                        Orçamento / Dashboard
+                                    </a>
+                                </li>
+
+                            </ul>
+
+                        </li>
+
+                        
+                        <li class="dropdown-submenu">
+
+                            <a
+                                class="dropdown-item dropdown-toggle
+                                       <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                href="#">
+
+                                <i class="bi bi-shield-lock me-2"></i>
+                                Segurança
+                            </a>
+
+                            <ul class="dropdown-menu">
+
+                                <li>
+                                    <a
+                                        class="dropdown-item disabled"
+                                        href="#">
+
+                                        <i class="bi bi-speedometer2 me-2"></i>
+                                        Dashboard
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('backups.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-database-check me-2"></i>
+                                        Backup Manual
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item disabled"
+                                        href="#">
+
+                                        <i class="bi bi-clock-history me-2"></i>
+                                        Backup Automático
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item disabled"
+                                        href="#">
+
+                                        <i class="bi bi-gear me-2"></i>
+                                        Configuração do Backup
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item disabled"
+                                        href="#">
+
+                                        <i class="bi bi-folder-check me-2"></i>
+                                        Histórico de Backups
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item disabled"
+                                        href="#">
+
+                                        <i class="bi bi-shield-check me-2"></i>
+                                        Auditoria
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item disabled"
+                                        href="#">
+
+                                        <i class="bi bi-file-earmark-text me-2"></i>
+                                        Logs do Sistema
+                                    </a>
+                                </li>
+
+                            </ul>
+
+                        </li>
+
+                        
+                        <li class="dropdown-submenu">
+
+                            <a
+                                class="dropdown-item dropdown-toggle
+                                       <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                href="#">
+
+                                <i class="bi bi-tags me-2"></i>
+                                Promoções & Descontos
+                            </a>
+
+                            <ul class="dropdown-menu">
+
+                                <li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('painel_promocao.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-speedometer2 me-2"></i>
+                                        Dashboard
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('promocoes.index')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-list-stars me-2"></i>
+                                        Listar Promoções
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a
+                                        class="dropdown-item
+                                               <?php echo e(! $canAccessAdmin ? 'disabled' : ''); ?>"
+                                        href="<?php echo e($canAccessAdmin
+                                                ? route('promocoes.create')
+                                                : '#'); ?>">
+
+                                        <i class="bi bi-plus-circle me-2"></i>
+                                        Nova Promoção
+                                    </a>
+                                </li>
+
+                            </ul>
+
                         </li>
 
                     </ul>
+
                 </li>
 
             </ul>
@@ -454,40 +831,56 @@
             
             <?php if(auth()->guard()->check()): ?>
                 <div class="d-flex align-items-center text-white">
+
                     <span class="me-3">
-                        <i class="bi bi-person-circle me-1"></i><?php echo e(Auth::user()->name); ?>
+                        <i class="bi bi-person-circle me-1"></i>
+                        <?php echo e(Auth::user()->name); ?>
 
                     </span>
 
-                    <form method="POST" action="<?php echo e(route('logout')); ?>" class="d-inline">
+                    <form
+                        method="POST"
+                        action="<?php echo e(route('logout')); ?>"
+                        class="d-inline">
+
                         <?php echo csrf_field(); ?>
 
-                        <button type="submit" class="btn btn-outline-light btn-sm">
+                        <button
+                            type="submit"
+                            class="btn btn-outline-light btn-sm">
+
                             Sair
                         </button>
+
                     </form>
+
                 </div>
             <?php endif; ?>
 
         </div>
+
     </div>
+
 </nav>
 
 <main class="container mt-4">
- <?php if(isset($bloqueioEdicao)): ?>
-    <div id="configuracao-bloqueio-edicao"
-         class="d-none"
-         data-recurso-tipo="<?php echo e($bloqueioEdicaoRecursoTipo ?? ''); ?>"
-         data-recurso-id="<?php echo e($bloqueioEdicaoRecursoId ?? ''); ?>"
-         data-token="<?php echo e($bloqueioEdicaoToken ?? ''); ?>"
-         data-pode-editar="<?php echo e(($podeEditarArquivo ?? false)
+
+<?php if(isset($bloqueioEdicao)): ?>
+
+    <div
+        id="configuracao-bloqueio-edicao"
+        class="d-none"
+        data-recurso-tipo="<?php echo e($bloqueioEdicaoRecursoTipo ?? ''); ?>"
+        data-recurso-id="<?php echo e($bloqueioEdicaoRecursoId ?? ''); ?>"
+        data-token="<?php echo e($bloqueioEdicaoToken ?? ''); ?>"
+        data-pode-editar="<?php echo e(($podeEditarArquivo ?? false)
                 ? '1'
                 : '0'); ?>"
-         data-mensagem="<?php echo e($mensagemBloqueioEdicao ?? ''); ?>"
-         data-url-adquirir="<?php echo e(route('edicao-bloqueios.adquirir')); ?>"
-         data-url-renovar="<?php echo e(route('edicao-bloqueios.renovar')); ?>"
-         data-url-liberar="<?php echo e(route('edicao-bloqueios.liberar')); ?>"
-         data-url-retorno="<?php echo e(route('entregas.index')); ?>">
+        data-mensagem="<?php echo e($mensagemBloqueioEdicao ?? ''); ?>"
+        data-url-adquirir="<?php echo e(route('edicao-bloqueios.adquirir')); ?>"
+        data-url-renovar="<?php echo e(route('edicao-bloqueios.renovar')); ?>"
+        data-url-liberar="<?php echo e(route('edicao-bloqueios.liberar')); ?>"
+        data-url-retorno="<?php echo e(route('entregas.index')); ?>">
     </div>
 
     <script>
@@ -846,8 +1239,7 @@
                         configuracao.urlRetorno
                     );
                 }
-
-                function atualizarAlertaEdicao() {
+                                function atualizarAlertaEdicao() {
                     const alerta =
                         document.getElementById(
                             'alerta-bloqueio-edicao'
@@ -1041,9 +1433,9 @@
                                 true;
 
                             /*
-                            * Recarregamos para recuperar os dados
-                            * mais recentes antes da edição.
-                            */
+                             * Recarrega para recuperar os dados
+                             * mais recentes antes da edição.
+                             */
                             window.location.reload();
 
                             return;
@@ -1064,8 +1456,8 @@
                         }
                     } catch (erro) {
                         /*
-                        * A próxima tentativa sincronizará novamente.
-                        */
+                         * A próxima tentativa sincronizará novamente.
+                         */
                     } finally {
                         aquisicaoEmAndamento =
                             false;
@@ -1133,9 +1525,8 @@
                             bloqueioProprio =
                                 false;
 
-                            configuracao
-                                .podeEditar =
-                                    false;
+                            configuracao.podeEditar =
+                                false;
 
                             pararRenovacao();
 
@@ -1148,8 +1539,8 @@
                         }
                     } catch (erro) {
                         /*
-                        * Uma falha transitória não remove o bloqueio.
-                        */
+                         * Uma falha transitória não remove o bloqueio.
+                         */
                     } finally {
                         renovacaoEmAndamento =
                             false;
@@ -1342,9 +1733,9 @@
                                     ! evento.defaultPrevented
                                 ) {
                                     /*
-                                    * Formulários operacionais mantêm
-                                    * o bloqueio durante o redirect.
-                                    */
+                                     * Formulários operacionais mantêm
+                                     * o bloqueio durante o redirect.
+                                     */
                                     formularioEmEnvio =
                                         true;
                                 }
@@ -1634,7 +2025,7 @@
                     function () {
                         if (
                             document.visibilityState
-                            !== 'visible'
+                                !== 'visible'
                             || navegacaoEmAndamento
                         ) {
                             return;
@@ -1682,10 +2073,10 @@
                                 )
                             ) {
                                 /*
-                                * Voltar ou avançar entre páginas do
-                                * mesmo fluxo operacional não libera
-                                * o bloqueio da entrega.
-                                */
+                                 * Voltar ou avançar entre páginas
+                                 * do mesmo fluxo operacional não
+                                 * libera o bloqueio da entrega.
+                                 */
                                 navegacaoEmAndamento =
                                     true;
                             }
@@ -1701,11 +2092,10 @@
                         }
 
                         /*
-                        * Uma página operacional restaurada pelo
-                        * BFCache não pode reutilizar controles e
-                        * token mantidos apenas na memória.
-                        * O reload executa novamente o middleware.
-                        */
+                         * Uma página restaurada pelo BFCache não
+                         * pode reutilizar controles e token
+                         * mantidos apenas na memória.
+                         */
                         window.location.reload();
                     }
                 );
@@ -1717,50 +2107,106 @@
             }
         );
     </script>
+
 <?php endif; ?>
 
     <?php echo $__env->yieldContent('content'); ?>
+
 </main>
 
-<?php if(!request()->routeIs('pdv.*')): ?>
-    <footer class="mt-5 py-3 border-top bg-light text-center text-muted">
+<?php if(! request()->routeIs('pdv.*')): ?>
+
+    <footer
+        class="mt-5 py-3 border-top
+               bg-light text-center text-muted">
+
         <small>
-            © <?php echo e(date('Y')); ?> <?php echo e(config('app.name', 'Depósito de Materiais')); ?> — JMFSoftware2017
+            © <?php echo e(date('Y')); ?>
+
+            <?php echo e(config('app.name', 'Depósito de Materiais')); ?>
+
+            — JMFSoftware2017
         </small>
+
     </footer>
+
 <?php endif; ?>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.dropdown-submenu .dropdown-toggle').forEach(function (toggle) {
-            toggle.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const submenu = this.nextElementSibling;
-
-                document.querySelectorAll('.dropdown-submenu .dropdown-menu').forEach(function (menu) {
-                    if (menu !== submenu) {
-                        menu.classList.remove('show');
-                    }
-                });
-
-                if (submenu) {
-                    submenu.classList.toggle('show');
-                }
-            });
-        });
-
-        document.addEventListener('click', function () {
-            document.querySelectorAll('.dropdown-submenu .dropdown-menu').forEach(function (menu) {
-                menu.classList.remove('show');
-            });
-        });
-    });
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
 </script>
 
+<script>
+    document.addEventListener(
+        'DOMContentLoaded',
+        function () {
+            document
+                .querySelectorAll(
+                    '.dropdown-submenu .dropdown-toggle'
+                )
+                .forEach(
+                    function (toggle) {
+                        toggle.addEventListener(
+                            'click',
+                            function (evento) {
+                                evento.preventDefault();
+                                evento.stopPropagation();
+
+                                const submenu =
+                                    this.nextElementSibling;
+
+                                document
+                                    .querySelectorAll(
+                                        '.dropdown-submenu .dropdown-menu'
+                                    )
+                                    .forEach(
+                                        function (menu) {
+                                            if (
+                                                menu
+                                                !== submenu
+                                            ) {
+                                                menu
+                                                    .classList
+                                                    .remove(
+                                                        'show'
+                                                    );
+                                            }
+                                        }
+                                    );
+
+                                if (submenu) {
+                                    submenu
+                                        .classList
+                                        .toggle(
+                                            'show'
+                                        );
+                                }
+                            }
+                        );
+                    }
+                );
+
+            document.addEventListener(
+                'click',
+                function () {
+                    document
+                        .querySelectorAll(
+                            '.dropdown-submenu .dropdown-menu'
+                        )
+                        .forEach(
+                            function (menu) {
+                                menu
+                                    .classList
+                                    .remove(
+                                        'show'
+                                    );
+                            }
+                        );
+                }
+            );
+        }
+    );
+</script>
 
 <?php echo $__env->yieldPushContent('scripts'); ?>
 

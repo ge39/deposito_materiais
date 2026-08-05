@@ -195,39 +195,6 @@ public function update(
         ]);
     }
 
-    public function update(
-        Request $request,
-        Marca $marca
-    ): RedirectResponse {
-        $dados = $request->validate([
-            'nome' => [
-                'required',
-                'string',
-                'max:100',
-                Rule::unique(
-                    'marcas',
-                    'nome'
-                )->ignore($marca->id),
-            ],
-            'ativo' => [
-                'nullable',
-                Rule::in(['0', '1']),
-            ],
-        ]);
-
-        $marca->timestamps = false;
-        $marca->nome = trim($dados['nome']);
-        $marca->ativo = $request->input('ativo', '0') === '1'
-            ? '1'
-            : '0';
-
-        $marca->save();
-
-        return redirect()
-            ->route('marcas.index')
-            ->with('success', 'Marca atualizada com sucesso!');
-    }
-
     public function alternarStatus(
         Marca $marca
     ): RedirectResponse {
