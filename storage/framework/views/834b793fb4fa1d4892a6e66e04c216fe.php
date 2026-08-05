@@ -1,0 +1,1 @@
+<?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views\itens_venda\show.blade.php ENDPATH**/ ?>

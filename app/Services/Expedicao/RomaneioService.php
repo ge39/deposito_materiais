@@ -2591,7 +2591,356 @@ class RomaneioService
             return (int) $loteIds->first();
         }
 
+        /**
+         * Atualiza somente o resultado físico das entregas vinculadas
+         * diretamente ao romaneio informado.
+         *
+         * Resultados de entregas filhas não são gravados nas entregas
+         * anteriores. O acumulado da família fracionada deve ser usado
+         * apenas para consulta e histórico, preservando o resultado de
+         * cada documento e de cada viagem.
+         */
         public function atualizarResultadoFinalEntregas(
+            Romaneio $romaneio,
+            bool $tratativaFinalizada = false
+        ): void {
+            $romaneio->loadMissing([
+                'itens.entregaItem',
+            ]);
+
+            $entregasDiretasIds = $romaneio->itens
+                ->map(
+                    fn (RomaneioItem $romaneioItem) =>
+                        (int) (
+                            $romaneioItem
+                                ->entregaItem
+                                ?->entrega_id
+                            ?? 0
+                        )
+                )
+                ->filter(
+                    fn (int $entregaId) =>
+                        $entregaId > 0
+                )
+                ->unique()
+                ->values();
+
+            if ($entregasDiretasIds->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'entrega' =>
+                        'Não foi possível identificar as entregas vinculadas aos produtos do romaneio.',
+                ]);
+            }
+
+            $entregasDiretas = Entrega::query()
+                ->with('itens')
+                ->whereIn(
+                    'id',
+                    $entregasDiretasIds->all()
+                )
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            if (
+                $entregasDiretas->count()
+                !== $entregasDiretasIds->count()
+            ) {
+                throw ValidationException::withMessages([
+                    'entrega' =>
+                        'Uma ou mais entregas vinculadas ao romaneio não foram localizadas.',
+                ]);
+            }
+
+            foreach ($entregasDiretas as $entrega) {
+                if ($entrega->status === 'Cancelada') {
+                    continue;
+                }
+
+                $entregaItensIds = $entrega->itens
+                    ->pluck('id')
+                    ->map(
+                        fn ($entregaItemId) =>
+                            (int) $entregaItemId
+                    )
+                    ->filter(
+                        fn (int $entregaItemId) =>
+                            $entregaItemId > 0
+                    )
+                    ->values();
+
+                if ($entregaItensIds->isEmpty()) {
+                    throw ValidationException::withMessages([
+                        'entrega' =>
+                            "A entrega #{$entrega->id} não possui produtos vinculados.",
+                    ]);
+                }
+
+                $resultadosDiretos = DB::table(
+                    'romaneio_itens as ri'
+                )
+                    ->join(
+                        'romaneios as r',
+                        'r.id',
+                        '=',
+                        'ri.romaneio_id'
+                    )
+                    ->whereIn(
+                        'ri.entrega_item_id',
+                        $entregaItensIds->all()
+                    )
+                    ->where(function ($query) {
+                        $query
+                            ->whereNull('ri.status')
+                            ->orWhere(
+                                'ri.status',
+                                '<>',
+                                self::STATUS_CANCELADO
+                            );
+                    })
+                    ->where(function ($query) {
+                        $query
+                            ->whereNull('r.status')
+                            ->orWhere(
+                                'r.status',
+                                '<>',
+                                self::STATUS_CANCELADO
+                            );
+                    })
+                    ->groupBy('ri.entrega_item_id')
+                    ->selectRaw(
+                        'ri.entrega_item_id,
+                        COALESCE(SUM(ri.quantidade_entregue), 0)
+                            as quantidade_entregue,
+                        COALESCE(SUM(ri.quantidade_devolvida), 0)
+                            as quantidade_devolvida,
+                        COALESCE(SUM(ri.quantidade_recusada), 0)
+                            as quantidade_recusada,
+                        COALESCE(SUM(ri.quantidade_avariada), 0)
+                            as quantidade_avariada,
+                        COALESCE(SUM(ri.quantidade_perdida), 0)
+                            as quantidade_perdida'
+                    )
+                    ->get()
+                    ->keyBy('entrega_item_id');
+
+                $quantidadePrevistaTotal = 0.0;
+                $quantidadeEntregueTotal = 0.0;
+                $quantidadeNaoEntregueTotal = 0.0;
+                $todosItensEntregues = true;
+
+                foreach ($entrega->itens as $entregaItem) {
+                    $resultadoDireto = $resultadosDiretos->get(
+                        (int) $entregaItem->id
+                    );
+
+                    $quantidadePrevista = round(
+                        (float) $entregaItem->quantidade_prevista,
+                        3
+                    );
+
+                    $quantidadeEntregue = round(
+                        (float) (
+                            $resultadoDireto
+                                ?->quantidade_entregue
+                            ?? 0
+                        ),
+                        3
+                    );
+
+                    $quantidadeDevolvida = round(
+                        (float) (
+                            $resultadoDireto
+                                ?->quantidade_devolvida
+                            ?? 0
+                        ),
+                        3
+                    );
+
+                    $quantidadeRecusada = round(
+                        (float) (
+                            $resultadoDireto
+                                ?->quantidade_recusada
+                            ?? 0
+                        ),
+                        3
+                    );
+
+                    $quantidadeAvariada = round(
+                        (float) (
+                            $resultadoDireto
+                                ?->quantidade_avariada
+                            ?? 0
+                        ),
+                        3
+                    );
+
+                    $quantidadePerdida = round(
+                        (float) (
+                            $resultadoDireto
+                                ?->quantidade_perdida
+                            ?? 0
+                        ),
+                        3
+                    );
+
+                    $quantidadeNaoEntregue = round(
+                        $quantidadeDevolvida
+                        + $quantidadeRecusada
+                        + $quantidadeAvariada
+                        + $quantidadePerdida,
+                        3
+                    );
+
+                    $quantidadeApurada = round(
+                        $quantidadeEntregue
+                        + $quantidadeNaoEntregue,
+                        3
+                    );
+
+                    if (
+                        $quantidadeApurada
+                        > $quantidadePrevista + 0.001
+                    ) {
+                        throw ValidationException::withMessages([
+                            'entrega_item' =>
+                                "O resultado direto do item #{$entregaItem->id} ultrapassa a quantidade prevista da entrega #{$entrega->id}.",
+                        ]);
+                    }
+
+                    $statusItem = match (true) {
+                        $quantidadePrevista > 0
+                            && abs(
+                                $quantidadeEntregue
+                                - $quantidadePrevista
+                            ) < 0.001 =>
+                                'Entregue',
+
+                        $quantidadeEntregue > 0 =>
+                            'Entregue_parcial',
+
+                        $quantidadeNaoEntregue > 0 =>
+                            'Devolvido',
+
+                        default =>
+                            'Pendente',
+                    };
+
+                    $entregaItem->update([
+                        'quantidade_entregue' =>
+                            $quantidadeEntregue,
+
+                        'quantidade_devolvida' =>
+                            $quantidadeDevolvida,
+
+                        'quantidade_recusada' =>
+                            $quantidadeRecusada,
+
+                        'quantidade_avariada' =>
+                            $quantidadeAvariada,
+
+                        'status' =>
+                            $statusItem,
+                    ]);
+
+                    $quantidadePrevistaTotal +=
+                        $quantidadePrevista;
+
+                    $quantidadeEntregueTotal +=
+                        $quantidadeEntregue;
+
+                    $quantidadeNaoEntregueTotal +=
+                        $quantidadeNaoEntregue;
+
+                    if (
+                        abs(
+                            $quantidadeEntregue
+                            - $quantidadePrevista
+                        ) >= 0.001
+                    ) {
+                        $todosItensEntregues = false;
+                    }
+                }
+
+                $quantidadePrevistaTotal = round(
+                    $quantidadePrevistaTotal,
+                    3
+                );
+
+                $quantidadeEntregueTotal = round(
+                    $quantidadeEntregueTotal,
+                    3
+                );
+
+                $quantidadeNaoEntregueTotal = round(
+                    $quantidadeNaoEntregueTotal,
+                    3
+                );
+
+                $quantidadeApuradaTotal = round(
+                    $quantidadeEntregueTotal
+                    + $quantidadeNaoEntregueTotal,
+                    3
+                );
+
+                $resultadoTotalApurado =
+                    $quantidadePrevistaTotal > 0
+                    && abs(
+                        $quantidadeApuradaTotal
+                        - $quantidadePrevistaTotal
+                    ) < 0.001;
+
+                $possuiOcorrencia =
+                    $quantidadeNaoEntregueTotal > 0;
+
+                $statusEntrega = match (true) {
+                    $quantidadePrevistaTotal > 0
+                        && $todosItensEntregues =>
+                            'Entregue',
+
+                    $tratativaFinalizada
+                        && $resultadoTotalApurado
+                        && $possuiOcorrencia =>
+                            'Entregue_finalizada_com_ocorrencia',
+
+                    $quantidadeEntregueTotal > 0 =>
+                        'Entregue_parcial',
+
+                    default =>
+                        'Nao_entregue',
+                };
+
+                $entregaFinalizada = in_array(
+                    $statusEntrega,
+                    [
+                        'Entregue',
+                        'Entregue_parcial',
+                        'Entregue_finalizada_com_ocorrencia',
+                        'Nao_entregue',
+                    ],
+                    true
+                );
+
+                $entrega->update([
+                    'status' =>
+                        $statusEntrega,
+
+                    'data_realizada' =>
+                        $entregaFinalizada
+                            ? (
+                                $entrega->data_realizada
+                                ?? now()
+                            )
+                            : null,
+                ]);
+            }
+        }
+
+        /**
+         * @deprecated Mantido temporariamente para comparação durante
+         * a homologação do histórico fracionado. Não deve ser chamado.
+         */
+        private function atualizarResultadoFinalEntregasConsolidadoLegado(
     Romaneio $romaneio,
     bool $tratativaFinalizada = false
 ): void {

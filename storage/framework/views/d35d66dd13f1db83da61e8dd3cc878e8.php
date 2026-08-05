@@ -1,8 +1,11 @@
-@extends('layouts.app')
+show.blade.php
 
-@section('content')
 
-@php
+
+
+<?php $__env->startSection('content'); ?>
+
+<?php
     $statusEntrega = strtolower(
         trim(
             str_replace(
@@ -118,44 +121,6 @@
     $contextosItensOrcamento = collect(
         $contextosItensOrcamento ?? []
     );
-
-    $documentosEntregasFracionadas = collect(
-        $documentosEntregasFracionadas
-        ?? [
-            [
-                'entrega' =>
-                    $entrega,
-
-                'contextos_venda' =>
-                    $contextosItensVenda,
-
-                'contextos_orcamento' =>
-                    $contextosItensOrcamento,
-            ],
-        ]
-    );
-
-    $documentoTabelaEntregaAtual =
-        $documentosEntregasFracionadas
-            ->first(
-                function ($documentoFracionado) use (
-                    $entrega
-                ) {
-                    $entregaDocumento =
-                        $documentoFracionado['entrega']
-                        ?? null;
-
-                    return (int) (
-                        $entregaDocumento?->id
-                        ?? 0
-                    ) === (int) $entrega->id;
-                }
-            )
-        ?? $documentosEntregasFracionadas->last();
-
-    $documentosTabelaEntregaAtual = collect([
-        $documentoTabelaEntregaAtual,
-    ])->filter();
 
     $historicoEntregasFracionadas = collect(
         $historicoEntregasFracionadas ?? []
@@ -330,8 +295,7 @@
     );
 
     $resolverExibicaoItem = function (
-        $itemBase,
-        $contextosDocumento = null
+        $itemBase
     ) use (
         $origemItens,
         $itensOperacionais,
@@ -341,47 +305,26 @@
     ) {
         $entregaItem = null;
 
-        $contextosVendaSelecionados =
-            $contextosDocumento === null
-                ? $contextosItensVenda
-                : collect(
-                    $contextosDocumento['venda']
-                    ?? []
-                );
-
-        $contextosOrcamentoSelecionados =
-            $contextosDocumento === null
-                ? $contextosItensOrcamento
-                : collect(
-                    $contextosDocumento['orcamento']
-                    ?? []
-                );
-
-        $itensOperacionaisSelecionados =
-            $contextosDocumento === null
-                ? $itensOperacionais
-                : collect();
-
         if ($origemItens === 'Venda') {
-            $entregaItem = $itensOperacionaisSelecionados
+            $entregaItem = $itensOperacionais
                 ->first(
                     fn ($itemOperacional) =>
                         (int) $itemOperacional->venda_item_id
                         === (int) $itemBase->id
                 );
 
-            $contexto = $contextosVendaSelecionados->get(
+            $contexto = $contextosItensVenda->get(
                 (int) $itemBase->id
             );
         } else {
-            $entregaItem = $itensOperacionaisSelecionados
+            $entregaItem = $itensOperacionais
                 ->first(
                     fn ($itemOperacional) =>
                         (int) $itemOperacional->item_orcamento_id
                         === (int) $itemBase->id
                 );
 
-            $contexto = $contextosOrcamentoSelecionados->get(
+            $contexto = $contextosItensOrcamento->get(
                 (int) $itemBase->id
             );
         }
@@ -402,7 +345,7 @@
             ? $resolverResultadoItem($entregaItem)
             : null;
 
-        $statusOperacionalCalculado = (string) (
+        $statusOperacionalAtual = (string) (
             $resultadoOperacionalAtual['status']
             ?? 'pendente'
         );
@@ -448,7 +391,7 @@
                     ),
 
                 'quantidade_ocorrencia_finalizada_atual' =>
-                    $statusOperacionalCalculado
+                    $statusOperacionalAtual
                         === 'finalizado_com_ocorrencia'
                     ? (float) (
                         $resultadoOperacionalAtual[
@@ -460,16 +403,8 @@
 
                 'quantidade_encaminhada_proxima' =>
                     0.0,
-
-                'status_operacional_atual' =>
-                    $statusOperacionalCalculado,
             ];
         }
-
-        $statusOperacionalAtual = (string) (
-            $contexto['status_operacional_atual']
-            ?? $statusOperacionalCalculado
-        );
 
         $possuiItemAtual = (bool) (
             $contexto['possui_item_atual']
@@ -920,7 +855,7 @@
     ) {
         $percentualFluxo = $percentual;
     }
-@endphp
+?>
 
 <style>
     .kpi-card {
@@ -1011,101 +946,18 @@
         vertical-align: middle;
         white-space: nowrap;
     }
-
-    .historico-documento {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-left: 4px solid #6c757d;
-        border-radius: 6px;
-        padding: 10px 12px;
-    }
-
-    .historico-itens-grupo {
-        border-top: 1px solid #dee2e6;
-        margin-top: 9px;
-        padding-top: 8px;
-    }
-
-    .historico-itens-titulo {
-        align-items: center;
-        display: flex;
-        font-size: .72rem;
-        font-weight: 700;
-        gap: 5px;
-        margin-bottom: 4px;
-        text-transform: uppercase;
-    }
-
-    .historico-item-linha {
-        align-items: center;
-        border-top: 1px dashed #dee2e6;
-        display: flex;
-        gap: 8px;
-        justify-content: space-between;
-        padding: 5px 0;
-    }
-
-    .historico-item-linha:first-of-type {
-        border-top: 0;
-    }
-
-    .historico-item-produto {
-        line-height: 1.2;
-        min-width: 0;
-        overflow-wrap: anywhere;
-    }
-
-    .historico-evento {
-        background: #fff;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        height: 100%;
-        padding: 10px 12px;
-    }
-
-    .historico-evento-atual {
-        border-left: 4px solid #0d6efd;
-    }
-
-    .historico-etapa {
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        height: 100%;
-        overflow: hidden;
-    }
-
-    .historico-etapa-cabecalho {
-        align-items: center;
-        background: #f1f3f5;
-        border-bottom: 1px solid #dee2e6;
-        display: flex;
-        justify-content: space-between;
-        padding: 9px 11px;
-    }
-
-    .historico-etapa-corpo {
-        padding: 4px 11px;
-    }
-
-    .historico-etapa-registro {
-        border-bottom: 1px solid #e9ecef;
-        padding: 8px 0;
-    }
-
-    .historico-etapa-registro:last-child {
-        border-bottom: 0;
-    }
 </style>
 
 <div class="container-fluid px-2">
 
-    {{-- CABEÇALHO --}}
+    
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h4 class="mb-0">
                 <i class="bi bi-diagram-3 me-2"></i>
                 Fluxo da Entrega
-                #{{ $entrega->codigo_entrega ?? $entrega->id }}
+                #<?php echo e($entrega->codigo_entrega ?? $entrega->id); ?>
+
             </h4>
 
             <small class="text-muted">
@@ -1114,27 +966,27 @@
         </div>
          
         <div class="d-flex gap-1">
-            <a href="{{ route('entregas.index') }}"
+            <a href="<?php echo e(route('entregas.index')); ?>"
                class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>
                 Voltar
             </a>
             
-                @if(
+                <?php if(
                     $entrega->romaneio
                     && $entrega->romaneio
                         ->ocorrencias()
                         ->exists()
-                )
-                <a href="{{ route(
+                ): ?>
+                <a href="<?php echo e(route(
                         'romaneios.ocorrencias.index',
                         $entrega->romaneio->id
-                    ) }}"
+                    )); ?>"
                 class="btn btn-outline-danger btn-sm">
                     <i class="bi bi-exclamation-triangle me-1"></i>
                     Ocorrências
                 </a>
-            @endif
+            <?php endif; ?>
         
             <button type="button"
                     onclick="window.print()"
@@ -1143,16 +995,16 @@
                 Imprimir
             </button>
 
-            <a href="{{ route(
+            <a href="<?php echo e(route(
                     'entregas.show',
                     $entrega->id
-                ) }}"
+                )); ?>"
                class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-arrow-clockwise me-1"></i>
                 Atualizar
             </a>
 
-            @if(
+            <?php if(
                 in_array(
                     $statusEntrega,
                     [
@@ -1162,66 +1014,70 @@
                     ],
                     true
                 )
-            )
-                <a href="{{ route(
+            ): ?>
+                <a href="<?php echo e(route(
                         'entregas.atribuir-equipe',
                         $entrega->id
-                    ) }}"
+                    )); ?>"
                    class="btn btn-primary btn-sm">
                     <i class="bi bi-truck me-1"></i>
                     Equipe
                 </a>
-            @endif
+            <?php endif; ?>
         </div>
     </div>
 
-    {{-- ALERTAS --}}
-    @if(session('success'))
+    
+    <?php if(session('success')): ?>
         <div class="alert alert-success alert-dismissible fade show mb-2">
             <i class="bi bi-check-circle me-2"></i>
-            {{ session('success') }}
+            <?php echo e(session('success')); ?>
+
 
             <button type="button"
                     class="btn-close"
                     data-bs-dismiss="alert">
             </button>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @if(session('error'))
+    <?php if(session('error')): ?>
         <div class="alert alert-danger alert-dismissible fade show mb-2">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            {{ session('error') }}
+            <?php echo e(session('error')); ?>
+
 
             <button type="button"
                     class="btn-close"
                     data-bs-dismiss="alert">
             </button>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @if(
+    <?php if(
         $statusEntrega === 'cancelada'
         || $statusRomaneio === 'cancelado'
-    )
+    ): ?>
         <div class="alert alert-danger">
             <div class="fw-bold">
                 <i class="bi bi-x-octagon me-1"></i>
 
-                {{ $statusEntrega === 'cancelada'
+                <?php echo e($statusEntrega === 'cancelada'
                     ? 'Entrega cancelada'
-                    : 'Romaneio cancelado' }}
+                    : 'Romaneio cancelado'); ?>
+
             </div>
 
-            @if($romaneio?->motivo_cancelamento)
+            <?php if($romaneio?->motivo_cancelamento): ?>
                 <div class="small mt-1">
-                    {{ $romaneio->motivo_cancelamento }}
-                </div>
-            @endif
-        </div>
-    @endif
+                    <?php echo e($romaneio->motivo_cancelamento); ?>
 
-    {{-- CARDS --}}
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
+    
     <div class="row g-2 mb-3">
 
         <div class="col-md-2">
@@ -1230,16 +1086,17 @@
                     <small>STATUS</small>
 
                     <h5>
-                        <span class="badge {{ $statusClasses[$statusEntrega]
-                            ?? 'bg-secondary' }}">
-                            {{ $statusLabels[$statusEntrega]
+                        <span class="badge <?php echo e($statusClasses[$statusEntrega]
+                            ?? 'bg-secondary'); ?>">
+                            <?php echo e($statusLabels[$statusEntrega]
                                 ?? ucfirst(
                                     str_replace(
                                         '_',
                                         ' ',
                                         $statusEntrega
                                     )
-                                ) }}
+                                )); ?>
+
                         </span>
                     </h5>
                 </div>
@@ -1252,9 +1109,10 @@
                     <small>PREVISÃO</small>
 
                     <h5>
-                        {{ $dataPrevista
+                        <?php echo e($dataPrevista
                             ? $dataPrevista->format('d/m/Y')
-                            : '-' }}
+                            : '-'); ?>
+
                     </h5>
                 </div>
             </div>
@@ -1266,7 +1124,7 @@
                     <small>PERÍODO</small>
 
                     <h5>
-                        {{ $periodoEntrega
+                        <?php echo e($periodoEntrega
                             ? ucfirst(
                                 str_replace(
                                     '_',
@@ -1274,7 +1132,8 @@
                                     $periodoEntrega
                                 )
                             )
-                            : '-' }}
+                            : '-'); ?>
+
                     </h5>
                 </div>
             </div>
@@ -1284,7 +1143,7 @@
             <div class="card shadow-sm kpi-card h-100">
                 <div class="card-body">
                     <small>ITENS</small>
-                    <h5>{{ $itensEntregues }}/{{ $totalItens }}</h5>
+                    <h5><?php echo e($itensEntregues); ?>/<?php echo e($totalItens); ?></h5>
                 </div>
             </div>
         </div>
@@ -1293,7 +1152,7 @@
             <div class="card shadow-sm kpi-card h-100">
                 <div class="card-body">
                     <small>PROGRESSO</small>
-                    <h5>{{ $percentualFluxo }}%</h5>
+                    <h5><?php echo e($percentualFluxo); ?>%</h5>
                 </div>
             </div>
         </div>
@@ -1304,15 +1163,15 @@
                     <small>TIPO</small>
 
                     <h5>
-                        @if($entrega->tipo_entrega === 'retira_loja')
+                        <?php if($entrega->tipo_entrega === 'retira_loja'): ?>
                             <span class="badge bg-secondary">
                                 Retira loja
                             </span>
-                        @else
+                        <?php else: ?>
                             <span class="badge bg-info text-dark">
                                 Entrega
                             </span>
-                        @endif
+                        <?php endif; ?>
                     </h5>
                 </div>
             </div>
@@ -1320,22 +1179,22 @@
 
     </div>
 
-    {{-- PROGRESSO --}}
+    
     <div class="card shadow-sm mb-3">
         <div class="card-body">
             <div class="d-flex justify-content-between mb-1">
                 <strong>Andamento da entrega</strong>
-                <span>{{ $percentualFluxo }}%</span>
+                <span><?php echo e($percentualFluxo); ?>%</span>
             </div>
 
             <div class="progress" style="height: 14px;">
                 <div class="progress-bar"
                      role="progressbar"
-                     style="width: {{ min(
+                     style="width: <?php echo e(min(
                          $percentualFluxo,
                          100
-                     ) }}%;">
-                    {{ $percentualFluxo }}%
+                     )); ?>%;">
+                    <?php echo e($percentualFluxo); ?>%
                 </div>
             </div>
         </div>
@@ -1343,10 +1202,10 @@
 
     <div class="row g-3">
 
-        {{-- COLUNA PRINCIPAL --}}
+        
         <div class="col-md-8">
             
-             {{-- RESUMO --}}
+             
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white">
                     <strong>
@@ -1362,9 +1221,10 @@
                         </small>
 
                         <div class="fw-semibold">
-                            {{ $dataPrevista
+                            <?php echo e($dataPrevista
                                 ? $dataPrevista->format('d/m/Y')
-                                : '-' }}
+                                : '-'); ?>
+
                         </div>
                     </div>
 
@@ -1372,7 +1232,7 @@
                         <small class="text-muted">Período</small>
 
                         <div class="fw-semibold">
-                            {{ $periodoEntrega
+                            <?php echo e($periodoEntrega
                                 ? ucfirst(
                                     str_replace(
                                         '_',
@@ -1380,18 +1240,19 @@
                                         $periodoEntrega
                                     )
                                 )
-                                : '-' }}
+                                : '-'); ?>
+
                         </div>
                     </div>
 
                     <div>
                         <small class="text-muted">Observação</small>
-                        <div>{{ $observacaoEntrega ?? '-' }}</div>
+                        <div><?php echo e($observacaoEntrega ?? '-'); ?></div>
                     </div>
                 </div>
             </div>
 
-            {{-- DADOS DA ENTREGA --}}
+            
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white">
                     <strong>
@@ -1407,7 +1268,8 @@
                             <small class="text-muted">Código</small>
 
                             <div class="fw-semibold">
-                                {{ $entrega->codigo_entrega ?? '-' }}
+                                <?php echo e($entrega->codigo_entrega ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1415,7 +1277,8 @@
                             <small class="text-muted">Venda</small>
 
                             <div class="fw-semibold">
-                                {{ $entrega->venda_id ?? '-' }}
+                                <?php echo e($entrega->venda_id ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1423,9 +1286,10 @@
                             <small class="text-muted">Orçamento</small>
 
                             <div class="fw-semibold">
-                                {{ $entrega->orcamento?->codigo_orcamento
+                                <?php echo e($entrega->orcamento?->codigo_orcamento
                                     ?? $entrega->orcamento_id
-                                    ?? '-' }}
+                                    ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1435,9 +1299,10 @@
                             </small>
 
                             <div class="fw-semibold">
-                                {{ $dataPrevista
+                                <?php echo e($dataPrevista
                                     ? $dataPrevista->format('d/m/Y')
-                                    : '-' }}
+                                    : '-'); ?>
+
                             </div>
                         </div>
 
@@ -1447,7 +1312,7 @@
                             </small>
 
                             <div class="fw-semibold">
-                                {{ $periodoEntrega
+                                <?php echo e($periodoEntrega
                                     ? ucfirst(
                                         str_replace(
                                             '_',
@@ -1455,7 +1320,8 @@
                                             $periodoEntrega
                                         )
                                     )
-                                    : '-' }}
+                                    : '-'); ?>
+
                             </div>
                         </div>
 
@@ -1465,9 +1331,10 @@
                             </small>
 
                             <div>
-                                {{ $dataRealizada
+                                <?php echo e($dataRealizada
                                     ? $dataRealizada->format('d/m/Y')
-                                    : '-' }}
+                                    : '-'); ?>
+
                             </div>
                         </div>
 
@@ -1477,8 +1344,9 @@
                             </small>
 
                             <div class="fw-semibold">
-                                {{ $entrega->responsavel_recebimento
-                                    ?? '-' }}
+                                <?php echo e($entrega->responsavel_recebimento
+                                    ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1486,8 +1354,9 @@
                             <small class="text-muted">Telefone</small>
 
                             <div>
-                                {{ $entrega->telefone_recebimento
-                                    ?? '-' }}
+                                <?php echo e($entrega->telefone_recebimento
+                                    ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1495,11 +1364,12 @@
                             <small class="text-muted">Motorista</small>
 
                             <div>
-                                {{ $entrega->motorista?->name
+                                <?php echo e($entrega->motorista?->name
                                     ?? $entrega->motorista?->nome
                                     ?? $romaneio?->motorista?->name
                                     ?? $romaneio?->motorista?->nome
-                                    ?? '-' }}
+                                    ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1507,9 +1377,10 @@
                             <small class="text-muted">Veículo</small>
 
                             <div>
-                                {{ $entrega->veiculo?->placa
+                                <?php echo e($entrega->veiculo?->placa
                                     ?? $romaneio?->veiculo?->placa
-                                    ?? '-' }}
+                                    ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1517,17 +1388,18 @@
                             <small class="text-muted">Frete</small>
 
                             <div>
-                                @if($entrega->cobrar_frete)
+                                <?php if($entrega->cobrar_frete): ?>
                                     R$
-                                    {{ number_format(
+                                    <?php echo e(number_format(
                                         $entrega->valor_frete ?? 0,
                                         2,
                                         ',',
                                         '.'
-                                    ) }}
-                                @else
+                                    )); ?>
+
+                                <?php else: ?>
                                     Sem cobrança
-                                @endif
+                                <?php endif; ?>
                             </div>
                         </div>
 
@@ -1537,7 +1409,8 @@
                             </small>
 
                             <div>
-                                {{ $observacaoEntrega ?? '-' }}
+                                <?php echo e($observacaoEntrega ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1545,7 +1418,7 @@
                 </div>
             </div>
             
-            {{-- CLIENTE --}}
+            
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white">
                     <strong>
@@ -1561,9 +1434,10 @@
                             <small class="text-muted">Cliente</small>
 
                             <div class="fw-semibold">
-                                {{ $entrega->venda?->cliente?->nome
+                                <?php echo e($entrega->venda?->cliente?->nome
                                     ?? $entrega->orcamento?->cliente?->nome
-                                    ?? '-' }}
+                                    ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1571,9 +1445,10 @@
                             <small class="text-muted">Telefone</small>
 
                             <div>
-                                {{ $entrega->venda?->cliente?->telefone
+                                <?php echo e($entrega->venda?->cliente?->telefone
                                     ?? $entrega->orcamento?->cliente?->telefone
-                                    ?? '-' }}
+                                    ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1581,9 +1456,10 @@
                             <small class="text-muted">Documento</small>
 
                             <div>
-                                {{ $entrega->venda?->cliente?->cpf_cnpj
+                                <?php echo e($entrega->venda?->cliente?->cpf_cnpj
                                     ?? $entrega->orcamento?->cliente?->cpf_cnpj
-                                    ?? '-' }}
+                                    ?? '-'); ?>
+
                             </div>
                         </div>
 
@@ -1591,7 +1467,7 @@
                 </div>
             </div>
 
-            {{-- ENDEREÇO --}}
+            
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                     <strong>
@@ -1599,38 +1475,356 @@
                         Endereço de Entrega
                     </strong>
 
-                    @if($mapsUrl)
-                        <a href="{{ $mapsUrl }}"
+                    <?php if($mapsUrl): ?>
+                        <a href="<?php echo e($mapsUrl); ?>"
                            target="_blank"
                            class="btn btn-light btn-sm">
                             <i class="bi bi-map me-1"></i>
                             Abrir no Maps
                         </a>
-                    @endif
+                    <?php endif; ?>
                 </div>
 
                 <div class="card-body">
                     <div class="fw-semibold">
-                        {{ $entrega->endereco_entrega
-                            ?? 'Endereço não informado' }}
+                        <?php echo e($entrega->endereco_entrega
+                            ?? 'Endereço não informado'); ?>
+
                     </div>
 
                     <small class="text-muted">
                         Usar endereço do cliente:
-                        {{ $entrega->usar_endereco_cliente
+                        <?php echo e($entrega->usar_endereco_cliente
                             ? 'Sim'
-                            : 'Não' }}
+                            : 'Não'); ?>
+
                     </small>
                 </div>
             </div>
 
+            
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <strong>
+                        <i class="bi bi-box-seam me-2"></i>
+                        Itens da Entrega
+                    </strong>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-sm mb-0 table-itens">
+                            <thead class="table-dark text-center">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Produto</th>
+                                    <th>Origem</th>
+                                    <th>Qtd. Venda/Orçamento</th>
+                                    <th>Previsto</th>
+                                    <th>Entregue</th>
+                                    <th>Saldo</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <?php
+                                    $statusItemClasses = [
+                                        'pendente' => 'bg-secondary',
+                                        'preparando' =>
+                                            'bg-warning text-dark',
+                                        'separado' => 'bg-primary',
+                                        'carregado' =>
+                                            'bg-info text-dark',
+                                        'em_rota' => 'bg-dark',
+                                        'entregue' => 'bg-success',
+                                        'ocorrencia_pendente' =>
+                                            'bg-danger',
+                                        'recusado' => 'bg-danger',
+                                        'devolvido' => 'bg-danger',
+                                        'avariado' => 'bg-danger',
+                                        'nao_entregue' => 'bg-danger',
+                                        'cancelado' => 'bg-danger',
+                                        'pendente_nesta_entrega' =>
+                                            'bg-secondary',
+                                        'entregue_nesta_entrega' =>
+                                            'bg-success',
+                                        'entregue_anteriormente' =>
+                                            'bg-success',
+                                        'entregue_parcial_anteriormente' =>
+                                            'bg-warning text-dark',
+                                        'entregue_parcial' => 'bg-warning text-dark',
+                                        'parcial_encaminhado' =>
+                                            'bg-warning text-dark',
+                                        'encaminhado_proxima' =>
+                                            'bg-info text-dark',
+                                        'finalizado_com_ocorrencia' =>
+                                            'bg-warning text-dark',
+                                        'finalizado_com_ocorrencia_anterior' =>
+                                            'bg-warning text-dark',
+                                    ];
+
+                                    $statusItemLabels = [
+                                        'pendente' =>
+                                            'Pendente',
+                                        'preparando' =>
+                                            'Preparando',
+                                        'separado' =>
+                                            'Separado',
+                                        'carregado' =>
+                                            'Carregado',
+                                        'em_rota' =>
+                                            'Em rota',
+                                        'entregue' =>
+                                            'Entregue',
+                                        'ocorrencia_pendente' =>
+                                            'Ocorrência pendente',
+                                        'recusado' =>
+                                            'Recusado',
+                                        'devolvido' =>
+                                            'Devolvido',
+                                        'avariado' =>
+                                            'Avariado',
+                                        'nao_entregue' =>
+                                            'Não entregue',
+                                        'cancelado' =>
+                                            'Cancelado',
+                                        'pendente_nesta_entrega' =>
+                                            'Pendente nesta entrega',
+                                        'entregue_nesta_entrega' =>
+                                            'Entregue nesta entrega',
+                                        'entregue_anteriormente' =>
+                                            'Entregue anteriormente',
+                                        'entregue_parcial_anteriormente' =>
+                                            'Parcial em entrega anterior',
+                                        'entregue_parcial' =>
+                                            'Entregue parcialmente',
+                                        'parcial_encaminhado' =>
+                                            'Parcial / próxima entrega',
+                                        'encaminhado_proxima' =>
+                                            'Encaminhado para próxima',
+                                        'finalizado_com_ocorrencia' =>
+                                            'Finalizado com ocorrência',
+                                        'finalizado_com_ocorrencia_anterior' =>
+                                            'Finalizado com ocorrência anterior',
+                                    ];
+                                ?>
+
+                                <?php $__empty_1 = true; $__currentLoopData = $itensBase; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemBase): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                    <?php
+                                        $produtoNome =
+                                            $itemBase?->produto?->nome
+                                            ?? $itemBase?->produto_nome
+                                            ?? $itemBase?->descricao
+                                            ?? $itemBase?->nome_produto
+                                            ?? 'Produto não identificado';
+
+                                        $exibicaoItem =
+                                            $resolverExibicaoItem(
+                                                $itemBase
+                                            );
+
+                                        $quantidadeBase = (float) (
+                                            $exibicaoItem[
+                                                'quantidade_base'
+                                            ]
+                                        );
+
+                                        $quantidadePrevistaAtual =
+                                            (float) $exibicaoItem[
+                                                'quantidade_prevista_atual'
+                                            ];
+
+                                        $quantidadeEntregue =
+                                            (float) $exibicaoItem[
+                                                'quantidade_entregue_acumulada'
+                                            ];
+
+                                        $quantidadeEntregueAnterior =
+                                            (float) $exibicaoItem[
+                                                'quantidade_entregue_anterior'
+                                            ];
+
+                                        $quantidadeEntregueAtual =
+                                            (float) $exibicaoItem[
+                                                'quantidade_entregue_atual'
+                                            ];
+
+                                        $quantidadeEncaminhadaProxima =
+                                            (float) $exibicaoItem[
+                                                'quantidade_encaminhada_proxima'
+                                            ];
+
+                                        $saldo =
+                                            (float) $exibicaoItem[
+                                                'saldo'
+                                            ];
+
+                                        $statusItem =
+                                            (string) $exibicaoItem[
+                                                'status'
+                                            ];
+
+                                        $statusItemLabel =
+                                            $statusItemLabels[$statusItem]
+                                            ?? ucfirst(
+                                                str_replace(
+                                                    '_',
+                                                    ' ',
+                                                    $statusItem
+                                                )
+                                            );
+                                    ?>
+
+                                    <tr>
+                                        <td class="text-center">
+                                            <?php echo e($loop->iteration); ?>
+
+                                        </td>
+
+                                        <td class="fw-semibold">
+                                            <?php echo e($produtoNome); ?>
+
+                                        </td>
+
+                                        <td class="text-center">
+                                            <span class="badge <?php echo e($origemItens === 'Venda'
+                                                ? 'bg-success'
+                                                : 'bg-secondary'); ?>">
+                                                <?php echo e($origemItens); ?>
+
+                                            </span>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <?php echo e(number_format(
+                                                $quantidadeBase,
+                                                2,
+                                                ',',
+                                                '.'
+                                            )); ?>
+
+                                        </td>
+
+                                        <td class="text-center">
+                                            <?php echo e(number_format(
+                                                $quantidadeBase,
+                                                2,
+                                                ',',
+                                                '.'
+                                            )); ?>
+
+
+                                            <?php if(
+                                                $quantidadePrevistaAtual > 0
+                                                && abs(
+                                                    $quantidadePrevistaAtual
+                                                    - $quantidadeBase
+                                                ) > 0.001
+                                            ): ?>
+                                                <small class="d-block text-muted">
+                                                    Nesta:
+                                                    <?php echo e(number_format(
+                                                        $quantidadePrevistaAtual,
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )); ?>
+
+                                                </small>
+                                            <?php endif; ?>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <?php echo e(number_format(
+                                                $quantidadeEntregue,
+                                                2,
+                                                ',',
+                                                '.'
+                                            )); ?>
+
+
+                                            <?php if($quantidadeEntregueAnterior > 0): ?>
+                                                <small class="d-block text-muted">
+                                                    Anterior:
+                                                    <?php echo e(number_format(
+                                                        $quantidadeEntregueAnterior,
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )); ?>
+
+
+                                                    <?php if($quantidadeEntregueAtual > 0): ?>
+                                                        · Atual:
+                                                        <?php echo e(number_format(
+                                                            $quantidadeEntregueAtual,
+                                                            2,
+                                                            ',',
+                                                            '.'
+                                                        )); ?>
+
+                                                    <?php endif; ?>
+                                                </small>
+                                            <?php endif; ?>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <span class="<?php echo e($saldo > 0
+                                                ? 'text-danger fw-bold'
+                                                : 'text-success fw-bold'); ?>">
+                                                <?php echo e(number_format(
+                                                    $saldo,
+                                                    2,
+                                                    ',',
+                                                    '.'
+                                                )); ?>
+
+                                            </span>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <span class="badge <?php echo e($statusItemClasses[$statusItem]
+                                                ?? 'bg-secondary'); ?>">
+                                                <?php echo e($statusItemLabel); ?>
+
+                                            </span>
+
+                                            <?php if($quantidadeEncaminhadaProxima > 0): ?>
+                                                <small class="d-block text-muted mt-1">
+                                                    Próxima:
+                                                    <?php echo e(number_format(
+                                                        $quantidadeEncaminhadaProxima,
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )); ?>
+
+                                                </small>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                                    <tr>
+                                        <td colspan="8"
+                                            class="text-center text-muted py-4">
+                                            <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                                            Nenhum item encontrado nesta entrega.
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
         </div>
 
-        {{-- COLUNA LATERAL --}}
+        
         <div class="col-md-4">
 
-            {{-- RESUMO --}}
+            
             <!-- <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white">
                     <strong>
@@ -1646,9 +1840,10 @@
                         </small>
 
                         <div class="fw-semibold">
-                            {{ $dataPrevista
+                            <?php echo e($dataPrevista
                                 ? $dataPrevista->format('d/m/Y')
-                                : '-' }}
+                                : '-'); ?>
+
                         </div>
                     </div>
 
@@ -1656,7 +1851,7 @@
                         <small class="text-muted">Período</small>
 
                         <div class="fw-semibold">
-                            {{ $periodoEntrega
+                            <?php echo e($periodoEntrega
                                 ? ucfirst(
                                     str_replace(
                                         '_',
@@ -1664,18 +1859,19 @@
                                         $periodoEntrega
                                     )
                                 )
-                                : '-' }}
+                                : '-'); ?>
+
                         </div>
                     </div>
 
                     <div>
                         <small class="text-muted">Observação</small>
-                        <div>{{ $observacaoEntrega ?? '-' }}</div>
+                        <div><?php echo e($observacaoEntrega ?? '-'); ?></div>
                     </div>
                 </div>
             </div> -->
 
-            {{-- FLUXO --}}
+            
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white">
                     <strong>
@@ -1686,17 +1882,17 @@
 
                 <div class="card-body">
 
-                    @if(! $romaneio)
+                    <?php if(! $romaneio): ?>
                         <div class="alert alert-warning py-2 mb-3">
                             <i class="bi bi-exclamation-triangle me-1"></i>
                             Esta entrega ainda não possui romaneio relacionado.
                         </div>
-                    @endif
+                    <?php endif; ?>
 
                     <div class="timeline-entrega">
 
-                        @foreach($etapasFluxo as $etapa)
-                            @php
+                        <?php $__currentLoopData = $etapasFluxo; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $etapa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php
                                 $classeEtapa = '';
 
                                 if ($etapa['concluida']) {
@@ -1704,52 +1900,54 @@
                                 } elseif ($etapa['atual']) {
                                     $classeEtapa = 'atual';
                                 }
-                            @endphp
+                            ?>
 
-                            <div class="timeline-item {{ $classeEtapa }}">
+                            <div class="timeline-item <?php echo e($classeEtapa); ?>">
                                 <div class="timeline-icon">
-                                    <i class="bi {{ $etapa['concluida']
+                                    <i class="bi <?php echo e($etapa['concluida']
                                         ? 'bi-check'
-                                        : $etapa['icone'] }}">
+                                        : $etapa['icone']); ?>">
                                     </i>
                                 </div>
 
-                                <div class="{{ $etapa['concluida']
+                                <div class="<?php echo e($etapa['concluida']
                                     ? 'text-success'
                                     : (
                                         $etapa['atual']
                                             ? 'text-primary'
                                             : 'text-muted'
-                                    ) }}">
+                                    )); ?>">
 
                                     <div class="timeline-titulo">
-                                        {{ $etapa['titulo'] }}
+                                        <?php echo e($etapa['titulo']); ?>
+
                                     </div>
 
                                     <div class="timeline-data">
-                                        @if($etapa['concluida'])
+                                        <?php if($etapa['concluida']): ?>
                                             Concluída
-                                        @elseif($etapa['atual'])
+                                        <?php elseif($etapa['atual']): ?>
                                             Etapa atual
-                                        @else
+                                        <?php else: ?>
                                             Aguardando
-                                        @endif
+                                        <?php endif; ?>
 
-                                        @if($etapa['data'])
+                                        <?php if($etapa['data']): ?>
                                             ·
-                                            {{ $formatarDataHora(
+                                            <?php echo e($formatarDataHora(
                                                 $etapa['data']
-                                            ) }}
-                                        @endif
+                                            )); ?>
+
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-                        @if(
+                        <?php if(
                             $statusEntrega === 'cancelada'
                             || $statusRomaneio === 'cancelado'
-                        )
+                        ): ?>
                             <div class="timeline-item cancelada">
                                 <div class="timeline-icon">
                                     <i class="bi bi-x-lg"></i>
@@ -1757,20 +1955,22 @@
 
                                 <div>
                                     <div class="timeline-titulo text-danger">
-                                        {{ $statusEntrega === 'cancelada'
+                                        <?php echo e($statusEntrega === 'cancelada'
                                             ? 'Entrega cancelada'
-                                            : 'Romaneio cancelado' }}
+                                            : 'Romaneio cancelado'); ?>
+
                                     </div>
 
                                     <div class="timeline-data">
-                                        {{ $formatarDataHora(
+                                        <?php echo e($formatarDataHora(
                                             $romaneio?->cancelado_em
                                             ?? $entrega->updated_at
-                                        ) ?? 'Data não registrada' }}
+                                        ) ?? 'Data não registrada'); ?>
+
                                     </div>
                                 </div>
                             </div>
-                        @endif
+                        <?php endif; ?>
 
                     </div>
 
@@ -1778,8 +1978,9 @@
                         Status atual da entrega:
 
                         <strong>
-                            {{ $statusLabels[$statusEntrega]
-                                ?? $entrega->status }}
+                            <?php echo e($statusLabels[$statusEntrega]
+                                ?? $entrega->status); ?>
+
                         </strong>
 
                         <br>
@@ -1787,10 +1988,313 @@
                         Status atual do romaneio:
 
                         <strong>
-                            {{ $romaneio?->status
-                                ?? 'Não localizado' }}
+                            <?php echo e($romaneio?->status
+                                ?? 'Não localizado'); ?>
+
                         </strong>
                     </div>
+                </div>
+            </div>
+
+            
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <strong>
+                        <i class="bi bi-clock-history me-2"></i>
+                        Histórico
+                    </strong>
+                </div>
+
+                <div class="card-body">
+
+                    <?php if($historicoEntregasFracionadas->isNotEmpty()): ?>
+                        <div class="mb-3">
+                            <div class="small text-uppercase fw-semibold text-muted mb-2">
+                                Entregas anteriores do fracionamento
+                            </div>
+
+                            <?php $__currentLoopData = $historicoEntregasFracionadas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $registroHistorico): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php
+                                    $entregaHistorica =
+                                        $registroHistorico['entrega'];
+
+                                    $romaneioHistorico =
+                                        $registroHistorico['romaneio'];
+
+                                    $statusHistorico = strtolower(
+                                        trim(
+                                            str_replace(
+                                                ' ',
+                                                '_',
+                                                (string) (
+                                                    $entregaHistorica->status
+                                                    ?? ''
+                                                )
+                                            )
+                                        )
+                                    );
+
+                                    $dataHistorica =
+                                        $entregaHistorica->data_realizada
+                                        ?? $romaneioHistorico?->data_retorno
+                                        ?? $romaneioHistorico?->data_emissao
+                                        ?? $entregaHistorica->updated_at;
+
+                                    $itensHistoricosMovimentados = collect(
+                                        $registroHistorico['itens']
+                                        ?? []
+                                    )->filter(
+                                        fn ($itemHistorico) =>
+                                            (float) (
+                                                $itemHistorico['entregue']
+                                                ?? 0
+                                            ) > 0
+                                            || (float) (
+                                                $itemHistorico['ocorrencia']
+                                                ?? 0
+                                            ) > 0
+                                            || (float) (
+                                                $itemHistorico['encaminhado']
+                                                ?? 0
+                                            ) > 0
+                                    );
+                                ?>
+
+                                <div class="border-start border-3 ps-3 mb-3">
+                                    <small class="text-muted">
+                                        <?php echo e($formatarDataHora(
+                                            $dataHistorica
+                                        ) ?? '-'); ?>
+
+                                    </small>
+
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <strong>
+                                            <?php echo e($entregaHistorica->codigo_entrega
+                                                ?? 'Entrega #' . $entregaHistorica->id); ?>
+
+                                        </strong>
+
+                                        <span class="badge <?php echo e($statusClasses[$statusHistorico]
+                                            ?? 'bg-secondary'); ?>">
+                                            <?php echo e($statusLabels[$statusHistorico]
+                                                ?? $entregaHistorica->status); ?>
+
+                                        </span>
+                                    </div>
+
+                                    <?php if($romaneioHistorico): ?>
+                                        <div class="small text-muted">
+                                            Romaneio:
+                                            <?php echo e($romaneioHistorico->codigo_romaneio
+                                                ?? '#' . $romaneioHistorico->id); ?>
+
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php $__empty_1 = true; $__currentLoopData = $itensHistoricosMovimentados; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemHistorico): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                        <div class="small mt-2">
+                                            <span class="fw-semibold">
+                                                <?php echo e($itemHistorico['produto']); ?>
+
+                                            </span>
+
+                                            <span class="d-block text-success">
+                                                Entregue:
+                                                <?php echo e(number_format(
+                                                    (float) $itemHistorico['entregue'],
+                                                    2,
+                                                    ',',
+                                                    '.'
+                                                )); ?>
+
+                                            </span>
+
+                                            <?php if(
+                                                (float) $itemHistorico[
+                                                    'ocorrencia'
+                                                ] > 0
+                                            ): ?>
+                                                <span class="d-block text-warning">
+                                                    Ocorrência:
+                                                    <?php echo e(number_format(
+                                                        (float) $itemHistorico[
+                                                            'ocorrencia'
+                                                        ],
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )); ?>
+
+                                                </span>
+                                            <?php endif; ?>
+
+                                            <?php if(
+                                                (float) (
+                                                    $itemHistorico[
+                                                        'encaminhado'
+                                                    ]
+                                                    ?? 0
+                                                ) > 0
+                                            ): ?>
+                                                <span class="d-block text-info">
+                                                    Para a próxima:
+                                                    <?php echo e(number_format(
+                                                        (float) $itemHistorico[
+                                                            'encaminhado'
+                                                        ],
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    )); ?>
+
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                                        <div class="small text-muted mt-2">
+                                            Nenhuma quantidade entregue neste documento.
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php if(
+                                        (float) $registroHistorico[
+                                            'quantidade_encaminhada'
+                                        ] > 0
+                                    ): ?>
+                                        <div class="small text-info mt-2">
+                                            Encaminhado à próxima entrega:
+                                            <strong>
+                                                <?php echo e(number_format(
+                                                    (float) $registroHistorico[
+                                                        'quantidade_encaminhada'
+                                                    ],
+                                                    2,
+                                                    ',',
+                                                    '.'
+                                                )); ?>
+
+                                            </strong>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </div>
+
+                        <hr>
+
+                        <div class="small text-uppercase fw-semibold text-muted mb-2">
+                            Documento atual
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <?php echo e($entrega->created_at
+                                ? $entrega->created_at->format('d/m/Y H:i')
+                                : '-'); ?>
+
+                        </small>
+
+                        <div class="fw-semibold">
+                            Entrega criada
+                        </div>
+                    </div>
+
+                    <?php if($entrega->orcamento_id): ?>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                Orçamento #<?php echo e($entrega->orcamento_id); ?>
+
+                            </small>
+
+                            <div>
+                                Entrega vinculada ao orçamento.
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if($entrega->venda_id): ?>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                Venda #<?php echo e($entrega->venda_id); ?>
+
+                            </small>
+
+                            <div>
+                                Venda faturada e entrega liberada.
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if($romaneio): ?>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <?php echo e($formatarDataHora(
+                                    $romaneio->data_emissao
+                                    ?? $romaneio->created_at
+                                )); ?>
+
+                            </small>
+
+                            <div>
+                                Romaneio
+                                <strong>
+                                    <?php echo e($romaneio->codigo_romaneio); ?>
+
+                                </strong>
+                                vinculado.
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php $__currentLoopData = collect($romaneio?->eventos ?? [])
+                            ->sortBy(
+                                fn ($evento) =>
+                                    $evento->ocorrido_em
+                                    ?? $evento->created_at
+                            )
+                            ->take(10); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $evento): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <?php echo e($formatarDataHora(
+                                    $evento->ocorrido_em
+                                    ?? $evento->created_at
+                                )); ?>
+
+                            </small>
+
+                            <div class="fw-semibold">
+                                <?php echo e($evento->evento
+                                    ?? 'Evento registrado'); ?>
+
+                            </div>
+
+                            <?php if($evento->etapa): ?>
+                                <div class="small text-muted">
+                                    Etapa: <?php echo e($evento->etapa); ?>
+
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+                    <div>
+                        <small class="text-muted">
+                            <?php echo e($entrega->updated_at
+                                ? $entrega->updated_at->format('d/m/Y H:i')
+                                : '-'); ?>
+
+                        </small>
+
+                        <div>
+                            Status atual:
+                            <?php echo e($statusLabels[$statusEntrega]
+                                ?? $entrega->status); ?>
+
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -1803,775 +2307,8 @@
 
     </div>
 
-    {{-- ITENS --}}
-    @foreach(
-        $documentosTabelaEntregaAtual
-        as $documentoFracionado
-    )
-        @php
-            $entregaDocumento =
-                $documentoFracionado['entrega'];
-
-            $contextosDocumento = [
-                'venda' =>
-                    collect(
-                        $documentoFracionado[
-                            'contextos_venda'
-                        ]
-                        ?? []
-                    ),
-
-                'orcamento' =>
-                    collect(
-                        $documentoFracionado[
-                            'contextos_orcamento'
-                        ]
-                        ?? []
-                    ),
-            ];
-
-            $linhasDocumento = $itensBase
-                ->map(function (
-                    $itemBase,
-                    $ordemOriginal
-                ) use (
-                    $resolverExibicaoItem,
-                    $contextosDocumento
-                ) {
-                    $exibicaoItem =
-                        $resolverExibicaoItem(
-                            $itemBase,
-                            $contextosDocumento
-                        );
-
-                    $statusItem = (string) (
-                        $exibicaoItem['status']
-                        ?? 'pendente'
-                    );
-
-                    $prioridadeStatus = match (true) {
-                        in_array(
-                            $statusItem,
-                            [
-                                'entregue',
-                                'entregue_nesta_entrega',
-                                'entregue_anteriormente',
-                            ],
-                            true
-                        ) =>
-                            0,
-
-                        in_array(
-                            $statusItem,
-                            [
-                                'finalizado_com_ocorrencia',
-                                'finalizado_com_ocorrencia_anterior',
-                            ],
-                            true
-                        ) =>
-                            1,
-
-                        in_array(
-                            $statusItem,
-                            [
-                                'entregue_parcial',
-                                'parcial_encaminhado',
-                                'entregue_parcial_anteriormente',
-                            ],
-                            true
-                        ) =>
-                            2,
-
-                        default =>
-                            3,
-                    };
-
-                    return [
-                        'item_base' =>
-                            $itemBase,
-
-                        'exibicao' =>
-                            $exibicaoItem,
-
-                        'ordem_exibicao' =>
-                            ($prioridadeStatus * 1000000)
-                            + (int) $ordemOriginal,
-                    ];
-                })
-                ->sortBy('ordem_exibicao')
-                ->values();
-        @endphp
-
-        <div class="small fw-bold mb-2">
-            {{ $entregaDocumento->codigo_entrega
-                ?? 'ENTREGA-' . $entregaDocumento->id }}
-        </div>
-
-    <div class="card shadow-sm mb-3">
-        <div class="card-header bg-secondary text-white">
-            <strong>
-                <i class="bi bi-box-seam me-2"></i>
-                Itens da Entrega
-            </strong>
-        </div>
-
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover table-sm mb-0 table-itens">
-                    <thead class="table-dark text-center">
-                        <tr>
-                            <th>#</th>
-                            <th>Produto</th>
-                            <th>Origem</th>
-                            <th>Qtd. Venda/Orçamento</th>
-                            <th>Previsto</th>
-                            <th>Entregue</th>
-                            <th>Saldo</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        @php
-                            $statusItemClasses = [
-                                'pendente' => 'bg-secondary',
-                                'preparando' =>
-                                    'bg-warning text-dark',
-                                'separado' => 'bg-primary',
-                                'carregado' =>
-                                    'bg-info text-dark',
-                                'em_rota' => 'bg-dark',
-                                'entregue' => 'bg-success',
-                                'ocorrencia_pendente' =>
-                                    'bg-danger',
-                                'recusado' => 'bg-danger',
-                                'devolvido' => 'bg-danger',
-                                'avariado' => 'bg-danger',
-                                'nao_entregue' => 'bg-danger',
-                                'cancelado' => 'bg-danger',
-                                'pendente_nesta_entrega' =>
-                                    'bg-secondary',
-                                'entregue_nesta_entrega' =>
-                                    'bg-success',
-                                'entregue_anteriormente' =>
-                                    'bg-success',
-                                'entregue_parcial_anteriormente' =>
-                                    'bg-warning text-dark',
-                                'entregue_parcial' => 'bg-warning text-dark',
-                                'parcial_encaminhado' =>
-                                    'bg-warning text-dark',
-                                'encaminhado_proxima' =>
-                                    'bg-secondary',
-                                'finalizado_com_ocorrencia' =>
-                                    'bg-warning text-dark',
-                                'finalizado_com_ocorrencia_anterior' =>
-                                    'bg-warning text-dark',
-                            ];
-
-                            $statusItemLabels = [
-                                'pendente' =>
-                                    'Pendente',
-                                'preparando' =>
-                                    'Preparando',
-                                'separado' =>
-                                    'Separado',
-                                'carregado' =>
-                                    'Carregado',
-                                'em_rota' =>
-                                    'Em rota',
-                                'entregue' =>
-                                    'Entregue',
-                                'ocorrencia_pendente' =>
-                                    'Ocorrência pendente',
-                                'recusado' =>
-                                    'Recusado',
-                                'devolvido' =>
-                                    'Devolvido',
-                                'avariado' =>
-                                    'Avariado',
-                                'nao_entregue' =>
-                                    'Não entregue',
-                                'cancelado' =>
-                                    'Cancelado',
-                                'pendente_nesta_entrega' =>
-                                    'Pendente',
-                                'entregue_nesta_entrega' =>
-                                    'Entregue',
-                                'entregue_anteriormente' =>
-                                    'Entregue',
-                                'entregue_parcial_anteriormente' =>
-                                    'Entregue parcialmente',
-                                'entregue_parcial' =>
-                                    'Entregue parcialmente',
-                                'parcial_encaminhado' =>
-                                    'Entregue parcialmente',
-                                'encaminhado_proxima' =>
-                                    'Pendente',
-                                'finalizado_com_ocorrencia' =>
-                                    'Finalizado com ocorrência',
-                                'finalizado_com_ocorrencia_anterior' =>
-                                    'Finalizado com ocorrência',
-                            ];
-                        @endphp
-
-                        @forelse(
-                            $linhasDocumento
-                            as $linhaDocumento
-                        )
-                            @php
-                                $itemBase =
-                                    $linhaDocumento['item_base'];
-
-                                $produtoNome =
-                                    $itemBase?->produto?->nome
-                                    ?? $itemBase?->produto_nome
-                                    ?? $itemBase?->descricao
-                                    ?? $itemBase?->nome_produto
-                                    ?? 'Produto não identificado';
-
-                                $exibicaoItem =
-                                    $linhaDocumento['exibicao'];
-
-                                $quantidadeBase = (float) (
-                                    $exibicaoItem[
-                                        'quantidade_base'
-                                    ]
-                                );
-
-                                $quantidadeEntregue =
-                                    (float) $exibicaoItem[
-                                        'quantidade_entregue_acumulada'
-                                    ];
-
-                                $saldo =
-                                    (float) $exibicaoItem[
-                                        'saldo'
-                                    ];
-
-                                $statusItem =
-                                    (string) $exibicaoItem[
-                                        'status'
-                                    ];
-
-                                $statusItemLabel =
-                                    $statusItemLabels[$statusItem]
-                                    ?? ucfirst(
-                                        str_replace(
-                                            '_',
-                                            ' ',
-                                            $statusItem
-                                        )
-                                    );
-                            @endphp
-
-                            <tr>
-                                <td class="text-center">
-                                    {{ $loop->iteration }}
-                                </td>
-
-                                <td class="fw-semibold">
-                                    {{ $produtoNome }}
-                                </td>
-
-                                <td class="text-center">
-                                    <span class="badge {{ $origemItens === 'Venda'
-                                        ? 'bg-success'
-                                        : 'bg-secondary' }}">
-                                        {{ $origemItens }}
-                                    </span>
-                                </td>
-
-                                <td class="text-center">
-                                    {{ number_format(
-                                        $quantidadeBase,
-                                        2,
-                                        ',',
-                                        '.'
-                                    ) }}
-                                </td>
-
-                                <td class="text-center">
-                                    {{ number_format(
-                                        $quantidadeBase,
-                                        2,
-                                        ',',
-                                        '.'
-                                    ) }}
-                                </td>
-
-                                <td class="text-center">
-                                    {{ number_format(
-                                        $quantidadeEntregue,
-                                        2,
-                                        ',',
-                                        '.'
-                                    ) }}
-                                </td>
-
-                                <td class="text-center">
-                                    <span class="{{ $saldo > 0
-                                        ? 'text-danger fw-bold'
-                                        : 'text-success fw-bold' }}">
-                                        {{ number_format(
-                                            $saldo,
-                                            2,
-                                            ',',
-                                            '.'
-                                        ) }}
-                                    </span>
-                                </td>
-
-                                <td class="text-center">
-                                    <span class="badge {{ $statusItemClasses[$statusItem]
-                                        ?? 'bg-secondary' }}">
-                                        {{ $statusItemLabel }}
-                                    </span>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8"
-                                    class="text-center text-muted py-4">
-                                    <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                    Nenhum item encontrado nesta entrega.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    @endforeach
-
-
-    {{-- HISTÓRICO --}}
-    <div class="card shadow-sm mb-3">
-        <div class="card-header bg-secondary text-white">
-            <strong>
-                <i class="bi bi-clock-history me-2"></i>
-                Histórico
-            </strong>
-        </div>
-
-        <div class="card-body">
-
-            @if($historicoEntregasFracionadas->isNotEmpty())
-                <div class="mb-3">
-                    <div class="small text-uppercase fw-semibold text-muted mb-2">
-                        Histórico das entregas do fracionamento
-                    </div>
-
-                    <div class="row g-2">
-                    @foreach(
-                        $historicoEntregasFracionadas
-                        as $registroHistorico
-                    )
-                        @php
-                            $entregaHistorica =
-                                $registroHistorico['entrega'];
-
-                            $romaneioHistorico =
-                                $registroHistorico['romaneio'];
-
-                            $statusHistorico = strtolower(
-                                trim(
-                                    str_replace(
-                                        ' ',
-                                        '_',
-                                        (string) (
-                                            $entregaHistorica->status
-                                            ?? ''
-                                        )
-                                    )
-                                )
-                            );
-
-                            $dataHistorica =
-                                $entregaHistorica->data_realizada
-                                ?? $romaneioHistorico?->data_retorno
-                                ?? $romaneioHistorico?->data_emissao
-                                ?? $entregaHistorica->updated_at;
-
-                            $itensHistoricos = collect(
-                                $registroHistorico['itens']
-                                ?? []
-                            );
-
-                            $itensEntreguesHistorico = $itensHistoricos
-                                ->filter(
-                                    fn ($itemHistorico) =>
-                                        (float) (
-                                            $itemHistorico['entregue']
-                                            ?? 0
-                                        ) > 0.001
-                                )
-                                ->values();
-
-                            $itensPendentesHistorico = $itensHistoricos
-                                ->filter(
-                                    fn ($itemHistorico) =>
-                                        (float) (
-                                            $itemHistorico['encaminhado']
-                                            ?? 0
-                                        ) > 0.001
-                                )
-                                ->values();
-                        @endphp
-
-                        <div class="col-12 col-md-6 col-xl-4">
-                        <div class="historico-documento h-100">
-                            <div class="d-flex justify-content-between align-items-start gap-2">
-                                <div>
-                                    <strong class="d-block">
-                                    {{ $entregaHistorica->codigo_entrega
-                                        ?? 'Entrega #' . $entregaHistorica->id }}
-                                    </strong>
-
-                                    <small class="text-muted">
-                                        {{ $formatarDataHora(
-                                            $dataHistorica
-                                        ) ?? '-' }}
-                                    </small>
-                                </div>
-
-                                <span class="badge {{ $statusClasses[$statusHistorico]
-                                    ?? 'bg-secondary' }}">
-                                    {{ $statusLabels[$statusHistorico]
-                                        ?? $entregaHistorica->status }}
-                                </span>
-                            </div>
-
-                            @if($romaneioHistorico)
-                                <div class="small text-muted mt-1">
-                                    Romaneio:
-                                    <span class="fw-semibold">
-                                        {{ $romaneioHistorico->codigo_romaneio
-                                            ?? '#' . $romaneioHistorico->id }}
-                                    </span>
-                                </div>
-                            @endif
-
-                            <div class="historico-itens-grupo">
-                                <div class="historico-itens-titulo text-success">
-                                    <i class="bi bi-check-circle-fill"></i>
-                                    Itens entregues neste romaneio
-                                </div>
-
-                                @forelse(
-                                    $itensEntreguesHistorico
-                                    as $itemEntregueHistorico
-                                )
-                                    <div class="historico-item-linha small">
-                                        <span class="historico-item-produto">
-                                            {{ $itemEntregueHistorico['produto'] }}
-                                        </span>
-
-                                        <span class="badge bg-success flex-shrink-0">
-                                            {{ number_format(
-                                                (float) $itemEntregueHistorico[
-                                                    'entregue'
-                                                ],
-                                                2,
-                                                ',',
-                                                '.'
-                                            ) }}
-                                        </span>
-                                    </div>
-                                @empty
-                                    <div class="small text-muted">
-                                        Nenhum item entregue neste romaneio.
-                                    </div>
-                                @endforelse
-                            </div>
-
-                            <div class="historico-itens-grupo">
-                                <div class="historico-itens-titulo text-warning-emphasis">
-                                    <i class="bi bi-hourglass-split"></i>
-                                    Itens pendentes para o próximo romaneio
-                                </div>
-
-                                @forelse(
-                                    $itensPendentesHistorico
-                                    as $itemPendenteHistorico
-                                )
-                                    <div class="historico-item-linha small">
-                                        <span class="historico-item-produto">
-                                            {{ $itemPendenteHistorico['produto'] }}
-                                        </span>
-
-                                        <span class="badge bg-warning text-dark flex-shrink-0">
-                                            {{ number_format(
-                                                (float) $itemPendenteHistorico[
-                                                    'encaminhado'
-                                                ],
-                                                2,
-                                                ',',
-                                                '.'
-                                            ) }}
-                                        </span>
-                                    </div>
-                                @empty
-                                    <div class="small text-muted">
-                                        Nenhum item pendente para o próximo romaneio.
-                                    </div>
-                                @endforelse
-                            </div>
-                        </div>
-                        </div>
-                    @endforeach
-                    </div>
-                </div>
-
-                <hr>
-
-                <div class="small text-uppercase fw-semibold text-muted mb-2">
-                    Documento atual
-                </div>
-            @endif
-
-            <div class="row g-2">
-            <div class="col-12 col-md-6 col-xl-4">
-            <div class="historico-evento">
-                <small class="text-muted">
-                    {{ $entrega->created_at
-                        ? $entrega->created_at->format('d/m/Y H:i')
-                        : '-' }}
-                </small>
-
-                <div class="fw-semibold">
-                    Entrega criada
-                </div>
-            </div>
-            </div>
-
-            @if($entrega->orcamento_id)
-                <div class="col-12 col-md-6 col-xl-4">
-                <div class="historico-evento">
-                    <small class="text-muted">
-                        Orçamento #{{ $entrega->orcamento_id }}
-                    </small>
-
-                    <div>
-                        Entrega vinculada ao orçamento.
-                    </div>
-                </div>
-                </div>
-            @endif
-
-            @if($entrega->venda_id)
-                <div class="col-12 col-md-6 col-xl-4">
-                <div class="historico-evento">
-                    <small class="text-muted">
-                        Venda #{{ $entrega->venda_id }}
-                    </small>
-
-                    <div>
-                        Venda faturada e entrega liberada.
-                    </div>
-                </div>
-                </div>
-            @endif
-
-            @if($romaneio)
-                <div class="col-12 col-md-6 col-xl-4">
-                <div class="historico-evento">
-                    <small class="text-muted">
-                        {{ $formatarDataHora(
-                            $romaneio->data_emissao
-                            ?? $romaneio->created_at
-                        ) }}
-                    </small>
-
-                    <div>
-                        Romaneio
-                        <strong>
-                            {{ $romaneio->codigo_romaneio }}
-                        </strong>
-                        vinculado.
-                    </div>
-                </div>
-                </div>
-            @endif
-            </div>
-
-            @php
-                $etapasHistorico = collect([
-                    'montagem' => [
-                        'titulo' => 'Montagem',
-                        'icone' => 'bi-boxes',
-                    ],
-                    'separacao' => [
-                        'titulo' => 'Separação',
-                        'icone' => 'bi-box-seam',
-                    ],
-                    'conferencia_separacao' => [
-                        'titulo' => 'Conferência da separação',
-                        'icone' => 'bi-clipboard-check',
-                    ],
-                    'carregamento' => [
-                        'titulo' => 'Carregamento',
-                        'icone' => 'bi-truck-front',
-                    ],
-                    'conferencia_saida' => [
-                        'titulo' => 'Conferência de saída',
-                        'icone' => 'bi-shield-check',
-                    ],
-                ]);
-
-                $normalizarEtapaHistorico = function ($etapa) {
-                    return strtolower(
-                        trim(
-                            str_replace(
-                                [' ', '-'],
-                                '_',
-                                (string) $etapa
-                            )
-                        )
-                    );
-                };
-
-                $eventosHistorico = collect(
-                    $romaneio?->eventos
-                    ?? []
-                )
-                    ->sortBy(
-                        fn ($evento) =>
-                            $evento->ocorrido_em
-                            ?? $evento->created_at
-                    )
-                    ->values();
-
-                $eventosHistoricoPorEtapa =
-                    $eventosHistorico->groupBy(
-                        fn ($evento) =>
-                            $normalizarEtapaHistorico(
-                                $evento->etapa
-                                ?? ''
-                            )
-                    );
-
-                $outrosEventosHistorico =
-                    $eventosHistorico->reject(
-                        fn ($evento) =>
-                            $etapasHistorico->has(
-                                $normalizarEtapaHistorico(
-                                    $evento->etapa
-                                    ?? ''
-                                )
-                            )
-                    );
-            @endphp
-
-            <div class="small text-uppercase fw-semibold text-muted mt-3 mb-2">
-                Etapas operacionais
-            </div>
-
-            <div class="row g-2">
-                @foreach(
-                    $etapasHistorico
-                    as $chaveEtapa => $configuracaoEtapa
-                )
-                    @php
-                        $eventosEtapa = collect(
-                            $eventosHistoricoPorEtapa->get(
-                                $chaveEtapa,
-                                []
-                            )
-                        );
-                    @endphp
-
-                    <div class="col-12 col-md-6 col-xl-4">
-                        <div class="historico-etapa">
-                            <div class="historico-etapa-cabecalho">
-                                <strong>
-                                    <i class="bi {{ $configuracaoEtapa['icone'] }} me-1"></i>
-                                    {{ $configuracaoEtapa['titulo'] }}
-                                </strong>
-
-                                <span class="badge bg-secondary">
-                                    {{ $eventosEtapa->count() }}
-                                </span>
-                            </div>
-
-                            <div class="historico-etapa-corpo">
-                                @forelse($eventosEtapa as $evento)
-                                    <div class="historico-etapa-registro">
-                                        <small class="text-muted">
-                                            {{ $formatarDataHora(
-                                                $evento->ocorrido_em
-                                                ?? $evento->created_at
-                                            ) ?? '-' }}
-                                        </small>
-
-                                        <div class="fw-semibold">
-                                            {{ $evento->evento
-                                                ?? 'Evento registrado' }}
-                                        </div>
-                                    </div>
-                                @empty
-                                    <div class="small text-muted py-2">
-                                        Nenhum evento registrado.
-                                    </div>
-                                @endforelse
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-
-                @if($outrosEventosHistorico->isNotEmpty())
-                    <div class="col-12 col-md-6 col-xl-4">
-                        <div class="historico-etapa">
-                            <div class="historico-etapa-cabecalho">
-                                <strong>
-                                    <i class="bi bi-three-dots me-1"></i>
-                                    Outros eventos
-                                </strong>
-
-                                <span class="badge bg-secondary">
-                                    {{ $outrosEventosHistorico->count() }}
-                                </span>
-                            </div>
-
-                            <div class="historico-etapa-corpo">
-                                @foreach($outrosEventosHistorico as $evento)
-                                    <div class="historico-etapa-registro">
-                                        <small class="text-muted">
-                                            {{ $formatarDataHora(
-                                                $evento->ocorrido_em
-                                                ?? $evento->created_at
-                                            ) ?? '-' }}
-                                        </small>
-
-                                        <div class="fw-semibold">
-                                            {{ $evento->evento
-                                                ?? 'Evento registrado' }}
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-                @endif
-            </div>
-
-            <div class="historico-evento historico-evento-atual mt-2">
-                <small class="text-muted">
-                    {{ $entrega->updated_at
-                        ? $entrega->updated_at->format('d/m/Y H:i')
-                        : '-' }}
-                </small>
-
-                <div>
-                    Status atual:
-                    {{ $statusLabels[$statusEntrega]
-                        ?? $entrega->status }}
-                </div>
-            </div>
-
-        </div>
-    </div>
-
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views\entregas\show.blade.php ENDPATH**/ ?>

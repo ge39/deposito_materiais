@@ -111,6 +111,56 @@
         $resultadosItens ?? []
     );
 
+    $contextosItensVenda = collect(
+        $contextosItensVenda ?? []
+    );
+
+    $contextosItensOrcamento = collect(
+        $contextosItensOrcamento ?? []
+    );
+
+    $documentosEntregasFracionadas = collect(
+        $documentosEntregasFracionadas
+        ?? [
+            [
+                'entrega' =>
+                    $entrega,
+
+                'contextos_venda' =>
+                    $contextosItensVenda,
+
+                'contextos_orcamento' =>
+                    $contextosItensOrcamento,
+            ],
+        ]
+    );
+
+    $documentoTabelaEntregaAtual =
+        $documentosEntregasFracionadas
+            ->first(
+                function ($documentoFracionado) use (
+                    $entrega
+                ) {
+                    $entregaDocumento =
+                        $documentoFracionado['entrega']
+                        ?? null;
+
+                    return (int) (
+                        $entregaDocumento?->id
+                        ?? 0
+                    ) === (int) $entrega->id;
+                }
+            )
+        ?? $documentosEntregasFracionadas->last();
+
+    $documentosTabelaEntregaAtual = collect([
+        $documentoTabelaEntregaAtual,
+    ])->filter();
+
+    $historicoEntregasFracionadas = collect(
+        $historicoEntregasFracionadas ?? []
+    );
+
     $resolverResultadoItem = function (
         $entregaItem
     ) use ($resultadosItens) {
@@ -250,17 +300,388 @@
         ];
     };
 
-    $totalItens = collect(
-        $entrega->itens ?? []
-    )->count();
+    $itensBase = collect();
+    $origemItens = '-';
 
-    $itensEntregues = collect(
+    if (
+        $entrega->venda_id
+        && $entrega->venda
+        && $entrega->venda->itens
+    ) {
+        $itensBase = collect(
+            $entrega->venda->itens
+        );
+
+        $origemItens = 'Venda';
+    } elseif (
+        $entrega->orcamento_id
+        && $entrega->orcamento
+        && $entrega->orcamento->itens
+    ) {
+        $itensBase = collect(
+            $entrega->orcamento->itens
+        );
+
+        $origemItens = 'Orçamento';
+    }
+
+    $itensOperacionais = collect(
         $entrega->itens ?? []
-    )
+    );
+
+    $resolverExibicaoItem = function (
+        $itemBase,
+        $contextosDocumento = null
+    ) use (
+        $origemItens,
+        $itensOperacionais,
+        $contextosItensVenda,
+        $contextosItensOrcamento,
+        $resolverResultadoItem
+    ) {
+        $entregaItem = null;
+
+        $contextosVendaSelecionados =
+            $contextosDocumento === null
+                ? $contextosItensVenda
+                : collect(
+                    $contextosDocumento['venda']
+                    ?? []
+                );
+
+        $contextosOrcamentoSelecionados =
+            $contextosDocumento === null
+                ? $contextosItensOrcamento
+                : collect(
+                    $contextosDocumento['orcamento']
+                    ?? []
+                );
+
+        $itensOperacionaisSelecionados =
+            $contextosDocumento === null
+                ? $itensOperacionais
+                : collect();
+
+        if ($origemItens === 'Venda') {
+            $entregaItem = $itensOperacionaisSelecionados
+                ->first(
+                    fn ($itemOperacional) =>
+                        (int) $itemOperacional->venda_item_id
+                        === (int) $itemBase->id
+                );
+
+            $contexto = $contextosVendaSelecionados->get(
+                (int) $itemBase->id
+            );
+        } else {
+            $entregaItem = $itensOperacionaisSelecionados
+                ->first(
+                    fn ($itemOperacional) =>
+                        (int) $itemOperacional->item_orcamento_id
+                        === (int) $itemBase->id
+                );
+
+            $contexto = $contextosOrcamentoSelecionados->get(
+                (int) $itemBase->id
+            );
+        }
+
+        $quantidadeBase = round(
+            (float) (
+                $itemBase?->quantidade
+                ?? $itemBase?->qtd
+                ?? $itemBase?->quantidade_vendida
+                ?? $itemBase?->quantidade_orcada
+                ?? $itemBase?->quantidade_solicitada
+                ?? 0
+            ),
+            3
+        );
+
+        $resultadoOperacionalAtual = $entregaItem
+            ? $resolverResultadoItem($entregaItem)
+            : null;
+
+        $statusOperacionalCalculado = (string) (
+            $resultadoOperacionalAtual['status']
+            ?? 'pendente'
+        );
+
+        $contextoFornecido = (bool) $contexto;
+
+        if (! $contexto) {
+            $contexto = [
+                'possui_item_atual' =>
+                    (bool) $entregaItem,
+
+                'quantidade_prevista_atual' =>
+                    (float) (
+                        $resultadoOperacionalAtual[
+                            'quantidade_prevista'
+                        ]
+                        ?? 0
+                    ),
+
+                'quantidade_entregue_anterior' =>
+                    0.0,
+
+                'quantidade_ocorrencia_anterior' =>
+                    0.0,
+
+                'quantidade_ocorrencia_finalizada_anterior' =>
+                    0.0,
+
+                'quantidade_entregue_atual' =>
+                    (float) (
+                        $resultadoOperacionalAtual[
+                            'quantidade_entregue'
+                        ]
+                        ?? 0
+                    ),
+
+                'quantidade_ocorrencia_atual' =>
+                    (float) (
+                        $resultadoOperacionalAtual[
+                            'quantidade_com_ocorrencia'
+                        ]
+                        ?? 0
+                    ),
+
+                'quantidade_ocorrencia_finalizada_atual' =>
+                    $statusOperacionalCalculado
+                        === 'finalizado_com_ocorrencia'
+                    ? (float) (
+                        $resultadoOperacionalAtual[
+                            'quantidade_com_ocorrencia'
+                        ]
+                        ?? 0
+                    )
+                    : 0.0,
+
+                'quantidade_encaminhada_proxima' =>
+                    0.0,
+
+                'status_operacional_atual' =>
+                    $statusOperacionalCalculado,
+            ];
+        }
+
+        $statusOperacionalAtual = (string) (
+            $contexto['status_operacional_atual']
+            ?? $statusOperacionalCalculado
+        );
+
+        $possuiItemAtual = (bool) (
+            $contexto['possui_item_atual']
+            ?? false
+        );
+
+        $quantidadePrevistaAtual = round(
+            (float) (
+                $contexto['quantidade_prevista_atual']
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeEntregueAnterior = round(
+            (float) (
+                $contexto['quantidade_entregue_anterior']
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeOcorrenciaAnterior = round(
+            (float) (
+                $contexto['quantidade_ocorrencia_anterior']
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeOcorrenciaFinalizadaAnterior = round(
+            (float) (
+                $contexto[
+                    'quantidade_ocorrencia_finalizada_anterior'
+                ]
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeEntregueAtual = round(
+            (float) (
+                $contexto['quantidade_entregue_atual']
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeOcorrenciaAtual = round(
+            (float) (
+                $contexto['quantidade_ocorrencia_atual']
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeOcorrenciaFinalizadaAtual = round(
+            (float) (
+                $contexto[
+                    'quantidade_ocorrencia_finalizada_atual'
+                ]
+                ?? 0
+            ),
+            3
+        );
+
+        if (
+            $contextoFornecido
+            && $statusOperacionalAtual
+                === 'finalizado_com_ocorrencia'
+            && $quantidadeOcorrenciaFinalizadaAtual < 0.001
+        ) {
+            $statusOperacionalAtual =
+                'ocorrencia_pendente';
+        }
+
+        $quantidadeEncaminhadaProxima = round(
+            (float) (
+                $contexto['quantidade_encaminhada_proxima']
+                ?? 0
+            ),
+            3
+        );
+
+        $quantidadeEntregueAcumulada = round(
+            min(
+                $quantidadeBase,
+                $quantidadeEntregueAnterior
+                + $quantidadeEntregueAtual
+            ),
+            3
+        );
+
+        $quantidadeOcorrenciaAcumulada = round(
+            $quantidadeOcorrenciaAnterior
+            + $quantidadeOcorrenciaAtual,
+            3
+        );
+
+        $quantidadeOcorrenciaFinalizadaAcumulada = round(
+            $quantidadeOcorrenciaFinalizadaAnterior
+            + $quantidadeOcorrenciaFinalizadaAtual,
+            3
+        );
+
+        $quantidadeApuradaAcumulada = round(
+            min(
+                $quantidadeBase,
+                $quantidadeEntregueAcumulada
+                + $quantidadeOcorrenciaFinalizadaAcumulada
+            ),
+            3
+        );
+
+        $saldo = round(
+            max(
+                $quantidadeBase
+                - $quantidadeApuradaAcumulada,
+                0
+            ),
+            3
+        );
+
+        $statusItem = match (true) {
+            $quantidadeOcorrenciaFinalizadaAtual > 0 =>
+                    'finalizado_com_ocorrencia',
+
+            $quantidadeEntregueAtual > 0
+                && $saldo < 0.001 =>
+                    'entregue_nesta_entrega',
+
+            $quantidadeEntregueAtual > 0
+                && $quantidadeEncaminhadaProxima > 0 =>
+                    'parcial_encaminhado',
+
+            $quantidadeEntregueAtual > 0 =>
+                    'entregue_parcial',
+
+            $possuiItemAtual
+                && $quantidadeEncaminhadaProxima > 0 =>
+                    'encaminhado_proxima',
+
+            $possuiItemAtual
+                && ! in_array(
+                    $statusOperacionalAtual,
+                    ['', 'pendente'],
+                    true
+                ) =>
+                    $statusOperacionalAtual,
+
+            $possuiItemAtual =>
+                    'pendente_nesta_entrega',
+
+            $saldo < 0.001
+                && $quantidadeOcorrenciaFinalizadaAnterior > 0 =>
+                    'finalizado_com_ocorrencia_anterior',
+
+            $quantidadeEntregueAnterior + 0.001
+                >= $quantidadeBase
+                && $quantidadeBase > 0 =>
+                    'entregue_anteriormente',
+
+            $quantidadeEntregueAnterior > 0 =>
+                    'entregue_parcial_anteriormente',
+
+            default =>
+                    'pendente',
+        };
+
+        return [
+            'entrega_item' =>
+                $entregaItem,
+
+            'quantidade_base' =>
+                $quantidadeBase,
+
+            'quantidade_prevista_atual' =>
+                $quantidadePrevistaAtual,
+
+            'quantidade_entregue_anterior' =>
+                $quantidadeEntregueAnterior,
+
+            'quantidade_entregue_atual' =>
+                $quantidadeEntregueAtual,
+
+            'quantidade_entregue_acumulada' =>
+                $quantidadeEntregueAcumulada,
+
+            'quantidade_ocorrencia_acumulada' =>
+                $quantidadeOcorrenciaAcumulada,
+
+            'quantidade_ocorrencia_finalizada_acumulada' =>
+                $quantidadeOcorrenciaFinalizadaAcumulada,
+
+            'quantidade_encaminhada_proxima' =>
+                $quantidadeEncaminhadaProxima,
+
+            'saldo' =>
+                $saldo,
+
+            'status' =>
+                $statusItem,
+        ];
+    };
+
+    $totalItens = $itensBase->count();
+
+    $itensEntregues = $itensBase
         ->filter(
-            fn ($item) =>
-                $resolverResultadoItem(
-                    $item
+            fn ($itemBase) =>
+                $resolverExibicaoItem(
+                    $itemBase
                 )['saldo'] < 0.001
         )
         ->count();
@@ -589,6 +1010,90 @@
     .table-itens td {
         vertical-align: middle;
         white-space: nowrap;
+    }
+
+    .historico-documento {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-left: 4px solid #6c757d;
+        border-radius: 6px;
+        padding: 10px 12px;
+    }
+
+    .historico-itens-grupo {
+        border-top: 1px solid #dee2e6;
+        margin-top: 9px;
+        padding-top: 8px;
+    }
+
+    .historico-itens-titulo {
+        align-items: center;
+        display: flex;
+        font-size: .72rem;
+        font-weight: 700;
+        gap: 5px;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+    }
+
+    .historico-item-linha {
+        align-items: center;
+        border-top: 1px dashed #dee2e6;
+        display: flex;
+        gap: 8px;
+        justify-content: space-between;
+        padding: 5px 0;
+    }
+
+    .historico-item-linha:first-of-type {
+        border-top: 0;
+    }
+
+    .historico-item-produto {
+        line-height: 1.2;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .historico-evento {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        height: 100%;
+        padding: 10px 12px;
+    }
+
+    .historico-evento-atual {
+        border-left: 4px solid #0d6efd;
+    }
+
+    .historico-etapa {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .historico-etapa-cabecalho {
+        align-items: center;
+        background: #f1f3f5;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        padding: 9px 11px;
+    }
+
+    .historico-etapa-corpo {
+        padding: 4px 11px;
+    }
+
+    .historico-etapa-registro {
+        border-bottom: 1px solid #e9ecef;
+        padding: 8px 0;
+    }
+
+    .historico-etapa-registro:last-child {
+        border-bottom: 0;
     }
 </style>
 
@@ -1146,278 +1651,6 @@
                 </div>
             </div>
 
-            
-            <div class="card shadow-sm mb-3">
-                <div class="card-header bg-secondary text-white">
-                    <strong>
-                        <i class="bi bi-box-seam me-2"></i>
-                        Itens da Entrega
-                    </strong>
-                </div>
-
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover table-sm mb-0 table-itens">
-                            <thead class="table-dark text-center">
-                                <tr>
-                                    <th>#</th>
-                                    <th>Produto</th>
-                                    <th>Origem</th>
-                                    <th>Qtd. Venda/Orçamento</th>
-                                    <th>Previsto</th>
-                                    <th>Entregue</th>
-                                    <th>Saldo</th>
-                                    <th>Status</th>
-                                    <th>Observação</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                <?php
-                                    $itensBase = collect();
-                                    $origemItens = '-';
-
-                                    if (
-                                        $entrega->venda_id
-                                        && $entrega->venda
-                                        && $entrega->venda->itens
-                                    ) {
-                                        $itensBase = collect(
-                                            $entrega->venda->itens
-                                        );
-
-                                        $origemItens = 'Venda';
-                                    } elseif (
-                                        $entrega->orcamento_id
-                                        && $entrega->orcamento
-                                        && $entrega->orcamento->itens
-                                    ) {
-                                        $itensBase = collect(
-                                            $entrega->orcamento->itens
-                                        );
-
-                                        $origemItens = 'Orçamento';
-                                    }
-
-                                    $itensOperacionais = collect(
-                                        $entrega->itens ?? []
-                                    );
-
-                                    $statusItemClasses = [
-                                        'pendente' => 'bg-secondary',
-                                        'preparando' => 'bg-warning text-dark',
-                                        'separado' => 'bg-primary',
-                                        'carregado' => 'bg-info text-dark',
-                                        'em_rota' => 'bg-dark',
-                                        'entregue' => 'bg-success',
-                                        'entregue_parcial' => 'bg-warning text-dark',
-                                        'finalizado_com_ocorrencia' =>
-                                            'bg-warning text-dark',
-                                        'ocorrencia_pendente' =>
-                                            'bg-danger',
-                                        'recusado' => 'bg-danger',
-                                        'devolvido' => 'bg-danger',
-                                        'avariado' => 'bg-danger',
-                                        'nao_entregue' => 'bg-danger',
-                                        'cancelado' => 'bg-danger',
-                                    ];
-                                ?>
-
-                                <?php $__empty_1 = true; $__currentLoopData = $itensBase; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemBase): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                                    <?php
-                                        $entregaItem = null;
-
-                                        if ($origemItens === 'Venda') {
-                                            $entregaItem = $itensOperacionais
-                                                ->first(function ($itemOperacional) use ($itemBase) {
-                                                    return (int) $itemOperacional->venda_item_id
-                                                        === (int) $itemBase->id;
-                                                });
-                                        }
-
-                                        if (
-                                            ! $entregaItem
-                                            && $origemItens === 'Orçamento'
-                                        ) {
-                                            $entregaItem = $itensOperacionais
-                                                ->first(function ($itemOperacional) use ($itemBase) {
-                                                    return (int) $itemOperacional->item_orcamento_id
-                                                        === (int) $itemBase->id;
-                                                });
-                                        }
-
-                                        $produtoNome =
-                                            $itemBase?->produto?->nome
-                                            ?? $itemBase?->produto_nome
-                                            ?? $itemBase?->descricao
-                                            ?? $itemBase?->nome_produto
-                                            ?? 'Produto não identificado';
-
-                                        $quantidadeBase = (float) (
-                                            $itemBase?->quantidade
-                                            ?? $itemBase?->qtd
-                                            ?? $itemBase?->quantidade_vendida
-                                            ?? $itemBase?->quantidade_orcada
-                                            ?? $itemBase?->quantidade_solicitada
-                                            ?? 0
-                                        );
-
-                                        $resultadoOperacional =
-                                            $entregaItem
-                                                ? $resolverResultadoItem(
-                                                    $entregaItem
-                                                )
-                                                : [
-                                                    'quantidade_prevista' =>
-                                                        $quantidadeBase,
-
-                                                    'quantidade_entregue' =>
-                                                        0,
-
-                                                    'quantidade_com_ocorrencia' =>
-                                                        0,
-
-                                                    'quantidade_apurada' =>
-                                                        0,
-
-                                                    'saldo' =>
-                                                        $quantidadeBase,
-
-                                                    'status' =>
-                                                        'pendente',
-                                                ];
-
-                                        $quantidadePrevista =
-                                            (float) $resultadoOperacional[
-                                                'quantidade_prevista'
-                                            ];
-
-                                        $quantidadeEntregue =
-                                            (float) $resultadoOperacional[
-                                                'quantidade_entregue'
-                                            ];
-
-                                        $saldo =
-                                            (float) $resultadoOperacional[
-                                                'saldo'
-                                            ];
-
-                                        $statusItem =
-                                            (string) $resultadoOperacional[
-                                                'status'
-                                            ];
-
-                                        $statusItemLabel = [
-                                            'finalizado_com_ocorrencia' =>
-                                                'Finalizado com ocorrência',
-
-                                            'ocorrencia_pendente' =>
-                                                'Ocorrência pendente',
-                                        ][$statusItem]
-                                            ?? ucfirst(
-                                                str_replace(
-                                                    '_',
-                                                    ' ',
-                                                    $statusItem
-                                                )
-                                            );
-
-                                        $observacaoItem =
-                                            $entregaItem?->observacao
-                                            ?? '-';
-                                    ?>
-
-                                    <tr>
-                                        <td class="text-center">
-                                            <?php echo e($loop->iteration); ?>
-
-                                        </td>
-
-                                        <td class="fw-semibold">
-                                            <?php echo e($produtoNome); ?>
-
-                                        </td>
-
-                                        <td class="text-center">
-                                            <span class="badge <?php echo e($origemItens === 'Venda'
-                                                ? 'bg-success'
-                                                : 'bg-secondary'); ?>">
-                                                <?php echo e($origemItens); ?>
-
-                                            </span>
-                                        </td>
-
-                                        <td class="text-center">
-                                            <?php echo e(number_format(
-                                                $quantidadeBase,
-                                                2,
-                                                ',',
-                                                '.'
-                                            )); ?>
-
-                                        </td>
-
-                                        <td class="text-center">
-                                            <?php echo e(number_format(
-                                                $quantidadePrevista,
-                                                2,
-                                                ',',
-                                                '.'
-                                            )); ?>
-
-                                        </td>
-
-                                        <td class="text-center">
-                                            <?php echo e(number_format(
-                                                $quantidadeEntregue,
-                                                2,
-                                                ',',
-                                                '.'
-                                            )); ?>
-
-                                        </td>
-
-                                        <td class="text-center">
-                                            <span class="<?php echo e($saldo > 0
-                                                ? 'text-danger fw-bold'
-                                                : 'text-success fw-bold'); ?>">
-                                                <?php echo e(number_format(
-                                                    $saldo,
-                                                    2,
-                                                    ',',
-                                                    '.'
-                                                )); ?>
-
-                                            </span>
-                                        </td>
-
-                                        <td class="text-center">
-                                            <span class="badge <?php echo e($statusItemClasses[$statusItem]
-                                                ?? 'bg-secondary'); ?>">
-                                                <?php echo e($statusItemLabel); ?>
-
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <?php echo e($observacaoItem); ?>
-
-                                        </td>
-                                    </tr>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                                    <tr>
-                                        <td colspan="9"
-                                            class="text-center text-muted py-4">
-                                            <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                            Nenhum item encontrado nesta entrega.
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
 
         </div>
 
@@ -1596,127 +1829,6 @@
                 </div>
             </div>
 
-            
-            <div class="card shadow-sm mb-3">
-                <div class="card-header bg-secondary text-white">
-                    <strong>
-                        <i class="bi bi-clock-history me-2"></i>
-                        Histórico
-                    </strong>
-                </div>
-
-                <div class="card-body">
-
-                    <div class="mb-3">
-                        <small class="text-muted">
-                            <?php echo e($entrega->created_at
-                                ? $entrega->created_at->format('d/m/Y H:i')
-                                : '-'); ?>
-
-                        </small>
-
-                        <div class="fw-semibold">
-                            Entrega criada
-                        </div>
-                    </div>
-
-                    <?php if($entrega->orcamento_id): ?>
-                        <div class="mb-3">
-                            <small class="text-muted">
-                                Orçamento #<?php echo e($entrega->orcamento_id); ?>
-
-                            </small>
-
-                            <div>
-                                Entrega vinculada ao orçamento.
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if($entrega->venda_id): ?>
-                        <div class="mb-3">
-                            <small class="text-muted">
-                                Venda #<?php echo e($entrega->venda_id); ?>
-
-                            </small>
-
-                            <div>
-                                Venda faturada e entrega liberada.
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if($romaneio): ?>
-                        <div class="mb-3">
-                            <small class="text-muted">
-                                <?php echo e($formatarDataHora(
-                                    $romaneio->data_emissao
-                                    ?? $romaneio->created_at
-                                )); ?>
-
-                            </small>
-
-                            <div>
-                                Romaneio
-                                <strong>
-                                    <?php echo e($romaneio->codigo_romaneio); ?>
-
-                                </strong>
-                                vinculado.
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php $__currentLoopData = collect($romaneio?->eventos ?? [])
-                            ->sortByDesc(
-                                fn ($evento) =>
-                                    $evento->ocorrido_em
-                                    ?? $evento->created_at
-                            )
-                            ->take(10); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $evento): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                        <div class="mb-3">
-                            <small class="text-muted">
-                                <?php echo e($formatarDataHora(
-                                    $evento->ocorrido_em
-                                    ?? $evento->created_at
-                                )); ?>
-
-                            </small>
-
-                            <div class="fw-semibold">
-                                <?php echo e($evento->evento
-                                    ?? 'Evento registrado'); ?>
-
-                            </div>
-
-                            <?php if($evento->etapa): ?>
-                                <div class="small text-muted">
-                                    Etapa: <?php echo e($evento->etapa); ?>
-
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-
-                    <div>
-                        <small class="text-muted">
-                            <?php echo e($entrega->updated_at
-                                ? $entrega->updated_at->format('d/m/Y H:i')
-                                : '-'); ?>
-
-                        </small>
-
-                        <div>
-                            Status atual:
-                            <?php echo e($statusLabels[$statusEntrega]
-                                ?? $entrega->status); ?>
-
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
             <div class="alert alert-info shadow-sm">
                 <i class="bi bi-info-circle me-1"></i>
                 Esta tela é de acompanhamento. As ações operacionais permanecem nos painéis de Entregas e Romaneios.
@@ -1724,6 +1836,788 @@
 
         </div>
 
+    </div>
+
+    
+    <?php $__currentLoopData = $documentosTabelaEntregaAtual; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $documentoFracionado): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+        <?php
+            $entregaDocumento =
+                $documentoFracionado['entrega'];
+
+            $contextosDocumento = [
+                'venda' =>
+                    collect(
+                        $documentoFracionado[
+                            'contextos_venda'
+                        ]
+                        ?? []
+                    ),
+
+                'orcamento' =>
+                    collect(
+                        $documentoFracionado[
+                            'contextos_orcamento'
+                        ]
+                        ?? []
+                    ),
+            ];
+
+            $linhasDocumento = $itensBase
+                ->map(function (
+                    $itemBase,
+                    $ordemOriginal
+                ) use (
+                    $resolverExibicaoItem,
+                    $contextosDocumento
+                ) {
+                    $exibicaoItem =
+                        $resolverExibicaoItem(
+                            $itemBase,
+                            $contextosDocumento
+                        );
+
+                    $statusItem = (string) (
+                        $exibicaoItem['status']
+                        ?? 'pendente'
+                    );
+
+                    $prioridadeStatus = match (true) {
+                        in_array(
+                            $statusItem,
+                            [
+                                'entregue',
+                                'entregue_nesta_entrega',
+                                'entregue_anteriormente',
+                            ],
+                            true
+                        ) =>
+                            0,
+
+                        in_array(
+                            $statusItem,
+                            [
+                                'finalizado_com_ocorrencia',
+                                'finalizado_com_ocorrencia_anterior',
+                            ],
+                            true
+                        ) =>
+                            1,
+
+                        in_array(
+                            $statusItem,
+                            [
+                                'entregue_parcial',
+                                'parcial_encaminhado',
+                                'entregue_parcial_anteriormente',
+                            ],
+                            true
+                        ) =>
+                            2,
+
+                        default =>
+                            3,
+                    };
+
+                    return [
+                        'item_base' =>
+                            $itemBase,
+
+                        'exibicao' =>
+                            $exibicaoItem,
+
+                        'ordem_exibicao' =>
+                            ($prioridadeStatus * 1000000)
+                            + (int) $ordemOriginal,
+                    ];
+                })
+                ->sortBy('ordem_exibicao')
+                ->values();
+        ?>
+
+        <div class="small fw-bold mb-2">
+            <?php echo e($entregaDocumento->codigo_entrega
+                ?? 'ENTREGA-' . $entregaDocumento->id); ?>
+
+        </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-secondary text-white">
+            <strong>
+                <i class="bi bi-box-seam me-2"></i>
+                Itens da Entrega
+            </strong>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-sm mb-0 table-itens">
+                    <thead class="table-dark text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>Produto</th>
+                            <th>Origem</th>
+                            <th>Qtd. Venda/Orçamento</th>
+                            <th>Previsto</th>
+                            <th>Entregue</th>
+                            <th>Saldo</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <?php
+                            $statusItemClasses = [
+                                'pendente' => 'bg-secondary',
+                                'preparando' =>
+                                    'bg-warning text-dark',
+                                'separado' => 'bg-primary',
+                                'carregado' =>
+                                    'bg-info text-dark',
+                                'em_rota' => 'bg-dark',
+                                'entregue' => 'bg-success',
+                                'ocorrencia_pendente' =>
+                                    'bg-danger',
+                                'recusado' => 'bg-danger',
+                                'devolvido' => 'bg-danger',
+                                'avariado' => 'bg-danger',
+                                'nao_entregue' => 'bg-danger',
+                                'cancelado' => 'bg-danger',
+                                'pendente_nesta_entrega' =>
+                                    'bg-secondary',
+                                'entregue_nesta_entrega' =>
+                                    'bg-success',
+                                'entregue_anteriormente' =>
+                                    'bg-success',
+                                'entregue_parcial_anteriormente' =>
+                                    'bg-warning text-dark',
+                                'entregue_parcial' => 'bg-warning text-dark',
+                                'parcial_encaminhado' =>
+                                    'bg-warning text-dark',
+                                'encaminhado_proxima' =>
+                                    'bg-secondary',
+                                'finalizado_com_ocorrencia' =>
+                                    'bg-warning text-dark',
+                                'finalizado_com_ocorrencia_anterior' =>
+                                    'bg-warning text-dark',
+                            ];
+
+                            $statusItemLabels = [
+                                'pendente' =>
+                                    'Pendente',
+                                'preparando' =>
+                                    'Preparando',
+                                'separado' =>
+                                    'Separado',
+                                'carregado' =>
+                                    'Carregado',
+                                'em_rota' =>
+                                    'Em rota',
+                                'entregue' =>
+                                    'Entregue',
+                                'ocorrencia_pendente' =>
+                                    'Ocorrência pendente',
+                                'recusado' =>
+                                    'Recusado',
+                                'devolvido' =>
+                                    'Devolvido',
+                                'avariado' =>
+                                    'Avariado',
+                                'nao_entregue' =>
+                                    'Não entregue',
+                                'cancelado' =>
+                                    'Cancelado',
+                                'pendente_nesta_entrega' =>
+                                    'Pendente',
+                                'entregue_nesta_entrega' =>
+                                    'Entregue',
+                                'entregue_anteriormente' =>
+                                    'Entregue',
+                                'entregue_parcial_anteriormente' =>
+                                    'Entregue parcialmente',
+                                'entregue_parcial' =>
+                                    'Entregue parcialmente',
+                                'parcial_encaminhado' =>
+                                    'Entregue parcialmente',
+                                'encaminhado_proxima' =>
+                                    'Pendente',
+                                'finalizado_com_ocorrencia' =>
+                                    'Finalizado com ocorrência',
+                                'finalizado_com_ocorrencia_anterior' =>
+                                    'Finalizado com ocorrência',
+                            ];
+                        ?>
+
+                        <?php $__empty_1 = true; $__currentLoopData = $linhasDocumento; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $linhaDocumento): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                            <?php
+                                $itemBase =
+                                    $linhaDocumento['item_base'];
+
+                                $produtoNome =
+                                    $itemBase?->produto?->nome
+                                    ?? $itemBase?->produto_nome
+                                    ?? $itemBase?->descricao
+                                    ?? $itemBase?->nome_produto
+                                    ?? 'Produto não identificado';
+
+                                $exibicaoItem =
+                                    $linhaDocumento['exibicao'];
+
+                                $quantidadeBase = (float) (
+                                    $exibicaoItem[
+                                        'quantidade_base'
+                                    ]
+                                );
+
+                                $quantidadeEntregue =
+                                    (float) $exibicaoItem[
+                                        'quantidade_entregue_acumulada'
+                                    ];
+
+                                $saldo =
+                                    (float) $exibicaoItem[
+                                        'saldo'
+                                    ];
+
+                                $statusItem =
+                                    (string) $exibicaoItem[
+                                        'status'
+                                    ];
+
+                                $statusItemLabel =
+                                    $statusItemLabels[$statusItem]
+                                    ?? ucfirst(
+                                        str_replace(
+                                            '_',
+                                            ' ',
+                                            $statusItem
+                                        )
+                                    );
+                            ?>
+
+                            <tr>
+                                <td class="text-center">
+                                    <?php echo e($loop->iteration); ?>
+
+                                </td>
+
+                                <td class="fw-semibold">
+                                    <?php echo e($produtoNome); ?>
+
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="badge <?php echo e($origemItens === 'Venda'
+                                        ? 'bg-success'
+                                        : 'bg-secondary'); ?>">
+                                        <?php echo e($origemItens); ?>
+
+                                    </span>
+                                </td>
+
+                                <td class="text-center">
+                                    <?php echo e(number_format(
+                                        $quantidadeBase,
+                                        2,
+                                        ',',
+                                        '.'
+                                    )); ?>
+
+                                </td>
+
+                                <td class="text-center">
+                                    <?php echo e(number_format(
+                                        $quantidadeBase,
+                                        2,
+                                        ',',
+                                        '.'
+                                    )); ?>
+
+                                </td>
+
+                                <td class="text-center">
+                                    <?php echo e(number_format(
+                                        $quantidadeEntregue,
+                                        2,
+                                        ',',
+                                        '.'
+                                    )); ?>
+
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="<?php echo e($saldo > 0
+                                        ? 'text-danger fw-bold'
+                                        : 'text-success fw-bold'); ?>">
+                                        <?php echo e(number_format(
+                                            $saldo,
+                                            2,
+                                            ',',
+                                            '.'
+                                        )); ?>
+
+                                    </span>
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="badge <?php echo e($statusItemClasses[$statusItem]
+                                        ?? 'bg-secondary'); ?>">
+                                        <?php echo e($statusItemLabel); ?>
+
+                                    </span>
+                                </td>
+                            </tr>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                            <tr>
+                                <td colspan="8"
+                                    class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                                    Nenhum item encontrado nesta entrega.
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+
+    
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-secondary text-white">
+            <strong>
+                <i class="bi bi-clock-history me-2"></i>
+                Histórico
+            </strong>
+        </div>
+
+        <div class="card-body">
+
+            <?php if($historicoEntregasFracionadas->isNotEmpty()): ?>
+                <div class="mb-3">
+                    <div class="small text-uppercase fw-semibold text-muted mb-2">
+                        Histórico das entregas do fracionamento
+                    </div>
+
+                    <div class="row g-2">
+                    <?php $__currentLoopData = $historicoEntregasFracionadas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $registroHistorico): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php
+                            $entregaHistorica =
+                                $registroHistorico['entrega'];
+
+                            $romaneioHistorico =
+                                $registroHistorico['romaneio'];
+
+                            $statusHistorico = strtolower(
+                                trim(
+                                    str_replace(
+                                        ' ',
+                                        '_',
+                                        (string) (
+                                            $entregaHistorica->status
+                                            ?? ''
+                                        )
+                                    )
+                                )
+                            );
+
+                            $dataHistorica =
+                                $entregaHistorica->data_realizada
+                                ?? $romaneioHistorico?->data_retorno
+                                ?? $romaneioHistorico?->data_emissao
+                                ?? $entregaHistorica->updated_at;
+
+                            $itensHistoricos = collect(
+                                $registroHistorico['itens']
+                                ?? []
+                            );
+
+                            $itensEntreguesHistorico = $itensHistoricos
+                                ->filter(
+                                    fn ($itemHistorico) =>
+                                        (float) (
+                                            $itemHistorico['entregue']
+                                            ?? 0
+                                        ) > 0.001
+                                )
+                                ->values();
+
+                            $itensPendentesHistorico = $itensHistoricos
+                                ->filter(
+                                    fn ($itemHistorico) =>
+                                        (float) (
+                                            $itemHistorico['encaminhado']
+                                            ?? 0
+                                        ) > 0.001
+                                )
+                                ->values();
+                        ?>
+
+                        <div class="col-12 col-md-6 col-xl-4">
+                        <div class="historico-documento h-100">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <strong class="d-block">
+                                    <?php echo e($entregaHistorica->codigo_entrega
+                                        ?? 'Entrega #' . $entregaHistorica->id); ?>
+
+                                    </strong>
+
+                                    <small class="text-muted">
+                                        <?php echo e($formatarDataHora(
+                                            $dataHistorica
+                                        ) ?? '-'); ?>
+
+                                    </small>
+                                </div>
+
+                                <span class="badge <?php echo e($statusClasses[$statusHistorico]
+                                    ?? 'bg-secondary'); ?>">
+                                    <?php echo e($statusLabels[$statusHistorico]
+                                        ?? $entregaHistorica->status); ?>
+
+                                </span>
+                            </div>
+
+                            <?php if($romaneioHistorico): ?>
+                                <div class="small text-muted mt-1">
+                                    Romaneio:
+                                    <span class="fw-semibold">
+                                        <?php echo e($romaneioHistorico->codigo_romaneio
+                                            ?? '#' . $romaneioHistorico->id); ?>
+
+                                    </span>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="historico-itens-grupo">
+                                <div class="historico-itens-titulo text-success">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Itens entregues neste romaneio
+                                </div>
+
+                                <?php $__empty_1 = true; $__currentLoopData = $itensEntreguesHistorico; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemEntregueHistorico): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                    <div class="historico-item-linha small">
+                                        <span class="historico-item-produto">
+                                            <?php echo e($itemEntregueHistorico['produto']); ?>
+
+                                        </span>
+
+                                        <span class="badge bg-success flex-shrink-0">
+                                            <?php echo e(number_format(
+                                                (float) $itemEntregueHistorico[
+                                                    'entregue'
+                                                ],
+                                                2,
+                                                ',',
+                                                '.'
+                                            )); ?>
+
+                                        </span>
+                                    </div>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                                    <div class="small text-muted">
+                                        Nenhum item entregue neste romaneio.
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="historico-itens-grupo">
+                                <div class="historico-itens-titulo text-warning-emphasis">
+                                    <i class="bi bi-hourglass-split"></i>
+                                    Itens pendentes para o próximo romaneio
+                                </div>
+
+                                <?php $__empty_1 = true; $__currentLoopData = $itensPendentesHistorico; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemPendenteHistorico): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                    <div class="historico-item-linha small">
+                                        <span class="historico-item-produto">
+                                            <?php echo e($itemPendenteHistorico['produto']); ?>
+
+                                        </span>
+
+                                        <span class="badge bg-warning text-dark flex-shrink-0">
+                                            <?php echo e(number_format(
+                                                (float) $itemPendenteHistorico[
+                                                    'encaminhado'
+                                                ],
+                                                2,
+                                                ',',
+                                                '.'
+                                            )); ?>
+
+                                        </span>
+                                    </div>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                                    <div class="small text-muted">
+                                        Nenhum item pendente para o próximo romaneio.
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        </div>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="small text-uppercase fw-semibold text-muted mb-2">
+                    Documento atual
+                </div>
+            <?php endif; ?>
+
+            <div class="row g-2">
+            <div class="col-12 col-md-6 col-xl-4">
+            <div class="historico-evento">
+                <small class="text-muted">
+                    <?php echo e($entrega->created_at
+                        ? $entrega->created_at->format('d/m/Y H:i')
+                        : '-'); ?>
+
+                </small>
+
+                <div class="fw-semibold">
+                    Entrega criada
+                </div>
+            </div>
+            </div>
+
+            <?php if($entrega->orcamento_id): ?>
+                <div class="col-12 col-md-6 col-xl-4">
+                <div class="historico-evento">
+                    <small class="text-muted">
+                        Orçamento #<?php echo e($entrega->orcamento_id); ?>
+
+                    </small>
+
+                    <div>
+                        Entrega vinculada ao orçamento.
+                    </div>
+                </div>
+                </div>
+            <?php endif; ?>
+
+            <?php if($entrega->venda_id): ?>
+                <div class="col-12 col-md-6 col-xl-4">
+                <div class="historico-evento">
+                    <small class="text-muted">
+                        Venda #<?php echo e($entrega->venda_id); ?>
+
+                    </small>
+
+                    <div>
+                        Venda faturada e entrega liberada.
+                    </div>
+                </div>
+                </div>
+            <?php endif; ?>
+
+            <?php if($romaneio): ?>
+                <div class="col-12 col-md-6 col-xl-4">
+                <div class="historico-evento">
+                    <small class="text-muted">
+                        <?php echo e($formatarDataHora(
+                            $romaneio->data_emissao
+                            ?? $romaneio->created_at
+                        )); ?>
+
+                    </small>
+
+                    <div>
+                        Romaneio
+                        <strong>
+                            <?php echo e($romaneio->codigo_romaneio); ?>
+
+                        </strong>
+                        vinculado.
+                    </div>
+                </div>
+                </div>
+            <?php endif; ?>
+            </div>
+
+            <?php
+                $etapasHistorico = collect([
+                    'montagem' => [
+                        'titulo' => 'Montagem',
+                        'icone' => 'bi-boxes',
+                    ],
+                    'separacao' => [
+                        'titulo' => 'Separação',
+                        'icone' => 'bi-box-seam',
+                    ],
+                    'conferencia_separacao' => [
+                        'titulo' => 'Conferência da separação',
+                        'icone' => 'bi-clipboard-check',
+                    ],
+                    'carregamento' => [
+                        'titulo' => 'Carregamento',
+                        'icone' => 'bi-truck-front',
+                    ],
+                    'conferencia_saida' => [
+                        'titulo' => 'Conferência de saída',
+                        'icone' => 'bi-shield-check',
+                    ],
+                ]);
+
+                $normalizarEtapaHistorico = function ($etapa) {
+                    return strtolower(
+                        trim(
+                            str_replace(
+                                [' ', '-'],
+                                '_',
+                                (string) $etapa
+                            )
+                        )
+                    );
+                };
+
+                $eventosHistorico = collect(
+                    $romaneio?->eventos
+                    ?? []
+                )
+                    ->sortBy(
+                        fn ($evento) =>
+                            $evento->ocorrido_em
+                            ?? $evento->created_at
+                    )
+                    ->values();
+
+                $eventosHistoricoPorEtapa =
+                    $eventosHistorico->groupBy(
+                        fn ($evento) =>
+                            $normalizarEtapaHistorico(
+                                $evento->etapa
+                                ?? ''
+                            )
+                    );
+
+                $outrosEventosHistorico =
+                    $eventosHistorico->reject(
+                        fn ($evento) =>
+                            $etapasHistorico->has(
+                                $normalizarEtapaHistorico(
+                                    $evento->etapa
+                                    ?? ''
+                                )
+                            )
+                    );
+            ?>
+
+            <div class="small text-uppercase fw-semibold text-muted mt-3 mb-2">
+                Etapas operacionais
+            </div>
+
+            <div class="row g-2">
+                <?php $__currentLoopData = $etapasHistorico; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $chaveEtapa => $configuracaoEtapa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <?php
+                        $eventosEtapa = collect(
+                            $eventosHistoricoPorEtapa->get(
+                                $chaveEtapa,
+                                []
+                            )
+                        );
+                    ?>
+
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="historico-etapa">
+                            <div class="historico-etapa-cabecalho">
+                                <strong>
+                                    <i class="bi <?php echo e($configuracaoEtapa['icone']); ?> me-1"></i>
+                                    <?php echo e($configuracaoEtapa['titulo']); ?>
+
+                                </strong>
+
+                                <span class="badge bg-secondary">
+                                    <?php echo e($eventosEtapa->count()); ?>
+
+                                </span>
+                            </div>
+
+                            <div class="historico-etapa-corpo">
+                                <?php $__empty_1 = true; $__currentLoopData = $eventosEtapa; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $evento): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                    <div class="historico-etapa-registro">
+                                        <small class="text-muted">
+                                            <?php echo e($formatarDataHora(
+                                                $evento->ocorrido_em
+                                                ?? $evento->created_at
+                                            ) ?? '-'); ?>
+
+                                        </small>
+
+                                        <div class="fw-semibold">
+                                            <?php echo e($evento->evento
+                                                ?? 'Evento registrado'); ?>
+
+                                        </div>
+                                    </div>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                                    <div class="small text-muted py-2">
+                                        Nenhum evento registrado.
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+                <?php if($outrosEventosHistorico->isNotEmpty()): ?>
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="historico-etapa">
+                            <div class="historico-etapa-cabecalho">
+                                <strong>
+                                    <i class="bi bi-three-dots me-1"></i>
+                                    Outros eventos
+                                </strong>
+
+                                <span class="badge bg-secondary">
+                                    <?php echo e($outrosEventosHistorico->count()); ?>
+
+                                </span>
+                            </div>
+
+                            <div class="historico-etapa-corpo">
+                                <?php $__currentLoopData = $outrosEventosHistorico; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $evento): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <div class="historico-etapa-registro">
+                                        <small class="text-muted">
+                                            <?php echo e($formatarDataHora(
+                                                $evento->ocorrido_em
+                                                ?? $evento->created_at
+                                            ) ?? '-'); ?>
+
+                                        </small>
+
+                                        <div class="fw-semibold">
+                                            <?php echo e($evento->evento
+                                                ?? 'Evento registrado'); ?>
+
+                                        </div>
+                                    </div>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="historico-evento historico-evento-atual mt-2">
+                <small class="text-muted">
+                    <?php echo e($entrega->updated_at
+                        ? $entrega->updated_at->format('d/m/Y H:i')
+                        : '-'); ?>
+
+                </small>
+
+                <div>
+                    Status atual:
+                    <?php echo e($statusLabels[$statusEntrega]
+                        ?? $entrega->status); ?>
+
+                </div>
+            </div>
+
+        </div>
     </div>
 
 </div>

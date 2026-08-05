@@ -571,32 +571,134 @@ class EntregaController extends Controller
 
     public function show(Entrega $entrega)
     {
-        $romaneio = Romaneio::query()
+        $entregaPrincipalId = (int) (
+            $entrega->entrega_principal_id
+            ?: $entrega->id
+        );
+
+        $entregasFamilia = Entrega::query()
             ->with([
                 'motorista',
                 'veiculo',
+                'venda',
+                'venda.cliente',
+                'venda.itens.produto',
+                'orcamento',
+                'orcamento.cliente',
+                'orcamento.itens.produto',
+                'itens',
+                'itens.vendaItem.produto',
+                'itens.itemOrcamento.produto',
             ])
-            ->where(
+            ->where(function ($query) use (
+                $entregaPrincipalId
+            ) {
+                $query
+                    ->where(
+                        'id',
+                        $entregaPrincipalId
+                    )
+                    ->orWhere(
+                        'entrega_principal_id',
+                        $entregaPrincipalId
+                    );
+            })
+            ->get()
+            ->keyBy('id');
+
+        if (! $entregasFamilia->has($entrega->id)) {
+            abort(404);
+        }
+
+        /*
+        * A cadeia contém somente a entrega atual e suas origens.
+        * Entregas futuras ou de outro ramo não entram no histórico.
+        */
+        $cadeiaEntregas = collect();
+        $entregaAtualId = (int) $entrega->id;
+        $entregasVisitadas = [];
+
+        while ($entregaAtualId > 0) {
+            if (isset($entregasVisitadas[$entregaAtualId])) {
+                throw ValidationException::withMessages([
+                    'entrega' =>
+                        "Foi identificado um ciclo na cadeia da entrega #{$entrega->id}.",
+                ]);
+            }
+
+            $entregasVisitadas[$entregaAtualId] = true;
+
+            $entregaDaCadeia = $entregasFamilia->get(
+                $entregaAtualId
+            );
+
+            if (! $entregaDaCadeia) {
+                throw ValidationException::withMessages([
+                    'entrega' =>
+                        "A cadeia de fracionamento da entrega #{$entrega->id} está incompleta.",
+                ]);
+            }
+
+            $cadeiaEntregas->prepend(
+                $entregaDaCadeia
+            );
+
+            $entregaAtualId = (int) (
+                $entregaDaCadeia->entrega_origem_id
+                ?? 0
+            );
+        }
+
+        $entrega = $entregasFamilia->get(
+            (int) $entrega->id
+        );
+
+        $entregasIdsCadeia = $cadeiaEntregas
+            ->pluck('id')
+            ->map(
+                fn ($entregaId) =>
+                    (int) $entregaId
+            )
+            ->values();
+
+        $romaneiosDaCadeia = Romaneio::query()
+            ->with([
+                'motorista',
+                'veiculo',
+                'eventos',
+            ])
+            ->whereIn(
                 'entrega_id',
-                $entrega->id
+                $entregasIdsCadeia->all()
             )
             ->where(
                 'status',
                 '<>',
                 'Cancelado'
             )
-            ->latest('id')
-            ->first();
+            ->orderBy('id')
+            ->get();
 
-        /*
-        * Um romaneio cancelado só pode ser exibido quando a entrega
-        * realmente não possui nenhum outro romaneio operacional.
-        */
+        $romaneiosPorEntrega = $romaneiosDaCadeia
+            ->groupBy(
+                fn (Romaneio $romaneio) =>
+                    (int) $romaneio->entrega_id
+            )
+            ->map(
+                fn ($romaneiosEntrega) =>
+                    $romaneiosEntrega->last()
+            );
+
+        $romaneio = $romaneiosPorEntrega->get(
+            (int) $entrega->id
+        );
+
         if (! $romaneio) {
             $romaneio = Romaneio::query()
                 ->with([
                     'motorista',
                     'veiculo',
+                    'eventos',
                 ])
                 ->where(
                     'entrega_id',
@@ -606,29 +708,19 @@ class EntregaController extends Controller
                 ->first();
         }
 
-        $entrega->load([
-            'motorista',
-            'veiculo',
-
-            'venda',
-            'venda.cliente',
-            'venda.itens.produto',
-
-            'orcamento',
-            'orcamento.cliente',
-            'orcamento.itens.produto',
-
-            'itens',
-            'itens.vendaItem.produto',
-            'itens.itemOrcamento.produto',
-        ]);
-
         $entrega->setRelation(
             'romaneio',
             $romaneio
         );
 
-        $entregaItensIds = $entrega->itens
+        $itensDaCadeia = $cadeiaEntregas
+            ->flatMap(
+                fn (Entrega $entregaDaCadeia) =>
+                    $entregaDaCadeia->itens
+            )
+            ->values();
+
+        $entregaItensIds = $itensDaCadeia
             ->pluck('id')
             ->map(
                 fn ($entregaItemId) =>
@@ -640,10 +732,10 @@ class EntregaController extends Controller
             )
             ->values();
 
-        $resultadosItens = collect();
+        $resultadosDiretosPorItem = collect();
 
         if ($entregaItensIds->isNotEmpty()) {
-            $resultadosItens = DB::table(
+            $resultadosDiretosPorItem = DB::table(
                 'romaneio_itens as ri'
             )
                 ->join(
@@ -654,7 +746,7 @@ class EntregaController extends Controller
                 )
                 ->whereIn(
                     'ri.entrega_item_id',
-                    $entregaItensIds
+                    $entregaItensIds->all()
                 )
                 ->where(function ($query) {
                     $query
@@ -676,36 +768,889 @@ class EntregaController extends Controller
                 })
                 ->groupBy('ri.entrega_item_id')
                 ->selectRaw(
-                    'ri.entrega_item_id'
-                )
-                ->selectRaw(
-                    'COALESCE(SUM(ri.quantidade_entregue), 0) as quantidade_entregue'
-                )
-                ->selectRaw(
-                    'COALESCE(SUM(ri.quantidade_devolvida), 0) as quantidade_devolvida'
-                )
-                ->selectRaw(
-                    'COALESCE(SUM(ri.quantidade_recusada), 0) as quantidade_recusada'
-                )
-                ->selectRaw(
-                    'COALESCE(SUM(ri.quantidade_avariada), 0) as quantidade_avariada'
-                )
-                ->selectRaw(
-                    'COALESCE(SUM(ri.quantidade_perdida), 0) as quantidade_perdida'
+                    'ri.entrega_item_id,
+                    COALESCE(SUM(ri.quantidade_entregue), 0)
+                        as quantidade_entregue,
+                    COALESCE(SUM(ri.quantidade_devolvida), 0)
+                        as quantidade_devolvida,
+                    COALESCE(SUM(ri.quantidade_recusada), 0)
+                        as quantidade_recusada,
+                    COALESCE(SUM(ri.quantidade_avariada), 0)
+                        as quantidade_avariada,
+                    COALESCE(SUM(ri.quantidade_perdida), 0)
+                        as quantidade_perdida'
                 )
                 ->get()
                 ->keyBy(
                     fn ($resultado) =>
-                        (int) $resultado
-                            ->entrega_item_id
+                        (int) $resultado->entrega_item_id
                 );
         }
+
+        $itensAtuaisIds = $entrega->itens
+            ->pluck('id')
+            ->map(
+                fn ($entregaItemId) =>
+                    (int) $entregaItemId
+            )
+            ->values();
+
+        $resultadosItens = $itensAtuaisIds
+            ->mapWithKeys(
+                fn (int $entregaItemId) => [
+                    $entregaItemId =>
+                        $resultadosDiretosPorItem->get(
+                            $entregaItemId
+                        ),
+                ]
+            )
+            ->filter();
+
+        $quantidadesEncaminhadasPorItem = collect();
+
+        if ($entregaItensIds->isNotEmpty()) {
+            $quantidadesEncaminhadasPorItem = DB::table(
+                'entrega_fracionamentos as ef'
+            )
+                ->leftJoin(
+                    'entregas as ed',
+                    'ed.id',
+                    '=',
+                    'ef.entrega_destino_id'
+                )
+                ->leftJoin(
+                    'romaneios as rd',
+                    'rd.id',
+                    '=',
+                    'ef.romaneio_destino_id'
+                )
+                ->whereIn(
+                    'ef.entrega_item_origem_id',
+                    $entregaItensIds->all()
+                )
+                ->where(function ($query) {
+                    $query
+                        ->whereNull('ed.status')
+                        ->orWhere(
+                            'ed.status',
+                            '<>',
+                            'Cancelada'
+                        );
+                })
+                ->where(function ($query) {
+                    $query
+                        ->whereNull('rd.status')
+                        ->orWhere(
+                            'rd.status',
+                            '<>',
+                            'Cancelado'
+                        );
+                })
+                ->groupBy(
+                    'ef.entrega_item_origem_id'
+                )
+                ->selectRaw(
+                    'ef.entrega_item_origem_id,
+                    COALESCE(SUM(ef.quantidade), 0)
+                        as quantidade'
+                )
+                ->get()
+                ->mapWithKeys(
+                    fn ($fracionamento) => [
+                        (int) $fracionamento
+                            ->entrega_item_origem_id =>
+                            round(
+                                (float) $fracionamento
+                                    ->quantidade,
+                                3
+                            ),
+                    ]
+                );
+        }
+
+        $normalizarResultado = static function (
+            $resultado
+        ): array {
+            $entregue = round(
+                (float) (
+                    $resultado?->quantidade_entregue
+                    ?? 0
+                ),
+                3
+            );
+
+            $devolvida = round(
+                (float) (
+                    $resultado?->quantidade_devolvida
+                    ?? 0
+                ),
+                3
+            );
+
+            $recusada = round(
+                (float) (
+                    $resultado?->quantidade_recusada
+                    ?? 0
+                ),
+                3
+            );
+
+            $avariada = round(
+                (float) (
+                    $resultado?->quantidade_avariada
+                    ?? 0
+                ),
+                3
+            );
+
+            $perdida = round(
+                (float) (
+                    $resultado?->quantidade_perdida
+                    ?? 0
+                ),
+                3
+            );
+
+            return [
+                'entregue' =>
+                    $entregue,
+
+                'ocorrencia' =>
+                    round(
+                        $devolvida
+                        + $recusada
+                        + $avariada
+                        + $perdida,
+                        3
+                    ),
+            ];
+        };
+
+        $statusEntregasPorId = $cadeiaEntregas
+            ->mapWithKeys(
+                fn (Entrega $entregaDaCadeia) => [
+                    (int) $entregaDaCadeia->id =>
+                        strtolower(
+                            trim(
+                                (string) $entregaDaCadeia
+                                    ->status
+                            )
+                        ),
+                ]
+            );
+
+        $contextosItensPorPrincipal = $itensDaCadeia
+            ->groupBy(
+                fn ($entregaItem) =>
+                    (int) (
+                        $entregaItem
+                            ->entrega_item_principal_id
+                        ?: $entregaItem->id
+                    )
+            )
+            ->map(function ($itensDoProduto) use (
+                $entrega,
+                $resultadosDiretosPorItem,
+                $quantidadesEncaminhadasPorItem,
+                $statusEntregasPorId,
+                $normalizarResultado
+            ) {
+                $itensAnteriores = $itensDoProduto
+                    ->where(
+                        'entrega_id',
+                        '<>',
+                        $entrega->id
+                    );
+
+                $itensAtuais = $itensDoProduto
+                    ->where(
+                        'entrega_id',
+                        $entrega->id
+                    );
+
+                $entregueAnterior = 0.0;
+                $ocorrenciaAnterior = 0.0;
+                $ocorrenciaFinalizadaAnterior = 0.0;
+
+                foreach ($itensAnteriores as $itemAnterior) {
+                    $resultado = $normalizarResultado(
+                        $resultadosDiretosPorItem->get(
+                            (int) $itemAnterior->id
+                        )
+                    );
+
+                    $entregueAnterior +=
+                        $resultado['entregue'];
+
+                    $ocorrenciaAnterior +=
+                        $resultado['ocorrencia'];
+
+                    $statusEntregaAnterior =
+                        $statusEntregasPorId->get(
+                            (int) $itemAnterior->entrega_id,
+                            ''
+                        );
+
+                    $quantidadeEncaminhadaAnterior =
+                        (float) $quantidadesEncaminhadasPorItem
+                            ->get(
+                                (int) $itemAnterior->id,
+                                0
+                            );
+
+                    if (
+                        $statusEntregaAnterior
+                            === 'entregue_finalizada_com_ocorrencia'
+                        && $quantidadeEncaminhadaAnterior
+                            < 0.001
+                    ) {
+                        $ocorrenciaFinalizadaAnterior +=
+                            $resultado['ocorrencia'];
+                    }
+                }
+
+                $entregueAtual = 0.0;
+                $ocorrenciaAtual = 0.0;
+                $previstoAtual = 0.0;
+                $encaminhadoProxima = 0.0;
+
+                foreach ($itensAtuais as $itemAtual) {
+                    $resultado = $normalizarResultado(
+                        $resultadosDiretosPorItem->get(
+                            (int) $itemAtual->id
+                        )
+                    );
+
+                    $entregueAtual +=
+                        $resultado['entregue'];
+
+                    $ocorrenciaAtual +=
+                        $resultado['ocorrencia'];
+
+                    $previstoAtual += (float) (
+                        $itemAtual->quantidade_prevista
+                        ?? 0
+                    );
+
+                    $encaminhadoProxima += (float) (
+                        $quantidadesEncaminhadasPorItem->get(
+                            (int) $itemAtual->id,
+                            0
+                        )
+                    );
+                }
+
+                $statusEntregaAtual = strtolower(
+                    trim(
+                        (string) $entrega->status
+                    )
+                );
+
+                $ocorrenciaFinalizadaAtual =
+                    $statusEntregaAtual
+                        === 'entregue_finalizada_com_ocorrencia'
+                    && $encaminhadoProxima < 0.001
+                        ? $ocorrenciaAtual
+                        : 0.0;
+
+                return [
+                    'venda_item_id' =>
+                        (int) (
+                            $itensDoProduto
+                                ->pluck('venda_item_id')
+                                ->filter()
+                                ->first()
+                            ?? 0
+                        ),
+
+                    'item_orcamento_id' =>
+                        (int) (
+                            $itensDoProduto
+                                ->pluck('item_orcamento_id')
+                                ->filter()
+                                ->first()
+                            ?? 0
+                        ),
+
+                    'possui_item_atual' =>
+                        $itensAtuais->isNotEmpty(),
+
+                    'quantidade_prevista_atual' =>
+                        round($previstoAtual, 3),
+
+                    'quantidade_entregue_anterior' =>
+                        round($entregueAnterior, 3),
+
+                    'quantidade_ocorrencia_anterior' =>
+                        round($ocorrenciaAnterior, 3),
+
+                    'quantidade_ocorrencia_finalizada_anterior' =>
+                        round(
+                            $ocorrenciaFinalizadaAnterior,
+                            3
+                        ),
+
+                    'quantidade_entregue_atual' =>
+                        round($entregueAtual, 3),
+
+                    'quantidade_ocorrencia_atual' =>
+                        round($ocorrenciaAtual, 3),
+
+                    'quantidade_ocorrencia_finalizada_atual' =>
+                        round(
+                            $ocorrenciaFinalizadaAtual,
+                            3
+                        ),
+
+                    'quantidade_encaminhada_proxima' =>
+                        round($encaminhadoProxima, 3),
+                ];
+            });
+
+        $contextosItensVenda = collect();
+        $contextosItensOrcamento = collect();
+
+        foreach (
+            $contextosItensPorPrincipal
+            as $contextoItem
+        ) {
+            if ($contextoItem['venda_item_id'] > 0) {
+                $contextosItensVenda->put(
+                    $contextoItem['venda_item_id'],
+                    $contextoItem
+                );
+            }
+
+            if ($contextoItem['item_orcamento_id'] > 0) {
+                $contextosItensOrcamento->put(
+                    $contextoItem['item_orcamento_id'],
+                    $contextoItem
+                );
+            }
+        }
+
+        /*
+        * Gera uma fotografia acumulada de cada documento da cadeia.
+        * Cada fotografia considera somente a entrega exibida e suas
+        * antecessoras, preservando a ordem cronológica do fracionamento.
+        */
+        $estadoAcumuladoPorItemPrincipal = collect();
+
+        $documentosEntregasFracionadas = $cadeiaEntregas
+            ->values()
+            ->map(function (Entrega $entregaDocumento) use (
+                &$estadoAcumuladoPorItemPrincipal,
+                $resultadosDiretosPorItem,
+                $quantidadesEncaminhadasPorItem,
+                $normalizarResultado
+            ) {
+                $movimentoAtualPorItemPrincipal = collect();
+
+                $statusEntregaDocumento = strtolower(
+                    trim(
+                        (string) $entregaDocumento->status
+                    )
+                );
+
+                foreach (
+                    $entregaDocumento->itens
+                    as $entregaItemDocumento
+                ) {
+                    $itemPrincipalId = (int) (
+                        $entregaItemDocumento
+                            ->entrega_item_principal_id
+                        ?: $entregaItemDocumento->id
+                    );
+
+                    $resultadoDocumento = $normalizarResultado(
+                        $resultadosDiretosPorItem->get(
+                            (int) $entregaItemDocumento->id
+                        )
+                    );
+
+                    $quantidadeEncaminhada = round(
+                        (float) $quantidadesEncaminhadasPorItem
+                            ->get(
+                                (int) $entregaItemDocumento->id,
+                                0
+                            ),
+                        3
+                    );
+
+                    $ocorrenciaFinalizada =
+                        $statusEntregaDocumento
+                            === 'entregue_finalizada_com_ocorrencia'
+                        && $quantidadeEncaminhada < 0.001
+                            ? $resultadoDocumento['ocorrencia']
+                            : 0.0;
+
+                    $estadoAnterior = $estadoAcumuladoPorItemPrincipal
+                        ->get(
+                            $itemPrincipalId,
+                            [
+                                'venda_item_id' =>
+                                    0,
+
+                                'item_orcamento_id' =>
+                                    0,
+
+                                'quantidade_entregue' =>
+                                    0.0,
+
+                                'quantidade_ocorrencia' =>
+                                    0.0,
+
+                                'quantidade_ocorrencia_finalizada' =>
+                                    0.0,
+                            ]
+                        );
+
+                    $movimentoAnterior = $movimentoAtualPorItemPrincipal
+                        ->get(
+                            $itemPrincipalId,
+                            [
+                                'quantidade_prevista' =>
+                                    0.0,
+
+                                'quantidade_entregue' =>
+                                    0.0,
+
+                                'quantidade_ocorrencia' =>
+                                    0.0,
+
+                                'quantidade_ocorrencia_finalizada' =>
+                                    0.0,
+
+                                'quantidade_encaminhada' =>
+                                    0.0,
+
+                                'status_operacional' =>
+                                    'pendente',
+                            ]
+                        );
+
+                    $statusOperacional = strtolower(
+                        trim(
+                            str_replace(
+                                ' ',
+                                '_',
+                                (string) (
+                                    $entregaItemDocumento->status
+                                    ?? 'pendente'
+                                )
+                            )
+                        )
+                    );
+
+                    $movimentoAtualPorItemPrincipal->put(
+                        $itemPrincipalId,
+                        [
+                            'quantidade_prevista' =>
+                                round(
+                                    $movimentoAnterior[
+                                        'quantidade_prevista'
+                                    ]
+                                    + (float) $entregaItemDocumento
+                                        ->quantidade_prevista,
+                                    3
+                                ),
+
+                            'quantidade_entregue' =>
+                                round(
+                                    $movimentoAnterior[
+                                        'quantidade_entregue'
+                                    ]
+                                    + $resultadoDocumento['entregue'],
+                                    3
+                                ),
+
+                            'quantidade_ocorrencia' =>
+                                round(
+                                    $movimentoAnterior[
+                                        'quantidade_ocorrencia'
+                                    ]
+                                    + $resultadoDocumento['ocorrencia'],
+                                    3
+                                ),
+
+                            'quantidade_ocorrencia_finalizada' =>
+                                round(
+                                    $movimentoAnterior[
+                                        'quantidade_ocorrencia_finalizada'
+                                    ]
+                                    + $ocorrenciaFinalizada,
+                                    3
+                                ),
+
+                            'quantidade_encaminhada' =>
+                                round(
+                                    $movimentoAnterior[
+                                        'quantidade_encaminhada'
+                                    ]
+                                    + $quantidadeEncaminhada,
+                                    3
+                                ),
+
+                            'status_operacional' =>
+                                $statusOperacional,
+                        ]
+                    );
+
+                    $estadoAcumuladoPorItemPrincipal->put(
+                        $itemPrincipalId,
+                        [
+                            'venda_item_id' =>
+                                (int) (
+                                    $entregaItemDocumento
+                                        ->venda_item_id
+                                    ?: $estadoAnterior[
+                                        'venda_item_id'
+                                    ]
+                                ),
+
+                            'item_orcamento_id' =>
+                                (int) (
+                                    $entregaItemDocumento
+                                        ->item_orcamento_id
+                                    ?: $estadoAnterior[
+                                        'item_orcamento_id'
+                                    ]
+                                ),
+
+                            'quantidade_entregue' =>
+                                round(
+                                    $estadoAnterior[
+                                        'quantidade_entregue'
+                                    ]
+                                    + $resultadoDocumento['entregue'],
+                                    3
+                                ),
+
+                            'quantidade_ocorrencia' =>
+                                round(
+                                    $estadoAnterior[
+                                        'quantidade_ocorrencia'
+                                    ]
+                                    + $resultadoDocumento['ocorrencia'],
+                                    3
+                                ),
+
+                            'quantidade_ocorrencia_finalizada' =>
+                                round(
+                                    $estadoAnterior[
+                                        'quantidade_ocorrencia_finalizada'
+                                    ]
+                                    + $ocorrenciaFinalizada,
+                                    3
+                                ),
+                        ]
+                    );
+                }
+
+                $contextosVendaDocumento = collect();
+                $contextosOrcamentoDocumento = collect();
+
+                foreach (
+                    $estadoAcumuladoPorItemPrincipal
+                    as $itemPrincipalId => $estadoAcumulado
+                ) {
+                    $movimentoAtual = $movimentoAtualPorItemPrincipal
+                        ->get(
+                            $itemPrincipalId,
+                            [
+                                'quantidade_prevista' =>
+                                    0.0,
+
+                                'quantidade_entregue' =>
+                                    0.0,
+
+                                'quantidade_ocorrencia' =>
+                                    0.0,
+
+                                'quantidade_ocorrencia_finalizada' =>
+                                    0.0,
+
+                                'quantidade_encaminhada' =>
+                                    0.0,
+
+                                'status_operacional' =>
+                                    'pendente',
+                            ]
+                        );
+
+                    $contextoDocumento = [
+                        'venda_item_id' =>
+                            $estadoAcumulado['venda_item_id'],
+
+                        'item_orcamento_id' =>
+                            $estadoAcumulado['item_orcamento_id'],
+
+                        'possui_item_atual' =>
+                            $movimentoAtualPorItemPrincipal
+                                ->has($itemPrincipalId),
+
+                        'quantidade_prevista_atual' =>
+                            $movimentoAtual[
+                                'quantidade_prevista'
+                            ],
+
+                        'quantidade_entregue_anterior' =>
+                            round(
+                                $estadoAcumulado[
+                                    'quantidade_entregue'
+                                ]
+                                - $movimentoAtual[
+                                    'quantidade_entregue'
+                                ],
+                                3
+                            ),
+
+                        'quantidade_ocorrencia_anterior' =>
+                            round(
+                                $estadoAcumulado[
+                                    'quantidade_ocorrencia'
+                                ]
+                                - $movimentoAtual[
+                                    'quantidade_ocorrencia'
+                                ],
+                                3
+                            ),
+
+                        'quantidade_ocorrencia_finalizada_anterior' =>
+                            round(
+                                $estadoAcumulado[
+                                    'quantidade_ocorrencia_finalizada'
+                                ]
+                                - $movimentoAtual[
+                                    'quantidade_ocorrencia_finalizada'
+                                ],
+                                3
+                            ),
+
+                        'quantidade_entregue_atual' =>
+                            $movimentoAtual[
+                                'quantidade_entregue'
+                            ],
+
+                        'quantidade_ocorrencia_atual' =>
+                            $movimentoAtual[
+                                'quantidade_ocorrencia'
+                            ],
+
+                        'quantidade_ocorrencia_finalizada_atual' =>
+                            $movimentoAtual[
+                                'quantidade_ocorrencia_finalizada'
+                            ],
+
+                        'quantidade_encaminhada_proxima' =>
+                            $movimentoAtual[
+                                'quantidade_encaminhada'
+                            ],
+
+                        'status_operacional_atual' =>
+                            $movimentoAtual[
+                                'status_operacional'
+                            ],
+                    ];
+
+                    if ($contextoDocumento['venda_item_id'] > 0) {
+                        $contextosVendaDocumento->put(
+                            $contextoDocumento['venda_item_id'],
+                            $contextoDocumento
+                        );
+                    }
+
+                    if (
+                        $contextoDocumento[
+                            'item_orcamento_id'
+                        ] > 0
+                    ) {
+                        $contextosOrcamentoDocumento->put(
+                            $contextoDocumento[
+                                'item_orcamento_id'
+                            ],
+                            $contextoDocumento
+                        );
+                    }
+                }
+
+                return [
+                    'entrega' =>
+                        $entregaDocumento,
+
+                    'contextos_venda' =>
+                        $contextosVendaDocumento,
+
+                    'contextos_orcamento' =>
+                        $contextosOrcamentoDocumento,
+                ];
+            });
+
+        if ($romaneio) {
+            $romaneiosPorEntrega->put(
+                (int) $entrega->id,
+                $romaneio
+            );
+        }
+
+        $statusEntregaAtualHistorico = strtolower(
+            trim(
+                str_replace(
+                    ' ',
+                    '_',
+                    (string) ($entrega->status ?? '')
+                )
+            )
+        );
+
+        $statusRomaneioAtualHistorico = strtolower(
+            trim(
+                str_replace(
+                    ' ',
+                    '_',
+                    (string) ($romaneio?->status ?? '')
+                )
+            )
+        );
+
+        $entregaAtualFinalizada = in_array(
+            $statusEntregaAtualHistorico,
+            [
+                'entregue',
+                'entregue_finalizada_com_ocorrencia',
+                'nao_entregue',
+                'recusada',
+                'devolvida',
+                'cancelada',
+            ],
+            true
+        );
+
+        $romaneioAtualFinalizado = in_array(
+            $statusRomaneioAtualHistorico,
+            [
+                'fechado',
+                'cancelado',
+            ],
+            true
+        );
+
+        $incluirEntregaAtualNoHistorico =
+            $entregaAtualFinalizada
+            || $romaneioAtualFinalizado;
+
+        $historicoEntregasFracionadas = $cadeiaEntregas
+            ->filter(
+                fn (Entrega $entregaHistorica) =>
+                    (int) $entregaHistorica->id
+                        !== (int) $entrega->id
+                    || $incluirEntregaAtualNoHistorico
+            )
+            ->values()
+            ->map(function (Entrega $entregaHistorica) use (
+                $romaneiosPorEntrega,
+                $resultadosDiretosPorItem,
+                $quantidadesEncaminhadasPorItem,
+                $normalizarResultado
+            ) {
+                $itensHistoricos = $entregaHistorica->itens
+                    ->map(function ($entregaItem) use (
+                        $resultadosDiretosPorItem,
+                        $quantidadesEncaminhadasPorItem,
+                        $normalizarResultado
+                    ) {
+                        $resultado = $normalizarResultado(
+                            $resultadosDiretosPorItem->get(
+                                (int) $entregaItem->id
+                            )
+                        );
+
+                        $produto = $entregaItem
+                            ->vendaItem
+                            ?->produto
+                            ?? $entregaItem
+                                ->itemOrcamento
+                                ?->produto;
+
+                        return [
+                            'produto' =>
+                                $produto?->nome
+                                ?? $produto?->descricao
+                                ?? 'Produto não identificado',
+
+                            'previsto' =>
+                                round(
+                                    (float) $entregaItem
+                                        ->quantidade_prevista,
+                                    3
+                                ),
+
+                            'entregue' =>
+                                $resultado['entregue'],
+
+                            'ocorrencia' =>
+                                $resultado['ocorrencia'],
+
+                            'encaminhado' =>
+                                round(
+                                    (float) $quantidadesEncaminhadasPorItem
+                                        ->get(
+                                            (int) $entregaItem->id,
+                                            0
+                                        ),
+                                    3
+                                ),
+                        ];
+                    })
+                    ->values();
+
+                $romaneioHistorico = $romaneiosPorEntrega->get(
+                    (int) $entregaHistorica->id
+                );
+
+                return [
+                    'entrega' =>
+                        $entregaHistorica,
+
+                    'romaneio' =>
+                        $romaneioHistorico,
+
+                    'itens' =>
+                        $itensHistoricos,
+
+                    'quantidade_entregue' =>
+                        round(
+                            (float) $itensHistoricos
+                                ->sum('entregue'),
+                            3
+                        ),
+
+                    'quantidade_encaminhada' =>
+                        round(
+                            (float) $entregaHistorica
+                                ->itens
+                                ->sum(
+                                    fn ($entregaItem) =>
+                                        (float) $quantidadesEncaminhadasPorItem
+                                            ->get(
+                                                (int) $entregaItem->id,
+                                                0
+                                            )
+                                ),
+                            3
+                        ),
+                ];
+            });
 
         return view(
             'entregas.show',
             compact(
                 'entrega',
-                'resultadosItens'
+                'resultadosItens',
+                'contextosItensVenda',
+                'contextosItensOrcamento',
+                'documentosEntregasFracionadas',
+                'historicoEntregasFracionadas'
             )
         );
     }
