@@ -26,6 +26,9 @@ class Entrega extends Model
     'tipo_entrega',
     'usar_endereco_cliente',
     'endereco_entrega',
+    'latitude_entrega',
+    'longitude_entrega',
+    'coordenada_confirmada',
     'responsavel_recebimento',
     'telefone_recebimento',
     'motorista_id',
@@ -44,6 +47,9 @@ class Entrega extends Model
         'cobrar_frete' => 'boolean',
         'valor_frete' => 'decimal:2',
         'ordem_rota' => 'integer',
+        'latitude_entrega' => 'decimal:7',
+        'longitude_entrega' => 'decimal:7',
+        'coordenada_confirmada' => 'boolean',
     ];
 
     public function entregaOrigem()
@@ -151,7 +157,7 @@ class Entrega extends Model
         return $this->belongsTo(Venda::class, 'venda_id');
     }
 
-  public function scopePendentes($query)
+    public function scopePendentes($query)
     {
         return $query->where('status', 'Pendente');
     }

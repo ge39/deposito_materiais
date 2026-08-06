@@ -1,6 +1,6 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 <style>
     .orcamento-create-page {
         --orc-primary: #2563eb;
@@ -368,7 +368,7 @@
 
 <div class="container-fluid px-3 px-xl-4 orcamento-create-page">
 
-    {{-- CABEÇALHO --}}
+    
     <div class="page-heading d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
         <div>
             <h2 class="mb-1">
@@ -380,21 +380,22 @@
             </p>
         </div>
 
-        <a href="{{ route('orcamentos.index') }}" class="btn btn-secondary btn-sm px-3">
+        <a href="<?php echo e(route('orcamentos.index')); ?>" class="btn btn-secondary btn-sm px-3">
             <i class="bi bi-arrow-left-circle me-1"></i>
             Voltar
         </a>
     </div>
 
-    {{-- ALERTAS --}}
-    @if(session('success'))
+    
+    <?php if(session('success')): ?>
         <div class="alert alert-success shadow-sm">
             <i class="bi bi-check-circle me-1"></i>
-            {{ session('success') }}
-        </div>
-    @endif
+            <?php echo e(session('success')); ?>
 
-    @if ($errors->any())
+        </div>
+    <?php endif; ?>
+
+    <?php if($errors->any()): ?>
         <div class="alert alert-danger shadow-sm">
             <strong>
                 <i class="bi bi-exclamation-triangle me-1"></i>
@@ -402,14 +403,14 @@
             </strong>
             Verifique os campos obrigatórios.
             <ul class="mb-0 mt-2">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
+                <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><?php echo e($error); ?></li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </ul>
         </div>
-    @endif
+    <?php endif; ?>
 
-    {{-- CARDS INFORMATIVOS --}}
+    
     <div class="row g-2 mb-3">
         <div class="col-6 col-lg-3">
             <div class="card info-card h-100">
@@ -468,8 +469,8 @@
         </div>
     </div>
 
-    <form action="{{ route('orcamentos.store') }}" method="POST" id="formOrcamento">
-        @csrf
+    <form action="<?php echo e(route('orcamentos.store')); ?>" method="POST" id="formOrcamento">
+        <?php echo csrf_field(); ?>
 
         <div class="card main-form-card mb-3">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
@@ -485,7 +486,7 @@
 
             <div class="card-body">
 
-                {{-- Cliente e Datas --}}
+                
                 <div class="form-section mb-3">
                     <h5 class="mb-3 text-primary">
                         <i class="bi bi-person-lines-fill me-1"></i>
@@ -497,35 +498,36 @@
                             <label class="form-label">Cliente *</label>
                             <select name="cliente_id" id="clienteSelect" class="form-select" required>
                                 <option value="">Selecione...</option>
-                                @foreach($clientes as $cliente)
+                                <?php $__currentLoopData = $clientes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cliente): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option
-                                        value="{{ $cliente->id }}"
-                                        @selected((string) old('cliente_id') === (string) $cliente->id)
-                                        data-endereco="{{ $cliente->endereco ?? '' }}"
-                                        data-numero="{{ $cliente->numero ?? '' }}"
-                                        data-complemento="{{ $cliente->complemento ?? '' }}"
-                                        data-bairro="{{ $cliente->bairro ?? '' }}"
-                                        data-cidade="{{ $cliente->cidade ?? '' }}"
-                                        data-estado="{{ $cliente->estado ?? '' }}"
-                                        data-cep="{{ $cliente->cep ?? '' }}"
-                                        data-telefone="{{ $cliente->telefone ?? '' }}"
+                                        value="<?php echo e($cliente->id); ?>"
+                                        <?php if((string) old('cliente_id') === (string) $cliente->id): echo 'selected'; endif; ?>
+                                        data-endereco="<?php echo e($cliente->endereco ?? ''); ?>"
+                                        data-numero="<?php echo e($cliente->numero ?? ''); ?>"
+                                        data-complemento="<?php echo e($cliente->complemento ?? ''); ?>"
+                                        data-bairro="<?php echo e($cliente->bairro ?? ''); ?>"
+                                        data-cidade="<?php echo e($cliente->cidade ?? ''); ?>"
+                                        data-estado="<?php echo e($cliente->estado ?? ''); ?>"
+                                        data-cep="<?php echo e($cliente->cep ?? ''); ?>"
+                                        data-telefone="<?php echo e($cliente->telefone ?? ''); ?>"
                                     >
-                                        {{ $cliente->nome }}
+                                        <?php echo e($cliente->nome); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
 
                         <div class="col-md-3">
                             <label class="form-label">Data</label>
                             <input type="date" name="data_orcamento" class="form-control"
-                                   value="{{ old('data_orcamento', date('Y-m-d')) }}">
+                                   value="<?php echo e(old('data_orcamento', date('Y-m-d'))); ?>">
                         </div>
 
                         <div class="col-md-3">
                             <label class="form-label">Validade</label>
                             <input type="date" name="validade" class="form-control"
-                                   value="{{ old('validade', date('Y-m-d', strtotime('+7 days'))) }}">
+                                   value="<?php echo e(old('validade', date('Y-m-d', strtotime('+7 days')))); ?>">
                         </div>
 
                         <div class="col-md-2 d-flex align-items-end">
@@ -537,7 +539,7 @@
                     </div>
                 </div>
 
-                {{-- Tipo de Atendimento / Entrega --}}
+                
                 <div class="form-section mb-3">
                     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
                         <h5 class="mb-0">
@@ -555,13 +557,13 @@
                                 Forma de Entrega <span class="text-danger">*</span>
                             </label>
                             <select name="tipo_entrega" id="tipo_entrega" class="form-select" required>
-                                <option value="" disabled @selected(! old('tipo_entrega'))>
+                                <option value="" disabled <?php if(! old('tipo_entrega')): echo 'selected'; endif; ?>>
                                     Selecione...
                                 </option>
-                                <option value="retira_loja" @selected(old('tipo_entrega') === 'retira_loja')>
+                                <option value="retira_loja" <?php if(old('tipo_entrega') === 'retira_loja'): echo 'selected'; endif; ?>>
                                     Retira Loja
                                 </option>
-                                <option value="entrega" @selected(old('tipo_entrega') === 'entrega')>
+                                <option value="entrega" <?php if(old('tipo_entrega') === 'entrega'): echo 'selected'; endif; ?>>
                                     Entrega
                                 </option>
                             </select>
@@ -579,10 +581,10 @@
                                     id="usar_endereco_cadastrado"
                                     class="form-select"
                                 >
-                                    <option value="sim" @selected(old('usar_endereco_cliente', 'sim') === 'sim')>
+                                    <option value="sim" <?php if(old('usar_endereco_cliente', 'sim') === 'sim'): echo 'selected'; endif; ?>>
                                         Sim, usar endereço cadastrado
                                     </option>
-                                    <option value="nao" @selected(old('usar_endereco_cliente') === 'nao')>
+                                    <option value="nao" <?php if(old('usar_endereco_cliente') === 'nao'): echo 'selected'; endif; ?>>
                                         Não, informar outro endereço
                                     </option>
                                 </select>
@@ -597,7 +599,7 @@
                                     name="data_prevista_entrega"
                                     id="data_prevista_entrega"
                                     class="form-control"
-                                    value="{{ old('data_prevista_entrega') }}"
+                                    value="<?php echo e(old('data_prevista_entrega')); ?>"
                                 >
                             </div>
 
@@ -611,13 +613,13 @@
                                     class="form-select"
                                 >
                                     <option value="">Selecione...</option>
-                                    <option value="manha" @selected(old('periodo_entrega') === 'manha')>
+                                    <option value="manha" <?php if(old('periodo_entrega') === 'manha'): echo 'selected'; endif; ?>>
                                         Manhã
                                     </option>
-                                    <option value="tarde" @selected(old('periodo_entrega') === 'tarde')>
+                                    <option value="tarde" <?php if(old('periodo_entrega') === 'tarde'): echo 'selected'; endif; ?>>
                                         Tarde
                                     </option>
-                                    <option value="comercial" @selected(old('periodo_entrega') === 'comercial')>
+                                    <option value="comercial" <?php if(old('periodo_entrega') === 'comercial'): echo 'selected'; endif; ?>>
                                         Horário Comercial
                                     </option>
                                 </select>
@@ -671,7 +673,7 @@
                                             name="cep_entrega"
                                             id="cep_entrega"
                                             class="form-control"
-                                            value="{{ old('cep_entrega') }}"
+                                            value="<?php echo e(old('cep_entrega')); ?>"
                                             placeholder="00000-000"
                                             inputmode="numeric"
                                             maxlength="9"
@@ -700,7 +702,7 @@
                                         name="endereco_entrega"
                                         id="endereco_entrega"
                                         class="form-control"
-                                        value="{{ old('endereco_entrega') }}"
+                                        value="<?php echo e(old('endereco_entrega')); ?>"
                                         placeholder="Rua, avenida ou estrada"
                                         autocomplete="address-line1"
                                     >
@@ -715,7 +717,7 @@
                                         name="numero_entrega"
                                         id="numero_entrega"
                                         class="form-control"
-                                        value="{{ old('numero_entrega') }}"
+                                        value="<?php echo e(old('numero_entrega')); ?>"
                                         placeholder="Número ou S/N"
                                         autocomplete="address-line2"
                                     >
@@ -728,7 +730,7 @@
                                         name="complemento_entrega"
                                         id="complemento_entrega"
                                         class="form-control"
-                                        value="{{ old('complemento_entrega') }}"
+                                        value="<?php echo e(old('complemento_entrega')); ?>"
                                         placeholder="Casa, bloco, sala ou referência"
                                     >
                                 </div>
@@ -742,7 +744,7 @@
                                         name="bairro_entrega"
                                         id="bairro_entrega"
                                         class="form-control"
-                                        value="{{ old('bairro_entrega') }}"
+                                        value="<?php echo e(old('bairro_entrega')); ?>"
                                         autocomplete="address-level3"
                                     >
                                 </div>
@@ -756,7 +758,7 @@
                                         name="cidade_entrega"
                                         id="cidade_entrega"
                                         class="form-control"
-                                        value="{{ old('cidade_entrega') }}"
+                                        value="<?php echo e(old('cidade_entrega')); ?>"
                                         autocomplete="address-level2"
                                     >
                                 </div>
@@ -770,7 +772,7 @@
                                         name="uf_entrega"
                                         id="uf_entrega"
                                         class="form-control text-uppercase"
-                                        value="{{ old('uf_entrega') }}"
+                                        value="<?php echo e(old('uf_entrega')); ?>"
                                         placeholder="UF"
                                         maxlength="2"
                                         autocomplete="address-level1"
@@ -783,28 +785,29 @@
                             type="text"
                             name="latitude_entrega"
                             id="latitude_entrega"
-                            value="{{ old('latitude_entrega') }}"
+                            value="<?php echo e(old('latitude_entrega')); ?>"
                         >
 
                         <input
                             type="text"
                             name="longitude_entrega"
                             id="longitude_entrega"
-                            value="{{ old('longitude_entrega') }}"
+                            value="<?php echo e(old('longitude_entrega')); ?>"
                         >
 
                         <input
                             type="hidden"
                             name="coordenada_confirmada"
                             id="coordenada_confirmada"
-                            value="{{ old('coordenada_confirmada', '0') }}"
+                            value="<?php echo e(old('coordenada_confirmada', '0')); ?>"
                         >
 
                         <div id="coordenadaEntregaStatus"
-                             class="coordinate-status mt-2 {{ $errors->has('coordenada_entrega') ? 'is-error' : '' }}"
+                             class="coordinate-status mt-2 <?php echo e($errors->has('coordenada_entrega') ? 'is-error' : ''); ?>"
                              aria-live="polite">
-                            {{ $errors->first('coordenada_entrega')
-                                ?: 'A localização será preenchida automaticamente pelo endereço.' }}
+                            <?php echo e($errors->first('coordenada_entrega')
+                                ?: 'A localização será preenchida automaticamente pelo endereço.'); ?>
+
                         </div>
 
                         <div class="row g-3 mt-0">
@@ -817,7 +820,7 @@
                                     name="contato_entrega"
                                     id="contato_entrega"
                                     class="form-control"
-                                    value="{{ old('contato_entrega') }}"
+                                    value="<?php echo e(old('contato_entrega')); ?>"
                                     placeholder="Nome de quem receberá o pedido"
                                 >
                             </div>
@@ -831,7 +834,7 @@
                                     name="telefone_entrega"
                                     id="telefone_entrega"
                                     class="form-control"
-                                    value="{{ old('telefone_entrega') }}"
+                                    value="<?php echo e(old('telefone_entrega')); ?>"
                                     placeholder="(00) 00000-0000"
                                     inputmode="tel"
                                     autocomplete="tel"
@@ -848,13 +851,13 @@
                                     class="form-control"
                                     rows="2"
                                     placeholder="Referência, restrição de acesso ou horário combinado"
-                                >{{ old('observacao_entrega') }}</textarea>
+                                ><?php echo e(old('observacao_entrega')); ?></textarea>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                            {{-- Itens --}}
+                            
                             <div class="form-section mb-3">
                                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
                                     <h5 class="mb-0">
@@ -888,15 +891,15 @@
                                 </div>
                             </div>
 
-                            {{-- Resumo Financeiro --}}
+                            
                             <div class="financial-summary-card">
-                                {{-- Linha 1: cabeçalho --}}
+                                
                                 <div class="financial-summary-header">
                                     <i class="bi bi-cash-coin"></i>
                                     <span>Resumo Financeiro</span>
                                 </div>
 
-                                {{-- Linha 2: três divisões laterais --}}
+                                
                                 <div class="financial-summary-data">
                                     <div class="financial-data-column">
                                         <span class="financial-data-label">
@@ -941,9 +944,9 @@
                             <input type="hidden" name="total_desconto_calculado" id="totalDescontoInput" value="0.00">
                             <input type="hidden" name="total_liquido_calculado" id="totalLiquidoInput" value="0.00">
 
-                            {{-- Botões --}}
+                            
                             <div class="action-footer d-flex flex-column-reverse flex-sm-row justify-content-end gap-2">
-                                <a href="{{ route('orcamentos.index') }}" class="btn btn-outline-secondary px-4">
+                                <a href="<?php echo e(route('orcamentos.index')); ?>" class="btn btn-outline-secondary px-4">
                                     <i class="bi bi-arrow-left-circle me-1"></i>
                                     Cancelar
                                 </a>
@@ -966,7 +969,7 @@
 <script>
   document.addEventListener('DOMContentLoaded', () => {
 
-        const produtos = @json($produtos);
+        const produtos = <?php echo json_encode($produtos, 15, 512) ?>;
         const tableBody = document.getElementById('itensContainer');
         const addBtn = document.getElementById('addProduto');
         const clienteSelect = document.getElementById('clienteSelect');
@@ -1775,9 +1778,9 @@
 
         const configuracaoGeocodificacao = {
             cepUrl: 'https://cep.awesomeapi.com.br/json/',
-            url: @json((string) config('openstreetmap.geocoding_url')),
+            url: <?php echo json_encode((string) config('openstreetmap.geocoding_url'), 15, 512) ?>,
             intervalo: Math.max(
-                {{ (int) config('openstreetmap.geocoding_interval_ms') }},
+                <?php echo e((int) config('openstreetmap.geocoding_interval_ms')); ?>,
                 1000
             ),
         };
@@ -2453,6 +2456,7 @@
         });
     }
 </script>
-<script src="{{ asset('js/orcamento.js') }}"></script>
+<script src="<?php echo e(asset('js/orcamento.js')); ?>"></script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/orcamentos/create.blade.php ENDPATH**/ ?>

@@ -47,62 +47,6 @@ class OrcamentoService
 
  
     /* =========================================
-     | DADOS CREATE
-     ========================================= */
-    // public function dadosParaCriacao()
-    // {
-    //     return [
-    //         // Busca todos os clientes ordenados por nome
-    //         'clientes' => Cliente::orderBy('nome')->get(),
-
-    //         'produtos' => Produto::with([
-    //             'lotes' => function ($q) {
-
-    //                 $q->where('status', 1) // Apenas lotes ativos
-
-    //                 // Garante que há estoque disponível (quantidade - reservado > 0)
-    //                 ->whereRaw('(quantidade - quantidade_reservada) > 0')
-
-    //                 // Regra principal: controle de validade depende do produto
-    //                 ->where(function ($q2) {
-
-    //                     // 🔹 CASO 1: Produto controla validade (controla_validade = 1)
-    //                     $q2->where(function ($q3) {
-
-    //                         $q3->whereHas('produto', function ($p) {
-    //                             $p->where('controla_validade', 1);
-    //                         })
-
-    //                         // Só traz lotes dentro da validade
-    //                         ->whereDate('validade_lote', '>=', now());
-
-    //                         // Se quiser considerar lotes sem validade como válidos, descomente:
-    //                         // ->orWhereNull('validade_lote');
-    //                     })
-
-    //                     // 🔹 CASO 2: Produto NÃO controla validade (controla_validade = 0)
-    //                     ->orWhere(function ($q3) {
-
-    //                         $q3->whereHas('produto', function ($p) {
-    //                             $p->where('controla_validade', 0);
-    //                         });
-
-    //                         // Aqui NÃO aplicamos nenhum filtro de validade
-    //                         // Ou seja, todos os lotes entram independentemente da data
-    //                     });
-    //                 })
-
-    //                 // Ordena os lotes pelo ID (mais antigos primeiro)
-    //                 ->orderBy('id', 'asc');
-    //             }
-    //         ])
-
-    //         // Ordena os produtos pelo nome
-    //         ->orderBy('nome')->get(),
-    //     ];
-    // }
-
-    /* =========================================
     | DADOS CREATE
     ========================================= */
     public function dadosParaCriacao()
@@ -127,200 +71,519 @@ class OrcamentoService
             'produtos' => Produto::with([
                 'lotes' => function ($q) {
                     $q->where('status', 1)
-                        ->whereRaw('(quantidade - quantidade_reservada) > 0')
+                        ->whereRaw(
+                            '(quantidade - quantidade_reservada) > 0'
+                        )
                         ->where(function ($q2) {
-                            $q2->where(function ($q3) {
-                                $q3->whereHas('produto', function ($p) {
-                                    $p->where('controla_validade', 1);
+                            $q2
+                                ->where(function ($q3) {
+                                    $q3
+                                        ->whereHas(
+                                            'produto',
+                                            function ($produto) {
+                                                $produto->where(
+                                                    'controla_validade',
+                                                    1
+                                                );
+                                            }
+                                        )
+                                        ->whereDate(
+                                            'validade_lote',
+                                            '>=',
+                                            now()
+                                        );
                                 })
-                                ->whereDate('validade_lote', '>=', now());
-                            })
-                            ->orWhere(function ($q3) {
-                                $q3->whereHas('produto', function ($p) {
-                                    $p->where('controla_validade', 0);
+                                ->orWhere(function ($q3) {
+                                    $q3->whereHas(
+                                        'produto',
+                                        function ($produto) {
+                                            $produto->where(
+                                                'controla_validade',
+                                                0
+                                            );
+                                        }
+                                    );
                                 });
-                            });
                         })
                         ->orderBy('id', 'asc');
-                }
+                },
             ])
-            ->orderBy('nome')
-            ->get(),
+                ->orderBy('nome')
+                ->get(),
         ];
     }
 
     // Dados do metodo CREATE
-    public function criarCompleto(array $request)
+   public function criarCompleto(array $request)
     {
         return DB::transaction(function () use ($request) {
+            $empresa = Empresa::where('ativo', 1)
+                ->firstOrFail();
 
-            $empresa = Empresa::where('ativo', 1)->firstOrFail();
+            $tipoEntrega =
+                $request['tipo_entrega']
+                ?? 'retira_loja';
 
-            $descontoGlobal = (float) ($request['desconto_global'] ?? 0);
+            $usarEnderecoCliente =
+                ($request['usar_endereco_cliente'] ?? 'sim') === 'nao'
+                    ? 'nao'
+                    : 'sim';
 
-            // $tipoEntrega = $request['tipo_entrega'] ?? 'retira_loja';
-            $tipoEntrega = $request['tipo_entrega'] ?? 'retira_loja';
+            $cliente = Cliente::findOrFail(
+                $request['cliente_id']
+            );
 
-            $cliente = Cliente::findOrFail($request['cliente_id']);
+            $enderecoEntrega = null;
+            $responsavelRecebimento = null;
+            $telefoneRecebimento = null;
+            $dataPrevistaEntrega = null;
+            $periodoEntrega = null;
+            $observacaoEntrega = null;
 
-            $usarEnderecoCliente = $request['usar_endereco_cliente'] ?? 'sim';
-            
-           $enderecoEntrega = null;
+            if ($tipoEntrega === 'entrega') {
+                if (empty($request['data_prevista_entrega'])) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'data_prevista_entrega' =>
+                            'A data prevista da entrega é obrigatória.',
+                    ]);
+                }
 
-           if ($usarEnderecoCliente === 'nao') {
-            $enderecoEntrega = collect([
-                $request['endereco_entrega'] ?? null,
-                !empty($request['numero_entrega']) ? 'Nº ' . $request['numero_entrega'] : null,
-                $request['complemento_entrega'] ?? null,
-                $request['bairro_entrega'] ?? null,
-                $request['cidade_entrega'] ?? null,
-                $request['cep_entrega'] ?? null,
-            ])
-            ->map(fn ($valor) => trim((string) $valor, " \t\n\r\0\x0B,"))
-            ->filter()
-            ->implode(', ');
-        }
+                if (empty($request['periodo_entrega'])) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'periodo_entrega' =>
+                            'O período da entrega é obrigatório.',
+                    ]);
+                }
 
-            $cliente->update([
-                'endereco_entrega' => $enderecoEntrega,
-            ]);
+                $dataPrevistaEntrega =
+                    $request['data_prevista_entrega'];
+
+                $periodoEntrega =
+                    $request['periodo_entrega'];
+
+                $observacaoEntrega = trim(
+                    (string) (
+                        $request['observacao_entrega']
+                        ?? ''
+                    )
+                ) ?: null;
+
+                if ($usarEnderecoCliente === 'nao') {
+                    $camposObrigatorios = [
+                        'cep_entrega' =>
+                            'Informe o CEP da entrega.',
+
+                        'endereco_entrega' =>
+                            'Informe o logradouro da entrega.',
+
+                        'numero_entrega' =>
+                            'Informe o número da entrega.',
+
+                        'bairro_entrega' =>
+                            'Informe o bairro da entrega.',
+
+                        'cidade_entrega' =>
+                            'Informe a cidade da entrega.',
+
+                        'uf_entrega' =>
+                            'Informe a UF da entrega.',
+                    ];
+
+                    foreach (
+                        $camposObrigatorios
+                        as $campo => $mensagem
+                    ) {
+                        if (
+                            trim(
+                                (string) (
+                                    $request[$campo]
+                                    ?? ''
+                                )
+                            ) === ''
+                        ) {
+                            throw \Illuminate\Validation\ValidationException::withMessages([
+                                $campo => $mensagem,
+                            ]);
+                        }
+                    }
+
+                    $cepNumerico = preg_replace(
+                        '/\D/',
+                        '',
+                        (string) $request['cep_entrega']
+                    );
+
+                    if (strlen($cepNumerico) !== 8) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'cep_entrega' =>
+                                'O CEP da entrega deve possuir 8 números.',
+                        ]);
+                    }
+
+                    $cepFormatado =
+                        substr($cepNumerico, 0, 5)
+                        . '-'
+                        . substr($cepNumerico, 5, 3);
+
+                    $ufEntrega = strtoupper(
+                        trim(
+                            (string) $request['uf_entrega']
+                        )
+                    );
+
+                    if (strlen($ufEntrega) !== 2) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'uf_entrega' =>
+                                'A UF da entrega deve possuir 2 letras.',
+                        ]);
+                    }
+
+                    $cidadeUf = trim(
+                        (string) $request['cidade_entrega']
+                    )
+                        . ' - '
+                        . $ufEntrega;
+
+                    $enderecoEntrega = collect([
+                        trim(
+                            (string) $request['endereco_entrega']
+                        ),
+
+                        'Nº '
+                            . trim(
+                                (string) $request['numero_entrega']
+                            ),
+
+                        trim(
+                            (string) (
+                                $request['complemento_entrega']
+                                ?? ''
+                            )
+                        ) ?: null,
+
+                        trim(
+                            (string) $request['bairro_entrega']
+                        ),
+
+                        $cidadeUf,
+
+                        'CEP ' . $cepFormatado,
+                    ])
+                        ->map(
+                            fn ($valor) =>
+                                trim(
+                                    (string) $valor,
+                                    " \t\n\r\0\x0B,"
+                                )
+                        )
+                        ->filter()
+                        ->implode(', ');
+                } else {
+                    $cepNumerico = preg_replace(
+                        '/\D/',
+                        '',
+                        (string) ($cliente->cep ?? '')
+                    );
+
+                    $enderecoClienteCompleto =
+                        ! empty($cliente->endereco)
+                        && ! empty($cliente->numero)
+                        && ! empty($cliente->bairro)
+                        && ! empty($cliente->cidade)
+                        && ! empty($cliente->estado)
+                        && strlen($cepNumerico) === 8;
+
+                    if (! $enderecoClienteCompleto) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'usar_endereco_cliente' =>
+                                'O endereço cadastrado do cliente está incompleto. Corrija o cadastro ou informe outro endereço.',
+                        ]);
+                    }
+
+                    $cepFormatado =
+                        substr($cepNumerico, 0, 5)
+                        . '-'
+                        . substr($cepNumerico, 5, 3);
+
+                    $cidadeUf =
+                        trim((string) $cliente->cidade)
+                        . ' - '
+                        . strtoupper(
+                            trim(
+                                (string) $cliente->estado
+                            )
+                        );
+
+                    $enderecoEntrega = collect([
+                        trim(
+                            (string) $cliente->endereco
+                        ),
+
+                        'Nº '
+                            . trim(
+                                (string) $cliente->numero
+                            ),
+
+                        trim(
+                            (string) (
+                                $cliente->complemento
+                                ?? ''
+                            )
+                        ) ?: null,
+
+                        trim(
+                            (string) $cliente->bairro
+                        ),
+
+                        $cidadeUf,
+
+                        'CEP ' . $cepFormatado,
+                    ])
+                        ->map(
+                            fn ($valor) =>
+                                trim(
+                                    (string) $valor,
+                                    " \t\n\r\0\x0B,"
+                                )
+                        )
+                        ->filter()
+                        ->implode(', ');
+                }
+
+                $responsavelRecebimento = trim(
+                    (string) (
+                        $request['contato_entrega']
+                        ?? ''
+                    )
+                );
+
+                if ($responsavelRecebimento === '') {
+                    $responsavelRecebimento =
+                        $cliente->nome;
+                }
+
+                $telefoneRecebimento = trim(
+                    (string) (
+                        $request['telefone_entrega']
+                        ?? ''
+                    )
+                );
+
+                if ($telefoneRecebimento === '') {
+                    $telefoneRecebimento =
+                        $cliente->telefone;
+                }
+            }
+
+            $descontoGlobal = (float) (
+                $request['desconto_global']
+                ?? 0
+            );
 
             $orcamento = Orcamento::create([
-                'cliente_id'        => $request['cliente_id'],
-                'empresa_id'        => $empresa->id,
-                'data_orcamento'    => now(),
-                'tipo_entrega'      => $tipoEntrega,
-                'validade'          => $request['validade'],
-                'codigo_orcamento'  => now()->format('YmdHis'),
-                'status'            => 'Aguardando Aprovacao',
-                'observacoes'       => $request['observacoes'] ?? null,
-                'total'             => 0,
-                'ativo'             => 1,
-                'editando_por'      => Auth::id(),
-                'editando_em'       => now(),
+                'cliente_id' =>
+                    $cliente->id,
+
+                'empresa_id' =>
+                    $empresa->id,
+
+                'data_orcamento' =>
+                    now(),
+
+                'tipo_entrega' =>
+                    $tipoEntrega,
+
+                'usar_endereco_cliente' =>
+                    $usarEnderecoCliente === 'sim',
+
+                'endereco_entrega' =>
+                    $enderecoEntrega,
+
+                'responsavel_recebimento' =>
+                    $responsavelRecebimento,
+
+                'telefone_recebimento' =>
+                    $telefoneRecebimento,
+
+                'data_prevista_entrega' =>
+                    $dataPrevistaEntrega,
+
+                'periodo_entrega' =>
+                    $periodoEntrega,
+
+                'observacao_entrega' =>
+                    $observacaoEntrega,
+
+                'validade' =>
+                    $request['validade'],
+
+                'codigo_orcamento' =>
+                    now()->format('YmdHis'),
+
+                'status' =>
+                    Orcamento::AGUARDANDO_APROVACAO,
+
+                'observacoes' =>
+                    $request['observacoes']
+                    ?? null,
+
+                'total' =>
+                    0,
+
+                'ativo' =>
+                    1,
+
+                'editando_por' =>
+                    Auth::id(),
+
+                'editando_em' =>
+                    now(),
             ]);
 
             $orcamento->update([
-                'codigo_orcamento' => now()->format('YmdHis') . $orcamento->id
-                
+                'codigo_orcamento' =>
+                    now()->format('YmdHis')
+                    . $orcamento->id,
             ]);
 
-            if ($tipoEntrega === 'entrega') {
-
-                $dataPrevistaEntrega = $request['data_prevista_entrega'] ?? now()->addDays(7)->format('Y-m-d');
-
-                $enderecoFinalEntrega = $usarEnderecoCliente === 'nao'
-                    ? $enderecoEntrega
-                    : collect([
-                        $cliente->endereco ?? null,
-                        !empty($cliente->numero) ? 'Nº ' . $cliente->numero : null,
-                        $cliente->bairro ?? null,
-                        $cliente->cidade ?? null,
-                        $cliente->cep ?? null,
-                    ])
-                    ->map(fn ($valor) => trim((string) $valor, " \t\n\r\0\x0B,"))
-                    ->filter()
-                    ->implode(', ');
-
-                $entrega = Entrega::create([
-                    'orcamento_id'              => $orcamento->id,
-                    'venda_id'                  => null,
-                    'codigo_entrega'            => 'ENT-' . now()->format('YmdHis') . $orcamento->id,
-                    'data_prevista'             => $dataPrevistaEntrega,
-                    'data_prevista_entrega'     => $dataPrevistaEntrega,
-                    'periodo_entrega'           => $request['periodo_entrega'] ?? null,
-                    'observacao_entrega'        => $request['observacao_entrega'] ?? null,
-                    'status'                    => 'Pendente_pagamento',
-                    'tipo_entrega'              => $tipoEntrega,
-                    'usar_endereco_cliente'     => $usarEnderecoCliente === 'sim' ? 1 : 0,
-                    'endereco_entrega'          => $enderecoFinalEntrega,
-                    'responsavel_recebimento'   => $request['contato_entrega'] ?? null,
-                    'telefone_recebimento'      => $request['telefone_entrega'] ?? null,
-                    'cobrar_frete'              => 0,
-                    'valor_frete'               => 0,
+            if (
+                empty($request['produtos'])
+                || ! is_array($request['produtos'])
+            ) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'produtos' =>
+                        'Adicione pelo menos um produto ao orçamento.',
                 ]);
-
-                $orcamento->loadMissing('itens');
-
-                foreach ($orcamento->itens as $item) {
-                    EntregaItem::create([
-                        'entrega_id'              => $entrega->id,
-                        'item_orcamento_id'       => $item->id,
-                        'venda_item_id'           => null,
-                        'quantidade_prevista'     => ($item->quantidade_atendida ?? 0) > 0
-                            ? $item->quantidade_atendida
-                            : $item->quantidade_solicitada,
-                        'quantidade_entregue'     => 0,
-                        'status'                  => 'Pendente',
-                        'observacao'              => null,
-                    ]);
-                }
             }
 
-            if (empty($request['produtos']) || !is_array($request['produtos'])) {
-                throw new \Exception('Produtos inválidos no orçamento');
-            }
+            foreach (
+                $request['produtos']
+                as $itemReq
+            ) {
+                $produtoId =
+                    $itemReq['id']
+                    ?? null;
 
-            foreach ($request['produtos'] as $itemReq) {
-
-                $produtoId = $itemReq['id'] ?? null;
-
-                if (!$produtoId) {
+                if (! $produtoId) {
                     continue;
                 }
 
-                $qtd = (float) ($itemReq['quantidade_solicitada'] ?? $itemReq['quantidade'] ?? 0);
-                $preco = (float) ($itemReq['preco_unitario'] ?? $itemReq['preco'] ?? 0);
+                $quantidade = (float) (
+                    $itemReq['quantidade_solicitada']
+                    ?? $itemReq['quantidade']
+                    ?? 0
+                );
 
-                if ($qtd <= 0) {
+                $preco = (float) (
+                    $itemReq['preco_unitario']
+                    ?? $itemReq['preco']
+                    ?? 0
+                );
+
+                if ($quantidade <= 0) {
                     continue;
                 }
 
-                $valorDescontoUnitario = $preco * ($descontoGlobal / 100);
-                $precoUnitarioLiquido = $preco - $valorDescontoUnitario;
-                $valorDescontoTotalItem = $qtd * $valorDescontoUnitario;
-                $subtotalItem = $qtd * $precoUnitarioLiquido;
+                $valorDescontoUnitario =
+                    $preco
+                    * ($descontoGlobal / 100);
+
+                $precoUnitarioLiquido =
+                    $preco
+                    - $valorDescontoUnitario;
+
+                $valorDescontoTotalItem =
+                    $quantidade
+                    * $valorDescontoUnitario;
+
+                $subtotalItem =
+                    $quantidade
+                    * $precoUnitarioLiquido;
 
                 if ($subtotalItem < 0) {
                     $subtotalItem = 0;
                 }
 
                 $item = ItemOrcamento::create([
-                    'orcamento_id'          => $orcamento->id,
-                    'produto_id'            => $produtoId,
-                    'quantidade_solicitada' => $qtd,
-                    'quantidade_atendida'   => 0,
-                    'quantidade_pendente'   => $qtd,
-                    'preco_unitario'        => $preco,
-                    'preco_liquido'         => $precoUnitarioLiquido,
-                    'desconto_percentual'   => $descontoGlobal,
-                    'valor_desconto'        => $valorDescontoTotalItem,
-                    'subtotal'              => $subtotalItem,
-                    'status'                => 'indisponivel',
-                    'previsao_entrega'      => now()->addDays(7),
+                    'orcamento_id' =>
+                        $orcamento->id,
+
+                    'produto_id' =>
+                        $produtoId,
+
+                    'quantidade_solicitada' =>
+                        $quantidade,
+
+                    'quantidade_atendida' =>
+                        0,
+
+                    'quantidade_pendente' =>
+                        $quantidade,
+
+                    'preco_unitario' =>
+                        $preco,
+
+                    'preco_liquido' =>
+                        $precoUnitarioLiquido,
+
+                    'desconto_percentual' =>
+                        $descontoGlobal,
+
+                    'valor_desconto' =>
+                        $valorDescontoTotalItem,
+
+                    'subtotal' =>
+                        $subtotalItem,
+
+                    'status' =>
+                        'indisponivel',
+
+                    'previsao_entrega' =>
+                        now()->addDays(7),
                 ]);
 
-                $this->estoqueService->recalcularReservar($item->id, $produtoId, $qtd);
-                $this->recalcularItemCompleto($item);
+                $this->estoqueService->recalcularReservar(
+                    $item->id,
+                    $produtoId,
+                    $quantidade
+                );
+
+                $this->recalcularItemCompleto(
+                    $item
+                );
+
                 $item->refresh();
             }
 
             $orcamento->load('itens');
 
-            $totalLiquidoFinal = $orcamento->itens->sum('subtotal');
+            $totalLiquidoFinal =
+                $orcamento->itens
+                    ->sum('subtotal');
 
-            $temPendente = $orcamento->itens
-                ->where('quantidade_pendente', '>', 0)
-                ->isNotEmpty();
+            $temPendente =
+                $orcamento->itens
+                    ->where(
+                        'quantidade_pendente',
+                        '>',
+                        0
+                    )
+                    ->isNotEmpty();
 
             $orcamento->update([
-                'total'  => $totalLiquidoFinal,
-                'status' => $temPendente ? 'Aguardando Estoque' : 'Aguardando Aprovacao',
+                'total' =>
+                    $totalLiquidoFinal,
+
+                'status' =>
+                    $temPendente
+                        ? Orcamento::AGUARDANDO_ESTOQUE
+                        : Orcamento::AGUARDANDO_APROVACAO,
             ]);
 
             return $orcamento->refresh();
         });
     }
+
      /* =========================================
      | EDITAR
      ========================================= */
@@ -472,16 +735,17 @@ class OrcamentoService
      | APROVAR COMPLETO
      ========================================= */
    
+    
     public function aprovarCompleto(int $orcamentoId)
     {
         return DB::transaction(function () use ($orcamentoId) {
 
             $movService = app(MovimentacaoOrcamentoService::class);
 
-            $orcamento = Orcamento::findOrFail($orcamentoId);
+            $orcamento = Orcamento::with('itens')->findOrFail($orcamentoId);
 
-            if ($orcamento->status === 'Aprovado') {
-                throw new \Exception('Orçamento já aprovado');
+            if (in_array($orcamento->status, ['Aprovado', 'Faturado'])) {
+                throw new \Exception('Orçamento já aprovado ou faturado.');
             }
 
             foreach ($orcamento->itens as $item) {
@@ -508,10 +772,15 @@ class OrcamentoService
                         continue;
                     }
 
-                    $atender = min($item->quantidade_pendente, $disponivel);
+                    $pendenteAtual = (float) $item->quantidade_pendente;
+
+                    if ($pendenteAtual <= 0) {
+                        continue;
+                    }
+
+                    $atender = min($pendenteAtual, $disponivel);
 
                     if ($atender > 0) {
-
                         DB::table('lotes')
                             ->where('id', $v->lote_id)
                             ->increment('quantidade_reservada', $atender);
@@ -520,8 +789,8 @@ class OrcamentoService
                             ->where('id', $v->id)
                             ->increment('quantidade_atendida', $atender);
 
-                        $item->quantidade_atendida += $atender;
-                        $item->quantidade_pendente -= $atender;
+                        $item->quantidade_atendida = (float) $item->quantidade_atendida + $atender;
+                        $item->quantidade_pendente = (float) $item->quantidade_pendente - $atender;
                     }
                 }
 
@@ -532,6 +801,8 @@ class OrcamentoService
                 $item->save();
             }
 
+            $orcamento->refresh()->load('itens');
+
             $temPendente = $orcamento->itens()
                 ->where('quantidade_pendente', '>', 0)
                 ->exists();
@@ -541,54 +812,59 @@ class OrcamentoService
                 : 'Aprovado';
 
             $orcamento->update([
-                'status' => $statusFinal
+                'status' => $statusFinal,
             ]);
 
-            if ($statusFinal === 'Aprovado') {
+            foreach ($orcamento->itens as $item) {
 
-                foreach ($orcamento->itens as $item) {
+                $vinculos = DB::table('item_orcamento_lotes')
+                    ->where('item_orcamento_id', $item->id)
+                    ->get();
 
-                    $vinculos = DB::table('item_orcamento_lotes')
-                        ->where('item_orcamento_id', $item->id)
-                        ->get();
+                foreach ($vinculos as $v) {
 
-                    foreach ($vinculos as $v) {
+                    $lote = DB::table('lotes')
+                        ->where('id', $v->lote_id)
+                        ->first();
 
-                        $lote = DB::table('lotes')
-                            ->where('id', $v->lote_id)
-                            ->first();
-
-                        if (!$lote) {
-                            continue;
-                        }
-
-                        $antes = $lote->quantidade_reservada;
-                        $depois = $lote->quantidade_reservada;
-
-                        $movService->registrar(
-                            $v->lote_id,
-                            $orcamento->id,
-                            $item->id,
-                            TipoMovimentacao::APROVADO,
-                            $antes,
-                            $depois,
-                            'Orçamento aprovado',
-                            OrigemMovimentacao::SISTEMA
-                        );
+                    if (!$lote) {
+                        continue;
                     }
+
+                    $antes = $lote->quantidade_reservada;
+                    $depois = $lote->quantidade_reservada;
+
+                    $movService->registrar(
+                        $v->lote_id,
+                        $orcamento->id,
+                        $item->id,
+                        TipoMovimentacao::APROVADO,
+                        $antes,
+                        $depois,
+                        $statusFinal === 'Aguardando Estoque'
+                            ? 'Orçamento aprovado parcialmente com pendência de estoque'
+                            : 'Orçamento aprovado',
+                        OrigemMovimentacao::SISTEMA
+                    );
                 }
-                if ($orcamento->tipo_entrega === 'entrega') {
-                    
+            }
+
+            if ($orcamento->tipo_entrega === 'entrega') {
+
+                $entregaJaExiste = DB::table('entregas')
+                    ->where('orcamento_id', $orcamento->id)
+                    ->exists();
+
+                if (!$entregaJaExiste) {
                     app(\App\Services\Entregas\EntregaService::class)
                         ->gerarEntregaDoOrcamento($orcamento);
                 }
             }
 
-            return $orcamento;
+            return $orcamento->refresh();
         });
     }
-    
-    
+
     public function recalcularItemCompleto(ItemOrcamento $item, ?float $quantidadeSolicitada = null): void
     {
         DB::transaction(function () use ($item, $quantidadeSolicitada) {
@@ -938,6 +1214,32 @@ class OrcamentoService
         });
 
         return $orcamento;
+    }
+    /**
+     * Retorna um orçamento com todos os relacionamentos necessários
+     * para a tela de visualização.
+     */
+    public function buscarCompleto(int $orcamentoId): Orcamento
+    {
+        return Orcamento::with([
+            'cliente',
+            'vendedor',
+            'usuario',
+
+            // Itens do orçamento
+            'itens',
+            'itens.produto',
+            'itens.lotes',
+
+            // Venda gerada a partir do orçamento
+            'venda',
+
+            // Entrega gerada
+            'entrega',
+            'entrega.itens',
+            'entrega.itens.produto',
+
+        ])->findOrFail($orcamentoId);
     }
 
 }

@@ -86,6 +86,9 @@ class EntregaService
                 'tipo_entrega' => $dados['tipo_entrega'] ?? 'entrega',
                 'usar_endereco_cliente' => $dados['usar_endereco_cliente'] ?? 1,
                 'endereco_entrega' => $dados['endereco_entrega'] ?? null,
+                'latitude_entrega' => $dados['latitude_entrega'] ?? null,
+                'longitude_entrega' => $dados['longitude_entrega'] ?? null,
+                'coordenada_confirmada' => $dados['coordenada_confirmada'] ?? false,
                 'responsavel_recebimento' => $dados['responsavel_recebimento'] ?? null,
                 'telefone_recebimento' => $dados['telefone_recebimento'] ?? null,
                 'motorista_id' => $dados['motorista_id'] ?? null,
@@ -370,6 +373,15 @@ class EntregaService
                 'endereco_entrega' =>
                     $entregaOrigem->endereco_entrega,
 
+                'latitude_entrega' =>
+                    $entregaOrigem->latitude_entrega,
+
+                'longitude_entrega' =>
+                    $entregaOrigem->longitude_entrega,
+
+                'coordenada_confirmada' =>
+                    (bool) $entregaOrigem->coordenada_confirmada,
+
                 'responsavel_recebimento' =>
                     $entregaOrigem->responsavel_recebimento,
 
@@ -627,6 +639,15 @@ class EntregaService
 
                 'endereco_entrega' =>
                     $enderecoEntrega,
+
+                'latitude_entrega' =>
+                    $orcamento->latitude_entrega,
+
+                'longitude_entrega' =>
+                    $orcamento->longitude_entrega,
+
+                'coordenada_confirmada' =>
+                    (bool) $orcamento->coordenada_confirmada,
 
                 'responsavel_recebimento' =>
                     $responsavelRecebimento

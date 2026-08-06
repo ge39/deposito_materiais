@@ -23,6 +23,7 @@ use App\Http\Controllers\{
     FechamentoCaixaController,
     FrotaController,
     EntregaController,
+    EntregaInteligenteController,
     PosVendaController,
     MarcaController,
     UnidadeMedidaController,
@@ -697,6 +698,11 @@ Route::middleware(['auth'])
             ->name('show');
     });
 
+    Route::get(
+        '/entregas-inteligentes',
+        [EntregaInteligenteController::class, 'index']
+    )->name('entregas-inteligentes.index');
+
     /*
     * Esta rota não deve ficar dentro do prefixo entregas.
     */
@@ -998,3 +1004,4 @@ Route::middleware(['auth'])
         Route::patch('/unidades-medida/{unidadeMedida}/status', [UnidadeMedidaController::class, 'alternarStatus'])
             ->name('unidades-medida.alternar-status');
     });
+

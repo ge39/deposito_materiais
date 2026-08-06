@@ -292,11 +292,11 @@
 
                         <li>
                             <a
-                                class="dropdown-item disabled"
-                                href="#">
+                                class="dropdown-item"
+                                href="{{ route('entregas-inteligentes.index') }}">
 
                                 <i class="bi bi-signpost-2 me-2"></i>
-                                Rotas
+                                Entrega Inteligente
                             </a>
                         </li>
 

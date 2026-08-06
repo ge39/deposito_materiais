@@ -139,6 +139,9 @@ class OrcamentoService
             $dataPrevistaEntrega = null;
             $periodoEntrega = null;
             $observacaoEntrega = null;
+            $latitudeEntrega = null;
+            $longitudeEntrega = null;
+            $coordenadaConfirmada = false;
 
             if ($tipoEntrega === 'entrega') {
                 if (empty($request['data_prevista_entrega'])) {
@@ -373,6 +376,14 @@ class OrcamentoService
                     $telefoneRecebimento =
                         $cliente->telefone;
                 }
+
+                [
+                    $latitudeEntrega,
+                    $longitudeEntrega,
+                    $coordenadaConfirmada,
+                ] = $this->validarCoordenadasEntrega(
+                    $request
+                );
             }
 
             $descontoGlobal = (float) (
@@ -398,6 +409,15 @@ class OrcamentoService
 
                 'endereco_entrega' =>
                     $enderecoEntrega,
+
+                'latitude_entrega' =>
+                    $latitudeEntrega,
+
+                'longitude_entrega' =>
+                    $longitudeEntrega,
+
+                'coordenada_confirmada' =>
+                    $coordenadaConfirmada,
 
                 'responsavel_recebimento' =>
                     $responsavelRecebimento,
@@ -582,6 +602,88 @@ class OrcamentoService
 
             return $orcamento->refresh();
         });
+    }
+
+    private function validarCoordenadasEntrega(
+        array $request
+    ): array {
+        $latitudeInformada = str_replace(
+            ',',
+            '.',
+            trim(
+                (string) (
+                    $request['latitude_entrega']
+                    ?? ''
+                )
+            )
+        );
+
+        $longitudeInformada = str_replace(
+            ',',
+            '.',
+            trim(
+                (string) (
+                    $request['longitude_entrega']
+                    ?? ''
+                )
+            )
+        );
+
+        if (
+            $latitudeInformada === ''
+            || $longitudeInformada === ''
+        ) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'coordenada_entrega' =>
+                    'Localize e confirme o ponto da entrega no mapa.',
+            ]);
+        }
+
+        if (
+            ! is_numeric($latitudeInformada)
+            || ! is_numeric($longitudeInformada)
+        ) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'coordenada_entrega' =>
+                    'As coordenadas informadas para a entrega são inválidas.',
+            ]);
+        }
+
+        $latitude = (float) $latitudeInformada;
+        $longitude = (float) $longitudeInformada;
+
+        if ($latitude < -90 || $latitude > 90) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'latitude_entrega' =>
+                    'A latitude da entrega deve estar entre -90 e 90.',
+            ]);
+        }
+
+        if ($longitude < -180 || $longitude > 180) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'longitude_entrega' =>
+                    'A longitude da entrega deve estar entre -180 e 180.',
+            ]);
+        }
+
+        $coordenadaConfirmada = filter_var(
+            $request['coordenada_confirmada']
+                ?? false,
+            FILTER_VALIDATE_BOOLEAN
+        );
+
+        if (! $coordenadaConfirmada) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'coordenada_entrega' =>
+                    'Confira o marcador e confirme o ponto da entrega.',
+            ]);
+        }
+
+        return [
+            round($latitude, 7),
+            round($longitude, 7),
+            true,
+        ];
     }
 
      /* =========================================

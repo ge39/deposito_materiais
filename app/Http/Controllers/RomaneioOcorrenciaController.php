@@ -1617,10 +1617,47 @@ class RomaneioOcorrenciaController extends Controller
             ],
         ]);
 
-        $this->ocorrenciaService->resolver(
+        DB::transaction(function () use (
+            $romaneio,
             $ocorrencia,
-            $dados['solucao']
-        );
+            $dados
+        ) {
+            $romaneioBloqueado = Romaneio::query()
+                ->lockForUpdate()
+                ->findOrFail($romaneio->id);
+
+            $this->ocorrenciaService->resolver(
+                $ocorrencia,
+                $dados['solucao']
+            );
+
+            $ocorrenciasPendentes =
+                RomaneioOcorrencia::query()
+                    ->where(
+                        'romaneio_id',
+                        $romaneioBloqueado->id
+                    )
+                    ->whereNotIn(
+                        'status',
+                        [
+                            'Resolvida',
+                            'Cancelada',
+                        ]
+                    )
+                    ->lockForUpdate()
+                    ->get([
+                        'id',
+                    ]);
+
+            if ($ocorrenciasPendentes->isEmpty()) {
+                $this
+                    ->romaneioService
+                    ->atualizarResultadoFinalEntregas(
+                        $romaneioBloqueado,
+                        true
+                    );
+            }
+        }, 3);
 
         return redirect()
             ->route(

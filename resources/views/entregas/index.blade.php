@@ -455,6 +455,14 @@
                             Entregue
                         </option>
 
+                        <option value="finalizada_com_ocorrencia"
+                            @selected(
+                                request('status')
+                                === 'finalizada_com_ocorrencia'
+                            )>
+                            Finalizada com ocorrência
+                        </option>
+
                         <option value="parcial"
                             @selected(
                                 request('status')
@@ -556,7 +564,15 @@
         );
 
         $buscaEntreguesAtiva =
-            $statusFiltroTabela === 'entregue'
+            in_array(
+                $statusFiltroTabela,
+                [
+                    'entregue',
+                    'entregue_finalizada_com_ocorrencia',
+                    'finalizada_com_ocorrencia',
+                ],
+                true
+            )
             || $codigoFiltroTabela !== '';
 
         /*
@@ -665,6 +681,7 @@
                 'liberada' => 'bg-success',
                 'em_rota' => 'bg-dark',
                 'entregue' => 'bg-success',
+                'entregue_finalizada_com_ocorrencia' => 'bg-warning text-dark',
                 'entregue_parcial' => 'bg-warning text-dark',
                 'parcial' => 'bg-warning text-dark',
                 'nao_entregue' => 'bg-danger',
@@ -690,6 +707,7 @@
                 'liberada' => 'Liberada',
                 'em_rota' => 'Em rota',
                 'entregue' => 'Entregue',
+                'entregue_finalizada_com_ocorrencia' => 'Finalizada com ocorrência',
                 'entregue_parcial' => 'Entregue parcialmente',
                 'parcial' => 'Parcial',
                 'nao_entregue' => 'Não entregue',
@@ -713,6 +731,7 @@
                 $statusEntrega,
                 [
                     'entregue',
+                    'entregue_finalizada_com_ocorrencia',
                     'cancelada',
                     'cancelado',
                     'devolvida',
@@ -759,7 +778,8 @@
                 'em_rota' =>
                     $totalItens,
 
-                'entregue' =>
+                'entregue',
+                'entregue_finalizada_com_ocorrencia' =>
                     $totalItens,
 
                 'entregue_parcial',
@@ -839,7 +859,8 @@
                 'em_rota' =>
                     'table-success',
 
-                'entregue' =>
+                'entregue',
+                'entregue_finalizada_com_ocorrencia' =>
                     'table-success',
 
                 'entregue_parcial',
@@ -987,6 +1008,7 @@
                 [
                     'em_rota',
                     'entregue',
+                    'entregue_finalizada_com_ocorrencia',
                     'entregue_parcial',
                     'parcial',
                     'nao_entregue',
@@ -1257,6 +1279,7 @@
                             $statusEntrega,
                             [
                                 'entregue_parcial',
+                                'entregue_finalizada_com_ocorrencia',
                                 'parcial',
                                 'nao_entregue',
                                 'recusada',
@@ -1347,6 +1370,7 @@
                                         $statusEntrega,
                                         [
                                             'entregue_parcial',
+                                            'entregue_finalizada_com_ocorrencia',
                                             'parcial',
                                             'nao_entregue',
                                             'recusada',

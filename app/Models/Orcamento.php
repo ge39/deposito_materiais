@@ -28,6 +28,9 @@ class Orcamento extends Model
         'tipo_entrega',
         'usar_endereco_cliente',
         'endereco_entrega',
+        'latitude_entrega',
+        'longitude_entrega',
+        'coordenada_confirmada',
         'responsavel_recebimento',
         'telefone_recebimento',
         'data_prevista_entrega',
@@ -42,13 +45,16 @@ class Orcamento extends Model
     ];
 
     protected $casts = [
-        'data_orcamento'         => 'date',
-        'validade'               => 'date',
-        'data_prevista_entrega'  => 'date',
-        'usar_endereco_cliente'  => 'boolean',
-        'total'                  => 'decimal:2',
-        'ativo'                  => 'boolean',
-        'editando_em'            => 'datetime',
+        'data_orcamento'          => 'date',
+        'validade'                => 'date',
+        'data_prevista_entrega'   => 'date',
+        'usar_endereco_cliente'   => 'boolean',
+        'latitude_entrega'        => 'decimal:7',
+        'longitude_entrega'       => 'decimal:7',
+        'coordenada_confirmada'   => 'boolean',
+        'total'                   => 'decimal:2',
+        'ativo'                   => 'boolean',
+        'editando_em'             => 'datetime',
     ];
 
 
@@ -141,6 +147,9 @@ class Orcamento extends Model
     /** Movimentacoes Dashboard */
     public function movimentacoes()
     {
-        return $this->hasMany(\App\Models\MovimentacaoOrcamento::class, 'orcamento_id');
+        return $this->hasMany(
+            \App\Models\MovimentacaoOrcamento::class,
+            'orcamento_id'
+        );
     }
 }
