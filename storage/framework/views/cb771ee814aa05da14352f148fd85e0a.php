@@ -257,6 +257,8 @@
         </div>
     <?php endif; ?>
 
+    <?php echo $__env->make('entregas.partials.alertas_sla', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
     
     <div class="row g-2 mb-3">
 
@@ -545,42 +547,6 @@
         </div>
     </div>
 
-    <?php
-        $statusFiltroTabela = strtolower(
-            trim(
-                (string) request(
-                    'status',
-                    ''
-                )
-            )
-        );
-
-        $codigoFiltroTabela = trim(
-            (string) request(
-                'codigo_entrega',
-                ''
-            )
-        );
-
-        $buscaEntreguesAtiva =
-            in_array(
-                $statusFiltroTabela,
-                [
-                    'entregue',
-                    'entregue_finalizada_com_ocorrencia',
-                    'finalizada_com_ocorrencia',
-                ],
-                true
-            )
-            || $codigoFiltroTabela !== '';
-
-        /*
-         * A entrega concluída permanece renderizada para continuar
-         * participando da sincronização dos bloqueios. Somente sua
-         * apresentação visual será controlada dentro da própria linha.
-         */
-    ?>
-
     
     <div class="card shadow-sm mb-3">
         <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
@@ -630,12 +596,86 @@
                     </thead>
 
                    <tbody>
-    <?php $__empty_1 = true; $__currentLoopData = $entregas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $entrega): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+    <?php
+        $statusEncerradosIndex = [
+            'entregue',
+            'entregue_parcial',
+            'parcial',
+            'finalizada',
+            'finalizado',
+            'finalizada_com_ocorrencia',
+            'entregue_finalizada_com_ocorrencia',
+            'concluida',
+            'concluido',
+            'nao_entregue',
+            'recusada',
+            'recusado',
+            'devolvida',
+            'devolvido',
+            'cancelada',
+            'cancelado',
+        ];
+
+        $normalizarStatusIndex = static function ($status): string {
+            $normalizado = mb_strtolower(
+                trim((string) $status),
+                'UTF-8'
+            );
+
+            return preg_replace(
+                '/[\s\-]+/u',
+                '_',
+                $normalizado
+            ) ?? $normalizado;
+        };
+
+        $entregasIndexOperacionaisBase = collect(
+            method_exists($entregas, 'items')
+                ? $entregas->items()
+                : $entregas
+        )
+            ->reject(function ($entrega) use (
+                $statusEncerradosIndex,
+                $normalizarStatusIndex
+            ): bool {
+                return in_array(
+                    $normalizarStatusIndex($entrega->status ?? ''),
+                    $statusEncerradosIndex,
+                    true
+                );
+            })
+            ->values();
+
+        /*
+         * Prioriza entregas vencidas sem modificar a ordenação definida
+         * pelo backend dentro dos grupos "atrasadas" e "demais".
+         */
+        $hojeOrdenacaoIndex = now()->startOfDay();
+
+        [
+            $entregasAtrasadasIndex,
+            $demaisEntregasIndex,
+        ] = $entregasIndexOperacionaisBase->partition(
+            function ($entrega) use ($hojeOrdenacaoIndex): bool {
+                if (empty($entrega->data_prevista)) {
+                    return false;
+                }
+
+                return \Carbon\Carbon::parse($entrega->data_prevista)
+                    ->startOfDay()
+                    ->lt($hojeOrdenacaoIndex);
+            }
+        );
+
+        $entregasIndexOperacionais = $entregasAtrasadasIndex
+            ->concat($demaisEntregasIndex)
+            ->values();
+    ?>
+
+    <?php $__empty_1 = true; $__currentLoopData = $entregasIndexOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $entrega): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
         <?php
-            $statusEntrega = strtolower(
-                trim(
-                    (string) ($entrega->status ?? '')
-                )
+            $statusEntrega = $normalizarStatusIndex(
+                $entrega->status ?? ''
             );
 
             $romaneioTratativa = (
@@ -650,10 +690,7 @@
                 ?? false
             );
 
-            $ocultarEntregaConcluida =
-                $statusEntrega === 'entregue'
-                && ! $buscaEntreguesAtiva
-                && ! $edicaoBloqueada;
+            $ocultarEntregaConcluida = false;
 
             $mensagemBloqueio = (string) (
                 $entrega->edicao_bloqueio_mensagem

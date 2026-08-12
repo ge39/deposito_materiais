@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Expedicao\EntregaInteligenteConsolidacaoService;
 use App\Services\Expedicao\EntregaInteligenteService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -10,7 +11,8 @@ use Illuminate\Http\Request;
 class EntregaInteligenteController extends Controller
 {
     public function __construct(
-        private readonly EntregaInteligenteService $entregaInteligenteService
+        private readonly EntregaInteligenteService $entregaInteligenteService,
+        private readonly EntregaInteligenteConsolidacaoService $consolidacaoService
     ) {
     }
 
@@ -29,11 +31,17 @@ class EntregaInteligenteController extends Controller
             )->startOfDay()
             : CarbonImmutable::today();
 
+        $dashboard = $this
+            ->entregaInteligenteService
+            ->montarDashboard($dataReferencia);
+
+        $dashboard['paresConsolidacaoIgnorados'] = $this
+            ->consolidacaoService
+            ->paresIgnorados();
+
         return view(
             'entregas_inteligentes.index',
-            $this
-                ->entregaInteligenteService
-                ->montarDashboard($dataReferencia)
+            $dashboard
         );
     }
 }

@@ -1,0 +1,22 @@
+--- app/Services/Expedicao/EntregaInteligenteService.php
++++ app/Services/Expedicao/EntregaInteligenteService.php
+@@
+     private const STATUS_ENTREGA_INTELIGENTE = [
++        'Pronta_para_carregamento',
+         'Carregada',
+         'Liberada',
+         'Em_rota',
+         'No_destino',
+@@
+             'localidade' => $localidade['rotulo'],
++            'veiculo_id' => $veiculo?->id,
+             'veiculo' => $veiculo?->placa
+                 ?? 'Não definido',
+@@
++            'motorista_id' => $motorista?->id,
+             'motorista' => $motorista?->nome
+                 ?? $motorista?->name
+                 ?? 'Não definido',
++            'romaneio_id' => $romaneio?->id,
+             'romaneio_codigo' =>
+                 $romaneio?->codigo_romaneio,

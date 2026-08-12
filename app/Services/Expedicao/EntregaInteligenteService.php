@@ -15,6 +15,8 @@ class EntregaInteligenteService
 {
     private array $metadadosRota = [];
 
+    private const RAIO_PROXIMIDADE_KM = 0.1;
+
     private const STATUS_ENTREGAS_EFETIVAS = [
         'Entregue',
         'Entregue_finalizada_com_ocorrencia',
@@ -46,6 +48,7 @@ class EntregaInteligenteService
      * em seus respectivos módulos.
      */
     private const STATUS_ENTREGA_INTELIGENTE = [
+        'Pronta_para_carregamento',
         'Carregada',
         'Liberada',
         'Em_rota',
@@ -101,6 +104,11 @@ class EntregaInteligenteService
                 ['codigo', 'asc'],
             ])
             ->values();
+
+        $linhas = $this->aplicarOrdemGlobalMapa(
+            $linhas,
+            $empresaNormalizada
+        );
 
         $ultimosSete = $linhas->filter(
             fn (array $linha): bool =>
@@ -467,6 +475,10 @@ class EntregaInteligenteService
             return $entregas;
         }
 
+        $concentracoes = $this->calcularConcentracoesRegionais(
+            $entregas
+        );
+
         $grupos = $entregas->groupBy(
             function (Entrega $entrega) use ($romaneios): string {
                 $romaneio = $romaneios->get($entrega->id);
@@ -492,7 +504,8 @@ class EntregaInteligenteService
                 $romaneios,
                 (float) $latitudeEmpresa,
                 (float) $longitudeEmpresa,
-                $referencia
+                $referencia,
+                $concentracoes
             );
         }
 
@@ -504,7 +517,8 @@ class EntregaInteligenteService
         Collection $romaneios,
         float $latitudeInicial,
         float $longitudeInicial,
-        CarbonInterface $referencia
+        CarbonInterface $referencia,
+        array $concentracoes
     ): void {
         $rotaIniciada = $grupo->contains(
             function (Entrega $entrega) use ($romaneios): bool {
@@ -519,7 +533,12 @@ class EntregaInteligenteService
         );
 
         if ($rotaIniciada) {
-            $this->preservarOrdemEmExecucao($grupo);
+            $this->preservarOrdemEmExecucao(
+                $grupo,
+                $concentracoes,
+                $latitudeInicial,
+                $longitudeInicial
+            );
 
             return;
         }
@@ -536,14 +555,16 @@ class EntregaInteligenteService
             ->mapWithKeys(function (Entrega $entrega) use (
                 $romaneios,
                 $veiculo,
-                $referencia
+                $referencia,
+                $concentracoes
             ): array {
                 return [
                     $entrega->id => $this->dadosRoteirizacao(
                         $entrega,
                         $romaneios->get($entrega->id),
                         $veiculo,
-                        $referencia
+                        $referencia,
+                        $concentracoes[$entrega->id] ?? []
                     ),
                 ];
             });
@@ -556,6 +577,7 @@ class EntregaInteligenteService
         $latitudeAtual = $latitudeInicial;
         $longitudeAtual = $longitudeInicial;
         $cepAtual = null;
+        $bairroAtual = null;
         $ordem = 1;
 
         while ($pendentes->isNotEmpty()) {
@@ -565,7 +587,8 @@ class EntregaInteligenteService
                     $veiculo,
                     $latitudeAtual,
                     $longitudeAtual,
-                    $cepAtual
+                    $cepAtual,
+                    $bairroAtual
                 ): array {
                     $dados['cabe_capacidade'] =
                         $this->cabeNaCapacidade(
@@ -575,6 +598,8 @@ class EntregaInteligenteService
                         );
                     $dados['mesmo_cep'] = $cepAtual !== null
                         && $dados['cep'] === $cepAtual;
+                    $dados['mesmo_bairro'] = $bairroAtual !== null
+                        && $dados['bairro_chave'] === $bairroAtual;
                     $dados['distancia_atual'] =
                         $dados['coordenada_valida']
                             ? $this->distanciaKm(
@@ -584,6 +609,9 @@ class EntregaInteligenteService
                             $dados['longitude']
                             )
                             : 999999;
+                    $dados['proxima_100m'] =
+                        $dados['distancia_atual']
+                            <= self::RAIO_PROXIMIDADE_KM;
 
                     return $dados;
                 })
@@ -593,20 +621,26 @@ class EntregaInteligenteService
                         -$a['dias_atraso'],
                         $a['data_chave'],
                         $a['periodo_ordem'],
+                        $a['proxima_100m'] ? 0 : 1,
+                        $a['mesmo_cep'] ? 0 : 1,
+                        $a['mesmo_bairro'] ? 0 : 1,
+                        -$a['concentracao_regional'],
+                        round($a['distancia_atual'], 4),
                         $a['restricoes'] === [] ? 0 : 1,
                         $a['cabe_capacidade'] ? 0 : 1,
-                        $a['mesmo_cep'] ? 0 : 1,
-                        round($a['distancia_atual'], 4),
                         $a['entrega']->id,
                     ] <=> [
                         $b['atrasada'] ? 0 : 1,
                         -$b['dias_atraso'],
                         $b['data_chave'],
                         $b['periodo_ordem'],
+                        $b['proxima_100m'] ? 0 : 1,
+                        $b['mesmo_cep'] ? 0 : 1,
+                        $b['mesmo_bairro'] ? 0 : 1,
+                        -$b['concentracao_regional'],
+                        round($b['distancia_atual'], 4),
                         $b['restricoes'] === [] ? 0 : 1,
                         $b['cabe_capacidade'] ? 0 : 1,
-                        $b['mesmo_cep'] ? 0 : 1,
-                        round($b['distancia_atual'], 4),
                         $b['entrega']->id,
                     ];
                 });
@@ -644,6 +678,14 @@ class EntregaInteligenteService
                     $selecionada['m3'],
                     3
                 ),
+                'concentracao_regional' =>
+                    $selecionada['concentracao_regional'],
+                'concentracao_bairro' =>
+                    $selecionada['concentracao_bairro'],
+                'concentracao_cep' =>
+                    $selecionada['concentracao_cep'],
+                'concentracao_100m' =>
+                    $selecionada['concentracao_100m'],
                 'restricoes_rota' => array_values(
                     array_unique($restricoes)
                 ),
@@ -658,15 +700,21 @@ class EntregaInteligenteService
                 $longitudeAtual = $selecionada['longitude'];
             }
             $cepAtual = $selecionada['cep'];
+            $bairroAtual = $selecionada['bairro_chave'];
             $pendentes->forget($entrega->id);
             $ordem++;
         }
     }
 
     private function preservarOrdemEmExecucao(
-        Collection $grupo
+        Collection $grupo,
+        array $concentracoes,
+        float $latitudeInicial,
+        float $longitudeInicial
     ): void {
         $maiorOrdem = (int) $grupo->max('ordem_rota');
+        $latitudeAtual = $latitudeInicial;
+        $longitudeAtual = $longitudeInicial;
 
         foreach (
             $grupo->sortBy(
@@ -674,6 +722,33 @@ class EntregaInteligenteService
                     $entrega->ordem_rota ?? PHP_INT_MAX
             ) as $entrega
         ) {
+            $concentracao = $concentracoes[$entrega->id] ?? [];
+            $latitudeEntrega = $this->normalizarCoordenada(
+                $entrega->latitude_entrega,
+                -90,
+                90
+            );
+            $longitudeEntrega = $this->normalizarCoordenada(
+                $entrega->longitude_entrega,
+                -180,
+                180
+            );
+            $coordenadaValida =
+                (bool) $entrega->coordenada_confirmada
+                && $latitudeEntrega !== null
+                && $longitudeEntrega !== null;
+            $distanciaAnterior = $coordenadaValida
+                ? round(
+                    $this->distanciaKm(
+                        $latitudeAtual,
+                        $longitudeAtual,
+                        $latitudeEntrega,
+                        $longitudeEntrega
+                    ),
+                    2
+                )
+                : null;
+
             if ($entrega->ordem_rota === null) {
                 $maiorOrdem++;
                 $entrega->ordem_rota = $maiorOrdem;
@@ -681,12 +756,29 @@ class EntregaInteligenteService
 
             $this->metadadosRota[$entrega->id] = [
                 'ordem_inteligente' => (int) $entrega->ordem_rota,
-                'distancia_anterior_km' => null,
+                'distancia_anterior_km' => $distanciaAnterior,
                 'peso_estimado_kg' => null,
                 'volume_estimado_m3' => null,
+                'concentracao_regional' => (int) (
+                    $concentracao['regional'] ?? 1
+                ),
+                'concentracao_bairro' => (int) (
+                    $concentracao['bairro'] ?? 1
+                ),
+                'concentracao_cep' => (int) (
+                    $concentracao['cep'] ?? 1
+                ),
+                'concentracao_100m' => (int) (
+                    $concentracao['proximidade_100m'] ?? 1
+                ),
                 'restricoes_rota' => [],
                 'rota_preservada' => true,
             ];
+
+            if ($coordenadaValida) {
+                $latitudeAtual = $latitudeEntrega;
+                $longitudeAtual = $longitudeEntrega;
+            }
         }
     }
 
@@ -694,7 +786,8 @@ class EntregaInteligenteService
         Entrega $entrega,
         ?Romaneio $romaneio,
         $veiculo,
-        CarbonInterface $referencia
+        CarbonInterface $referencia,
+        array $concentracao
     ): array {
         $data = CarbonImmutable::parse(
             $entrega->data_prevista_entrega
@@ -761,6 +854,9 @@ class EntregaInteligenteService
         $diasAtraso = $data->lessThan($referencia)
             ? (int) $data->diffInDays($referencia, true)
             : 0;
+        $localidade = $this->resolverLocalidade(
+            (string) $entrega->endereco_entrega
+        );
 
         return [
             'entrega' => $entrega,
@@ -770,6 +866,9 @@ class EntregaInteligenteService
             'coordenada_valida' => $coordenadaValida,
             'cep' => $this->extrairCepRota(
                 (string) $entrega->endereco_entrega
+            ),
+            'bairro_chave' => $this->normalizarTextoRota(
+                (string) ($localidade['bairro'] ?? '')
             ),
             'data_chave' => $data->toDateString(),
             'periodo_ordem' => $this->ordemPeriodo(
@@ -783,7 +882,99 @@ class EntregaInteligenteService
             'restricoes' => array_values(
                 array_unique($restricoes)
             ),
+            'concentracao_regional' => (int) (
+                $concentracao['regional'] ?? 1
+            ),
+            'concentracao_bairro' => (int) (
+                $concentracao['bairro'] ?? 1
+            ),
+            'concentracao_cep' => (int) (
+                $concentracao['cep'] ?? 1
+            ),
+            'concentracao_100m' => (int) (
+                $concentracao['proximidade_100m'] ?? 1
+            ),
         ];
+    }
+
+    private function calcularConcentracoesRegionais(
+        Collection $entregas
+    ): array {
+        $dados = $entregas->map(function (Entrega $entrega): array {
+            $data = CarbonImmutable::parse(
+                $entrega->data_prevista_entrega
+                    ?? $entrega->data_prevista
+            )->toDateString();
+            $endereco = (string) $entrega->endereco_entrega;
+            $localidade = $this->resolverLocalidade($endereco);
+            $latitude = $this->normalizarCoordenada(
+                $entrega->latitude_entrega,
+                -90,
+                90
+            );
+            $longitude = $this->normalizarCoordenada(
+                $entrega->longitude_entrega,
+                -180,
+                180
+            );
+
+            return [
+                'id' => (int) $entrega->id,
+                'data' => $data,
+                'periodo' => $this->ordemPeriodo(
+                    $entrega->periodo_entrega
+                ),
+                'bairro' => $this->normalizarTextoRota(
+                    (string) ($localidade['bairro'] ?? '')
+                ),
+                'cep' => $this->extrairCepRota($endereco),
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'coordenada_valida' =>
+                    (bool) $entrega->coordenada_confirmada
+                    && $latitude !== null
+                    && $longitude !== null,
+            ];
+        })->values();
+
+        return $dados->mapWithKeys(function (array $entrega) use (
+            $dados
+        ): array {
+            $compativeis = $dados->filter(
+                fn (array $candidata): bool =>
+                    $candidata['data'] === $entrega['data']
+                    && $candidata['periodo'] === $entrega['periodo']
+            );
+
+            $bairro = $entrega['bairro'] !== ''
+                ? $compativeis->where('bairro', $entrega['bairro'])->count()
+                : 1;
+            $cep = $entrega['cep'] !== ''
+                ? $compativeis->where('cep', $entrega['cep'])->count()
+                : 1;
+            $proximidade = $entrega['coordenada_valida']
+                ? $compativeis->filter(function (array $candidata) use (
+                    $entrega
+                ): bool {
+                    return $candidata['coordenada_valida']
+                        && $this->distanciaKm(
+                            $entrega['latitude'],
+                            $entrega['longitude'],
+                            $candidata['latitude'],
+                            $candidata['longitude']
+                        ) <= self::RAIO_PROXIMIDADE_KM;
+                })->count()
+                : 1;
+
+            return [
+                $entrega['id'] => [
+                    'bairro' => max(1, $bairro),
+                    'cep' => max(1, $cep),
+                    'proximidade_100m' => max(1, $proximidade),
+                    'regional' => max($bairro, $cep, $proximidade, 1),
+                ],
+            ];
+        })->all();
     }
 
     private function atribuirOrdemRota(
@@ -1160,6 +1351,7 @@ class EntregaInteligenteService
             'bairro' => $localidade['bairro'],
             'cidade' => $localidade['cidade'],
             'localidade' => $localidade['rotulo'],
+            'veiculo_id' => $veiculo?->id,
             'veiculo' => $veiculo?->placa
                 ?? 'Não definido',
             'veiculo_modelo' => $veiculo?->modelo,
@@ -1178,9 +1370,11 @@ class EntregaInteligenteService
                 $veiculo?->possui_carroceria_fechada
                 ?? false
             ),
+            'motorista_id' => $motorista?->id,
             'motorista' => $motorista?->nome
                 ?? $motorista?->name
                 ?? 'Não definido',
+            'romaneio_id' => $romaneio?->id,
             'romaneio_codigo' =>
                 $romaneio?->codigo_romaneio,
             'romaneio_status' =>
@@ -1196,6 +1390,18 @@ class EntregaInteligenteService
             'volume_estimado_m3' => $metadadosRota[
                 'volume_estimado_m3'
             ] ?? null,
+            'concentracao_regional' => (int) (
+                $metadadosRota['concentracao_regional'] ?? 1
+            ),
+            'concentracao_bairro' => (int) (
+                $metadadosRota['concentracao_bairro'] ?? 1
+            ),
+            'concentracao_cep' => (int) (
+                $metadadosRota['concentracao_cep'] ?? 1
+            ),
+            'concentracao_100m' => (int) (
+                $metadadosRota['concentracao_100m'] ?? 1
+            ),
             'restricoes_rota' => $metadadosRota[
                 'restricoes_rota'
             ] ?? [],
@@ -1250,6 +1456,180 @@ class EntregaInteligenteService
                     ),
                 ];
             });
+    }
+
+    private function aplicarOrdemGlobalMapa(
+        Collection $linhas,
+        array $empresa
+    ): Collection {
+        if ($linhas->isEmpty()) {
+            return $linhas;
+        }
+
+        $latitudeAtual = $empresa['latitude'] ?? null;
+        $longitudeAtual = $empresa['longitude'] ?? null;
+        $cepAtual = null;
+        $bairroAtual = null;
+        $ordem = 1;
+
+        $pendentes = $linhas->mapWithKeys(
+            function (array $linha): array {
+                $linha['cep_mapa'] = $this->extrairCepRota(
+                    (string) ($linha['endereco'] ?? '')
+                );
+                $linha['bairro_mapa'] = $this->normalizarTextoRota(
+                    (string) ($linha['bairro'] ?? '')
+                );
+                $linha['rota_mapa'] = implode(':', [
+                    (int) ($linha['veiculo_id'] ?? 0),
+                    (int) ($linha['motorista_id'] ?? 0),
+                ]);
+
+                return [(int) $linha['id'] => $linha];
+            }
+        );
+
+        $ordenadas = collect();
+
+        while ($pendentes->isNotEmpty()) {
+            $menoresOrdensPorRota = $pendentes
+                ->filter(
+                    fn (array $linha): bool =>
+                        (bool) ($linha['rota_preservada'] ?? false)
+                        && ($linha['ordem_rota'] ?? null) !== null
+                )
+                ->groupBy('rota_mapa')
+                ->map(
+                    fn (Collection $rota): int =>
+                        (int) $rota->min('ordem_rota')
+                );
+
+            $candidatos = $pendentes
+                ->map(function (array $linha) use (
+                    $latitudeAtual,
+                    $longitudeAtual,
+                    $cepAtual,
+                    $bairroAtual,
+                    $menoresOrdensPorRota
+                ): array {
+                    $coordenadaValida =
+                        (bool) ($linha['coordenada_confirmada'] ?? false)
+                        && ($linha['latitude_entrega'] ?? null) !== null
+                        && ($linha['longitude_entrega'] ?? null) !== null;
+
+                    $distancia = $coordenadaValida
+                        && $latitudeAtual !== null
+                        && $longitudeAtual !== null
+                            ? $this->distanciaKm(
+                                (float) $latitudeAtual,
+                                (float) $longitudeAtual,
+                                (float) $linha['latitude_entrega'],
+                                (float) $linha['longitude_entrega']
+                            )
+                            : 999999.0;
+
+                    $menorOrdemRota = $menoresOrdensPorRota->get(
+                        $linha['rota_mapa']
+                    );
+
+                    $linha['distancia_mapa_km'] = $distancia;
+                    $linha['proxima_100m_mapa'] =
+                        $distancia <= self::RAIO_PROXIMIDADE_KM;
+                    $linha['mesmo_cep_mapa'] = $cepAtual !== null
+                        && $linha['cep_mapa'] !== ''
+                        && $linha['cep_mapa'] === $cepAtual;
+                    $linha['mesmo_bairro_mapa'] = $bairroAtual !== null
+                        && $linha['bairro_mapa'] !== ''
+                        && $linha['bairro_mapa'] === $bairroAtual;
+                    $linha['bloqueada_ordem_rota'] =
+                        $menorOrdemRota !== null
+                        && (int) ($linha['ordem_rota'] ?? PHP_INT_MAX)
+                            !== (int) $menorOrdemRota;
+
+                    return $linha;
+                })
+                ->sort(function (array $a, array $b): int {
+                    return [
+                        $a['bloqueada_ordem_rota'] ? 1 : 0,
+                        $a['atrasada'] ? 0 : 1,
+                        -(int) ($a['dias_atraso'] ?? 0),
+                        $a['data_chave'],
+                        (int) $a['periodo_ordem'],
+                        $a['proxima_100m_mapa'] ? 0 : 1,
+                        $a['mesmo_cep_mapa'] ? 0 : 1,
+                        $a['mesmo_bairro_mapa'] ? 0 : 1,
+                        -(int) ($a['concentracao_regional'] ?? 1),
+                        round((float) $a['distancia_mapa_km'], 4),
+                        $a['status'] === 'No_destino' ? 0 : 1,
+                        (int) ($a['ordem_rota'] ?? PHP_INT_MAX),
+                        (int) $a['id'],
+                    ] <=> [
+                        $b['bloqueada_ordem_rota'] ? 1 : 0,
+                        $b['atrasada'] ? 0 : 1,
+                        -(int) ($b['dias_atraso'] ?? 0),
+                        $b['data_chave'],
+                        (int) $b['periodo_ordem'],
+                        $b['proxima_100m_mapa'] ? 0 : 1,
+                        $b['mesmo_cep_mapa'] ? 0 : 1,
+                        $b['mesmo_bairro_mapa'] ? 0 : 1,
+                        -(int) ($b['concentracao_regional'] ?? 1),
+                        round((float) $b['distancia_mapa_km'], 4),
+                        $b['status'] === 'No_destino' ? 0 : 1,
+                        (int) ($b['ordem_rota'] ?? PHP_INT_MAX),
+                        (int) $b['id'],
+                    ];
+                });
+
+            $selecionada = $candidatos->first();
+
+            if (! $selecionada) {
+                break;
+            }
+
+            $selecionada['ordem_mapa'] = $ordem++;
+            $selecionada['distancia_mapa_km'] =
+                $selecionada['distancia_mapa_km'] < 999999
+                    ? round($selecionada['distancia_mapa_km'], 2)
+                    : null;
+
+            if (
+                (bool) ($selecionada['coordenada_confirmada'] ?? false)
+                && ($selecionada['latitude_entrega'] ?? null) !== null
+                && ($selecionada['longitude_entrega'] ?? null) !== null
+            ) {
+                $latitudeAtual = (float) $selecionada['latitude_entrega'];
+                $longitudeAtual = (float) $selecionada['longitude_entrega'];
+            }
+
+            $cepAtual = $selecionada['cep_mapa'] !== ''
+                ? $selecionada['cep_mapa']
+                : null;
+            $bairroAtual = $selecionada['bairro_mapa'] !== ''
+                ? $selecionada['bairro_mapa']
+                : null;
+
+            unset(
+                $selecionada['cep_mapa'],
+                $selecionada['bairro_mapa'],
+                $selecionada['rota_mapa'],
+                $selecionada['proxima_100m_mapa'],
+                $selecionada['mesmo_cep_mapa'],
+                $selecionada['mesmo_bairro_mapa'],
+                $selecionada['bloqueada_ordem_rota']
+            );
+
+            $ordenadas->push($selecionada);
+            $pendentes->forget((int) $selecionada['id']);
+        }
+
+        $porId = $ordenadas->keyBy('id');
+
+        return $linhas
+            ->map(
+                fn (array $linha): array =>
+                    $porId->get((int) $linha['id'], $linha)
+            )
+            ->values();
     }
 
     private function resumir(Collection $linhas): array

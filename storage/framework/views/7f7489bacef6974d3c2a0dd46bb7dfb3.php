@@ -75,6 +75,7 @@
                 'observacao_entrega' => $entrega['observacao_entrega'] ?? null,
                 'endereco' => (string) $entrega['endereco'],
                 'endereco_chave' => (string) $entrega['endereco_chave'],
+                'bairro' => trim((string) ($entrega['bairro'] ?? '')),
                 'latitude_entrega' =>
                     $entrega['latitude_entrega'],
                 'longitude_entrega' =>
@@ -137,6 +138,31 @@
             $primeira = $entregas->first();
             $semVeiculo = $chave === 'sem-veiculo';
 
+            $datasEntrega = $entregas
+                ->groupBy('data_chave')
+                ->map(function ($entregasData, string $dataChave): array {
+                    $primeiraData = $entregasData->first();
+
+                    return [
+                        'chave' => $dataChave,
+                        'formatada' => \Carbon\CarbonImmutable::parse(
+                            $dataChave
+                        )->format('d/m'),
+                        'formatada_completa' => (string) (
+                            $primeiraData['data_formatada']
+                            ?? \Carbon\CarbonImmutable::parse(
+                                $dataChave
+                            )->format('d/m/Y')
+                        ),
+                        'atrasada' => $entregasData->contains(
+                            fn (array $entrega): bool =>
+                                (bool) ($entrega['atrasada'] ?? false)
+                        ),
+                    ];
+                })
+                ->sortBy('chave')
+                ->values();
+
             return [
                 'chave' => $chave,
                 'sem_veiculo' => $semVeiculo,
@@ -152,6 +178,7 @@
                 'total_entregas' => $entregas->count(),
                 'quantidade_prevista' => $entregas->sum('quantidade_prevista'),
                 'atrasadas' => $entregas->where('atrasada', true)->count(),
+                'datas_entrega' => $datasEntrega,
                 'entregas' => $entregas->values(),
             ];
         })
@@ -713,6 +740,58 @@
 
     .smart-dashboard .delivery-route-accordion summary::-webkit-details-marker {
         display: none;
+    }
+
+    .smart-dashboard .delivery-route-summary-identity {
+        display: grid;
+        gap: .12rem;
+        min-width: 0;
+    }
+
+    .smart-dashboard .delivery-route-summary-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .smart-dashboard .delivery-route-summary-dates {
+        align-items: center;
+        color: #5f6b7a;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: .56rem;
+        font-weight: 700;
+        gap: .13rem;
+        line-height: 1.2;
+    }
+
+    .smart-dashboard .delivery-route-summary-neighborhoods {
+        color: #5f6b7a;
+        font-size: .56rem;
+        font-weight: 700;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .smart-dashboard .delivery-route-summary-neighborhoods strong {
+        color: #34445a;
+        font-weight: 900;
+    }
+
+    .smart-dashboard .delivery-route-summary-date {
+        color: #34445a;
+        font-weight: 900;
+    }
+
+    .smart-dashboard .delivery-route-summary-date.is-overdue {
+        color: var(--dash-red);
+    }
+
+    .smart-dashboard .delivery-route-summary-quantity {
+        flex: 0 0 auto;
+        white-space: nowrap;
     }
 
     .smart-dashboard .delivery-route-accordion-content {
@@ -1647,11 +1726,26 @@
 
     .smart-dashboard .truck-model,
     .smart-dashboard .truck-driver,
-    .smart-dashboard .truck-manifest {
+    .smart-dashboard .truck-manifest,
+    .smart-dashboard .truck-delivery-dates {
         color: #667386;
         font-size: .66rem;
         line-height: 1.3;
         margin-top: .12rem;
+    }
+
+    .smart-dashboard .truck-delivery-date {
+        color: #34445a;
+        font-weight: 800;
+    }
+
+    .smart-dashboard .truck-delivery-date.is-overdue {
+        color: var(--dash-red);
+    }
+
+    .smart-dashboard .truck-delivery-date-separator {
+        color: #8a96a6;
+        padding: 0 .16rem;
     }
 
     .smart-dashboard .truck-summary {
@@ -2395,6 +2489,23 @@
 
                                             <?php endif; ?>
                                         </div>
+
+                                        <?php if($carga['datas_entrega']->isNotEmpty()): ?>
+                                            <div class="truck-delivery-dates">
+                                                <i class="bi bi-calendar-event me-1"></i>
+                                                Datas das entregas:
+                                                <?php $__currentLoopData = $carga['datas_entrega']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dataEntrega): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                    <?php if(! $loop->first): ?>
+                                                        <span class="truck-delivery-date-separator">-</span>
+                                                    <?php endif; ?>
+                                                    <span class="truck-delivery-date <?php echo e($dataEntrega['atrasada'] ? 'is-overdue' : ''); ?>"
+                                                          title="<?php echo e($dataEntrega['formatada_completa']); ?>">
+                                                        <?php echo e($dataEntrega['formatada']); ?>
+
+                                                    </span>
+                                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
 
@@ -4322,18 +4433,150 @@
 
                 const resumo = document.createElement('summary');
 
+                const blocoIdentificacao = document.createElement('div');
+                blocoIdentificacao.className =
+                    'delivery-route-summary-identity';
+
                 const identificacao = document.createElement('span');
+                identificacao.className =
+                    'delivery-route-summary-name';
                 identificacao.textContent = referencia.veiculo
                     + ' · '
                     + referencia.motorista;
 
+                const datasPorChave = new Map();
+
+                entregasRota.forEach(function (entrega) {
+                    const chaveData = String(
+                        entrega.data_chave
+                        || entrega.data
+                        || ''
+                    ).trim();
+
+                    if (chaveData === '') {
+                        return;
+                    }
+
+                    const dataExistente = datasPorChave.get(
+                        chaveData
+                    );
+
+                    if (dataExistente) {
+                        dataExistente.atrasada =
+                            dataExistente.atrasada
+                            || Boolean(entrega.atrasada);
+                        return;
+                    }
+
+                    const partesData = chaveData.split('-');
+                    const dataCompleta = String(
+                        entrega.data || chaveData
+                    );
+
+                    datasPorChave.set(
+                        chaveData,
+                        {
+                            chave: chaveData,
+                            completa: dataCompleta,
+                            reduzida: partesData.length === 3
+                                ? partesData[2] + '/' + partesData[1]
+                                : dataCompleta.substring(0, 5),
+                            atrasada: Boolean(entrega.atrasada),
+                        }
+                    );
+                });
+
+                const datasEntrega = Array.from(
+                    datasPorChave.values()
+                ).sort(function (a, b) {
+                    return a.chave.localeCompare(b.chave);
+                });
+
+                blocoIdentificacao.append(identificacao);
+
+                if (datasEntrega.length > 0) {
+                    const blocoDatas = document.createElement('div');
+                    blocoDatas.className =
+                        'delivery-route-summary-dates';
+
+                    const rotuloDatas = document.createElement('span');
+                    rotuloDatas.textContent = datasEntrega.length === 1
+                        ? 'Data:'
+                        : 'Datas:';
+                    blocoDatas.append(rotuloDatas);
+
+                    datasEntrega.forEach(function (dataEntrega, indice) {
+                        if (indice > 0) {
+                            blocoDatas.append(
+                                document.createTextNode(' - ')
+                            );
+                        }
+
+                        const data = document.createElement('span');
+                        data.className =
+                            'delivery-route-summary-date'
+                            + (dataEntrega.atrasada
+                                ? ' is-overdue'
+                                : '');
+                        data.textContent = datasEntrega.length === 1
+                            ? dataEntrega.completa
+                            : dataEntrega.reduzida;
+                        data.title = dataEntrega.completa;
+                        blocoDatas.append(data);
+                    });
+
+                    blocoIdentificacao.append(blocoDatas);
+                }
+
+                const bairrosAtendidos = Array.from(
+                    new Set(
+                        entregasRota
+                            .map(function (entrega) {
+                                return String(
+                                    entrega.bairro || ''
+                                ).trim();
+                            })
+                            .filter(function (bairro) {
+                                return bairro !== '';
+                            })
+                    )
+                ).sort(function (a, b) {
+                    return a.localeCompare(
+                        b,
+                        'pt-BR',
+                        {
+                            sensitivity: 'base',
+                        }
+                    );
+                });
+
+                if (bairrosAtendidos.length > 0) {
+                    const blocoBairros = document.createElement('div');
+                    blocoBairros.className =
+                        'delivery-route-summary-neighborhoods';
+
+                    const rotuloBairros = document.createElement('span');
+                    rotuloBairros.textContent = bairrosAtendidos.length === 1
+                        ? 'Bairro atendido: '
+                        : 'Bairros atendidos: ';
+
+                    const bairros = document.createElement('strong');
+                    bairros.textContent = bairrosAtendidos.join(' • ');
+                    bairros.title = bairrosAtendidos.join(' • ');
+
+                    blocoBairros.append(rotuloBairros, bairros);
+                    blocoIdentificacao.append(blocoBairros);
+                }
+
                 const quantidade = document.createElement('span');
+                quantidade.className =
+                    'delivery-route-summary-quantity';
                 quantidade.textContent = entregasRota.length
                     + (entregasRota.length === 1
                         ? ' entrega'
                         : ' entregas');
 
-                resumo.append(identificacao, quantidade);
+                resumo.append(blocoIdentificacao, quantidade);
                 detalhes.append(resumo);
 
                 const conteudo = document.createElement('div');

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Funcionario;
 use App\Models\Frota;
 use App\Models\Romaneio;
+use Illuminate\Support\Facades\DB;
 
 class Entrega extends Model
 {
@@ -21,6 +22,7 @@ class Entrega extends Model
     'observacao_entrega',
     'data_realizada',
     'status',
+    'status_alterado_em',
     'cobrar_frete',
     'valor_frete',
     'tipo_entrega',
@@ -50,7 +52,22 @@ class Entrega extends Model
         'latitude_entrega' => 'decimal:7',
         'longitude_entrega' => 'decimal:7',
         'coordenada_confirmada' => 'boolean',
+        'status_alterado_em' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (): void {
+            DB::statement(
+                'SET @entrega_usuario_id = ?',
+                [auth()->id()]
+            );
+        });
+
+        static::saved(function (): void {
+            DB::statement('SET @entrega_usuario_id = NULL');
+        });
+    }
 
     public function entregaOrigem()
     {

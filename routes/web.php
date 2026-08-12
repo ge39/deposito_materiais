@@ -23,6 +23,7 @@ use App\Http\Controllers\{
     FechamentoCaixaController,
     FrotaController,
     EntregaController,
+    EntregaSlaController,
     EntregaInteligenteController,
     PosVendaController,
     MarcaController,
@@ -586,6 +587,11 @@ Route::middleware(['auth'])
             ->middleware('auth')
             ->name('sincronizar-estados');
 
+        Route::get(
+            '/alertas-sla',
+            [EntregaSlaController::class, 'index']
+        )->name('alertas-sla');
+
         /*
         |----------------------------------------------------------------------
         | RETORNO
@@ -698,10 +704,28 @@ Route::middleware(['auth'])
             ->name('show');
     });
 
+    /*
+    |--------------------------------------------------------------------------
+    | ENTREGAS INTELIGENTES
+    |--------------------------------------------------------------------------
+    |
+    | Substitua o bloco GET atual de /entregas-inteligentes por este bloco.
+    | As rotas devem permanecer dentro do grupo protegido por auth.
+    |
+    */
+
     Route::get(
         '/entregas-inteligentes',
         [EntregaInteligenteController::class, 'index']
     )->name('entregas-inteligentes.index');
+
+    Route::post(
+        '/entregas-inteligentes/decidir-consolidacao',
+        [
+            \App\Http\Controllers\EntregaInteligenteConsolidacaoController::class,
+            'decidir',
+        ]
+    )->name('entregas-inteligentes.decidir-consolidacao');
 
     /*
     * Esta rota não deve ficar dentro do prefixo entregas.
