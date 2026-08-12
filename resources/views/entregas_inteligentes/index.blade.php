@@ -1,3 +1,5 @@
+{{-- View: Entregas Inteligentes --}}
+{{-- Revisada: data/hora de liberação, ordem inteligente e QR Code da rota --}}
 @extends('layouts.app')
 
 @section('content')
@@ -68,6 +70,9 @@
                 'id' => (int) $entrega['id'],
                 'codigo' => (string) $entrega['codigo'],
                 'cliente' => (string) $entrega['cliente'],
+                'telefone' => (string) ($entrega['telefone'] ?? 'Não informado'),
+                'responsavel_recebimento' => (string) ($entrega['responsavel_recebimento'] ?? 'Não informado'),
+                'observacao_entrega' => $entrega['observacao_entrega'] ?? null,
                 'endereco' => (string) $entrega['endereco'],
                 'endereco_chave' => (string) $entrega['endereco_chave'],
                 'latitude_entrega' =>
@@ -76,17 +81,143 @@
                     $entrega['longitude_entrega'],
                 'coordenada_confirmada' =>
                     (bool) $entrega['coordenada_confirmada'],
+                'data_chave' => (string) $entrega['data_chave'],
                 'data' => (string) $entrega['data_formatada'],
                 'periodo' => (string) $entrega['periodo_rotulo'],
                 'status' => (string) $entrega['status_rotulo'],
                 'atrasada' => (bool) $entrega['atrasada'],
+                'dias_atraso' => (int) ($entrega['dias_atraso'] ?? 0),
                 'encerrada' => (bool) $entrega['encerrada'],
+                'status_chave' => (string) ($entrega['status'] ?? ''),
+                'veiculo' => (string) ($entrega['veiculo'] ?? 'Não definido'),
+                'veiculo_modelo' => (string) ($entrega['veiculo_modelo'] ?? ''),
+                'veiculo_tipo' => (string) ($entrega['veiculo_tipo'] ?? ''),
+                'veiculo_carroceria' => (string) ($entrega['veiculo_carroceria'] ?? ''),
+                'veiculo_possui_munck' => (bool) ($entrega['veiculo_possui_munck'] ?? false),
+                'veiculo_carroceria_aberta' => (bool) ($entrega['veiculo_carroceria_aberta'] ?? false),
+                'veiculo_carroceria_fechada' => (bool) ($entrega['veiculo_carroceria_fechada'] ?? false),
+                'motorista' => (string) ($entrega['motorista'] ?? 'Não definido'),
+                'romaneio_codigo' => (string) ($entrega['romaneio_codigo'] ?? ''),
+                'romaneio_status' => (string) ($entrega['romaneio_status'] ?? ''),
+                'ordem_rota' => $entrega['ordem_rota'] ?? null,
+                'ordem_inteligente' => $entrega['ordem_inteligente'] ?? null,
+                'distancia_anterior_km' => $entrega['distancia_anterior_km'] ?? null,
+                'agrupamento_rota' => $entrega['agrupamento_rota'] ?? null,
+                'liberado_em' => $entrega['liberado_em'] ?? null,
+                'saida_em' => $entrega['saida_em'] ?? null,
+                'restricoes_rota' => $entrega['restricoes_rota'] ?? [],
                 'url' => route(
                     'entregas.show',
                     $entrega['id']
                 ),
             ]
         )
+        ->values();
+
+    $cargasPorCaminhao = $entregasDetalhadas
+        ->groupBy(function (array $entrega): string {
+            $veiculo = trim((string) ($entrega['veiculo'] ?? ''));
+            $motorista = trim((string) ($entrega['motorista'] ?? ''));
+            $romaneio = trim((string) ($entrega['romaneio_codigo'] ?? ''));
+
+            if (
+                $veiculo === ''
+                || $veiculo === 'Não definido'
+            ) {
+                return 'sem-veiculo';
+            }
+
+            return implode('|', [
+                $veiculo,
+                $motorista,
+                $romaneio,
+            ]);
+        })
+        ->map(function ($entregas, string $chave): array {
+            $primeira = $entregas->first();
+            $semVeiculo = $chave === 'sem-veiculo';
+
+            return [
+                'chave' => $chave,
+                'sem_veiculo' => $semVeiculo,
+                'veiculo' => $semVeiculo
+                    ? 'Veículo não definido'
+                    : ($primeira['veiculo'] ?? 'Não definido'),
+                'veiculo_modelo' => $primeira['veiculo_modelo'] ?? null,
+                'motorista' => $semVeiculo
+                    ? 'Motorista não definido'
+                    : ($primeira['motorista'] ?? 'Não definido'),
+                'romaneio_codigo' => $primeira['romaneio_codigo'] ?? null,
+                'romaneio_status' => $primeira['romaneio_status'] ?? null,
+                'total_entregas' => $entregas->count(),
+                'quantidade_prevista' => $entregas->sum('quantidade_prevista'),
+                'atrasadas' => $entregas->where('atrasada', true)->count(),
+                'entregas' => $entregas->values(),
+            ];
+        })
+        ->sortBy([
+            ['sem_veiculo', 'asc'],
+            ['veiculo', 'asc'],
+            ['motorista', 'asc'],
+        ])
+        ->values();
+
+    $hojeOperacional = \Carbon\CarbonImmutable::today(
+        (string) config('app.timezone')
+    );
+
+    $entregasAtrasadasCard = $entregasDetalhadas
+        ->where('atrasada', true)
+        ->map(function (array $entrega) use (
+            $hojeOperacional
+        ): array {
+            $dataPrevista = \Carbon\CarbonImmutable::parse(
+                $entrega['data_chave']
+            )->startOfDay();
+
+            $entrega['dias_atraso_card'] = (int) $dataPrevista
+                ->diffInDays(
+                    $hojeOperacional,
+                    true
+                );
+
+            return $entrega;
+        })
+        ->sortByDesc('dias_atraso_card')
+        ->values();
+
+    $motoristasEntregasCard = $entregasDetalhadas
+        ->groupBy(function (array $entrega): string {
+            $motorista = trim(
+                (string) ($entrega['motorista'] ?? '')
+            );
+
+            return $motorista !== ''
+                && $motorista !== 'Não definido'
+                    ? $motorista
+                    : 'Motorista não definido';
+        })
+        ->map(function ($entregas, string $motorista): array {
+            $primeira = $entregas->first();
+
+            return [
+                'motorista' => $motorista,
+                'veiculo' => $primeira['veiculo']
+                    ?? 'Não definido',
+                'total' => $entregas->count(),
+                'atrasadas' => $entregas
+                    ->where('atrasada', true)
+                    ->count(),
+                'entregas' => $entregas
+                    ->sortBy([
+                        ['data_chave', 'asc'],
+                        ['ordem_rota', 'asc'],
+                        ['codigo', 'asc'],
+                    ])
+                    ->values(),
+            ];
+        })
+        ->sortBy('motorista')
         ->values();
 @endphp
 
@@ -270,6 +401,74 @@
         margin-bottom: .75rem;
     }
 
+    .smart-dashboard .operation-cards-grid {
+        display: grid;
+        gap: .75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-bottom: .75rem;
+    }
+
+    .smart-dashboard .operation-card-list {
+        display: grid;
+        gap: .5rem;
+        max-height: 340px;
+        overflow-y: auto;
+        padding: .7rem;
+    }
+
+    .smart-dashboard .operation-card-row {
+        align-items: center;
+        background: #fff;
+        border: 1px solid #dce2e8;
+        border-left: .28rem solid var(--dash-blue);
+        border-radius: .35rem;
+        display: grid;
+        gap: .55rem;
+        grid-template-columns: minmax(155px, .85fr) minmax(210px, 1.25fr) auto;
+        padding: .52rem .58rem;
+    }
+
+    .smart-dashboard .operation-card-row.is-overdue {
+        background: #fff4f4;
+        border-left-color: var(--dash-red);
+    }
+
+    .smart-dashboard .operation-card-title {
+        color: #10233e;
+        display: block;
+        font-size: .72rem;
+        font-weight: 850;
+        line-height: 1.25;
+        text-decoration: none;
+    }
+
+    .smart-dashboard .operation-card-detail {
+        color: #667386;
+        display: block;
+        font-size: .64rem;
+        line-height: 1.35;
+        margin-top: .12rem;
+    }
+
+    .smart-dashboard .operation-card-deliveries {
+        color: #526174;
+        font-size: .64rem;
+        line-height: 1.45;
+        min-width: 0;
+    }
+
+    .smart-dashboard .operation-card-badge {
+        background: #fbe5e7;
+        border: 1px solid #e69ba3;
+        border-radius: 1rem;
+        color: #9c2330;
+        font-size: .61rem;
+        font-weight: 850;
+        padding: .22rem .5rem;
+        text-align: center;
+        white-space: nowrap;
+    }
+
     .smart-dashboard .panel {
         background: #fff;
         border: 1px solid var(--dash-border);
@@ -419,6 +618,262 @@
         z-index: 1000;
     }
 
+    .smart-dashboard .delivery-route-panel {
+        background: rgba(255, 255, 255, .98);
+        border: 1px solid #cbd5e1;
+        border-radius: .42rem;
+        box-shadow: 0 3px 14px rgba(15, 23, 42, .24);
+        display: none;
+        left: .65rem;
+        max-height: calc(100% - 1.3rem);
+        overflow: hidden;
+        position: absolute;
+        top: .65rem;
+        width: min(380px, calc(100vw - 1.3rem));
+        z-index: 1000;
+    }
+
+    .smart-dashboard .delivery-map-wrap.is-fullscreen
+    .delivery-route-panel {
+        display: block;
+    }
+
+    .smart-dashboard .delivery-route-panel.is-collapsed {
+        width: min(380px, calc(100vw - 1.3rem));
+    }
+
+    .smart-dashboard .delivery-route-panel-header {
+        align-items: center;
+        background: var(--dash-navy);
+        color: #fff;
+        display: flex;
+        gap: .45rem;
+        justify-content: space-between;
+        min-height: 38px;
+        padding: .42rem .55rem;
+    }
+
+    .smart-dashboard .delivery-route-panel-header strong {
+        font-size: .72rem;
+        text-transform: uppercase;
+    }
+
+    .smart-dashboard .delivery-route-panel-toggle {
+        align-items: center;
+        background: rgba(255, 255, 255, .14);
+        border: 1px solid rgba(255, 255, 255, .42);
+        border-radius: .25rem;
+        color: #fff;
+        display: inline-flex;
+        height: 26px;
+        justify-content: center;
+        width: 28px;
+    }
+
+    .smart-dashboard .delivery-route-panel.is-collapsed
+    .delivery-route-panel-body {
+        display: none;
+    }
+
+    .smart-dashboard .delivery-route-panel-body {
+        max-height: 238px;
+        overflow-y: auto;
+        padding: .42rem;
+    }
+
+    .smart-dashboard .delivery-map-wrap.is-fullscreen
+    .delivery-route-panel-body {
+        max-height: calc(100vh - 58px);
+    }
+
+    .smart-dashboard .delivery-route-accordion {
+        border: 1px solid #d7dee7;
+        border-radius: .34rem;
+        margin-bottom: .38rem;
+        overflow: hidden;
+    }
+
+    .smart-dashboard .delivery-route-accordion:last-child {
+        margin-bottom: 0;
+    }
+
+    .smart-dashboard .delivery-route-accordion summary {
+        align-items: center;
+        background: #eef4fb;
+        color: var(--dash-navy);
+        cursor: pointer;
+        display: flex;
+        font-size: .66rem;
+        font-weight: 850;
+        gap: .35rem;
+        justify-content: space-between;
+        list-style: none;
+        padding: .42rem .48rem;
+    }
+
+    .smart-dashboard .delivery-route-accordion summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .smart-dashboard .delivery-route-accordion-content {
+        padding: .42rem;
+    }
+
+    .smart-dashboard .delivery-route-legend {
+        background: #f7f9fc;
+        border: 1px solid #d7dee7;
+        border-radius: .34rem;
+        display: grid;
+        gap: .28rem;
+        margin-bottom: .42rem;
+        padding: .42rem;
+    }
+
+    .smart-dashboard .delivery-route-legend-line {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .25rem;
+    }
+
+    .smart-dashboard .delivery-route-legend-label {
+        color: #5f6b7a;
+        font-size: .55rem;
+        font-weight: 850;
+        margin-right: .1rem;
+        text-transform: uppercase;
+    }
+
+    .smart-dashboard .delivery-route-rule {
+        color: #4f5d70;
+        font-size: .52rem;
+        line-height: 1.35;
+    }
+
+    .smart-dashboard .delivery-route-stop {
+        background: #fff;
+        border-bottom: 1px solid #e1e7ee;
+        cursor: pointer;
+        display: grid;
+        gap: .12rem;
+        grid-template-columns: 28px 1fr;
+        padding: .4rem .15rem;
+    }
+
+    .smart-dashboard .delivery-route-stop:last-of-type {
+        border-bottom: 0;
+    }
+
+    .smart-dashboard .delivery-route-stop:hover {
+        background: #f5f9ff;
+    }
+
+    .smart-dashboard .delivery-route-stop.is-overdue {
+        border-left: 3px solid #dc3545;
+    }
+
+    .smart-dashboard .delivery-route-stop.is-today {
+        border-left: 3px solid #198754;
+    }
+
+    .smart-dashboard .delivery-route-stop.is-normal {
+        border-left: 3px solid #0d6efd;
+    }
+
+    .smart-dashboard .delivery-route-order {
+        align-items: center;
+        background: var(--dash-navy);
+        border-radius: 50%;
+        color: #fff;
+        display: flex;
+        font-size: .63rem;
+        font-weight: 900;
+        height: 25px;
+        justify-content: center;
+        width: 25px;
+    }
+
+    .smart-dashboard .delivery-route-stop strong,
+    .smart-dashboard .delivery-route-stop span {
+        display: block;
+    }
+
+    .smart-dashboard .delivery-route-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .22rem;
+        margin: .18rem 0;
+    }
+
+    .smart-dashboard .delivery-route-badge {
+        border: 1px solid transparent;
+        border-radius: .7rem;
+        display: inline-flex !important;
+        font-size: .51rem;
+        font-weight: 900;
+        line-height: 1;
+        padding: .18rem .34rem;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .smart-dashboard .delivery-route-badge.is-overdue {
+        background: #fde7e9;
+        border-color: #ef9ba4;
+        color: #a91f2d;
+    }
+
+    .smart-dashboard .delivery-route-badge.is-today,
+    .smart-dashboard .delivery-route-badge.is-near {
+        background: #e4f5eb;
+        border-color: #8ec9a5;
+        color: #116b39;
+    }
+
+    .smart-dashboard .delivery-route-badge.is-normal {
+        background: #e6f0ff;
+        border-color: #92b9ec;
+        color: #174f97;
+    }
+
+    .smart-dashboard .delivery-route-badge.is-medium {
+        background: #fff3cd;
+        border-color: #e5c45f;
+        color: #765900;
+    }
+
+    .smart-dashboard .delivery-route-badge.is-far {
+        background: #f4e7fb;
+        border-color: #c9a2df;
+        color: #70408b;
+    }
+
+    .smart-dashboard .delivery-route-stop strong {
+        color: #17365f;
+        font-size: .65rem;
+    }
+
+    .smart-dashboard .delivery-route-stop span {
+        color: #596779;
+        font-size: .59rem;
+        line-height: 1.25;
+    }
+
+    .smart-dashboard .delivery-route-stop
+    > span.delivery-route-order {
+        color: #fff;
+        display: flex;
+        font-size: .7rem;
+        line-height: 1;
+    }
+
+    .smart-dashboard .delivery-route-empty {
+        color: #667085;
+        font-size: .65rem;
+        padding: .75rem .35rem;
+        text-align: center;
+    }
+
     .smart-dashboard .delivery-map-action {
         align-items: center;
         background: #fff;
@@ -457,6 +912,12 @@
         border: 0;
     }
 
+    .smart-dashboard .delivery-map-marker-wrap {
+        height: 30px;
+        position: relative;
+        width: 30px;
+    }
+
     .smart-dashboard .delivery-map-pin {
         align-items: center;
         border: 2px solid #fff;
@@ -474,6 +935,23 @@
 
     .smart-dashboard .delivery-map-pin span {
         transform: rotate(45deg);
+    }
+
+    .smart-dashboard .delivery-map-status-label {
+        background: rgba(255, 255, 255, .98);
+        border: 2px solid currentColor;
+        border-radius: 999px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, .2);
+        font-size: .45rem;
+        font-weight: 900;
+        left: 50%;
+        line-height: 1;
+        padding: .14rem .3rem;
+        position: absolute;
+        text-transform: uppercase;
+        top: 31px;
+        transform: translateX(-50%);
+        white-space: nowrap;
     }
 
     .smart-dashboard .delivery-map-overlap {
@@ -589,6 +1067,309 @@
         display: block;
         font-size: .68rem;
         margin-top: .1rem;
+    }
+
+    .smart-dashboard .map-info-indicator {
+        border-radius: 999px;
+        display: inline-block;
+        font-size: .62rem;
+        font-weight: 900;
+        margin: .22rem 0 .12rem;
+        padding: .18rem .42rem;
+        text-transform: uppercase;
+    }
+
+    .smart-dashboard .map-info-indicator.is-overdue {
+        background: #fee2e2;
+        color: #b42318;
+    }
+
+    .smart-dashboard .map-info-indicator.is-today {
+        background: #e4f5eb;
+        color: #116b39;
+    }
+
+    .smart-dashboard .map-info-indicator.is-normal {
+        background: #e5efff;
+        color: #124f9e;
+    }
+
+    .smart-dashboard .delivery-map-depot-icon {
+        background: transparent;
+        border: 0;
+    }
+
+    .smart-dashboard .delivery-map-depot-pin {
+        align-items: center;
+        background: #072b62;
+        border: 4px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, .46);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        height: 78px;
+        justify-content: center;
+        position: relative;
+        width: 78px;
+    }
+
+    .smart-dashboard .delivery-map-depot-pin i {
+        font-size: 1.65rem;
+        line-height: 1;
+    }
+
+    .smart-dashboard .delivery-map-depot-pin .delivery-map-depot-name {
+        display: block;
+        font-size: .48rem;
+        font-weight: 900;
+        letter-spacing: .025em;
+        line-height: 1.05;
+        margin-top: .18rem;
+        max-width: 64px;
+        overflow: hidden;
+        text-align: center;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .smart-dashboard .delivery-map-depot-count {
+        align-items: center;
+        background: #f48120;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        display: flex;
+        font-size: .62rem;
+        font-weight: 900;
+        height: 24px;
+        justify-content: center;
+        position: absolute;
+        right: -8px;
+        top: -7px;
+        width: 24px;
+    }
+
+    .smart-dashboard .delivery-map-yard-line {
+        stroke-dasharray: 4 5;
+    }
+
+    .smart-dashboard .delivery-map-vehicle-icon {
+        background: transparent;
+        border: 0;
+    }
+
+    .smart-dashboard .delivery-map-vehicle-pin {
+        align-items: center;
+        background: var(--dash-navy);
+        border: 3px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 3px 11px rgba(0, 0, 0, .42);
+        color: #fff;
+        display: flex;
+        font-size: 1.25rem;
+        height: 48px;
+        justify-content: center;
+        position: relative;
+        width: 48px;
+    }
+
+    .smart-dashboard .delivery-map-vehicle-pin::after {
+        background: inherit;
+        bottom: -5px;
+        content: '';
+        height: 12px;
+        left: 15px;
+        position: absolute;
+        transform: rotate(45deg);
+        width: 12px;
+        z-index: -1;
+    }
+
+    .smart-dashboard .delivery-map-vehicle-kind {
+        background: rgba(255, 255, 255, .94);
+        border-radius: .35rem;
+        bottom: 2px;
+        color: #082b60;
+        font-size: .34rem;
+        font-weight: 950;
+        left: 50%;
+        line-height: 1;
+        padding: 1px 3px;
+        position: absolute;
+        text-transform: uppercase;
+        transform: translateX(-50%);
+        white-space: nowrap;
+    }
+
+    .smart-dashboard .delivery-map-vehicle-pin > i {
+        transform: translateY(-4px);
+    }
+
+    .smart-dashboard .delivery-map-vehicle-order {
+        align-items: center;
+        background: #fff;
+        border: 2px solid currentColor;
+        border-radius: 50%;
+        color: var(--dash-navy);
+        display: flex;
+        font-size: .62rem;
+        font-weight: 950;
+        height: 23px;
+        justify-content: center;
+        left: -9px;
+        position: absolute;
+        top: -8px;
+        width: 23px;
+        z-index: 3;
+    }
+
+    @media (max-width: 767.98px) {
+        .smart-dashboard .delivery-route-panel {
+            max-width: calc(100% - 1.3rem);
+            width: 290px;
+        }
+    }
+
+    .smart-dashboard .delivery-map-vehicle-label {
+        align-items: center;
+        background: rgba(255, 255, 255, .97);
+        border: 2px solid var(--dash-navy);
+        border-radius: .34rem;
+        bottom: -29px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+        color: var(--dash-navy);
+        display: flex;
+        flex-direction: column;
+        left: 50%;
+        min-width: 74px;
+        padding: .12rem .3rem;
+        position: absolute;
+        transform: translateX(-50%);
+        white-space: nowrap;
+    }
+
+    .smart-dashboard .delivery-map-vehicle-plate {
+        font-size: .53rem;
+        font-weight: 900;
+        line-height: 1.05;
+    }
+
+    .smart-dashboard .delivery-map-vehicle-status {
+        border-radius: 999px;
+        display: inline-block;
+        font-size: .46rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-top: .1rem;
+        padding: .1rem .28rem;
+        text-transform: uppercase;
+    }
+
+    .smart-dashboard .vehicle-status-carregada {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .smart-dashboard .vehicle-status-liberada {
+        background: #fff0d6;
+        color: #9a5700;
+    }
+
+    .smart-dashboard .vehicle-status-em-rota {
+        background: #e5efff;
+        color: #124f9e;
+    }
+
+    .smart-dashboard .vehicle-status-no-destino {
+        background: #e1f4e8;
+        color: #146c3a;
+    }
+
+    .smart-dashboard .vehicle-status-atrasada {
+        background: #fee2e2;
+        color: #b42318;
+    }
+
+    .smart-dashboard .map-vehicle-popup {
+        font-size: .75rem;
+        line-height: 1.4;
+        min-width: 245px;
+    }
+
+    .smart-dashboard .map-vehicle-popup-title {
+        border-bottom: 1px solid #dde3ea;
+        color: var(--dash-navy);
+        display: block;
+        font-size: .86rem;
+        margin-bottom: .42rem;
+        padding-bottom: .3rem;
+    }
+
+    .smart-dashboard .map-vehicle-popup-row {
+        display: grid;
+        gap: .35rem;
+        grid-template-columns: 78px 1fr;
+        margin-bottom: .2rem;
+    }
+
+    .smart-dashboard .map-vehicle-popup-row span {
+        color: #667085;
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .smart-dashboard .map-popup-value-danger {
+        color: #b42318;
+    }
+
+    .smart-dashboard .map-popup-value-success {
+        color: #146c3a;
+    }
+
+    .smart-dashboard .map-popup-value-normal {
+        color: #174f97;
+    }
+
+    .smart-dashboard .map-popup-value-medium {
+        color: #8a6500;
+    }
+
+    .smart-dashboard .map-popup-value-far {
+        color: #70408b;
+    }
+
+    .smart-dashboard .map-route-qr {
+        align-items: center;
+        border-top: 1px solid #dde3ea;
+        display: flex;
+        flex-direction: column;
+        gap: .35rem;
+        margin-top: .5rem;
+        padding-top: .55rem;
+        text-align: center;
+    }
+
+    .smart-dashboard .map-route-qr-code {
+        background: #fff;
+        border: 1px solid #d7dee7;
+        border-radius: .35rem;
+        padding: .35rem;
+    }
+
+    .smart-dashboard .map-route-qr-code img,
+    .smart-dashboard .map-route-qr-code canvas {
+        display: block;
+        height: 160px !important;
+        width: 160px !important;
+    }
+
+    .smart-dashboard .map-route-qr a {
+        color: var(--dash-blue);
+        font-size: .68rem;
+        font-weight: 800;
+        text-decoration: none;
     }
 
     .smart-dashboard .chart-wrap {
@@ -799,6 +1580,163 @@
         color: #47515b;
     }
 
+    .smart-dashboard .truck-grid {
+        display: grid;
+        gap: .75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: .75rem;
+    }
+
+    .smart-dashboard .truck-card {
+        background: #fff;
+        border: 1px solid #d5dce4;
+        border-radius: .48rem;
+        box-shadow: 0 .14rem .35rem rgba(16, 24, 40, .08);
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .smart-dashboard .truck-card.is-unassigned {
+        border-color: #e5b85d;
+    }
+
+    .smart-dashboard .truck-card-head {
+        align-items: flex-start;
+        background: #f5f7fa;
+        border-bottom: 1px solid #dce2e8;
+        display: flex;
+        gap: .7rem;
+        justify-content: space-between;
+        padding: .72rem .78rem;
+    }
+
+    .smart-dashboard .truck-card.is-unassigned .truck-card-head {
+        background: #fff8e7;
+    }
+
+    .smart-dashboard .truck-identity {
+        align-items: center;
+        display: flex;
+        gap: .62rem;
+        min-width: 0;
+    }
+
+    .smart-dashboard .truck-icon {
+        align-items: center;
+        background: var(--dash-navy);
+        border-radius: 50%;
+        color: #fff;
+        display: flex;
+        flex: 0 0 40px;
+        font-size: 1rem;
+        height: 40px;
+        justify-content: center;
+        width: 40px;
+    }
+
+    .smart-dashboard .truck-card.is-unassigned .truck-icon {
+        background: var(--dash-orange);
+    }
+
+    .smart-dashboard .truck-name {
+        color: #10233e;
+        font-size: .82rem;
+        font-weight: 850;
+        line-height: 1.2;
+    }
+
+    .smart-dashboard .truck-model,
+    .smart-dashboard .truck-driver,
+    .smart-dashboard .truck-manifest {
+        color: #667386;
+        font-size: .66rem;
+        line-height: 1.3;
+        margin-top: .12rem;
+    }
+
+    .smart-dashboard .truck-summary {
+        display: grid;
+        flex: 0 0 auto;
+        gap: .28rem;
+        grid-template-columns: repeat(2, minmax(62px, 1fr));
+    }
+
+    .smart-dashboard .truck-summary-item {
+        background: #fff;
+        border: 1px solid #dce2e8;
+        border-radius: .3rem;
+        color: #657184;
+        font-size: .58rem;
+        padding: .28rem .38rem;
+        text-align: center;
+        text-transform: uppercase;
+    }
+
+    .smart-dashboard .truck-summary-item strong {
+        color: #12243d;
+        display: block;
+        font-size: .76rem;
+    }
+
+    .smart-dashboard .truck-deliveries {
+        display: grid;
+        gap: .42rem;
+        padding: .62rem .72rem .72rem;
+    }
+
+    .smart-dashboard .truck-delivery {
+        align-items: center;
+        border: 1px solid #e0e5eb;
+        border-left: .24rem solid var(--dash-blue);
+        border-radius: .3rem;
+        display: grid;
+        gap: .5rem;
+        grid-template-columns: minmax(190px, .95fr) minmax(280px, 1.45fr) minmax(130px, .65fr) auto;
+        padding: .48rem .55rem;
+    }
+
+    .smart-dashboard .truck-delivery.is-overdue {
+        background: #fff4f4;
+        border-left-color: var(--dash-red);
+    }
+
+    .smart-dashboard .truck-delivery-code {
+        color: var(--dash-blue);
+        font-size: .72rem;
+        font-weight: 850;
+        text-decoration: none;
+    }
+
+    .smart-dashboard .truck-customer-name {
+        color: #17233a;
+        display: block;
+        font-size: .7rem;
+        margin-top: .12rem;
+    }
+
+    .smart-dashboard .truck-delivery-note {
+        color: #8a5a00 !important;
+        margin-top: .14rem;
+    }
+
+    .smart-dashboard .truck-delivery-main,
+    .smart-dashboard .truck-delivery-location,
+    .smart-dashboard .truck-delivery-window {
+        font-size: .67rem;
+        line-height: 1.3;
+        min-width: 0;
+    }
+
+    .smart-dashboard .truck-delivery-main small,
+    .smart-dashboard .truck-delivery-location small,
+    .smart-dashboard .truck-delivery-window small {
+        color: #748091;
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
     .smart-dashboard .empty-panel {
         align-items: center;
         color: #748091;
@@ -826,6 +1764,14 @@
         .smart-dashboard .alerts-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
+
+        .smart-dashboard .truck-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .smart-dashboard .truck-delivery {
+            grid-template-columns: minmax(140px, .75fr) minmax(190px, 1.2fr) minmax(115px, .65fr) auto;
+        }
     }
 
     @media (max-width: 767.98px) {
@@ -852,13 +1798,42 @@
         .smart-dashboard .kpi-grid,
         .smart-dashboard .dashboard-grid,
         .smart-dashboard .dashboard-grid-lower,
+        .smart-dashboard .operation-cards-grid,
         .smart-dashboard .alerts-grid,
         .smart-dashboard .opportunity-grid {
             grid-template-columns: 1fr;
         }
 
+        .smart-dashboard .operation-card-row {
+            align-items: start;
+            grid-template-columns: 1fr auto;
+        }
+
+        .smart-dashboard .operation-card-deliveries {
+            grid-column: 1 / -1;
+        }
+
         .smart-dashboard .panel-concentration {
             grid-column: auto;
+        }
+
+        .smart-dashboard .truck-card-head {
+            flex-direction: column;
+        }
+
+        .smart-dashboard .truck-summary {
+            width: 100%;
+        }
+
+        .smart-dashboard .truck-delivery {
+            align-items: start;
+            grid-template-columns: 1fr auto;
+        }
+
+        .smart-dashboard .truck-delivery-main,
+        .smart-dashboard .truck-delivery-location,
+        .smart-dashboard .truck-delivery-window {
+            grid-column: 1 / -1;
         }
     }
 </style>
@@ -873,7 +1848,7 @@
                 </h1>
 
                 <div class="dashboard-subtitle">
-                    Entrega Inteligente · análise operacional sem alteração automática do fluxo
+                    Entrega Inteligente · acompanhamento exclusivo das entregas em rota
                 </div>
             </div>
 
@@ -911,29 +1886,16 @@
             </form>
         </header>
 
-        <section class="kpi-grid" aria-label="Indicadores principais">
+        <section class="kpi-grid" aria-label="Indicadores da operação em rota">
             <article class="kpi-card kpi-blue">
                 <div class="kpi-icon">
-                    <i class="bi bi-box-seam"></i>
+                    <i class="bi bi-sign-turn-right"></i>
                 </div>
                 <div>
-                    <div class="kpi-label">Total programado</div>
-                    <div class="kpi-value">{{ $indicadores['total'] }}</div>
+                    <div class="kpi-label">Entregas ativas</div>
+                    <div class="kpi-value">{{ $indicadores['total'] ?? $entregasDetalhadas->count() }}</div>
                     <div class="kpi-note">
-                        Qtd. {{ $formatarQuantidade($indicadores['quantidade_prevista']) }}
-                    </div>
-                </div>
-            </article>
-
-            <article class="kpi-card kpi-green">
-                <div class="kpi-icon">
-                    <i class="bi bi-check-circle"></i>
-                </div>
-                <div>
-                    <div class="kpi-label">Concluídas</div>
-                    <div class="kpi-value">{{ $indicadores['concluidas'] }}</div>
-                    <div class="kpi-note">
-                        {{ $percentualKpi($indicadores['concluidas'], $indicadores['total']) }} do total
+                        Qtd. {{ $formatarQuantidade($indicadores['quantidade_prevista'] ?? $entregasDetalhadas->sum('quantidade_prevista')) }}
                     </div>
                 </div>
             </article>
@@ -943,11 +1905,20 @@
                     <i class="bi bi-truck"></i>
                 </div>
                 <div>
-                    <div class="kpi-label">Em andamento</div>
-                    <div class="kpi-value">{{ $indicadores['em_andamento'] }}</div>
-                    <div class="kpi-note">
-                        {{ $percentualKpi($indicadores['em_andamento'], $indicadores['total']) }} do total
-                    </div>
+                    <div class="kpi-label">Em rota</div>
+                    <div class="kpi-value">{{ $indicadores['em_rota'] ?? $entregasDetalhadas->where('status', 'Em_rota')->count() }}</div>
+                    <div class="kpi-note">Deslocamento ou sequência de entregas</div>
+                </div>
+            </article>
+
+            <article class="kpi-card kpi-cyan">
+                <div class="kpi-icon">
+                    <i class="bi bi-geo-alt-fill"></i>
+                </div>
+                <div>
+                    <div class="kpi-label">No destino</div>
+                    <div class="kpi-value">{{ $indicadores['no_destino'] ?? $entregasDetalhadas->where('status', 'No_destino')->count() }}</div>
+                    <div class="kpi-note">Atendimento no endereço do cliente</div>
                 </div>
             </article>
 
@@ -956,24 +1927,20 @@
                     <i class="bi bi-clock-history"></i>
                 </div>
                 <div>
-                    <div class="kpi-label">Atrasadas</div>
-                    <div class="kpi-value">{{ $indicadores['atrasadas'] }}</div>
-                    <div class="kpi-note">
-                        {{ $percentualKpi($indicadores['atrasadas'], $indicadores['total']) }} requer atenção
-                    </div>
+                    <div class="kpi-label">Fora da janela</div>
+                    <div class="kpi-value">{{ $indicadores['atrasadas'] ?? $entregasDetalhadas->where('atrasada', true)->count() }}</div>
+                    <div class="kpi-note">Somente entregas ainda em operação</div>
                 </div>
             </article>
 
-            <article class="kpi-card kpi-cyan">
+            <article class="kpi-card kpi-green">
                 <div class="kpi-icon">
-                    <i class="bi bi-bullseye"></i>
+                    <i class="bi bi-truck-front-fill"></i>
                 </div>
                 <div>
-                    <div class="kpi-label">Eficiência</div>
-                    <div class="kpi-value">
-                        {{ number_format($indicadores['eficiencia'], 0, ',', '.') }}%
-                    </div>
-                    <div class="kpi-note">Entregas efetivamente concluídas</div>
+                    <div class="kpi-label">Veículos ativos</div>
+                    <div class="kpi-value">{{ $indicadores['veiculos_ativos'] ?? $entregasDetalhadas->where('veiculo', '!=', 'Não definido')->pluck('veiculo')->unique()->count() }}</div>
+                    <div class="kpi-note">Frota identificada nesta operação</div>
                 </div>
             </article>
         </section>
@@ -1033,16 +2000,16 @@
 
                                 <div class="period-metrics">
                                     <div class="period-metric text-success">
-                                        <strong>{{ $periodo['concluidas'] }}</strong>
-                                        Concluídas
+                                        <strong>{{ $periodo['em_rota'] }}</strong>
+                                        Em rota
                                     </div>
                                     <div class="period-metric text-warning">
-                                        <strong>{{ $periodo['em_andamento'] }}</strong>
-                                        Em andamento
+                                        <strong>{{ $periodo['no_destino'] }}</strong>
+                                        No destino
                                     </div>
                                     <div class="period-metric text-danger">
                                         <strong>{{ $periodo['atrasadas'] }}</strong>
-                                        Atrasadas
+                                        Fora da janela
                                     </div>
                                 </div>
                             </div>
@@ -1059,7 +2026,7 @@
                 <h2 class="panel-header">
                     <span>
                         <i class="bi bi-geo-alt me-1"></i>
-                        Mapa operacional
+                        Mapa das entregas em rota
                     </span>
                     <span>
                         {{ $pontosMapa->count() }} entrega(s) · OpenStreetMap
@@ -1070,7 +2037,27 @@
                     <div class="delivery-map-wrap">
                         <div id="mapa-entregas-inteligentes"
                              role="region"
-                             aria-label="Mapa operacional das entregas"></div>
+                             aria-label="Mapa das entregas em rota das entregas"></div>
+
+                        <aside id="mapa-rotas-painel"
+                               class="delivery-route-panel is-collapsed"
+                               aria-label="Ordens das entregas em rota">
+                            <div class="delivery-route-panel-header">
+                                <strong class="delivery-route-panel-title">
+                                    <i class="bi bi-list-ol me-1"></i>
+                                    Ordens de entrega
+                                </strong>
+                                <button type="button"
+                                        id="mapa-rotas-painel-toggle"
+                                        class="delivery-route-panel-toggle"
+                                        aria-expanded="false"
+                                        title="Abrir ordens de entrega">
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+                            </div>
+                            <div id="mapa-rotas-accordion"
+                                 class="delivery-route-panel-body"></div>
+                        </aside>
 
                         <div class="delivery-map-actions"
                              aria-label="Controles adicionais do mapa">
@@ -1097,12 +2084,20 @@
                         <div class="delivery-map-legend"
                              aria-label="Legenda dos pontos do mapa">
                             <span>
-                                <i style="background:#249654"></i>
-                                Concluída
+                                <i style="background:#6c757d"></i>
+                                Carregada
                             </span>
                             <span>
                                 <i style="background:#f48120"></i>
-                                Programada
+                                Liberada
+                            </span>
+                            <span>
+                                <i style="background:#072b62"></i>
+                                Em rota
+                            </span>
+                            <span>
+                                <i style="background:#249654"></i>
+                                No destino / concluída
                             </span>
                             <span>
                                 <i style="background:#dc3e3e"></i>
@@ -1116,6 +2111,122 @@
                         </div>
                     </div>
                 </div>
+            </article>
+        </section>
+
+        <section class="operation-cards-grid"
+                 aria-label="Entregas atrasadas e motoristas">
+            <article class="panel">
+                <h2 class="panel-header">
+                    <span>
+                        <i class="bi bi-clock-history me-1"></i>
+                        Entregas atrasadas
+                    </span>
+                    <span>
+                        {{ $entregasAtrasadasCard->count() }} entrega(s)
+                    </span>
+                </h2>
+
+                @if($entregasAtrasadasCard->isEmpty())
+                    <div class="empty-panel">
+                        Nenhuma entrega atrasada na operação atual.
+                    </div>
+                @else
+                    <div class="operation-card-list">
+                        @foreach($entregasAtrasadasCard as $entregaAtrasada)
+                            <div class="operation-card-row is-overdue">
+                                <div>
+                                    <a href="{{ route('entregas.show', $entregaAtrasada['id']) }}"
+                                       class="operation-card-title">
+                                        {{ $entregaAtrasada['codigo'] }}
+                                    </a>
+                                    <span class="operation-card-detail">
+                                        {{ $entregaAtrasada['cliente'] }}
+                                    </span>
+                                    <span class="operation-card-detail">
+                                        <i class="bi bi-telephone me-1"></i>
+                                        {{ $entregaAtrasada['telefone'] }}
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <strong class="operation-card-title">
+                                        {{ $entregaAtrasada['data_formatada'] }} ·
+                                        {{ $entregaAtrasada['periodo_rotulo'] }}
+                                    </strong>
+                                    <span class="operation-card-detail">
+                                        <i class="bi bi-person-badge me-1"></i>
+                                        {{ $entregaAtrasada['motorista'] }} ·
+                                        {{ $entregaAtrasada['veiculo'] }}
+                                    </span>
+                                    <span class="operation-card-detail">
+                                        {{ $entregaAtrasada['status_rotulo'] }}
+                                    </span>
+                                </div>
+
+                                <span class="operation-card-badge">
+                                    {{ $entregaAtrasada['dias_atraso_card'] }}
+                                    {{ $entregaAtrasada['dias_atraso_card'] === 1 ? 'dia' : 'dias' }}
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </article>
+
+            <article class="panel">
+                <h2 class="panel-header">
+                    <span>
+                        <i class="bi bi-person-badge me-1"></i>
+                        Motoristas e suas entregas
+                    </span>
+                    <span>
+                        {{ $motoristasEntregasCard->count() }} motorista(s)
+                    </span>
+                </h2>
+
+                @if($motoristasEntregasCard->isEmpty())
+                    <div class="empty-panel">
+                        Nenhum motorista vinculado à operação atual.
+                    </div>
+                @else
+                    <div class="operation-card-list">
+                        @foreach($motoristasEntregasCard as $motoristaCard)
+                            <div class="operation-card-row {{ $motoristaCard['atrasadas'] > 0 ? 'is-overdue' : '' }}">
+                                <div>
+                                    <strong class="operation-card-title">
+                                        {{ $motoristaCard['motorista'] }}
+                                    </strong>
+                                    <span class="operation-card-detail">
+                                        <i class="bi bi-truck me-1"></i>
+                                        {{ $motoristaCard['veiculo'] }}
+                                    </span>
+                                    <span class="operation-card-detail">
+                                        {{ $motoristaCard['total'] }} entrega(s)
+                                    </span>
+                                </div>
+
+                                <div class="operation-card-deliveries">
+                                    @foreach($motoristaCard['entregas'] as $entregaMotorista)
+                                        <div>
+                                            <strong>{{ $entregaMotorista['codigo'] }}</strong>
+                                            · {{ $entregaMotorista['cliente'] }}
+                                            · {{ $entregaMotorista['status_rotulo'] }}
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <span class="status-pill {{ $motoristaCard['atrasadas'] > 0 ? 'status-danger' : 'status-success' }}">
+                                    @if($motoristaCard['atrasadas'] > 0)
+                                        {{ $motoristaCard['atrasadas'] }} atrasada(s)
+                                    @else
+                                        No prazo
+                                    @endif
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </article>
         </section>
 
@@ -1137,7 +2248,7 @@
                         </span>
                         <span>
                             <i class="legend-mark" style="background:#249654;"></i>
-                            Concluídas
+                            Em rota
                         </span>
                         <span>
                             <i class="legend-mark" style="background:#f48120;"></i>
@@ -1210,68 +2321,152 @@
             </div>
         </section>
 
-        @if($oportunidades->isNotEmpty())
-            <section class="panel mb-3">
-                <h2 class="panel-header">
-                    <span>
-                        <i class="bi bi-lightbulb me-1"></i>
-                        Sugestões de antecipação D+1 / D+2
-                    </span>
-                    <span>Exige confirmação do cliente</span>
-                </h2>
 
-                <div class="opportunity-grid">
-                    @foreach($oportunidades as $oportunidade)
-                        @php
-                            $futura = $oportunidade['entrega_futura'];
-                        @endphp
 
-                        <article class="opportunity-card">
-                            <div class="d-flex justify-content-between gap-2">
-                                <div>
-                                    <div class="opportunity-code">
-                                        {{ $futura['codigo'] }} · {{ $futura['cliente'] }}
+        <section class="panel mb-3">
+            <h2 class="panel-header">
+                <span>
+                    <i class="bi bi-truck-front-fill me-1"></i>
+                    Operação por caminhão
+                </span>
+                <span>{{ $cargasPorCaminhao->count() }} caminhão(ões) em operação</span>
+            </h2>
+
+            @if($cargasPorCaminhao->isEmpty())
+                <div class="empty-panel">
+                    Não existem entregas com status Em rota ou No destino na data selecionada.
+                </div>
+            @else
+                <div class="truck-grid">
+                    @foreach($cargasPorCaminhao as $carga)
+                        <article class="truck-card {{ $carga['sem_veiculo'] ? 'is-unassigned' : '' }}">
+                            <header class="truck-card-head">
+                                <div class="truck-identity">
+                                    <div class="truck-icon">
+                                        <i class="bi {{ $carga['sem_veiculo'] ? 'bi-exclamation-triangle' : 'bi-truck-front-fill' }}"></i>
                                     </div>
-                                    <div class="opportunity-detail">
-                                        Programada para {{ $futura['data_formatada'] }}
-                                        · {{ $futura['periodo_rotulo'] }}
+
+                                    <div class="min-w-0">
+                                        <div class="truck-name">
+                                            {{ $carga['veiculo'] }}
+                                        </div>
+
+                                        @if($carga['veiculo_modelo'])
+                                            <div class="truck-model">
+                                                <i class="bi bi-card-text me-1"></i>
+                                                {{ $carga['veiculo_modelo'] }}
+                                            </div>
+                                        @endif
+
+                                        <div class="truck-driver">
+                                            <i class="bi bi-person-badge me-1"></i>
+                                            Motorista: <strong>{{ $carga['motorista'] }}</strong>
+                                        </div>
+
+                                        <div class="truck-manifest">
+                                            <i class="bi bi-clipboard-check me-1"></i>
+                                            Romaneio:
+                                            <strong>{{ $carga['romaneio_codigo'] ?: 'Não criado' }}</strong>
+                                            @if($carga['romaneio_status'])
+                                                · {{ str_replace('_', ' ', $carga['romaneio_status']) }}
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
 
-                                <span class="badge bg-warning text-dark align-self-start">
-                                    D+{{ $oportunidade['dias_antecipacao'] }}
-                                </span>
-                            </div>
+                                <div class="truck-summary">
+                                    <div class="truck-summary-item">
+                                        <strong>{{ $carga['total_entregas'] }}</strong>
+                                        Entregas
+                                    </div>
+                                    <div class="truck-summary-item">
+                                        <strong>{{ $formatarQuantidade($carga['quantidade_prevista']) }}</strong>
+                                        Quantidade
+                                    </div>
+                                    @if($carga['atrasadas'] > 0)
+                                        <div class="truck-summary-item text-danger">
+                                            <strong class="text-danger">{{ $carga['atrasadas'] }}</strong>
+                                            Fora da janela
+                                        </div>
+                                    @endif
+                                </div>
+                            </header>
 
-                            <div class="opportunity-detail">
-                                <i class="bi bi-geo-alt-fill me-1"></i>
-                                {{ $oportunidade['endereco'] }}
-                            </div>
+                            <div class="truck-deliveries">
+                                @foreach($carga['entregas'] as $entregaCaminhao)
+                                    <div class="truck-delivery {{ $entregaCaminhao['atrasada'] ? 'is-overdue' : '' }}">
+                                        <div class="truck-delivery-main">
+                                            <a href="{{ route('entregas.show', $entregaCaminhao['id']) }}"
+                                               class="truck-delivery-code">
+                                                {{ $entregaCaminhao['codigo'] }}
+                                            </a>
+                                            <strong class="truck-customer-name">
+                                                {{ $entregaCaminhao['cliente'] }}
+                                            </strong>
+                                            <small>
+                                                <i class="bi bi-telephone me-1"></i>
+                                                {{ $entregaCaminhao['telefone'] }}
+                                            </small>
+                                            <small>
+                                                <i class="bi bi-person-check me-1"></i>
+                                                Recebedor: {{ $entregaCaminhao['responsavel_recebimento'] }}
+                                            </small>
+                                        </div>
 
-                            <div class="opportunity-detail">
-                                Hoje no mesmo endereço:
-                                @foreach($oportunidade['entregas_hoje'] as $entregaHoje)
-                                    <strong class="ms-1">{{ $entregaHoje['codigo'] }}</strong>
+                                        <div class="truck-delivery-location">
+                                            <strong>{{ $entregaCaminhao['bairro'] }} · {{ $entregaCaminhao['cidade'] }}</strong>
+                                            <small title="{{ $entregaCaminhao['endereco'] }}">
+                                                <i class="bi bi-geo-alt me-1"></i>
+                                                {{ $entregaCaminhao['endereco'] }}
+                                            </small>
+                                            @if($entregaCaminhao['observacao_entrega'])
+                                                <small class="truck-delivery-note"
+                                                       title="{{ $entregaCaminhao['observacao_entrega'] }}">
+                                                    <i class="bi bi-chat-left-text me-1"></i>
+                                                    {{ $limitarTexto($entregaCaminhao['observacao_entrega'], 72) }}
+                                                </small>
+                                            @endif
+                                        </div>
+
+                                        <div class="truck-delivery-window">
+                                            <strong>{{ $entregaCaminhao['data_formatada'] }}</strong>
+                                            <small>
+                                                {{ $entregaCaminhao['periodo_rotulo'] }} ·
+                                                {{ $formatarQuantidade($entregaCaminhao['quantidade_prevista']) }} un.
+                                            </small>
+                                            @if($entregaCaminhao['atrasada'])
+                                                <small class="text-danger fw-bold">
+                                                    Fora da janela prevista
+                                                </small>
+                                            @endif
+                                        </div>
+
+                                        <div class="text-end">
+                                            <span class="status-pill {{ $classeStatus($entregaCaminhao['status']) }}">
+                                                {{ $entregaCaminhao['status_rotulo'] }}
+                                            </span>
+                                        </div>
+                                    </div>
                                 @endforeach
                             </div>
                         </article>
                     @endforeach
                 </div>
-            </section>
-        @endif
+            @endif
+        </section>
 
         <section class="panel">
             <h2 class="panel-header">
                 <span>
                     <i class="bi bi-table me-1"></i>
-                    Detalhamento das entregas
+                    Entregas da operação ativa
                 </span>
                 <span>{{ $entregasDetalhadas->count() }} registro(s)</span>
             </h2>
 
             @if($entregasDetalhadas->isEmpty())
                 <div class="empty-panel">
-                    Não existem entregas na janela selecionada.
+                    Não existem entregas em rota para a data selecionada.
                 </div>
             @else
                 <div class="table-responsive">
@@ -1305,7 +2500,11 @@
                                     <td>
                                         <strong>{{ $entrega['cliente'] }}</strong>
                                         <small class="d-block text-muted">
-                                            {{ $entrega['telefone'] }}
+                                            <i class="bi bi-telephone me-1"></i>{{ $entrega['telefone'] }}
+                                        </small>
+                                        <small class="d-block text-muted">
+                                            <i class="bi bi-person-check me-1"></i>
+                                            {{ $entrega['responsavel_recebimento'] }}
                                         </small>
                                     </td>
                                     <td>
@@ -1370,6 +2569,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin=""></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
     (function () {
@@ -1387,7 +2587,55 @@
             diasCache: {{ (int) config('openstreetmap.geocoding_cache_days') }},
         };
 
+        const depositoMapa = {
+            nome: @json((string) (
+                $empresaAtiva['nome']
+                ?? config('app.name', 'Empresa')
+            )),
+            endereco: @json((string) (
+                $empresaAtiva['endereco']
+                ?? config(
+                    'logistica.deposito.endereco',
+                    'Endereço não configurado'
+                )
+            )),
+            telefone: @json((string) (
+                $empresaAtiva['telefone']
+                ?? ''
+            )),
+            email: @json((string) (
+                $empresaAtiva['email']
+                ?? ''
+            )),
+            latitude: Number(@json(
+                $empresaAtiva['latitude']
+                ?? config(
+                    'logistica.deposito.latitude',
+                    config('openstreetmap.center.lat')
+                )
+            )),
+            longitude: Number(@json(
+                $empresaAtiva['longitude']
+                ?? config(
+                    'logistica.deposito.longitude',
+                    config('openstreetmap.center.lng')
+                )
+            )),
+            zoom: Number(@json(
+                $empresaAtiva['zoom']
+                ?? config('logistica.deposito.zoom', 16)
+            )),
+            raioPatioMetros: Number(@json(
+                $empresaAtiva['raio_patio_metros']
+                ?? config(
+                    'logistica.deposito.raio_patio_metros',
+                    18
+                )
+            )),
+        };
+
         const entregasMapa = @json($pontosMapa);
+        const raioAgrupamentoMetros = 100;
         const chaveCache = 'entregas-inteligentes-geocodificacao-v2';
 
         function aguardar(milissegundos) {
@@ -1451,7 +2699,17 @@
             return coordenada;
         }
 
-        function agruparEntregasPorCoordenada(entregas) {
+        function extrairCep(endereco) {
+            const resultado = String(endereco || '').match(
+                /\b(\d{5})-?(\d{3})\b/
+            );
+
+            return resultado
+                ? resultado[1] + resultado[2]
+                : '';
+        }
+
+        function agruparEntregasPorEndereco(entregas) {
             const grupos = new Map();
 
             entregas.forEach(function (entrega) {
@@ -1475,15 +2733,19 @@
                     return;
                 }
 
-                const chave = 'coordenada:'
-                    + latitude.toFixed(7)
-                    + ':'
-                    + longitude.toFixed(7);
+                const enderecoChave = String(
+                    entrega.endereco_chave || ''
+                ).trim();
+
+                const chave = enderecoChave !== ''
+                    ? enderecoChave
+                    : 'entrega:' + String(entrega.id);
 
                 if (! grupos.has(chave)) {
                     grupos.set(chave, {
                         chave: chave,
                         endereco: entrega.endereco,
+                        cep: extrairCep(entrega.endereco),
                         entregas: [],
                         latitude: latitude,
                         longitude: longitude,
@@ -1492,6 +2754,21 @@
                 }
 
                 const grupo = grupos.get(chave);
+
+                const quantidadeAtual =
+                    grupo.entregas.length;
+
+                if (quantidadeAtual > 0) {
+                    grupo.latitude = (
+                        grupo.latitude * quantidadeAtual
+                        + latitude
+                    ) / (quantidadeAtual + 1);
+
+                    grupo.longitude = (
+                        grupo.longitude * quantidadeAtual
+                        + longitude
+                    ) / (quantidadeAtual + 1);
+                }
 
                 grupo.entregas.push(entrega);
             });
@@ -1584,16 +2861,70 @@
                 return '#249654';
             }
 
+            if (
+                entregasDoEndereco.some(
+                    entrega => entrega.status_chave === 'No_destino'
+                )
+            ) {
+                return '#249654';
+            }
+
+            if (
+                entregasDoEndereco.some(
+                    entrega => entrega.status_chave === 'Em_rota'
+                )
+            ) {
+                return '#072b62';
+            }
+
+            if (
+                entregasDoEndereco.some(
+                    entrega => entrega.status_chave === 'Carregada'
+                )
+            ) {
+                return '#6c757d';
+            }
+
             return '#f48120';
         }
 
-        function criarIconeMarcador(numero, cor) {
+        function rotuloIndicadorEntregas(entregasDoEndereco) {
+            if (
+                entregasDoEndereco.some(
+                    entrega => entrega.atrasada
+                )
+            ) {
+                return 'Atrasada';
+            }
+
+            const status = [
+                ...new Set(
+                    entregasDoEndereco.map(
+                        entrega => entrega.status_chave
+                    )
+                ),
+            ];
+
+            if (status.length !== 1) {
+                return 'Múltiplas';
+            }
+
+            return rotuloStatusVeiculo(status[0]);
+        }
+
+        function criarIconeMarcador(numero, cor, rotulo) {
             return L.divIcon({
                 className: 'delivery-map-div-icon',
-                html: '<div class="delivery-map-pin" style="background:'
+                html: '<div class="delivery-map-marker-wrap">'
+                    + '<div class="delivery-map-pin" style="background:'
                     + cor
                     + '"><span>'
                     + numero
+                    + '</span></div>'
+                    + '<span class="delivery-map-status-label" style="color:'
+                    + cor
+                    + '">'
+                    + escaparHtml(rotulo)
                     + '</span></div>',
                 iconAnchor: [
                     15,
@@ -1601,7 +2932,7 @@
                 ],
                 iconSize: [
                     30,
-                    30,
+                    48,
                 ],
                 popupAnchor: [
                     0,
@@ -1610,12 +2941,1219 @@
             });
         }
 
-        function criarIconeSobreposicao(total) {
+        function escaparHtml(valor) {
+            return String(valor ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function resumirTextoMapa(valor, limite) {
+            const texto = String(valor || '').trim();
+
+            if (texto.length <= limite) {
+                return texto;
+            }
+
+            return texto.slice(0, Math.max(1, limite - 3)).trim()
+                + '...';
+        }
+
+        function rotuloStatusVeiculo(status) {
+            return {
+                Carregada: 'Carregada',
+                Liberada: 'Liberada',
+                Em_rota: 'Em rota',
+                No_destino: 'No destino',
+            }[status] || String(status || 'Sem status')
+                .replaceAll('_', ' ');
+        }
+
+        function calcularDiasAtraso(entrega) {
+            if (! entrega.atrasada) {
+                return 0;
+            }
+
+            const partes = String(
+                entrega.data_chave || ''
+            ).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+            if (partes) {
+                const agora = new Date();
+                const hojeUtc = Date.UTC(
+                    agora.getFullYear(),
+                    agora.getMonth(),
+                    agora.getDate()
+                );
+
+                const previsaoUtc = Date.UTC(
+                    Number(partes[1]),
+                    Number(partes[2]) - 1,
+                    Number(partes[3])
+                );
+
+                return Math.max(
+                    0,
+                    Math.floor(
+                        (hojeUtc - previsaoUtc)
+                        / 86400000
+                    )
+                );
+            }
+
+            return Math.max(
+                0,
+                Math.trunc(
+                    Number(entrega.dias_atraso) || 0
+                )
+            );
+        }
+
+        function classificarSituacaoEntrega(entrega) {
+            if (Boolean(entrega.atrasada)) {
+                return {
+                    chave: 'overdue',
+                    rotulo: 'Atrasada',
+                    classe: 'is-overdue',
+                };
+            }
+
+            const agora = new Date();
+            const hoje = [
+                agora.getFullYear(),
+                String(agora.getMonth() + 1).padStart(2, '0'),
+                String(agora.getDate()).padStart(2, '0'),
+            ].join('-');
+
+            if (String(entrega.data_chave || '') === hoje) {
+                return {
+                    chave: 'today',
+                    rotulo: 'Em dia',
+                    classe: 'is-today',
+                };
+            }
+
+            return {
+                chave: 'normal',
+                rotulo: 'Normal',
+                classe: 'is-normal',
+            };
+        }
+
+        function classificarDistanciaEntrega(entrega) {
+            const distancia = Number(
+                entrega.distancia_anterior_km
+            );
+
+            if (! Number.isFinite(distancia) || distancia < 0) {
+                return {
+                    valor: null,
+                    rotulo: 'Distância não calculada',
+                    classe: 'is-normal',
+                };
+            }
+
+            if (distancia <= 5) {
+                return {
+                    valor: distancia,
+                    rotulo: 'Próxima',
+                    classe: 'is-near',
+                };
+            }
+
+            if (distancia <= 15) {
+                return {
+                    valor: distancia,
+                    rotulo: 'Média distância',
+                    classe: 'is-medium',
+                };
+            }
+
+            return {
+                valor: distancia,
+                rotulo: 'Distante',
+                classe: 'is-far',
+            };
+        }
+
+        function rotuloDistanciaEntrega(entrega) {
+            const distancia = classificarDistanciaEntrega(
+                entrega
+            );
+
+            if (distancia.valor === null) {
+                return distancia.rotulo;
+            }
+
+            const origem = obterOrdemEntrega(entrega) === 1
+                ? 'da sede'
+                : 'da entrega anterior';
+
+            return distancia.valor.toLocaleString(
+                'pt-BR',
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                }
+            ) + ' km ' + origem + ' · ' + distancia.rotulo;
+        }
+
+        function rotuloOrdemInteligente(entrega) {
+            const ordem = obterOrdemEntrega(entrega);
+
+            if (! ordem) {
+                return 'Não definida';
+            }
+
+            let rotulo = ordem
+                + 'ª entrega da rota '
+                + (entrega.veiculo || 'sem veículo');
+
+            if (Boolean(entrega.atrasada)) {
+                rotulo += ' · PRIORIDADE POR ATRASO';
+            }
+
+            return rotulo;
+        }
+
+        function classeStatusVeiculo(status) {
+            return {
+                Carregada: 'vehicle-status-carregada',
+                Liberada: 'vehicle-status-liberada',
+                Em_rota: 'vehicle-status-em-rota',
+                No_destino: 'vehicle-status-no-destino',
+            }[status] || 'vehicle-status-carregada';
+        }
+
+        function tipoVisualVeiculo(entrega) {
+            const descricaoOriginal = [
+                entrega.veiculo_tipo,
+                entrega.veiculo_carroceria,
+                entrega.veiculo_modelo,
+            ]
+                .filter(Boolean)
+                .join(' · ');
+
+            const descricao = descricaoOriginal
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase();
+
+            if (
+                entrega.veiculo_possui_munck
+                || descricao.includes('munck')
+                || descricao.includes('guindauto')
+            ) {
+                return {
+                    chave: 'munck',
+                    icone: 'bi-truck',
+                    rotulo: 'Munck',
+                    descricao: descricaoOriginal || 'Caminhão Munck',
+                };
+            }
+
+            if (
+                entrega.veiculo_carroceria_fechada
+                || descricao.includes('bau')
+                || descricao.includes('fechada')
+            ) {
+                return {
+                    chave: 'bau',
+                    icone: 'bi-truck',
+                    rotulo: 'Baú',
+                    descricao: descricaoOriginal || 'Caminhão baú',
+                };
+            }
+
+            if (
+                entrega.veiculo_carroceria_aberta
+                || descricao.includes('aberta')
+                || descricao.includes('carga seca')
+                || descricao.includes('grade baixa')
+                || descricao.includes('grade alta')
+            ) {
+                return {
+                    chave: 'carroceria',
+                    icone: 'bi-truck',
+                    rotulo: 'Aberta',
+                    descricao: descricaoOriginal || 'Carroceria aberta',
+                };
+            }
+
+            if (
+                descricao.includes('van')
+                || descricao.includes('furgao')
+                || descricao.includes('ducato')
+                || descricao.includes('sprinter')
+                || descricao.includes('master')
+                || descricao.includes('boxer')
+                || descricao.includes('jumper')
+            ) {
+                return {
+                    chave: 'van',
+                    icone: 'bi-truck-front',
+                    rotulo: 'Van',
+                    descricao: descricaoOriginal || 'Van',
+                };
+            }
+
+            if (
+                descricao.includes('utilitario')
+                || descricao.includes('pickup')
+                || descricao.includes('picape')
+                || descricao.includes('saveiro')
+                || descricao.includes('strada')
+                || descricao.includes('montana')
+            ) {
+                return {
+                    chave: 'utilitario',
+                    icone: 'bi-truck-front',
+                    rotulo: 'Util.',
+                    descricao: descricaoOriginal || 'Utilitário',
+                };
+            }
+
+            if (
+                descricao.includes('moto')
+                || descricao.includes('motocicleta')
+            ) {
+                return {
+                    chave: 'moto',
+                    icone: 'bi-bicycle',
+                    rotulo: 'Moto',
+                    descricao: descricaoOriginal || 'Motocicleta',
+                };
+            }
+
+            if (
+                descricao.includes('passeio')
+                || descricao.includes('sedan')
+                || descricao.includes('hatch')
+                || descricao.includes('automovel')
+            ) {
+                return {
+                    chave: 'carro',
+                    icone: 'bi-car-front',
+                    rotulo: 'Carro',
+                    descricao: descricaoOriginal || 'Automóvel',
+                };
+            }
+
+            return {
+                chave: 'caminhao',
+                icone: 'bi-truck',
+                rotulo: 'Cam.',
+                descricao: descricaoOriginal || 'Caminhão',
+            };
+        }
+
+        function criarIconeDeposito(totalVeiculosPatio) {
+            const nomeEmpresa = resumirTextoMapa(
+                depositoMapa.nome,
+                18
+            );
+
+            return L.divIcon({
+                className: 'delivery-map-depot-icon',
+                html: '<div class="delivery-map-depot-pin" title="'
+                    + escaparHtml(depositoMapa.nome)
+                    + '">'
+                    + '<i class="bi bi-buildings-fill"></i>'
+                    + '<span class="delivery-map-depot-name">'
+                    + escaparHtml(nomeEmpresa)
+                    + '</span>'
+                    + '</div>',
+                iconAnchor: [
+                    39,
+                    39,
+                ],
+                iconSize: [
+                    78,
+                    78,
+                ],
+                popupAnchor: [
+                    0,
+                    -42,
+                ],
+            });
+        }
+
+        function criarConteudoDeposito(totalVeiculosPatio) {
+            const conteudo = document.createElement('div');
+            conteudo.className = 'map-vehicle-popup';
+
+            const titulo = document.createElement('strong');
+            titulo.className = 'map-vehicle-popup-title';
+            titulo.textContent = depositoMapa.nome;
+            conteudo.append(titulo);
+
+            const dados = [
+                ['Endereço', depositoMapa.endereco],
+            ];
+
+            if (depositoMapa.telefone) {
+                dados.push([
+                    'Telefone',
+                    depositoMapa.telefone,
+                ]);
+            }
+
+            if (depositoMapa.email) {
+                dados.push([
+                    'E-mail',
+                    depositoMapa.email,
+                ]);
+            }
+
+            dados.forEach(function (dado) {
+                const linha = document.createElement('div');
+                linha.className = 'map-vehicle-popup-row';
+
+                const rotulo = document.createElement('span');
+                rotulo.textContent = dado[0];
+
+                const valor = document.createElement('strong');
+                valor.textContent = dado[1];
+
+                linha.append(rotulo, valor);
+                conteudo.append(linha);
+            });
+
+            return conteudo;
+        }
+
+        function obterOrdemEntrega(entrega) {
+            const ordem = Number(
+                entrega.ordem_inteligente
+                    ?? entrega.ordem_rota
+            );
+
+            return Number.isFinite(ordem) && ordem > 0
+                ? Math.trunc(ordem)
+                : null;
+        }
+
+        function criarIconeVeiculo(entrega, totalEntregas) {
+            const tipo = tipoVisualVeiculo(entrega);
+
+            const cores = {
+                Carregada: '#6c757d',
+                Liberada: '#f48120',
+                Em_rota: '#072b62',
+                No_destino: '#198754',
+            };
+
+            const status = String(
+                entrega.status_chave || ''
+            );
+
+            const atrasada = Boolean(entrega.atrasada);
+
+            const cor = atrasada
+                ? '#dc3e3e'
+                : (cores[status] || '#072b62');
+
+            const placa = String(
+                entrega.veiculo || 'Veículo'
+            );
+
+            const classificacao = classificarSituacaoEntrega(
+                entrega
+            );
+
+            const statusRotulo = rotuloStatusVeiculo(status)
+                + ' · '
+                + classificacao.rotulo;
+
+            const statusClasse = atrasada
+                ? 'vehicle-status-atrasada'
+                : classeStatusVeiculo(status);
+
+            const ordem = obterOrdemEntrega(entrega);
+
+            const indicadorOrdem = [
+                'Em_rota',
+                'No_destino',
+            ].includes(status)
+                && Number.isFinite(ordem)
+                && ordem > 0
+                    ? '<span class="delivery-map-vehicle-order" title="Ordem da entrega">'
+                        + ordem
+                        + '</span>'
+                    : '';
+
+            return L.divIcon({
+                className: 'delivery-map-vehicle-icon',
+                html: '<div class="delivery-map-vehicle-pin" style="background:'
+                    + cor
+                    + '">'
+                    + indicadorOrdem
+                    + '<i class="bi '
+                    + tipo.icone
+                    + '"></i><span class="delivery-map-vehicle-kind">'
+                    + escaparHtml(tipo.rotulo)
+                    + '</span><span class="delivery-map-vehicle-label">'
+                    + '<strong class="delivery-map-vehicle-plate">'
+                    + escaparHtml(placa)
+                    + '</strong>'
+                    + '<span class="delivery-map-vehicle-status '
+                    + statusClasse
+                    + '">'
+                    + escaparHtml(statusRotulo)
+                    + '</span>'
+                    + '</span></div>',
+                iconAnchor: [
+                    24,
+                    54,
+                ],
+                iconSize: [
+                    82,
+                    78,
+                ],
+                popupAnchor: [
+                    0,
+                    -50,
+                ],
+            });
+        }
+
+        function descricaoPosicaoVeiculo(status) {
+            return {
+                Carregada: 'Carregado no pátio',
+                Liberada: 'Liberado no pátio',
+                Em_rota: 'Próxima entrega da rota',
+                No_destino: 'No endereço do cliente',
+            }[status] || 'Posição operacional';
+        }
+
+        function montarUrlEnderecoEntrega(entrega) {
+            const latitude = Number(
+                entrega.latitude_entrega
+            );
+            const longitude = Number(
+                entrega.longitude_entrega
+            );
+
+            if (
+                entrega.coordenada_confirmada !== true
+                || ! Number.isFinite(latitude)
+                || latitude < -90
+                || latitude > 90
+                || ! Number.isFinite(longitude)
+                || longitude < -180
+                || longitude > 180
+            ) {
+                return null;
+            }
+
+            const parametros = new URLSearchParams({
+                api: '1',
+                query: latitude.toFixed(7)
+                    + ','
+                    + longitude.toFixed(7),
+            });
+
+            return 'https://www.google.com/maps/search/?'
+                + parametros.toString();
+        }
+
+        function adicionarQrEnderecoEntrega(conteudo, entrega) {
+            const urlEndereco = montarUrlEnderecoEntrega(
+                entrega
+            );
+
+            if (! urlEndereco) {
+                return;
+            }
+
+            const areaQr = document.createElement('div');
+            areaQr.className = 'map-route-qr';
+
+            const codigoQr = document.createElement('div');
+            codigoQr.className = 'map-route-qr-code';
+
+            const link = document.createElement('a');
+            link.href = urlEndereco;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = 'Abrir endereço da entrega no Google Maps';
+
+            areaQr.append(codigoQr, link);
+            conteudo.append(areaQr);
+
+            if (typeof QRCode === 'function') {
+                new QRCode(codigoQr, {
+                    text: urlEndereco,
+                    width: 160,
+                    height: 160,
+                    colorDark: '#0b3268',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.L,
+                });
+            }
+        }
+
+        function criarConteudoVeiculo(
+            entrega,
+            totalEntregas
+        ) {
+            const conteudo = document.createElement('div');
+            conteudo.className = 'map-vehicle-popup';
+
+            const titulo = document.createElement('strong');
+            titulo.className = 'map-vehicle-popup-title';
+            titulo.textContent = entrega.veiculo
+                + (
+                    entrega.veiculo_modelo
+                        ? ' · ' + entrega.veiculo_modelo
+                        : ''
+                );
+            conteudo.append(titulo);
+
+            const diasAtraso = calcularDiasAtraso(
+                entrega
+            );
+
+            const classificacao = classificarSituacaoEntrega(
+                entrega
+            );
+            const distancia = classificarDistanciaEntrega(
+                entrega
+            );
+
+            const situacao = entrega.atrasada
+                ? 'ATRASADA HÁ '
+                    + diasAtraso
+                    + (diasAtraso === 1 ? ' DIA' : ' DIAS')
+                : classificacao.rotulo.toUpperCase();
+
+            const tipoVeiculo = tipoVisualVeiculo(entrega);
+
+            const dados = [
+                ['Status', rotuloStatusVeiculo(
+                    entrega.status_chave
+                )],
+                ['Tipo do veículo', tipoVeiculo.descricao],
+                ['Situação', situacao,
+                    classificacao.chave === 'overdue'
+                        ? 'map-popup-value-danger'
+                        : classificacao.chave === 'today'
+                            ? 'map-popup-value-success'
+                            : 'map-popup-value-normal'],
+                ['Distância do trecho', rotuloDistanciaEntrega(entrega),
+                    distancia.classe === 'is-near'
+                        ? 'map-popup-value-success'
+                        : distancia.classe === 'is-medium'
+                            ? 'map-popup-value-medium'
+                            : distancia.classe === 'is-far'
+                                ? 'map-popup-value-far'
+                                : 'map-popup-value-normal'],
+                ['Agrupamento', entrega.agrupamento_rota
+                    || 'Distância sequencial'],
+                ['Previsão', entrega.data + ' · ' + entrega.periodo],
+                ['Motorista', entrega.motorista],
+                ['Romaneio', entrega.romaneio_codigo || 'Não informado'],
+                ['Entregas', String(totalEntregas)],
+                ['Ordem inteligente', rotuloOrdemInteligente(entrega),
+                    entrega.atrasada
+                        ? 'map-popup-value-danger'
+                        : 'map-popup-value-normal'],
+                ['Liberada em', entrega.liberado_em || 'Ainda não liberada'],
+                ['Posição', descricaoPosicaoVeiculo(
+                    entrega.status_chave
+                )],
+                ['Entrega referência', entrega.codigo],
+                ['Cliente de referência', entrega.cliente],
+                ['Telefone do cliente', entrega.telefone || 'Não informado'],
+                ['Endereço', entrega.endereco],
+            ];
+
+            dados.forEach(function (dado) {
+                const linha = document.createElement('div');
+                linha.className = 'map-vehicle-popup-row';
+
+                const rotulo = document.createElement('span');
+                rotulo.textContent = dado[0];
+
+                const valor = document.createElement('strong');
+                valor.textContent = dado[1] || 'Não informado';
+
+                if (dado[2]) {
+                    valor.classList.add(dado[2]);
+                }
+
+                linha.append(rotulo, valor);
+                conteudo.append(linha);
+            });
+
+            adicionarQrEnderecoEntrega(
+                conteudo,
+                entrega
+            );
+
+            return conteudo;
+        }
+
+        function calcularPosicaoPatio(
+            indice,
+            total,
+            raioPersonalizado = null,
+            deslocamentoAngular = 0
+        ) {
+            const latitude = depositoMapa.latitude;
+            const longitude = depositoMapa.longitude;
+
+            const raioBase = Number.isFinite(
+                Number(raioPersonalizado)
+            )
+                ? Number(raioPersonalizado)
+                : Math.min(
+                    70,
+                    Math.max(
+                        60,
+                        Number(depositoMapa.raioPatioMetros)
+                            || 60
+                    )
+                );
+
+            const quantidade = Math.max(total, 1);
+            const itensPorAnel = 8;
+            const anel = Math.floor(indice / itensPorAnel);
+            const posicaoNoAnel = indice % itensPorAnel;
+            const quantidadeNoAnel = Math.min(
+                itensPorAnel,
+                quantidade - (anel * itensPorAnel)
+            );
+            const raio = raioBase + (anel * 9);
+            const angulo = (
+                (Math.PI * 2 * posicaoNoAnel)
+                / Math.max(quantidadeNoAnel, 1)
+            ) - (Math.PI / 2) + deslocamentoAngular;
+
+            const deltaLatitude =
+                (raio * Math.cos(angulo)) / 111320;
+
+            const fatorLongitude = Math.max(
+                .2,
+                Math.cos(latitude * Math.PI / 180)
+            );
+
+            const deltaLongitude =
+                (raio * Math.sin(angulo))
+                / (111320 * fatorLongitude);
+
+            return L.latLng(
+                latitude + deltaLatitude,
+                longitude + deltaLongitude
+            );
+        }
+
+        function adicionarMarcadoresVeiculos(
+            mapa,
+            pontos,
+            limites
+        ) {
+            const posicoesPorEntrega = new Map();
+
+            pontos.forEach(function (ponto) {
+                ponto.grupo.entregas.forEach(function (entrega) {
+                    posicoesPorEntrega.set(
+                        Number(entrega.id),
+                        ponto.posicao
+                    );
+                });
+            });
+
+            const veiculos = new Map();
+
+            entregasMapa.forEach(function (entrega) {
+                const veiculo = String(
+                    entrega.veiculo || ''
+                ).trim();
+
+                if (
+                    veiculo === ''
+                    || veiculo === 'Não definido'
+                    || ! [
+                        'Carregada',
+                        'Liberada',
+                    ].includes(entrega.status_chave)
+                ) {
+                    return;
+                }
+
+                const chave = [
+                    veiculo,
+                    entrega.motorista || '',
+                ].join('|');
+
+                if (! veiculos.has(chave)) {
+                    veiculos.set(chave, []);
+                }
+
+                veiculos.get(chave).push(entrega);
+            });
+
+            const cargasPatio = [];
+            const cargasRua = [];
+
+            veiculos.forEach(function (entregas) {
+                const noPatio = entregas.every(
+                    entrega => [
+                        'Carregada',
+                        'Liberada',
+                    ].includes(entrega.status_chave)
+                );
+
+                const carga = {
+                    entregas: entregas,
+                    referencia: null,
+                };
+
+                if (noPatio) {
+                    carga.referencia = entregas.slice().sort(
+                        function (a, b) {
+                            const diferencaAtraso = Number(b.atrasada)
+                                - Number(a.atrasada);
+
+                            if (diferencaAtraso !== 0) {
+                                return diferencaAtraso;
+                            }
+
+                            const prioridade = {
+                                Liberada: 0,
+                                Carregada: 1,
+                            };
+
+                            return (
+                                prioridade[a.status_chave] ?? 9
+                            ) - (
+                                prioridade[b.status_chave] ?? 9
+                            );
+                        }
+                    )[0];
+
+                    cargasPatio.push(carga);
+                    return;
+                }
+
+                const candidatas = entregas
+                    .filter(function (entrega) {
+                        return posicoesPorEntrega.has(
+                            Number(entrega.id)
+                        );
+                    })
+                    .sort(function (a, b) {
+                        const diferencaAtraso = Number(b.atrasada)
+                            - Number(a.atrasada);
+
+                        if (diferencaAtraso !== 0) {
+                            return diferencaAtraso;
+                        }
+
+                        const prioridade = {
+                            No_destino: 0,
+                            Em_rota: 1,
+                        };
+
+                        const diferencaStatus = (
+                            prioridade[a.status_chave] ?? 9
+                        ) - (
+                            prioridade[b.status_chave] ?? 9
+                        );
+
+                        if (diferencaStatus !== 0) {
+                            return diferencaStatus;
+                        }
+
+                        return Number(a.ordem_rota ?? 999999)
+                            - Number(b.ordem_rota ?? 999999);
+                    });
+
+                carga.referencia = candidatas[0] || entregas[0];
+                cargasRua.push(carga);
+            });
+
+            const depositoPosicao = L.latLng(
+                depositoMapa.latitude,
+                depositoMapa.longitude
+            );
+
+            L.marker(
+                depositoPosicao,
+                {
+                    icon: criarIconeDeposito(
+                        cargasPatio.length
+                    ),
+                    title: depositoMapa.nome,
+                    zIndexOffset: 5000,
+                }
+            )
+                .bindPopup(
+                    criarConteudoDeposito(
+                        cargasPatio.length
+                    ),
+                    {
+                        maxWidth: 360,
+                        minWidth: 250,
+                    }
+                )
+                .addTo(mapa);
+
+            limites.extend(depositoPosicao);
+
+            cargasPatio.forEach(function (carga, indice) {
+                const posicao = calcularPosicaoPatio(
+                    indice,
+                    cargasPatio.length
+                );
+
+                L.polyline(
+                    [
+                        depositoPosicao,
+                        posicao,
+                    ],
+                    {
+                        className: 'delivery-map-yard-line',
+                        color: '#6c757d',
+                        interactive: false,
+                        opacity: .55,
+                        weight: 1.2,
+                    }
+                ).addTo(mapa);
+
+                L.marker(
+                    posicao,
+                    {
+                        icon: criarIconeVeiculo(
+                            carga.referencia,
+                            carga.entregas.length
+                        ),
+                        title: carga.referencia.veiculo
+                            + ' · '
+                            + carga.referencia.motorista,
+                        zIndexOffset: 4200,
+                    }
+                )
+                    .bindPopup(
+                        criarConteudoVeiculo(
+                            carga.referencia,
+                            carga.entregas.length
+                        ),
+                        {
+                            maxWidth: 360,
+                            minWidth: 245,
+                        }
+                    )
+                    .addTo(mapa);
+
+                limites.extend(posicao);
+            });
+
+            cargasRua.forEach(function (carga) {
+                const posicao = posicoesPorEntrega.get(
+                    Number(carga.referencia.id)
+                );
+
+                if (! posicao) {
+                    return;
+                }
+
+                L.marker(
+                    posicao,
+                    {
+                        icon: criarIconeVeiculo(
+                            carga.referencia,
+                            carga.entregas.length
+                        ),
+                        title: carga.referencia.veiculo
+                            + ' · '
+                            + carga.referencia.motorista,
+                        zIndexOffset: 4000,
+                    }
+                )
+                    .bindPopup(
+                        criarConteudoVeiculo(
+                            carga.referencia,
+                            carga.entregas.length
+                        ),
+                        {
+                            maxWidth: 360,
+                            minWidth: 245,
+                        }
+                    )
+                    .addTo(mapa);
+
+                limites.extend(posicao);
+            });
+
+            return {
+                patio: cargasPatio.length,
+                rua: cargasRua.length,
+            };
+        }
+
+        function prepararPosicoesEntregasEmRota(
+            mapa,
+            entregas,
+            posicoesPorEntrega
+        ) {
+            const grupos = [];
+
+            entregas.forEach(function (entrega) {
+                const posicaoReal = posicoesPorEntrega.get(
+                    Number(entrega.id)
+                );
+
+                if (! posicaoReal) {
+                    return;
+                }
+
+                let grupo = grupos.find(function (item) {
+                    return mapa.distance(
+                        item.referencia,
+                        posicaoReal
+                    ) <= 18;
+                });
+
+                if (! grupo) {
+                    grupo = {
+                        referencia: posicaoReal,
+                        itens: [],
+                    };
+                    grupos.push(grupo);
+                }
+
+                grupo.itens.push({
+                    entrega: entrega,
+                    posicaoReal: posicaoReal,
+                });
+            });
+
+            const posicoesPreparadas = new Map();
+
+            grupos.forEach(function (grupo) {
+                grupo.itens.sort(function (a, b) {
+                    const diferencaOrdem = (
+                        obterOrdemEntrega(a.entrega) ?? 999999
+                    ) - (
+                        obterOrdemEntrega(b.entrega) ?? 999999
+                    );
+
+                    if (diferencaOrdem !== 0) {
+                        return diferencaOrdem;
+                    }
+
+                    return Number(a.entrega.id)
+                        - Number(b.entrega.id);
+                });
+
+                if (grupo.itens.length === 1) {
+                    const item = grupo.itens[0];
+                    posicoesPreparadas.set(
+                        Number(item.entrega.id),
+                        {
+                            posicaoReal: item.posicaoReal,
+                            posicaoExibicao: item.posicaoReal,
+                            sobreposta: false,
+                        }
+                    );
+
+                    return;
+                }
+
+                const centroLatitude = grupo.itens.reduce(
+                    function (total, item) {
+                        return total + item.posicaoReal.lat;
+                    },
+                    0
+                ) / grupo.itens.length;
+
+                const centroLongitude = grupo.itens.reduce(
+                    function (total, item) {
+                        return total + item.posicaoReal.lng;
+                    },
+                    0
+                ) / grupo.itens.length;
+
+                const raioMetros = Math.max(
+                    34,
+                    grupo.itens.length * 11
+                );
+
+                grupo.itens.forEach(function (item, indice) {
+                    const angulo = (
+                        (2 * Math.PI * indice)
+                        / grupo.itens.length
+                    ) - (Math.PI / 2);
+
+                    const deltaLatitude = (
+                        raioMetros * Math.cos(angulo)
+                    ) / 111320;
+
+                    const fatorLongitude = Math.max(
+                        .2,
+                        Math.cos(
+                            centroLatitude * Math.PI / 180
+                        )
+                    );
+
+                    const deltaLongitude = (
+                        raioMetros * Math.sin(angulo)
+                    ) / (111320 * fatorLongitude);
+
+                    posicoesPreparadas.set(
+                        Number(item.entrega.id),
+                        {
+                            posicaoReal: item.posicaoReal,
+                            posicaoExibicao: L.latLng(
+                                centroLatitude + deltaLatitude,
+                                centroLongitude + deltaLongitude
+                            ),
+                            sobreposta: true,
+                        }
+                    );
+                });
+            });
+
+            return posicoesPreparadas;
+        }
+
+        function adicionarEntregasEmRota(
+            mapa,
+            pontos,
+            limites
+        ) {
+            const posicoesPorEntrega = new Map();
+            const marcadores = new Map();
+
+            pontos.forEach(function (ponto) {
+                ponto.grupo.entregas.forEach(function (entrega) {
+                    posicoesPorEntrega.set(
+                        Number(entrega.id),
+                        ponto.posicao
+                    );
+                });
+            });
+
+            const entregasEmRota = entregasMapa
+                .filter(function (entrega) {
+                    return [
+                        'Em_rota',
+                        'No_destino',
+                    ].includes(entrega.status_chave)
+                        && posicoesPorEntrega.has(
+                            Number(entrega.id)
+                        );
+                });
+
+            const posicoesPreparadas =
+                prepararPosicoesEntregasEmRota(
+                    mapa,
+                    entregasEmRota,
+                    posicoesPorEntrega
+                );
+
+            let total = 0;
+
+            entregasEmRota.forEach(function (entrega) {
+                    const entregasRota = entregasDaRotaCorrespondente(
+                        entrega
+                    );
+                    const posicoes = posicoesPreparadas.get(
+                        Number(entrega.id)
+                    );
+
+                    if (! posicoes) {
+                        return;
+                    }
+
+                    if (posicoes.sobreposta) {
+                        L.polyline(
+                            [
+                                posicoes.posicaoReal,
+                                posicoes.posicaoExibicao,
+                            ],
+                            {
+                                color: '#64748b',
+                                dashArray: '3 4',
+                                interactive: false,
+                                opacity: .72,
+                                weight: 1.3,
+                            }
+                        ).addTo(mapa);
+                    }
+
+                    const ordem = obterOrdemEntrega(entrega);
+
+                    const marcador = L.marker(
+                        posicoes.posicaoExibicao,
+                        {
+                            icon: criarIconeVeiculo(
+                                entrega,
+                                entregasRota.length
+                            ),
+                            title: entrega.codigo
+                                + ' · '
+                                + entrega.veiculo
+                                + ' · '
+                                + entrega.motorista
+                                + (
+                                    ordem
+                                        ? ' · Ordem ' + ordem
+                                        : ''
+                                ),
+                            zIndexOffset: 4000
+                                + Math.max(
+                                    0,
+                                    100 - (ordem ?? 100)
+                                ),
+                        }
+                    )
+                        .bindPopup(
+                            criarConteudoVeiculo(
+                                entrega,
+                                entregasRota.length
+                            ),
+                            {
+                                maxWidth: 360,
+                                minWidth: 245,
+                            }
+                        )
+                        .addTo(mapa);
+
+                    marcadores.set(
+                        Number(entrega.id),
+                        marcador
+                    );
+
+                    limites.extend(posicoes.posicaoReal);
+                    limites.extend(posicoes.posicaoExibicao);
+                    total++;
+                });
+
+            return {
+                total: total,
+                marcadores: marcadores,
+            };
+        }
+
+        function criarIconeSobreposicao(total, possuiAtraso) {
+            const cor = possuiAtraso
+                ? '#dc3e3e'
+                : '#072b62';
+
             return L.divIcon({
                 className: 'delivery-map-div-icon',
-                html: '<div class="delivery-map-overlap"><strong>'
+                html: '<div class="delivery-map-overlap" style="background:'
+                    + cor
+                    + '"><strong>'
                     + total
-                    + '</strong><small>pontos</small></div>',
+                    + '</strong><small>'
+                    + (possuiAtraso ? 'atraso' : 'pontos')
+                    + '</small></div>',
                 iconAnchor: [
                     21,
                     21,
@@ -1624,6 +4162,297 @@
                     42,
                     42,
                 ],
+            });
+        }
+
+        function entregasDaRotaCorrespondente(entregaReferencia) {
+            const veiculo = String(
+                entregaReferencia.veiculo || ''
+            ).trim();
+            const motorista = String(
+                entregaReferencia.motorista || ''
+            ).trim();
+
+            if (
+                veiculo === ''
+                || veiculo === 'Não definido'
+            ) {
+                return [entregaReferencia];
+            }
+
+            const rota = entregasMapa.filter(function (entrega) {
+                return [
+                    'Em_rota',
+                    'No_destino',
+                ].includes(entrega.status_chave)
+                    && String(entrega.veiculo || '').trim() === veiculo
+                    && String(entrega.motorista || '').trim() === motorista;
+            });
+
+            return rota.length > 0
+                ? rota
+                : [entregaReferencia];
+        }
+
+        function montarPainelOrdensEntrega(
+            mapa,
+            marcadores
+        ) {
+            const accordion = document.getElementById(
+                'mapa-rotas-accordion'
+            );
+
+            if (! accordion) {
+                return;
+            }
+
+            accordion.innerHTML = '';
+
+            const entregasEmRota = entregasMapa
+                .filter(function (entrega) {
+                    return [
+                        'Em_rota',
+                        'No_destino',
+                    ].includes(entrega.status_chave);
+                })
+                .sort(function (a, b) {
+                    const prioridadeStatus = {
+                        No_destino: 0,
+                        Em_rota: 1,
+                    };
+                    const diferencaStatus = (
+                        prioridadeStatus[a.status_chave] ?? 9
+                    ) - (
+                        prioridadeStatus[b.status_chave] ?? 9
+                    );
+
+                    if (diferencaStatus !== 0) {
+                        return diferencaStatus;
+                    }
+
+                    return (
+                        obterOrdemEntrega(a) ?? 999999
+                    ) - (
+                        obterOrdemEntrega(b) ?? 999999
+                    );
+                });
+
+            if (entregasEmRota.length === 0) {
+                const vazio = document.createElement('div');
+                vazio.className = 'delivery-route-empty';
+                vazio.textContent = 'Nenhuma entrega em rota.';
+                accordion.append(vazio);
+
+                return;
+            }
+
+            const legenda = document.createElement('div');
+            legenda.className = 'delivery-route-legend';
+            legenda.innerHTML = '<div class="delivery-route-legend-line">'
+                + '<span class="delivery-route-legend-label">Situação</span>'
+                + '<span class="delivery-route-badge is-overdue">Atrasada</span>'
+                + '<span class="delivery-route-badge is-today">Em dia</span>'
+                + '<span class="delivery-route-badge is-normal">Normal</span>'
+                + '</div><div class="delivery-route-legend-line">'
+                + '<span class="delivery-route-legend-label">Distância</span>'
+                + '<span class="delivery-route-badge is-near">Próxima ≤ 5 km</span>'
+                + '<span class="delivery-route-badge is-medium">Média ≤ 15 km</span>'
+                + '<span class="delivery-route-badge is-far">Distante &gt; 15 km</span>'
+                + '</div><div class="delivery-route-rule">'
+                + '<strong>Ordem inteligente:</strong> atraso como exceção prioritária, '
+                + 'data prevista, período, coordenadas até 100 m, mesmo CEP, mesmo bairro, '
+                + 'distância sequencial e menor percurso. Cidade não participa do agrupamento. '
+                + 'A rota iniciada e as validações operacionais permanecem preservadas.'
+                + '</div>';
+            accordion.append(legenda);
+
+            const rotas = new Map();
+
+            entregasEmRota.forEach(function (entrega) {
+                const chave = [
+                    entrega.veiculo || 'Veículo não definido',
+                    entrega.motorista || 'Motorista não definido',
+                ].join('|');
+
+                if (! rotas.has(chave)) {
+                    rotas.set(chave, []);
+                }
+
+                rotas.get(chave).push(entrega);
+            });
+
+            rotas.forEach(function (entregasRota) {
+                const referencia = entregasRota[0];
+                const detalhes = document.createElement('details');
+                detalhes.className = 'delivery-route-accordion';
+                detalhes.open = false;
+
+                const resumo = document.createElement('summary');
+
+                const identificacao = document.createElement('span');
+                identificacao.textContent = referencia.veiculo
+                    + ' · '
+                    + referencia.motorista;
+
+                const quantidade = document.createElement('span');
+                quantidade.textContent = entregasRota.length
+                    + (entregasRota.length === 1
+                        ? ' entrega'
+                        : ' entregas');
+
+                resumo.append(identificacao, quantidade);
+                detalhes.append(resumo);
+
+                const conteudo = document.createElement('div');
+                conteudo.className = 'delivery-route-accordion-content';
+
+                entregasRota.forEach(function (entrega) {
+                    const classificacao =
+                        classificarSituacaoEntrega(entrega);
+                    const distancia =
+                        classificarDistanciaEntrega(entrega);
+                    const parada = document.createElement('div');
+                    parada.className = 'delivery-route-stop '
+                        + classificacao.classe;
+                    parada.tabIndex = 0;
+                    parada.setAttribute('role', 'button');
+                    parada.setAttribute(
+                        'aria-label',
+                        'Localizar entrega ' + entrega.codigo
+                    );
+
+                    const ordem = document.createElement('span');
+                    ordem.className = 'delivery-route-order';
+                    ordem.textContent = obterOrdemEntrega(entrega)
+                        ?? '-';
+                    ordem.title = 'Ordem da entrega';
+
+                    const dados = document.createElement('div');
+
+                    const documento = document.createElement('strong');
+                    documento.textContent = entrega.codigo;
+
+                    const badges = document.createElement('div');
+                    badges.className = 'delivery-route-badges';
+
+                    const badgeSituacao = document.createElement('span');
+                    badgeSituacao.className = 'delivery-route-badge '
+                        + classificacao.classe;
+                    badgeSituacao.textContent = classificacao.rotulo;
+
+                    const badgeDistancia = document.createElement('span');
+                    badgeDistancia.className = 'delivery-route-badge '
+                        + distancia.classe;
+                    badgeDistancia.textContent = distancia.rotulo;
+                    badgeDistancia.title = rotuloDistanciaEntrega(
+                        entrega
+                    );
+
+                    badges.append(
+                        badgeSituacao,
+                        badgeDistancia
+                    );
+
+                    if (Boolean(entrega.atrasada)) {
+                        const badgePrioridade = document.createElement(
+                            'span'
+                        );
+                        badgePrioridade.className =
+                            'delivery-route-badge is-overdue';
+                        badgePrioridade.textContent =
+                            'Prioridade por atraso';
+                        badgePrioridade.title =
+                            'Esta entrega ocupa a primeira posição da sua rota por estar atrasada.';
+                        badges.append(badgePrioridade);
+                    }
+
+                    const equipe = document.createElement('span');
+                    equipe.textContent = 'Placa: '
+                        + entrega.veiculo
+                        + ' · Motorista: '
+                        + entrega.motorista;
+
+                    const cliente = document.createElement('span');
+                    cliente.textContent = 'Cliente: '
+                        + entrega.cliente;
+
+                    const telefone = document.createElement('span');
+                    telefone.textContent = 'Telefone: '
+                        + (entrega.telefone || 'Não informado');
+
+                    const endereco = document.createElement('span');
+                    endereco.textContent = 'Endereço: '
+                        + entrega.endereco;
+
+                    const previsao = document.createElement('span');
+                    previsao.textContent = 'Previsão: '
+                        + entrega.data
+                        + ' · '
+                        + entrega.periodo;
+
+                    const trecho = document.createElement('span');
+                    trecho.textContent = 'Trecho: '
+                        + rotuloDistanciaEntrega(entrega);
+
+                    const agrupamento = document.createElement('span');
+                    agrupamento.textContent = 'Agrupamento: '
+                        + (entrega.agrupamento_rota
+                            || 'Distância sequencial');
+
+                    dados.append(
+                        documento,
+                        badges,
+                        equipe,
+                        cliente,
+                        telefone,
+                        previsao,
+                        trecho,
+                        agrupamento,
+                        endereco
+                    );
+                    parada.append(ordem, dados);
+
+                    const localizarEntrega = function () {
+                        const marcador = marcadores.get(
+                            Number(entrega.id)
+                        );
+
+                        if (! marcador) {
+                            return;
+                        }
+
+                        mapa.flyTo(
+                            marcador.getLatLng(),
+                            Math.max(mapa.getZoom(), 16),
+                            {
+                                duration: .55,
+                            }
+                        );
+                        marcador.openPopup();
+                    };
+
+                    parada.addEventListener(
+                        'click',
+                        localizarEntrega
+                    );
+                    parada.addEventListener(
+                        'keydown',
+                        function (evento) {
+                            if (
+                                evento.key === 'Enter'
+                                || evento.key === ' '
+                            ) {
+                                evento.preventDefault();
+                                localizarEntrega();
+                            }
+                        }
+                    );
+
+                    conteudo.append(parada);
+                });
+
+                detalhes.append(conteudo);
+                accordion.append(detalhes);
             });
         }
 
@@ -1646,18 +4475,69 @@
                 codigo.textContent = entrega.codigo;
                 linha.append(codigo);
 
+                const indicador = document.createElement('span');
+                const classificacao =
+                    classificarSituacaoEntrega(entrega);
+                indicador.className = 'map-info-indicator '
+                    + classificacao.classe;
+
+                if (entrega.atrasada) {
+                    const diasAtraso = calcularDiasAtraso(
+                        entrega
+                    );
+
+                    indicador.textContent = 'Atrasada há '
+                        + diasAtraso
+                        + (diasAtraso === 1 ? ' dia' : ' dias');
+                } else {
+                    indicador.textContent = classificacao.rotulo;
+                }
+
+                linha.append(indicador);
+
                 const cliente = document.createElement('div');
                 cliente.textContent = entrega.cliente;
                 linha.append(cliente);
 
+                const previsao = document.createElement('span');
+                previsao.className = 'map-info-status';
+                previsao.textContent = 'Previsão: '
+                    + entrega.data
+                    + ' · '
+                    + entrega.periodo;
+                linha.append(previsao);
+
                 const status = document.createElement('span');
                 status.className = 'map-info-status';
-                status.textContent = entrega.data
-                    + ' · '
-                    + entrega.periodo
-                    + ' · '
-                    + entrega.status;
+                status.textContent = 'Status: ' + entrega.status;
                 linha.append(status);
+
+                const rota = document.createElement('span');
+                rota.className = 'map-info-status';
+                rota.textContent = 'Ordem: '
+                    + (obterOrdemEntrega(entrega) ?? 'Não definida')
+                    + ' · Distância: '
+                    + rotuloDistanciaEntrega(entrega)
+                    + ' · Agrupamento: '
+                    + (entrega.agrupamento_rota
+                        || 'Distância sequencial');
+                linha.append(rota);
+
+                const contato = document.createElement('span');
+                contato.className = 'map-info-status';
+                contato.textContent = 'Contato: '
+                    + entrega.telefone
+                    + ' · Recebedor: '
+                    + entrega.responsavel_recebimento;
+                linha.append(contato);
+
+                if (entrega.observacao_entrega) {
+                    const observacao = document.createElement('span');
+                    observacao.className = 'map-info-status';
+                    observacao.textContent = 'Observação: '
+                        + entrega.observacao_entrega;
+                    linha.append(observacao);
+                }
 
                 conteudo.append(linha);
             });
@@ -1671,7 +4551,10 @@
                 {
                     icon: criarIconeMarcador(
                         ponto.numero,
-                        ponto.cor
+                        ponto.cor,
+                        rotuloIndicadorEntregas(
+                            ponto.grupo.entregas
+                        )
                     ),
                     title: ponto.grupo.endereco,
                     zIndexOffset: ponto.atrasada
@@ -1705,7 +4588,10 @@
                 centro,
                 {
                     icon: criarIconeSobreposicao(
-                        pontos.length
+                        pontos.length,
+                        pontos.some(
+                            ponto => ponto.atrasada
+                        )
                     ),
                     title: pontos.length
                         + ' pontos coincidentes. Clique para expandir.',
@@ -1789,6 +4675,60 @@
             );
         }
 
+        function agruparPontosPorCepOuProximidade(
+            mapa,
+            pontos
+        ) {
+            const agrupamentos = [];
+
+            pontos.forEach(function (ponto) {
+                const cep = String(
+                    ponto.grupo.cep || ''
+                );
+
+                const agrupamentoEncontrado =
+                    agrupamentos.find(
+                        function (agrupamento) {
+                            const mesmoCep = cep !== ''
+                                && agrupamento.ceps.has(cep);
+
+                            const pontoProximo =
+                                agrupamento.pontos.some(
+                                    function (pontoExistente) {
+                                        return mapa.distance(
+                                            pontoExistente.posicao,
+                                            ponto.posicao
+                                        ) <= raioAgrupamentoMetros;
+                                    }
+                                );
+
+                            return mesmoCep || pontoProximo;
+                        }
+                    );
+
+                if (agrupamentoEncontrado) {
+                    agrupamentoEncontrado.pontos.push(ponto);
+
+                    if (cep !== '') {
+                        agrupamentoEncontrado.ceps.add(cep);
+                    }
+
+                    return;
+                }
+
+                agrupamentos.push({
+                    ceps: new Set(
+                        cep !== '' ? [cep] : []
+                    ),
+                    pontos: [ponto],
+                });
+            });
+
+            return agrupamentos.map(
+                agrupamento => agrupamento.pontos
+            );
+        }
+
         async function inicializarMapaEntregasInteligentes() {
             const elemento = document.getElementById(
                 'mapa-entregas-inteligentes'
@@ -1830,13 +4770,17 @@
                 }
             ).addTo(mapa);
 
-            const grupos = agruparEntregasPorCoordenada(
+            const grupos = agruparEntregasPorEndereco(
                 entregasMapa
             );
 
-            if (grupos.length === 0) {
+            const depositoValido =
+                Number.isFinite(depositoMapa.latitude)
+                && Number.isFinite(depositoMapa.longitude);
+
+            if (! depositoValido) {
                 if (mensagem) {
-                    mensagem.textContent = 'Nenhuma entrega possui coordenadas confirmadas.';
+                    mensagem.textContent = 'As coordenadas do depósito não estão configuradas.';
                 }
 
                 return;
@@ -1868,29 +4812,39 @@
                 'mapa-entregas-tela-cheia'
             );
 
+            const painelRotas = document.getElementById(
+                'mapa-rotas-painel'
+            );
+
+            const botaoPainelRotas = document.getElementById(
+                'mapa-rotas-painel-toggle'
+            );
+
             function centralizarMapa() {
                 mapa.invalidateSize({
                     pan: false,
                 });
 
-                if (localizados === 1) {
-                    mapa.setView(
-                        limites.getCenter(),
-                        15
-                    );
+                if (limites.isValid()) {
+                    const painelAberto = painelRotas
+                        && ! painelRotas.classList.contains(
+                            'is-collapsed'
+                        )
+                        && envoltorioMapa
+                        && envoltorioMapa.classList.contains(
+                            'is-fullscreen'
+                        )
+                        && window.innerWidth >= 768;
 
-                    return;
-                }
-
-                if (localizados > 1) {
                     mapa.fitBounds(
                         limites,
                         {
-                            maxZoom: 15,
-                            padding: [
-                                42,
-                                42,
+                            maxZoom: depositoMapa.zoom,
+                            paddingTopLeft: [
+                                painelAberto ? 360 : 52,
+                                52,
                             ],
+                            paddingBottomRight: [52, 52],
                         }
                     );
 
@@ -1898,9 +4852,56 @@
                 }
 
                 mapa.setView(
-                    configuracaoMapa.center,
-                    configuracaoMapa.zoom
+                    [
+                        depositoMapa.latitude,
+                        depositoMapa.longitude,
+                    ],
+                    depositoMapa.zoom
                 );
+            }
+
+            function centralizarMapaAposLayout() {
+                window.requestAnimationFrame(
+                    function () {
+                        window.requestAnimationFrame(
+                            centralizarMapa
+                        );
+                    }
+                );
+
+                window.setTimeout(
+                    centralizarMapa,
+                    120
+                );
+
+                window.setTimeout(
+                    centralizarMapa,
+                    400
+                );
+            }
+
+            function fecharPainelRotas() {
+                if (! painelRotas || ! botaoPainelRotas) {
+                    return;
+                }
+
+                painelRotas.classList.add('is-collapsed');
+                botaoPainelRotas.setAttribute(
+                    'aria-expanded',
+                    'false'
+                );
+                botaoPainelRotas.title = 'Abrir ordens de entrega';
+
+                const icone = botaoPainelRotas.querySelector('i');
+
+                if (icone) {
+                    icone.className = 'bi bi-chevron-down';
+                }
+
+                painelRotas.querySelectorAll('details[open]')
+                    .forEach(function (detalhes) {
+                        detalhes.open = false;
+                    });
             }
 
             function definirMapaTelaCheia(expandido) {
@@ -1950,14 +4951,13 @@
                         : 'Expandir';
                 }
 
-                window.setTimeout(
-                    function () {
-                        mapa.invalidateSize({
-                            pan: false,
-                        });
-                    },
-                    80
-                );
+                fecharPainelRotas();
+
+                if (! expandido) {
+                    mapa.closePopup();
+                }
+
+                centralizarMapaAposLayout();
             }
 
             if (botaoCentralizar) {
@@ -1979,6 +4979,41 @@
                         definirMapaTelaCheia(
                             ! expandido
                         );
+                    }
+                );
+            }
+
+            if (painelRotas && botaoPainelRotas) {
+                botaoPainelRotas.addEventListener(
+                    'click',
+                    function () {
+                        const recolhido = painelRotas.classList.toggle(
+                            'is-collapsed'
+                        );
+                        const icone = botaoPainelRotas.querySelector('i');
+
+                        botaoPainelRotas.setAttribute(
+                            'aria-expanded',
+                            recolhido ? 'false' : 'true'
+                        );
+                        botaoPainelRotas.title = recolhido
+                            ? 'Abrir ordens de entrega'
+                            : 'Fechar ordens de entrega';
+
+                        if (icone) {
+                            icone.className = recolhido
+                                ? 'bi bi-chevron-down'
+                                : 'bi bi-chevron-up';
+                        }
+
+                        if (recolhido) {
+                            painelRotas.querySelectorAll('details[open]')
+                                .forEach(function (detalhes) {
+                                    detalhes.open = false;
+                                });
+                        }
+
+                        centralizarMapaAposLayout();
                     }
                 );
             }
@@ -2127,12 +5162,40 @@
                 return registroNaoLocalizado;
             }
 
+            const gruposPatio = grupos.filter(
+                function (grupo) {
+                    return grupo.entregas.every(
+                        function (entrega) {
+                            return [
+                                'Carregada',
+                                'Liberada',
+                            ].includes(
+                                entrega.status_chave
+                            );
+                        }
+                    );
+                }
+            );
+
+            let indiceGrupoPatio = 0;
+
             for (
                 let indice = 0;
                 indice < grupos.length;
                 indice++
             ) {
                 const grupo = grupos[indice];
+
+                const grupoNoPatio = grupo.entregas.every(
+                    function (entrega) {
+                        return [
+                            'Carregada',
+                            'Liberada',
+                        ].includes(
+                            entrega.status_chave
+                        );
+                    }
+                );
 
                 if (mensagem) {
                     mensagem.textContent = 'Carregando ponto '
@@ -2142,74 +5205,80 @@
                         + '...';
                 }
 
-                try {
-                    const localizacao = await geocodificar(
-                        grupo
-                    );
-
-                    if (
-                        ! localizacao.encontrado
-                        || ! Number.isFinite(localizacao.lat)
-                        || ! Number.isFinite(localizacao.lng)
-                    ) {
-                        naoLocalizados++;
-                        continue;
-                    }
-
-                    const posicao = L.latLng(
-                        localizacao.lat,
-                        localizacao.lng
-                    );
-
-                    pontosLocalizados.push({
-                        atrasada: grupo.entregas.some(
-                            entrega => entrega.atrasada
-                        ),
-                        cor: definirCorMarcador(
-                            grupo.entregas
-                        ),
-                        grupo: grupo,
-                        numero: indice + 1,
-                        posicao: posicao,
-                    });
-
-                    limites.extend(posicao);
-                    localizados++;
-                } catch (erro) {
-                    console.warn(
-                        'Endereço não localizado:',
-                        grupo.endereco,
-                        erro
-                    );
-
-                    falhasComunicacao++;
+                if (
+                    ! grupoNoPatio
+                    && (
+                    ! Number.isFinite(grupo.latitude)
+                    || ! Number.isFinite(grupo.longitude)
+                    )
+                ) {
                     naoLocalizados++;
+                    continue;
                 }
+
+                const posicao = grupoNoPatio
+                    ? calcularPosicaoPatio(
+                        indiceGrupoPatio++,
+                        gruposPatio.length,
+                        95,
+                        Math.PI / 6
+                    )
+                    : L.latLng(
+                        grupo.latitude,
+                        grupo.longitude
+                    );
+
+                pontosLocalizados.push({
+                    atrasada: grupo.entregas.some(
+                        entrega => entrega.atrasada
+                    ),
+                    cor: definirCorMarcador(
+                        grupo.entregas
+                    ),
+                    grupo: grupo,
+                    numero: indice + 1,
+                    posicao: posicao,
+                });
+
+                limites.extend(posicao);
+                localizados++;
             }
 
-            const pontosPorCoordenada = new Map();
-
-            pontosLocalizados.forEach(function (ponto) {
-                const chaveCoordenada = ponto.posicao.lat
-                    .toFixed(6)
-                    + ','
-                    + ponto.posicao.lng.toFixed(6);
-
-                if (! pontosPorCoordenada.has(chaveCoordenada)) {
-                    pontosPorCoordenada.set(
-                        chaveCoordenada,
-                        []
+            const pontosDemaisStatus = pontosLocalizados
+                .map(function (ponto) {
+                    const entregas = ponto.grupo.entregas.filter(
+                        function (entrega) {
+                            return entrega.status_chave !== 'Em_rota';
+                        }
                     );
-                }
 
-                pontosPorCoordenada
-                    .get(chaveCoordenada)
-                    .push(ponto);
-            });
+                    if (entregas.length === 0) {
+                        return null;
+                    }
+
+                    return {
+                        ...ponto,
+                        atrasada: entregas.some(
+                            entrega => entrega.atrasada
+                        ),
+                        cor: definirCorMarcador(entregas),
+                        grupo: {
+                            ...ponto.grupo,
+                            entregas: entregas,
+                        },
+                    };
+                })
+                .filter(Boolean);
+
+            const agrupamentosMapa =
+                agruparPontosPorCepOuProximidade(
+                    mapa,
+                    pontosDemaisStatus
+                );
 
             let agrupamentosSobrepostos = 0;
 
-            pontosPorCoordenada.forEach(function (pontos) {
+            agrupamentosMapa.forEach(function (pontos) {
                 if (pontos.length === 1) {
                     criarMarcadorIndividual(
                         pontos[0],
@@ -2227,7 +5296,24 @@
                 );
             });
 
-            centralizarMapa();
+            const resumoVeiculos = adicionarMarcadoresVeiculos(
+                mapa,
+                pontosLocalizados,
+                limites
+            );
+
+            const resumoEntregasEmRota = adicionarEntregasEmRota(
+                mapa,
+                pontosLocalizados,
+                limites
+            );
+
+            montarPainelOrdensEntrega(
+                mapa,
+                resumoEntregasEmRota.marcadores
+            );
+
+            centralizarMapaAposLayout();
 
             if (mensagem) {
                 mensagem.textContent = localizados
@@ -2246,11 +5332,17 @@
                                 + ' falha(s) de comunicação'
                             : ''
                     )
+                    + ' · '
+                    + resumoVeiculos.patio
+                    + ' veículo(s) no pátio'
+                    + ' · '
+                    + resumoEntregasEmRota.total
+                    + ' entrega(s) em rota'
                     + (
                         agrupamentosSobrepostos > 0
                             ? ' · '
                                 + agrupamentosSobrepostos
-                                + ' grupo(s) sobreposto(s): clique para expandir'
+                                + ' grupo(s) por CEP/proximidade: clique para expandir'
                             : ''
                     );
             }

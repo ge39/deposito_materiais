@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+
 class Empresa extends Model
 {
-    protected $table = 'empresa'; // Nome da tabela
+    protected $table = 'empresa';
+
     protected $fillable = [
         'nome',
         'cnpj',
@@ -18,12 +20,20 @@ class Empresa extends Model
         'cidade',
         'estado',
         'cep',
+        'latitude',
+        'longitude',
         'telefone',
         'email',
         'site',
-        'ativo'
+        'ativo',
     ];
-    
+
+    protected $casts = [
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
+        'ativo' => 'boolean',
+    ];
+
     public static function ativa()
     {
         return self::where('ativo', 1)->first();
@@ -31,7 +41,11 @@ class Empresa extends Model
 
     public function configuracaoCaixa(): HasOne
     {
-        return $this->hasOne(ConfiguracoesCaixa::class, 'empresa_id', 'id');
+        return $this->hasOne(
+            ConfiguracoesCaixa::class,
+            'empresa_id',
+            'id'
+        );
     }
 
     public function sangriaConfig()

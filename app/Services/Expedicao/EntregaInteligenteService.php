@@ -2,6 +2,7 @@
 
 namespace App\Services\Expedicao;
 
+use App\Models\Empresa;
 use App\Models\Entrega;
 use App\Models\Romaneio;
 use Carbon\CarbonImmutable;
@@ -12,6 +13,8 @@ use Illuminate\Support\Str;
 
 class EntregaInteligenteService
 {
+    private array $metadadosRota = [];
+
     private const STATUS_ENTREGAS_EFETIVAS = [
         'Entregue',
         'Entregue_finalizada_com_ocorrencia',
@@ -37,6 +40,18 @@ class EntregaInteligenteService
         'No_destino',
     ];
 
+    /**
+     * A Entrega Inteligente acompanha o pátio e a operação externa ativa.
+     * Planejamento, separação, entregas encerradas e retorno permanecem
+     * em seus respectivos módulos.
+     */
+    private const STATUS_ENTREGA_INTELIGENTE = [
+        'Carregada',
+        'Liberada',
+        'Em_rota',
+        'No_destino',
+    ];
+
     public function montarDashboard(
         CarbonInterface $dataReferencia
     ): array {
@@ -47,6 +62,11 @@ class EntregaInteligenteService
         $inicioJanela = $referencia->subDays(7);
         $fimJanela = $referencia->addDays(7);
 
+        $empresaAtiva = $this->consultarEmpresaAtiva();
+        $empresaNormalizada = $this->normalizarEmpresaAtiva(
+            $empresaAtiva
+        );
+
         $entregas = $this->consultarEntregas(
             $inicioJanela,
             $fimJanela
@@ -54,6 +74,13 @@ class EntregaInteligenteService
 
         $romaneiosAtivos = $this
             ->consultarRomaneiosAtivos($entregas);
+
+        $entregas = $this->aplicarOrdemInteligente(
+            $entregas,
+            $romaneiosAtivos,
+            $empresaNormalizada,
+            $referencia
+        );
 
         $linhas = $entregas
             ->map(function (Entrega $entrega) use (
@@ -106,6 +133,7 @@ class EntregaInteligenteService
         );
 
         return [
+            'empresaAtiva' => $empresaNormalizada,
             'dataReferencia' => $referencia,
             'inicioJanela' => $inicioJanela,
             'fimJanela' => $fimJanela,
@@ -221,6 +249,121 @@ class EntregaInteligenteService
             ->values();
     }
 
+    private function consultarEmpresaAtiva(): ?Empresa
+    {
+        return Empresa::query()
+            ->where('ativo', 1)
+            ->orderBy('id')
+            ->first();
+    }
+
+    private function normalizarEmpresaAtiva(
+        ?Empresa $empresa
+    ): array {
+        $nome = trim(
+            (string) (
+                $empresa?->nome
+                ?? config('logistica.deposito.nome')
+                ?? config('app.name')
+                ?? 'Empresa'
+            )
+        );
+
+        $endereco = $empresa
+            ? $this->montarEnderecoEmpresa($empresa)
+            : '';
+
+        if ($endereco === '') {
+            $endereco = trim(
+                (string) config(
+                    'logistica.deposito.endereco',
+                    'Endereço não configurado'
+                )
+            );
+        }
+
+        $latitude = $this->normalizarCoordenada(
+            $empresa?->latitude,
+            -90,
+            90
+        ) ?? $this->normalizarCoordenada(
+            config(
+                'logistica.deposito.latitude',
+                config('openstreetmap.center.lat')
+            ),
+            -90,
+            90
+        );
+
+        $longitude = $this->normalizarCoordenada(
+            $empresa?->longitude,
+            -180,
+            180
+        ) ?? $this->normalizarCoordenada(
+            config(
+                'logistica.deposito.longitude',
+                config('openstreetmap.center.lng')
+            ),
+            -180,
+            180
+        );
+
+        return [
+            'id' => $empresa?->id,
+            'nome' => $nome !== ''
+                ? $nome
+                : 'Empresa',
+            'endereco' => $endereco,
+            'telefone' => $empresa?->telefone,
+            'email' => $empresa?->email,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'zoom' => (int) config(
+                'logistica.deposito.zoom',
+                16
+            ),
+            'raio_patio_metros' => (int) config(
+                'logistica.deposito.raio_patio_metros',
+                60
+            ),
+        ];
+    }
+
+    private function montarEnderecoEmpresa(Empresa $empresa): string
+    {
+        $logradouro = trim(
+            implode(
+                ', ',
+                array_filter([
+                    trim((string) $empresa->endereco),
+                    trim((string) $empresa->numero),
+                ])
+            )
+        );
+
+        $cidadeEstado = trim(
+            implode(
+                ' - ',
+                array_filter([
+                    trim((string) $empresa->cidade),
+                    trim((string) $empresa->estado),
+                ])
+            )
+        );
+
+        $partes = array_filter([
+            $logradouro,
+            trim((string) $empresa->complemento),
+            trim((string) $empresa->bairro),
+            $cidadeEstado,
+            trim((string) $empresa->cep) !== ''
+                ? 'CEP ' . trim((string) $empresa->cep)
+                : null,
+        ]);
+
+        return implode(', ', $partes);
+    }
+
     private function consultarEntregas(
         CarbonInterface $inicio,
         CarbonInterface $fim
@@ -231,17 +374,16 @@ class EntregaInteligenteService
                 'venda.cliente',
                 'veiculo',
                 'motorista',
-                'itens.vendaItem.produto',
-                'itens.itemOrcamento.produto',
+                'itens.vendaItem.produto.categoria',
+                'itens.itemOrcamento.produto.categoria',
             ])
             ->where(
                 'tipo_entrega',
                 'entrega'
             )
-            ->where(
+            ->whereIn(
                 'status',
-                '!=',
-                'Cancelada'
+                self::STATUS_ENTREGA_INTELIGENTE
             )
             ->where(function (Builder $query) use (
                 $inicio,
@@ -291,6 +433,8 @@ class EntregaInteligenteService
             ->with([
                 'veiculo',
                 'motorista',
+                'veiculoExecutante',
+                'motoristaExecutante',
             ])
             ->whereIn(
                 'entrega_id',
@@ -304,6 +448,503 @@ class EntregaInteligenteService
             ->orderBy('id')
             ->get()
             ->keyBy('entrega_id');
+    }
+
+    private function aplicarOrdemInteligente(
+        Collection $entregas,
+        Collection $romaneios,
+        array $empresa,
+        CarbonInterface $referencia
+    ): Collection {
+        $latitudeEmpresa = $empresa['latitude'] ?? null;
+        $longitudeEmpresa = $empresa['longitude'] ?? null;
+
+        if (
+            $entregas->isEmpty()
+            || $latitudeEmpresa === null
+            || $longitudeEmpresa === null
+        ) {
+            return $entregas;
+        }
+
+        $grupos = $entregas->groupBy(
+            function (Entrega $entrega) use ($romaneios): string {
+                $romaneio = $romaneios->get($entrega->id);
+                $veiculoId = $romaneio?->veiculo_executante_id
+                    ?? $romaneio?->veiculo_id
+                    ?? $entrega->veiculo_id;
+                $motoristaId = $romaneio?->motorista_executante_id
+                    ?? $romaneio?->motorista_id
+                    ?? $entrega->motorista_id;
+
+                if (! $veiculoId && ! $motoristaId) {
+                    return 'sem-equipe-' . $entrega->id;
+                }
+
+                return 'veiculo-' . ($veiculoId ?: 0)
+                    . '-motorista-' . ($motoristaId ?: 0);
+            }
+        );
+
+        foreach ($grupos as $grupo) {
+            $this->ordenarGrupoInteligente(
+                $grupo->values(),
+                $romaneios,
+                (float) $latitudeEmpresa,
+                (float) $longitudeEmpresa,
+                $referencia
+            );
+        }
+
+        return $entregas;
+    }
+
+    private function ordenarGrupoInteligente(
+        Collection $grupo,
+        Collection $romaneios,
+        float $latitudeInicial,
+        float $longitudeInicial,
+        CarbonInterface $referencia
+    ): void {
+        $rotaIniciada = $grupo->contains(
+            function (Entrega $entrega) use ($romaneios): bool {
+                $romaneio = $romaneios->get($entrega->id);
+
+                return in_array(
+                    $entrega->status,
+                    ['Em_rota', 'No_destino'],
+                    true
+                ) || $romaneio?->data_saida !== null;
+            }
+        );
+
+        if ($rotaIniciada) {
+            $this->preservarOrdemEmExecucao($grupo);
+
+            return;
+        }
+
+        $primeira = $grupo->first();
+        $romaneioPrimeira = $primeira
+            ? $romaneios->get($primeira->id)
+            : null;
+        $veiculo = $romaneioPrimeira?->veiculoExecutante
+            ?? $romaneioPrimeira?->veiculo
+            ?? $primeira?->veiculo;
+
+        $pendentes = $grupo
+            ->mapWithKeys(function (Entrega $entrega) use (
+                $romaneios,
+                $veiculo,
+                $referencia
+            ): array {
+                return [
+                    $entrega->id => $this->dadosRoteirizacao(
+                        $entrega,
+                        $romaneios->get($entrega->id),
+                        $veiculo,
+                        $referencia
+                    ),
+                ];
+            });
+
+        $uso = [
+            'kg' => 0.0,
+            'm3' => 0.0,
+            'unidades' => 0.0,
+        ];
+        $latitudeAtual = $latitudeInicial;
+        $longitudeAtual = $longitudeInicial;
+        $cepAtual = null;
+        $ordem = 1;
+
+        while ($pendentes->isNotEmpty()) {
+            $candidatos = $pendentes
+                ->map(function (array $dados) use (
+                    $uso,
+                    $veiculo,
+                    $latitudeAtual,
+                    $longitudeAtual,
+                    $cepAtual
+                ): array {
+                    $dados['cabe_capacidade'] =
+                        $this->cabeNaCapacidade(
+                            $dados,
+                            $uso,
+                            $veiculo
+                        );
+                    $dados['mesmo_cep'] = $cepAtual !== null
+                        && $dados['cep'] === $cepAtual;
+                    $dados['distancia_atual'] =
+                        $dados['coordenada_valida']
+                            ? $this->distanciaKm(
+                            $latitudeAtual,
+                            $longitudeAtual,
+                            $dados['latitude'],
+                            $dados['longitude']
+                            )
+                            : 999999;
+
+                    return $dados;
+                })
+                ->sort(function (array $a, array $b): int {
+                    return [
+                        $a['atrasada'] ? 0 : 1,
+                        -$a['dias_atraso'],
+                        $a['data_chave'],
+                        $a['periodo_ordem'],
+                        $a['restricoes'] === [] ? 0 : 1,
+                        $a['cabe_capacidade'] ? 0 : 1,
+                        $a['mesmo_cep'] ? 0 : 1,
+                        round($a['distancia_atual'], 4),
+                        $a['entrega']->id,
+                    ] <=> [
+                        $b['atrasada'] ? 0 : 1,
+                        -$b['dias_atraso'],
+                        $b['data_chave'],
+                        $b['periodo_ordem'],
+                        $b['restricoes'] === [] ? 0 : 1,
+                        $b['cabe_capacidade'] ? 0 : 1,
+                        $b['mesmo_cep'] ? 0 : 1,
+                        round($b['distancia_atual'], 4),
+                        $b['entrega']->id,
+                    ];
+                });
+
+            $selecionada = $candidatos->first();
+
+            if (! $selecionada) {
+                break;
+            }
+
+            $entrega = $selecionada['entrega'];
+            $restricoes = $selecionada['restricoes'];
+
+            if (! $selecionada['cabe_capacidade']) {
+                $restricoes[] = 'Capacidade acumulada excedida';
+            }
+
+            $this->atribuirOrdemRota(
+                $entrega,
+                $ordem,
+                $referencia
+            );
+
+            $this->metadadosRota[$entrega->id] = [
+                'ordem_inteligente' => $ordem,
+                'distancia_anterior_km' => round(
+                    $selecionada['distancia_atual'],
+                    2
+                ),
+                'peso_estimado_kg' => round(
+                    $selecionada['kg'],
+                    2
+                ),
+                'volume_estimado_m3' => round(
+                    $selecionada['m3'],
+                    3
+                ),
+                'restricoes_rota' => array_values(
+                    array_unique($restricoes)
+                ),
+                'rota_preservada' => false,
+            ];
+
+            $uso['kg'] += $selecionada['kg'];
+            $uso['m3'] += $selecionada['m3'];
+            $uso['unidades'] += $selecionada['unidades'];
+            if ($selecionada['coordenada_valida']) {
+                $latitudeAtual = $selecionada['latitude'];
+                $longitudeAtual = $selecionada['longitude'];
+            }
+            $cepAtual = $selecionada['cep'];
+            $pendentes->forget($entrega->id);
+            $ordem++;
+        }
+    }
+
+    private function preservarOrdemEmExecucao(
+        Collection $grupo
+    ): void {
+        $maiorOrdem = (int) $grupo->max('ordem_rota');
+
+        foreach (
+            $grupo->sortBy(
+                fn (Entrega $entrega): int =>
+                    $entrega->ordem_rota ?? PHP_INT_MAX
+            ) as $entrega
+        ) {
+            if ($entrega->ordem_rota === null) {
+                $maiorOrdem++;
+                $entrega->ordem_rota = $maiorOrdem;
+            }
+
+            $this->metadadosRota[$entrega->id] = [
+                'ordem_inteligente' => (int) $entrega->ordem_rota,
+                'distancia_anterior_km' => null,
+                'peso_estimado_kg' => null,
+                'volume_estimado_m3' => null,
+                'restricoes_rota' => [],
+                'rota_preservada' => true,
+            ];
+        }
+    }
+
+    private function dadosRoteirizacao(
+        Entrega $entrega,
+        ?Romaneio $romaneio,
+        $veiculo,
+        CarbonInterface $referencia
+    ): array {
+        $data = CarbonImmutable::parse(
+            $entrega->data_prevista_entrega
+                ?? $entrega->data_prevista
+        )->startOfDay();
+        $latitudeNormalizada = $this->normalizarCoordenada(
+            $entrega->latitude_entrega,
+            -90,
+            90
+        );
+        $longitudeNormalizada = $this->normalizarCoordenada(
+            $entrega->longitude_entrega,
+            -180,
+            180
+        );
+        $coordenadaValida =
+            (bool) $entrega->coordenada_confirmada
+            && $latitudeNormalizada !== null
+            && $longitudeNormalizada !== null;
+        $latitude = $latitudeNormalizada ?? 0.0;
+        $longitude = $longitudeNormalizada ?? 0.0;
+        $itens = collect($entrega->itens);
+        $kg = 0.0;
+        $m3 = 0.0;
+        $unidades = 0.0;
+        $restricoes = [];
+
+        foreach ($itens as $item) {
+            $quantidade = (float) ($item->quantidade_prevista ?? 0);
+            $produto = $item->produto
+                ?? $item->vendaItem?->produto
+                ?? $item->itemOrcamento?->produto;
+
+            $unidades += $quantidade;
+            $kg += $quantidade * (float) ($produto?->peso ?? 0);
+            $m3 += $quantidade * $this->volumeProdutoM3($produto);
+
+            $restricaoProduto = $this->validarProdutoVeiculo(
+                $produto,
+                $veiculo
+            );
+
+            if ($restricaoProduto !== null) {
+                $restricoes[] = $restricaoProduto;
+            }
+        }
+
+        $enderecoNormalizado = $this->normalizarTextoRota(
+            (string) $entrega->endereco_entrega
+        );
+
+        if (
+            $veiculo
+            && (bool) ($veiculo->restricao_zona_central ?? false)
+            && str_contains($enderecoNormalizado, 'centro')
+        ) {
+            $restricoes[] = 'Veículo com restrição de zona central';
+        }
+
+        if (! $coordenadaValida) {
+            $restricoes[] = 'Coordenada da entrega não confirmada';
+        }
+
+        $diasAtraso = $data->lessThan($referencia)
+            ? (int) $data->diffInDays($referencia, true)
+            : 0;
+
+        return [
+            'entrega' => $entrega,
+            'romaneio' => $romaneio,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'coordenada_valida' => $coordenadaValida,
+            'cep' => $this->extrairCepRota(
+                (string) $entrega->endereco_entrega
+            ),
+            'data_chave' => $data->toDateString(),
+            'periodo_ordem' => $this->ordemPeriodo(
+                $entrega->periodo_entrega
+            ),
+            'atrasada' => $diasAtraso > 0,
+            'dias_atraso' => $diasAtraso,
+            'kg' => $kg,
+            'm3' => $m3,
+            'unidades' => $unidades,
+            'restricoes' => array_values(
+                array_unique($restricoes)
+            ),
+        ];
+    }
+
+    private function atribuirOrdemRota(
+        Entrega $entrega,
+        int $ordem,
+        CarbonInterface $referencia
+    ): void {
+        $entrega->ordem_rota = $ordem;
+
+        $hoje = CarbonImmutable::today(
+            (string) config('app.timezone')
+        );
+
+        if (
+            ! CarbonImmutable::instance($referencia)
+                ->startOfDay()
+                ->equalTo($hoje)
+            || ! in_array(
+                $entrega->status,
+                ['Carregada', 'Liberada'],
+                true
+            )
+        ) {
+            return;
+        }
+
+        if ((int) $entrega->getOriginal('ordem_rota') !== $ordem) {
+            $entrega->updateQuietly([
+                'ordem_rota' => $ordem,
+            ]);
+        }
+    }
+
+    private function cabeNaCapacidade(
+        array $dados,
+        array $uso,
+        $veiculo
+    ): bool {
+        if (! $veiculo) {
+            return true;
+        }
+
+        $limites = [
+            'kg' => (float) ($veiculo->capacidade_kg ?? 0),
+            'm3' => (float) ($veiculo->capacidade_m3 ?? 0),
+            'unidades' => (float) (
+                $veiculo->capacidade_unidades ?? 0
+            ),
+        ];
+
+        foreach ($limites as $campo => $limite) {
+            if (
+                $limite > 0
+                && ($uso[$campo] + $dados[$campo]) > $limite
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function validarProdutoVeiculo(
+        $produto,
+        $veiculo
+    ): ?string {
+        if (! $produto || ! $veiculo) {
+            return null;
+        }
+
+        $descricao = $this->normalizarTextoRota(
+            trim(
+                (string) ($produto->nome ?? '')
+                . ' '
+                . (string) ($produto->categoria?->nome ?? '')
+            )
+        );
+
+        $regras = [
+            'aceita_areia_pedra' => ['areia', 'pedra', 'brita'],
+            'aceita_blocos_tijolos' => ['bloco', 'tijolo'],
+            'aceita_cimento_argamassa' => ['cimento', 'argamassa'],
+            'aceita_tintas_quimicos' => ['tinta', 'quimico', 'solvente'],
+            'aceita_telhas' => ['telha'],
+            'aceita_madeiras' => ['madeira', 'madeiramento'],
+        ];
+
+        foreach ($regras as $campo => $palavras) {
+            foreach ($palavras as $palavra) {
+                if (
+                    str_contains($descricao, $palavra)
+                    && ! (bool) ($veiculo->{$campo} ?? false)
+                ) {
+                    return 'Veículo incompatível com '
+                        . ($produto->nome ?? 'produto');
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function volumeProdutoM3($produto): float
+    {
+        if (! $produto) {
+            return 0.0;
+        }
+
+        $largura = (float) ($produto->largura ?? 0);
+        $altura = (float) ($produto->altura ?? 0);
+        $profundidade = (float) ($produto->profundidade ?? 0);
+
+        if ($largura <= 0 || $altura <= 0 || $profundidade <= 0) {
+            return 0.0;
+        }
+
+        $divisor = max($largura, $altura, $profundidade) > 10
+            ? 1000000
+            : 1;
+
+        return ($largura * $altura * $profundidade) / $divisor;
+    }
+
+    private function extrairCepRota(string $endereco): ?string
+    {
+        if (preg_match('/\b\d{5}-?\d{3}\b/', $endereco, $resultado)) {
+            return preg_replace('/\D/', '', $resultado[0]);
+        }
+
+        return null;
+    }
+
+    private function normalizarTextoRota(string $texto): string
+    {
+        return Str::lower(
+            Str::ascii(trim($texto))
+        );
+    }
+
+    private function distanciaKm(
+        float $latitudeOrigem,
+        float $longitudeOrigem,
+        float $latitudeDestino,
+        float $longitudeDestino
+    ): float {
+        $raioTerra = 6371;
+        $deltaLatitude = deg2rad(
+            $latitudeDestino - $latitudeOrigem
+        );
+        $deltaLongitude = deg2rad(
+            $longitudeDestino - $longitudeOrigem
+        );
+        $a = sin($deltaLatitude / 2) ** 2
+            + cos(deg2rad($latitudeOrigem))
+            * cos(deg2rad($latitudeDestino))
+            * sin($deltaLongitude / 2) ** 2;
+
+        return $raioTerra * 2 * atan2(
+            sqrt($a),
+            sqrt(1 - $a)
+        );
     }
 
     private function normalizarEntrega(
@@ -353,8 +994,19 @@ class EntregaInteligenteService
             true
         );
 
+        $dataAtual = CarbonImmutable::today(
+            (string) config('app.timezone')
+        );
+
         $atrasada = ! $encerrada
-            && $dataPlanejada->lessThan($dataReferencia);
+            && $dataPlanejada->lessThan($dataAtual);
+
+        $diasAtraso = $atrasada
+            ? (int) $dataPlanejada->diffInDays(
+                $dataAtual,
+                true
+            )
+            : 0;
 
         $aptaParaRota = in_array(
             $entrega->status,
@@ -390,11 +1042,13 @@ class EntregaInteligenteService
                 . ($produtos->count() - 3);
         }
 
-        $veiculo = $romaneio?->veiculo
+        $veiculo = $romaneio?->veiculoExecutante
+            ?? $romaneio?->veiculo
             ?? $entrega->veiculo
             ?? null;
 
-        $motorista = $romaneio?->motorista
+        $motorista = $romaneio?->motoristaExecutante
+            ?? $romaneio?->motorista
             ?? $entrega->motorista
             ?? null;
 
@@ -415,11 +1069,31 @@ class EntregaInteligenteService
             && $latitudeEntrega !== null
             && $longitudeEntrega !== null;
 
+        $metadadosRota = $this->metadadosRota[$entrega->id]
+            ?? [];
+        $fusoHorario = (string) config('app.timezone');
+        $liberadoEm = $romaneio?->liberado_em
+            ? $romaneio->liberado_em
+                ->timezone($fusoHorario)
+                ->format('d/m/Y H:i')
+            : null;
+        $saidaEm = $romaneio?->data_saida
+            ? $romaneio->data_saida
+                ->timezone($fusoHorario)
+                ->format('d/m/Y H:i')
+            : null;
+
         return [
             'id' => (int) $entrega->id,
             'codigo' => $entrega->codigo_entrega
                 ?: 'ENT-' . $entrega->id,
             'data_chave' => $dataPlanejada->toDateString(),
+            'ordem_rota' => $entrega->ordem_rota !== null
+                ? (int) $entrega->ordem_rota
+                : null,
+            'ordem_inteligente' => $metadadosRota[
+                'ordem_inteligente'
+            ] ?? $entrega->ordem_rota,
             'data_formatada' => $dataPlanejada->format('d/m/Y'),
             'dia_semana' => $this->diaSemana($dataPlanejada),
             'periodo' => $entrega->periodo_entrega
@@ -434,10 +1108,23 @@ class EntregaInteligenteService
                 ?? $cliente?->razao_social
                 ?? $entrega->responsavel_recebimento
                 ?? 'Cliente não informado',
-            'telefone' => $entrega->telefone_recebimento
-                ?? $cliente?->telefone
-                ?? $cliente?->celular
-                ?? 'Não informado',
+            'telefone' => trim(
+                (string) $entrega->telefone_recebimento
+            ) !== ''
+                ? trim(
+                    (string) $entrega->telefone_recebimento
+                )
+                : 'Não informado',
+            'responsavel_recebimento' => trim(
+                (string) ($entrega->responsavel_recebimento ?? '')
+            ) !== ''
+                ? trim((string) $entrega->responsavel_recebimento)
+                : 'Não informado',
+            'observacao_entrega' => trim(
+                (string) ($entrega->observacao_entrega ?? '')
+            ) !== ''
+                ? trim((string) $entrega->observacao_entrega)
+                : null,
             'endereco' => $endereco !== ''
                 ? $endereco
                 : 'Endereço não informado',
@@ -455,6 +1142,7 @@ class EntregaInteligenteService
             'encerrada' => $encerrada,
             'entrega_efetiva' => $entregaEfetiva,
             'atrasada' => $atrasada,
+            'dias_atraso' => $diasAtraso,
             'apta_para_rota' => $aptaParaRota,
             'categoria_operacional' =>
                 $this->categoriaOperacional(
@@ -475,6 +1163,21 @@ class EntregaInteligenteService
             'veiculo' => $veiculo?->placa
                 ?? 'Não definido',
             'veiculo_modelo' => $veiculo?->modelo,
+            'veiculo_tipo' => $veiculo?->tipo_veiculo
+                ?? $veiculo?->tipo,
+            'veiculo_carroceria' =>
+                $veiculo?->tipo_carroceria,
+            'veiculo_possui_munck' => (bool) (
+                $veiculo?->possui_munck ?? false
+            ),
+            'veiculo_carroceria_aberta' => (bool) (
+                $veiculo?->possui_carroceria_aberta
+                ?? false
+            ),
+            'veiculo_carroceria_fechada' => (bool) (
+                $veiculo?->possui_carroceria_fechada
+                ?? false
+            ),
             'motorista' => $motorista?->nome
                 ?? $motorista?->name
                 ?? 'Não definido',
@@ -482,6 +1185,23 @@ class EntregaInteligenteService
                 $romaneio?->codigo_romaneio,
             'romaneio_status' =>
                 $romaneio?->status,
+            'liberado_em' => $liberadoEm,
+            'saida_em' => $saidaEm,
+            'distancia_anterior_km' => $metadadosRota[
+                'distancia_anterior_km'
+            ] ?? null,
+            'peso_estimado_kg' => $metadadosRota[
+                'peso_estimado_kg'
+            ] ?? null,
+            'volume_estimado_m3' => $metadadosRota[
+                'volume_estimado_m3'
+            ] ?? null,
+            'restricoes_rota' => $metadadosRota[
+                'restricoes_rota'
+            ] ?? [],
+            'rota_preservada' => (bool) (
+                $metadadosRota['rota_preservada'] ?? false
+            ),
         ];
     }
 
@@ -557,26 +1277,39 @@ class EntregaInteligenteService
     private function montarIndicadores(Collection $linhas): array
     {
         $total = $linhas->count();
-        $concluidas = $linhas
-            ->where('entrega_efetiva', true)
+        $carregadas = $linhas->where('status', 'Carregada')->count();
+        $liberadas = $linhas->where('status', 'Liberada')->count();
+        $emRota = $linhas->where('status', 'Em_rota')->count();
+        $noDestino = $linhas->where('status', 'No_destino')->count();
+        $atrasadas = $linhas->where('atrasada', true)->count();
+
+        $veiculosAtivos = $linhas
+            ->filter(
+                fn (array $linha): bool =>
+                    ($linha['veiculo'] ?? 'Não definido') !== 'Não definido'
+            )
+            ->pluck('veiculo')
+            ->unique()
             ->count();
 
         return [
             'total' => $total,
-            'concluidas' => $concluidas,
-            'em_andamento' => $linhas
-                ->where('encerrada', false)
-                ->where('apta_para_rota', true)
-                ->count(),
-            'atrasadas' => $linhas
-                ->where('atrasada', true)
-                ->count(),
-            'eficiencia' => $this->percentual(
-                $concluidas,
-                $total
-            ),
+            'carregadas' => $carregadas,
+            'liberadas' => $liberadas,
+            'em_rota' => $emRota,
+            'no_destino' => $noDestino,
+            'atrasadas' => $atrasadas,
+            'veiculos_ativos' => $veiculosAtivos,
             'quantidade_prevista' => $linhas->sum(
                 'quantidade_prevista'
+            ),
+
+            // Compatibilidade temporária com componentes antigos da view.
+            'concluidas' => 0,
+            'em_andamento' => $total,
+            'eficiencia' => $this->percentual(
+                $noDestino,
+                $total
             ),
         ];
     }
@@ -643,12 +1376,11 @@ class EntregaInteligenteService
                     'chave' => $periodo,
                     'rotulo' => $rotulo,
                     'total' => $entregas->count(),
-                    'concluidas' => $entregas
-                        ->where('entrega_efetiva', true)
+                    'em_rota' => $entregas
+                        ->where('status', 'Em_rota')
                         ->count(),
-                    'em_andamento' => $entregas
-                        ->where('encerrada', false)
-                        ->where('apta_para_rota', true)
+                    'no_destino' => $entregas
+                        ->where('status', 'No_destino')
                         ->count(),
                     'atrasadas' => $entregas
                         ->where('atrasada', true)
@@ -666,44 +1398,39 @@ class EntregaInteligenteService
         Collection $linhas
     ): Collection {
         $categorias = collect([
-            'concluidas' => [
-                'rotulo' => 'Concluídas',
-                'cor' => '#198754',
-            ],
-            'em_andamento' => [
-                'rotulo' => 'Em andamento',
+            'em_rota' => [
+                'rotulo' => 'Em rota',
                 'cor' => '#fd7e14',
             ],
-            'atrasadas' => [
-                'rotulo' => 'Atrasadas',
-                'cor' => '#dc3545',
-            ],
-            'aguardando' => [
-                'rotulo' => 'Aguardando operação',
+            'no_destino' => [
+                'rotulo' => 'No destino',
                 'cor' => '#0d6efd',
             ],
-            'ocorrencias' => [
-                'rotulo' => 'Encerradas sem efetivação',
-                'cor' => '#6c757d',
+            'atrasadas' => [
+                'rotulo' => 'Fora da janela',
+                'cor' => '#dc3545',
             ],
         ]);
 
-        $total = max(
-            1,
-            $linhas->count()
-        );
+        $total = max(1, $linhas->count());
 
         return $categorias
             ->map(function (
                 array $configuracao,
                 string $categoria
             ) use ($linhas, $total): array {
-                $quantidade = $linhas
-                    ->where(
-                        'categoria_operacional',
-                        $categoria
-                    )
-                    ->count();
+                $quantidade = match ($categoria) {
+                    'em_rota' => $linhas
+                        ->where('status', 'Em_rota')
+                        ->count(),
+                    'no_destino' => $linhas
+                        ->where('status', 'No_destino')
+                        ->count(),
+                    'atrasadas' => $linhas
+                        ->where('atrasada', true)
+                        ->count(),
+                    default => 0,
+                };
 
                 return [
                     'chave' => $categoria,
@@ -789,58 +1516,51 @@ class EntregaInteligenteService
         Collection $linhas,
         Collection $oportunidades
     ): Collection {
-        $abertas = $linhas->where(
-            'encerrada',
-            false
-        );
-
         return collect([
             [
                 'tipo' => 'danger',
-                'icone' => 'bi-exclamation-lg',
+                'icone' => 'bi-clock-history',
                 'quantidade' => $linhas
                     ->where('atrasada', true)
                     ->count(),
-                'titulo' => 'Entregas atrasadas',
-                'descricao' => 'Requerem decisão operacional.',
+                'titulo' => 'Fora da janela prevista',
+                'descricao' => 'Entregas ativas com data prevista vencida.',
             ],
             [
                 'tipo' => 'warning',
                 'icone' => 'bi-card-checklist',
-                'quantidade' => $abertas
+                'quantidade' => $linhas
                     ->whereNull('romaneio_codigo')
                     ->count(),
-                'titulo' => 'Sem romaneio ativo',
-                'descricao' => 'Aguardam montagem operacional.',
+                'titulo' => 'Sem romaneio',
+                'descricao' => 'Inconsistência para entrega em operação externa.',
             ],
             [
                 'tipo' => 'warning',
                 'icone' => 'bi-truck',
-                'quantidade' => $abertas
-                    ->whereNotNull('romaneio_codigo')
+                'quantidade' => $linhas
                     ->where('veiculo', 'Não definido')
                     ->count(),
-                'titulo' => 'Sem veículo definido',
-                'descricao' => 'Necessitam planejamento de frota.',
+                'titulo' => 'Sem veículo',
+                'descricao' => 'Entrega em rota sem veículo identificado.',
+            ],
+            [
+                'tipo' => 'warning',
+                'icone' => 'bi-person-x',
+                'quantidade' => $linhas
+                    ->where('motorista', 'Não definido')
+                    ->count(),
+                'titulo' => 'Sem motorista',
+                'descricao' => 'Entrega em rota sem motorista identificado.',
             ],
             [
                 'tipo' => 'info',
-                'icone' => 'bi-shield-check',
+                'icone' => 'bi-geo-alt',
                 'quantidade' => $linhas
-                    ->where(
-                        'romaneio_status',
-                        'Aguardando_liberacao'
-                    )
+                    ->where('coordenada_confirmada', false)
                     ->count(),
-                'titulo' => 'Aguardando liberação',
-                'descricao' => 'Carga conferida para decisão final.',
-            ],
-            [
-                'tipo' => 'primary',
-                'icone' => 'bi-lightbulb',
-                'quantidade' => $oportunidades->count(),
-                'titulo' => 'Possíveis antecipações',
-                'descricao' => 'Confirmar previamente com o cliente.',
+                'titulo' => 'Sem coordenada confirmada',
+                'descricao' => 'Não podem ser posicionadas com precisão no mapa.',
             ],
         ]);
     }
@@ -927,34 +1647,15 @@ class EntregaInteligenteService
         bool $atrasada,
         bool $aptaParaRota
     ): string {
-        if ($entregaEfetiva) {
-            return 'concluidas';
-        }
-
-        if (
-            in_array(
-                $status,
-                [
-                    'Nao_entregue',
-                    'Entregue_parcial',
-                    'Recusada',
-                    'Devolvida',
-                ],
-                true
-            )
-        ) {
-            return 'ocorrencias';
-        }
-
         if ($atrasada) {
             return 'atrasadas';
         }
 
-        if ($aptaParaRota) {
-            return 'em_andamento';
-        }
-
-        return 'aguardando';
+        return match ($status) {
+            'No_destino' => 'no_destino',
+            'Em_rota' => 'em_rota',
+            default => 'aguardando',
+        };
     }
 
     private function percentual(

@@ -13,6 +13,11 @@ return [
         'https://nominatim.openstreetmap.org/search'
     ),
 
+    'user_agent' => env(
+        'OPENSTREETMAP_USER_AGENT',
+        config('app.name', 'deposito_materiais') . '/1.0'
+    ),
+
     'center' => [
         'lat' => (float) env(
             'OPENSTREETMAP_CENTER_LAT',

@@ -334,6 +334,244 @@
         border-color: var(--orc-primary-dark);
     }
 
+    /* Compactação visual aproximada de 40% */
+    .orcamento-create-page {
+        font-size: .875rem;
+    }
+
+    .orcamento-create-page .page-heading {
+        border-left-width: 4px;
+        border-radius: 9px;
+        padding: .5rem .75rem;
+        box-shadow: 0 4px 13px rgba(16, 24, 40, .045);
+    }
+
+    .orcamento-create-page .page-heading.mb-3,
+    .orcamento-create-page > .row.mb-3,
+    .orcamento-create-page .main-form-card.mb-3 {
+        margin-bottom: .6rem !important;
+    }
+
+    .orcamento-create-page .page-heading h2 {
+        font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+        line-height: 1.15;
+    }
+
+    .orcamento-create-page .page-heading h2.mb-1 {
+        margin-bottom: .15rem !important;
+    }
+
+    .orcamento-create-page .page-heading p {
+        font-size: .74rem;
+        line-height: 1.2;
+    }
+
+    .orcamento-create-page .info-card {
+        border-radius: 8px;
+        box-shadow: 0 3px 10px rgba(16, 24, 40, .035) !important;
+    }
+
+    .orcamento-create-page .info-card .card-body {
+        min-height: 40px;
+        padding: .34rem .52rem;
+    }
+
+    .orcamento-create-page .info-card .fw-bold {
+        font-size: .82rem;
+        line-height: 1.1;
+    }
+
+    .orcamento-create-page .info-card small {
+        font-size: .67rem;
+        line-height: 1.1;
+    }
+
+    .orcamento-create-page .info-icon {
+        width: 24px;
+        height: 24px;
+        flex-basis: 24px;
+        border-radius: 6px;
+        font-size: .76rem;
+    }
+
+    .orcamento-create-page .info-icon.me-2 {
+        margin-right: .42rem !important;
+    }
+
+    .orcamento-create-page .main-form-card {
+        border-radius: 9px;
+        box-shadow: 0 5px 17px rgba(16, 24, 40, .05) !important;
+    }
+
+    .orcamento-create-page .main-form-card > .card-header {
+        min-height: 31px;
+        padding: .32rem .65rem;
+        font-size: .82rem;
+    }
+
+    .orcamento-create-page .main-form-card > .card-header .badge {
+        padding: .25rem .45rem;
+        font-size: .66rem;
+    }
+
+    .orcamento-create-page .main-form-card > .card-body {
+        padding: .5rem;
+    }
+
+    .orcamento-create-page .form-section {
+        border-radius: 8px !important;
+        padding: .54rem !important;
+        box-shadow: 0 3px 10px rgba(16, 24, 40, .03);
+    }
+
+    .orcamento-create-page .form-section.mb-3 {
+        margin-bottom: .6rem !important;
+    }
+
+    .orcamento-create-page .form-section .mb-3 {
+        margin-bottom: .52rem !important;
+    }
+
+    .orcamento-create-page .form-section .mt-3 {
+        margin-top: .52rem !important;
+    }
+
+    .orcamento-create-page .form-section .g-3 {
+        --bs-gutter-x: .7rem;
+        --bs-gutter-y: .55rem;
+    }
+
+    .orcamento-create-page .form-section h5 {
+        gap: .3rem;
+        margin-bottom: .45rem !important;
+        font-size: .86rem;
+        line-height: 1.15;
+    }
+
+    .orcamento-create-page .form-label {
+        margin-bottom: .18rem;
+        font-size: .75rem;
+        line-height: 1.15;
+    }
+
+    .orcamento-create-page .form-control,
+    .orcamento-create-page .form-select {
+        min-height: 32px;
+        border-radius: 7px;
+        padding-top: .28rem;
+        padding-bottom: .28rem;
+        font-size: .8rem;
+        line-height: 1.2;
+    }
+
+    .orcamento-create-page textarea.form-control {
+        min-height: 46px;
+    }
+
+    .orcamento-create-page .badge {
+        font-size: .68rem;
+    }
+
+    .orcamento-create-page .delivery-address-panel {
+        border-radius: 8px;
+        padding: .58rem;
+    }
+
+    .orcamento-create-page .registered-address {
+        border-radius: 7px;
+        padding: .5rem .62rem;
+        font-size: .76rem;
+        line-height: 1.2;
+    }
+
+    .orcamento-create-page .coordinate-status {
+        font-size: .7rem;
+        line-height: 1.2;
+    }
+
+    .orcamento-create-page .cep-group .input-group-text {
+        padding: .28rem .5rem;
+    }
+
+    .orcamento-create-page .cep-status {
+        min-height: 14px;
+        margin-top: .18rem;
+        font-size: .68rem;
+    }
+
+    .orcamento-create-page .table-shell {
+        border-radius: 8px;
+    }
+
+    .orcamento-create-page .table-shell thead th {
+        padding: .45rem .5rem;
+        font-size: .68rem;
+    }
+
+    .orcamento-create-page .table-shell tbody td {
+        padding: .38rem .45rem;
+        font-size: .76rem;
+    }
+
+    .orcamento-create-page .financial-summary-card {
+        margin-bottom: .45rem;
+        border-radius: 7px;
+    }
+
+    .orcamento-create-page .financial-summary-header {
+        min-height: 25px;
+        padding: .24rem .5rem;
+        font-size: .72rem;
+    }
+
+    .orcamento-create-page .financial-data-column {
+        min-height: 34px;
+        gap: .5rem;
+        padding: .24rem .5rem;
+    }
+
+    .orcamento-create-page .financial-data-label,
+    .orcamento-create-page .financial-data-discount-value {
+        font-size: .68rem;
+    }
+
+    .orcamento-create-page .financial-data-value,
+    .orcamento-create-page .financial-data-final .financial-data-value {
+        font-size: .82rem;
+    }
+
+    .orcamento-create-page .financial-data-discount .form-control {
+        min-height: 27px;
+        height: 27px;
+        font-size: .74rem;
+    }
+
+    .orcamento-create-page .action-footer {
+        margin: 0 -.5rem -.5rem;
+        padding: .55rem;
+    }
+
+    .orcamento-create-page .btn {
+        min-height: 30px;
+        border-radius: 7px;
+        padding-top: .28rem;
+        padding-bottom: .28rem;
+        font-size: .78rem;
+        line-height: 1.2;
+    }
+
+    .orcamento-create-page .btn.px-3,
+    .orcamento-create-page .btn.px-4 {
+        padding-left: .75rem !important;
+        padding-right: .75rem !important;
+    }
+
+    .orcamento-create-page .alert {
+        margin-bottom: .6rem;
+        padding: .5rem .7rem;
+        font-size: .78rem;
+    }
+
     @media (max-width: 767.98px) {
         .orcamento-create-page {
             width: 100%;
@@ -780,14 +1018,14 @@
                         </div>
 
                         <input
-                            type="text"
+                            type="hidden"
                             name="latitude_entrega"
                             id="latitude_entrega"
                             value="{{ old('latitude_entrega') }}"
                         >
 
                         <input
-                            type="text"
+                            type="hidden"
                             name="longitude_entrega"
                             id="longitude_entrega"
                             value="{{ old('longitude_entrega') }}"
