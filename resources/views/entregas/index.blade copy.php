@@ -1,6 +1,6 @@
+@extends('layouts.app')
 
-
-<?php $__env->startSection('content'); ?>
+@section('content')
 
 <style>
     .page-shell {
@@ -185,7 +185,7 @@
 
 <div class="container-fluid px-2 page-shell">
 
-    
+    {{-- CABEÇALHO --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h4 class="fw-bold mb-0">
@@ -199,12 +199,12 @@
         </div>
 
         <div class="d-flex gap-2">
-            <!-- <a href="<?php echo e(route('romaneios.create')); ?>"
+            <!-- <a href="{{ route('romaneios.create') }}"
                class="btn btn-primary btn-sm">
                 <i class="bi bi-box-seam me-1"></i>Criar Romaneio
             </a> -->
 
-            <a href="<?php echo e(route('entregas.index')); ?>"
+            <a href="{{ route('entregas.index') }}"
                class="btn btn-outline-dark btn-sm">
                 <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
             </a>
@@ -217,54 +217,51 @@
         </div>
     </div>
 
-    
-    <?php if(session('success')): ?>
+    {{-- ALERTAS --}}
+    @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show mb-3">
             <i class="bi bi-check-circle me-2"></i>
-            <?php echo e(session('success')); ?>
-
+            {{ session('success') }}
 
             <button type="button"
                     class="btn-close"
                     data-bs-dismiss="alert">
             </button>
         </div>
-    <?php endif; ?>
+    @endif
 
-    <?php if(session('error')): ?>
+    @if(session('error'))
         <div class="alert alert-danger alert-dismissible fade show mb-3">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            <?php echo e(session('error')); ?>
-
+            {{ session('error') }}
 
             <button type="button"
                     class="btn-close"
                     data-bs-dismiss="alert">
             </button>
         </div>
-    <?php endif; ?>
+    @endif
 
-    <?php if($errors->any()): ?>
+    @if($errors->any())
         <div class="alert alert-danger alert-dismissible fade show mb-3">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            <?php echo e($errors->first()); ?>
-
+            {{ $errors->first() }}
 
             <button type="button"
                     class="btn-close"
                     data-bs-dismiss="alert">
             </button>
         </div>
-    <?php endif; ?>
+    @endif
 
-    <?php echo $__env->make('entregas.partials.alertas_sla', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    @include('entregas.partials.alertas_sla')
 
-   
+   {{-- CARDS RESUMO --}}
     <div class="overflow-auto mb-3">
         <div class="row g-2 flex-nowrap">
 
             <div class="col">
-                <a href="<?php echo e(route('entregas.index', ['status' => 'pendente_pagamento'])); ?>"
+                <a href="{{ route('entregas.index', ['status' => 'pendente_pagamento']) }}"
                 class="text-decoration-none text-dark">
 
                     <div class="card shadow-sm border-start border-secondary border-4 h-100 kpi-card">
@@ -279,8 +276,7 @@
                                 </span>
 
                                 <h3>
-                                    <?php echo e($resumo['pendente_pagamento'] ?? 0); ?>
-
+                                    {{ $resumo['pendente_pagamento'] ?? 0 }}
                                 </h3>
                             </div>
 
@@ -291,7 +287,7 @@
             </div>
 
             <div class="col">
-                <a href="<?php echo e(route('entregas.index', ['status' => 'aguardando_separacao'])); ?>"
+                <a href="{{ route('entregas.index', ['status' => 'aguardando_separacao']) }}"
                 class="text-decoration-none text-dark">
 
                     <div class="card shadow-sm border-start border-warning border-4 h-100 kpi-card">
@@ -306,8 +302,7 @@
                                 </span>
 
                                 <h3>
-                                    <?php echo e($resumo['aguardando_separacao'] ?? 0); ?>
-
+                                    {{ $resumo['aguardando_separacao'] ?? 0 }}
                                 </h3>
                             </div>
 
@@ -318,7 +313,7 @@
             </div>
 
             <div class="col">
-                <a href="<?php echo e(route('entregas.index', ['status' => 'separando'])); ?>"
+                <a href="{{ route('entregas.index', ['status' => 'separando']) }}"
                 class="text-decoration-none text-dark">
 
                     <div class="card shadow-sm border-start border-primary border-4 h-100 kpi-card">
@@ -333,8 +328,7 @@
                                 </span>
 
                                 <h3>
-                                    <?php echo e($resumo['separando'] ?? 0); ?>
-
+                                    {{ $resumo['separando'] ?? 0 }}
                                 </h3>
                             </div>
 
@@ -345,7 +339,7 @@
             </div>
 
             <div class="col">
-                <a href="<?php echo e(route('entregas.index', ['status' => 'carregado'])); ?>"
+                <a href="{{ route('entregas.index', ['status' => 'carregado']) }}"
                 class="text-decoration-none text-dark">
 
                     <div class="card shadow-sm border-start border-info border-4 h-100 kpi-card">
@@ -360,8 +354,7 @@
                                 </span>
 
                                 <h3>
-                                    <?php echo e($resumo['carregados'] ?? 0); ?>
-
+                                    {{ $resumo['carregados'] ?? 0 }}
                                 </h3>
                             </div>
 
@@ -372,7 +365,7 @@
             </div>
 
             <div class="col">
-                <a href="<?php echo e(route('entregas.index', ['status' => 'em_rota'])); ?>"
+                <a href="{{ route('entregas.index', ['status' => 'em_rota']) }}"
                 class="text-decoration-none text-dark">
 
                     <div class="card shadow-sm border-start border-dark border-4 h-100 kpi-card">
@@ -387,8 +380,7 @@
                                 </span>
 
                                 <h3>
-                                    <?php echo e($resumo['em_rota'] ?? 0); ?>
-
+                                    {{ $resumo['em_rota'] ?? 0 }}
                                 </h3>
                             </div>
 
@@ -399,7 +391,7 @@
             </div>
 
             <div class="col">
-                <a href="<?php echo e(route('entregas.index', ['status' => 'entregue'])); ?>"
+                <a href="{{ route('entregas.index', ['status' => 'entregue']) }}"
                 class="text-decoration-none text-dark">
 
                     <div class="card shadow-sm border-start border-success border-4 h-100 kpi-card">
@@ -414,8 +406,7 @@
                                 </span>
 
                                 <h3>
-                                    <?php echo e($resumo['entregues'] ?? 0); ?>
-
+                                    {{ $resumo['entregues'] ?? 0 }}
                                 </h3>
                             </div>
 
@@ -426,7 +417,7 @@
             </div>
 
             <div class="col">
-                <a href="<?php echo e(route('entregas.index', ['status' => 'atrasadas'])); ?>"
+                <a href="{{ route('entregas.index', ['status' => 'atrasadas']) }}"
                 class="text-decoration-none text-dark">
 
                     <div class="card shadow-sm border-start border-danger border-4 h-100 kpi-card">
@@ -441,8 +432,7 @@
                                 </span>
 
                                 <h3>
-                                    <?php echo e($resumo['atrasadas'] ?? 0); ?>
-
+                                    {{ $resumo['atrasadas'] ?? 0 }}
                                 </h3>
                             </div>
 
@@ -455,7 +445,7 @@
         </div>
     </div>
 
-    
+    {{-- FILTROS --}}
     <div class="card shadow-sm mb-3">
         <div class="card-header bg-secondary text-white">
             <strong>
@@ -465,7 +455,7 @@
 
         <div class="card-body">
             <form method="GET"
-                action="<?php echo e(route('entregas.index')); ?>"
+                action="{{ route('entregas.index') }}"
                 class="row g-2 align-items-end">
 
                 <div class="col-xl-3 col-lg-4 col-md-6">
@@ -478,7 +468,7 @@
                         id="codigo_entrega"
                         name="codigo_entrega"
                         class="form-control form-control-sm"
-                        value="<?php echo e(request('codigo_entrega')); ?>"
+                        value="{{ request('codigo_entrega') }}"
                         placeholder="Ex: ENT-20260629">
                 </div>
 
@@ -497,82 +487,82 @@
                         </option>
 
                         <option value="pendente_pagamento"
-                            <?php if(
+                            @selected(
                                 request('status')
                                 === 'pendente_pagamento'
-                            ): echo 'selected'; endif; ?>>
+                            )>
                             Pendente pagamento
                         </option>
 
                         <option value="aguardando_separacao"
-                            <?php if(
+                            @selected(
                                 request('status')
                                 === 'aguardando_separacao'
-                            ): echo 'selected'; endif; ?>>
+                            )>
                             Aguardando separação
                         </option>
 
                         <option value="separando"
-                            <?php if(
+                            @selected(
                                 request('status')
                                 === 'separando'
-                            ): echo 'selected'; endif; ?>>
+                            )>
                             Separando
                         </option>
 
                         <option value="carregado"
-                            <?php if(
+                            @selected(
                                 request('status')
                                 === 'carregado'
-                            ): echo 'selected'; endif; ?>>
+                            )>
                             Carregada
                         </option>
 
                         <option value="em_rota"
-                            <?php if(
+                            @selected(
                                 request('status')
                                 === 'em_rota'
-                            ): echo 'selected'; endif; ?>>
+                            )>
                             Em rota
                         </option>
 
                         <option value="entregue"
-                            <?php if(
+                            @selected(
                                 request('status')
                                 === 'entregue'
-                            ): echo 'selected'; endif; ?>>
+                            )>
                             Entregue
                         </option>
 
                         <option value="finalizada_com_ocorrencia"
-                            <?php if(
+                            @selected(
                                 request('status')
                                 === 'finalizada_com_ocorrencia'
-                            ): echo 'selected'; endif; ?>>
+                            )>
                             Finalizada com ocorrência
                         </option>
 
                         <option value="parcial"
-                            <?php if(
+                            @selected(
                                 request('status')
                                 === 'parcial'
-                            ): echo 'selected'; endif; ?>>
+                            )>
                             Parcial
                         </option>
 
                         <option value="devolvida"
-                            <?php if(
+                            @selected(
                                 request('status')
                                 === 'devolvida'
-                            ): echo 'selected'; endif; ?>>
+                            )>
                             Devolvida
                         </option>
 
                         <option value="cancelada"
-                            <?php if(
+                            @selected(
                                 request('status')
                                 === 'cancelada'
-                            ): echo 'selected'; endif; ?>>
+                            )>
                             Cancelada
                         </option>
                     </select>
@@ -588,10 +578,12 @@
                         id="data_inicio"
                         name="data_inicio"
                         class="form-control form-control-sm"
-                        value="<?php echo e(request(
+                        value="{{
+                                request(
                                     'data_inicio',
                                     $dataInicio->format('Y-m-d')
-                                )); ?>">
+                                )
+                        }}">
                 </div>
 
                 <div class="col-xl-2 col-lg-2 col-md-6">
@@ -604,10 +596,12 @@
                         id="data_fim"
                         name="data_fim"
                         class="form-control form-control-sm"
-                        value="<?php echo e(request(
+                        value="{{
+                                request(
                                     'data_fim',
                                     $dataFim->format('Y-m-d')
-                                )); ?>">
+                                )
+                        }}">
                 </div>
 
                 <div class="col-xl-3 col-lg-12">
@@ -619,7 +613,7 @@
                             Buscar
                         </button>
 
-                        <a href="<?php echo e(route('entregas.index')); ?>"
+                        <a href="{{ route('entregas.index') }}"
                         class="btn btn-outline-secondary btn-sm">
 
                             <i class="bi bi-x-circle me-1"></i>
@@ -631,7 +625,7 @@
         </div>
     </div>
 
-    
+    {{-- TABELA --}}
     <div class="card shadow-sm mb-3">
         <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
             <strong>
@@ -640,23 +634,19 @@
 
             <div class="d-flex gap-1 flex-wrap">
                 <span class="badge bg-light text-dark mini-indicador">
-                    Total: <?php echo e($entregas->total()); ?>
-
+                    Entregues: {{ $entregas->total() }}
                 </span>
 
                 <span class="badge bg-warning text-dark mini-indicador">
-                    Prioridade: <?php echo e($resumo['aguardando_separacao'] ?? 0); ?>
-
+                    Prioridade: {{ $resumo['aguardando_separacao'] ?? 0 }}
                 </span>
 
                 <span class="badge bg-danger mini-indicador">
-                    Atrasadas: <?php echo e($resumo['atrasadas'] ?? 0); ?>
-
+                    Atrasadas: {{ $resumo['atrasadas'] ?? 0 }}
                 </span>
 
                 <span class="badge bg-success mini-indicador">
-                    Entregues: <?php echo e($resumo['entregues'] ?? 0); ?>
-
+                    Entregues: {{ $resumo['entregues'] ?? 0 }}
                 </span>
             </div>
         </div>
@@ -680,7 +670,7 @@
                     </thead>
 
                    <tbody>
-    <?php
+    @php
         $statusEncerradosIndex = [
             'entregue',
             'entregue_parcial',
@@ -741,73 +731,21 @@
                 ->values();
 
         /*
-         * Atrasada é uma condição de prazo, não um status da entrega.
-         * Uma entrega encerrada nunca deve ser classificada como atrasada.
+         * Prioriza entregas vencidas sem modificar a ordenação definida
+         * pelo backend dentro dos grupos "atrasadas" e "demais".
          */
         $hojeOrdenacaoIndex = now()->startOfDay();
-        $somenteAtrasadasIndex = request('status') === 'atrasadas';
-
-        if ($somenteAtrasadasIndex) {
-            $entregasIndexOperacionaisBase =
-                $entregasIndexOperacionaisBase
-                    ->filter(function ($entrega) use (
-                        $hojeOrdenacaoIndex,
-                        $statusEncerradosIndex,
-                        $normalizarStatusIndex
-                    ): bool {
-                        if (empty($entrega->data_prevista)) {
-                            return false;
-                        }
-
-                        $statusAtual = $normalizarStatusIndex(
-                            $entrega->status ?? ''
-                        );
-
-                        if (in_array(
-                            $statusAtual,
-                            $statusEncerradosIndex,
-                            true
-                        )) {
-                            return false;
-                        }
-
-                        return \Carbon\Carbon::parse(
-                            $entrega->data_prevista
-                        )
-                            ->startOfDay()
-                            ->lt($hojeOrdenacaoIndex);
-                    })
-                    ->values();
-        }
 
         [
             $entregasAtrasadasIndex,
             $demaisEntregasIndex,
         ] = $entregasIndexOperacionaisBase->partition(
-            function ($entrega) use (
-                $hojeOrdenacaoIndex,
-                $statusEncerradosIndex,
-                $normalizarStatusIndex
-            ): bool {
+            function ($entrega) use ($hojeOrdenacaoIndex): bool {
                 if (empty($entrega->data_prevista)) {
                     return false;
                 }
 
-                $statusAtual = $normalizarStatusIndex(
-                    $entrega->status ?? ''
-                );
-
-                if (in_array(
-                    $statusAtual,
-                    $statusEncerradosIndex,
-                    true
-                )) {
-                    return false;
-                }
-
-                return \Carbon\Carbon::parse(
-                    $entrega->data_prevista
-                )
+                return \Carbon\Carbon::parse($entrega->data_prevista)
                     ->startOfDay()
                     ->lt($hojeOrdenacaoIndex);
             }
@@ -816,10 +754,10 @@
         $entregasIndexOperacionais = $entregasAtrasadasIndex
             ->concat($demaisEntregasIndex)
             ->values();
-    ?>
+    @endphp
 
-    <?php $__empty_1 = true; $__currentLoopData = $entregasIndexOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $entrega): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-        <?php
+    @forelse($entregasIndexOperacionais as $entrega)
+        @php
             $statusEntrega = $normalizarStatusIndex(
                 $entrega->status ?? ''
             );
@@ -915,7 +853,19 @@
 
             $statusFinalizado = in_array(
                 $statusEntrega,
-                $statusEncerradosIndex,
+                [
+                    'entregue',
+                    'entregue_finalizada_com_ocorrencia',
+                    'entregue_parcial',
+                    'parcial',
+                    'nao_entregue',
+                    'recusada',
+                    'recusado',
+                    'devolvida',
+                    'devolvido',
+                    'cancelada',
+                    'cancelado',
+                ],
                 true
             );
 
@@ -1200,208 +1150,212 @@
                 ],
                 true
             );
-        ?>
+        @endphp
 
-        <tr class="<?php echo e(trim(
+        <tr class="{{ trim(
                 $linhaClasse
                 . ($ocultarEntregaConcluida
                     ? ' d-none'
                     : '')
-            )); ?>"
-            data-entrega-id="<?php echo e($entrega->id); ?>"
-            data-bloqueio-ativo="<?php echo e($entrega->bloqueioEdicaoAtivo
+            ) }}"
+            data-entrega-id="{{ $entrega->id }}"
+            data-bloqueio-ativo="{{
+                $entrega->bloqueioEdicaoAtivo
                     ? '1'
-                    : '0'); ?>"
-            data-bloqueio-usuario-id="<?php echo e($entrega->bloqueioEdicaoAtivo
+                    : '0'
+            }}"
+            data-bloqueio-usuario-id="{{
+                $entrega->bloqueioEdicaoAtivo
                     ? (int) $entrega
                         ->bloqueioEdicaoAtivo
                         ->usuario_id
-                    : ''); ?>">
+                    : ''
+            }}">
             <td>
                 <div class="entrega-codigo">
-                    <?php echo e($entrega->codigo_entrega
-                        ?? 'ENT-' . $entrega->id); ?>
-
+                    {{
+                        $entrega->codigo_entrega
+                        ?? 'ENT-' . $entrega->id
+                    }}
                 </div>
 
                 <div class="linha-secundaria">
-                    ID interno: #<?php echo e($entrega->id); ?>
-
+                    ID interno: #{{ $entrega->id }}
                 </div>
 
                 <div class="mt-1">
-                    <span class="badge <?php echo e($prioridadeClasse); ?>">
-                        <i class="bi <?php echo e($prioridadeIcone); ?> me-1"></i>
-                        <?php echo e($prioridadeLabel); ?>
-
+                    <span class="badge {{ $prioridadeClasse }}">
+                        <i class="bi {{ $prioridadeIcone }} me-1"></i>
+                        {{ $prioridadeLabel }}
                     </span>
                 </div>
 
-                <?php if($edicaoBloqueada): ?>
+                @if($edicaoBloqueada)
                     <div class="mt-1"
-                         title="<?php echo e($mensagemBloqueio); ?>">
+                         title="{{ $mensagemBloqueio }}">
 
                         <span class="badge bg-warning text-dark border border-dark">
                             <i class="bi bi-lock-fill me-1"></i>
                             EM EDIÇÃO
                         </span>
 
-                        <?php if($nomeUsuarioBloqueio): ?>
+                        @if($nomeUsuarioBloqueio)
                             <div class="linha-secundaria text-danger mt-1">
-                                Por <?php echo e($nomeUsuarioBloqueio); ?>
-
+                                Por {{ $nomeUsuarioBloqueio }}
                             </div>
-                        <?php endif; ?>
+                        @endif
                     </div>
-                <?php endif; ?>
+                @endif
             </td>
 
             <td class="col-texto">
                 <div class="fw-semibold">
-                    <?php echo e($entrega->responsavel_recebimento
-                        ?? 'Responsável não informado'); ?>
-
+                    {{
+                        $entrega->responsavel_recebimento
+                        ?? 'Responsável não informado'
+                    }}
                 </div>
 
                 <div class="linha-secundaria">
                     <i class="bi bi-telephone me-1"></i>
 
-                    <?php echo e($entrega->telefone_recebimento
-                        ?? 'Telefone não informado'); ?>
-
+                    {{
+                        $entrega->telefone_recebimento
+                        ?? 'Telefone não informado'
+                    }}
                 </div>
             </td>
 
             <td class="documentos text-center">
-    <?php if(! empty($entrega->venda_id)): ?>
+    @if(! empty($entrega->venda_id))
         <a
-            href="<?php echo e(url(
+            href="{{ url(
                 '/venda/'
                 . $entrega->venda_id
                 . '/cupom'
-            )); ?>"
+            ) }}"
             target="_self"
             rel="noopener noreferrer"
             class="text-decoration-none fw-semibold"
             title="Abrir cupom da venda"
         >
             <i class="bi bi-receipt me-1"></i>
-            VEN-<?php echo e($entrega->venda_id); ?>
-
+            VEN-{{ $entrega->venda_id }}
         </a>
-    <?php else: ?>
+    @else
         <span class="text-muted">
             <i class="bi bi-receipt me-1"></i>
             Venda —
         </span>
-    <?php endif; ?>
+    @endif
 
     <div class="linha-secundaria mt-1">
-        <?php if(
+        @if(
             ! empty($entrega->orcamento_id)
             && $entrega->orcamento
-        ): ?>
-            <?php
+        )
+            @php
                 $numeroOrcamento =
                     $entrega->orcamento->codigo_orcamento
                     ?? 'ORÇ-' . $entrega->orcamento_id;
-            ?>
+            @endphp
 
-            <?php if(Route::has('orcamentos.show')): ?>
+            @if(Route::has('orcamentos.show'))
                 <a
-                    href="<?php echo e(route(
+                    href="{{ route(
                         'orcamentos.show',
                         $entrega->orcamento_id
-                    )); ?>"
+                    ) }}"
                     class="text-decoration-none fw-semibold"
-                    title="Abrir orçamento <?php echo e($numeroOrcamento); ?>"
+                    title="Abrir orçamento {{ $numeroOrcamento }}"
                 >
                     <i class="bi bi-file-earmark-text me-1"></i>
                     Orçamento:
-                    <?php echo e($numeroOrcamento); ?>
-
+                    {{ $numeroOrcamento }}
                 </a>
-            <?php else: ?>
+            @else
                 <span class="fw-semibold">
                     <i class="bi bi-file-earmark-text me-1"></i>
                     Orçamento:
-                    <?php echo e($numeroOrcamento); ?>
-
+                    {{ $numeroOrcamento }}
                 </span>
-            <?php endif; ?>
-        <?php elseif(! empty($entrega->orcamento_id)): ?>
+            @endif
+        @elseif(! empty($entrega->orcamento_id))
             <span class="text-muted">
                 <i class="bi bi-file-earmark-text me-1"></i>
                 Orçamento:
-                ORÇ-<?php echo e($entrega->orcamento_id); ?>
-
+                ORÇ-{{ $entrega->orcamento_id }}
             </span>
-        <?php else: ?>
+        @else
             <span class="text-muted">
                 <i class="bi bi-file-earmark-text me-1"></i>
                 Orçamento não informado
             </span>
-        <?php endif; ?>
+        @endif
     </div>
 </td>
 
             <td class="text-center">
                 <div class="fw-semibold">
-                    <?php echo e($dataPrevista
+                    {{
+                        $dataPrevista
                             ? $dataPrevista->format('d/m/Y')
-                            : '—'); ?>
-
+                            : '—'
+                    }}
                 </div>
 
                 <div class="linha-secundaria">
-                    <?php echo e($entrega->periodo_entrega
-                        ?? 'Período não informado'); ?>
-
+                    {{
+                        $entrega->periodo_entrega
+                        ?? 'Período não informado'
+                    }}
                 </div>
             </td>
 
             <td class="text-center">
-                <?php if($entrega->tipo_entrega === 'retira_loja'): ?>
+                @if($entrega->tipo_entrega === 'retira_loja')
                     <span class="badge bg-secondary">
                         <i class="bi bi-shop me-1"></i>
                         Retira
                     </span>
-                <?php else: ?>
+                @else
                     <span class="badge bg-info text-dark">
                         <i class="bi bi-truck me-1"></i>
                         Entrega
                     </span>
-                <?php endif; ?>
+                @endif
             </td>
 
             <td class="text-center">
-                <span class="badge <?php echo e($statusClasses[$statusEntrega]
-                    ?? 'bg-secondary'); ?>">
-                    <?php echo e($statusLabels[$statusEntrega]
+                <span class="badge {{
+                    $statusClasses[$statusEntrega]
+                    ?? 'bg-secondary'
+                }}">
+                    {{
+                        $statusLabels[$statusEntrega]
                         ?? ucfirst(
                             str_replace(
                                 '_',
                                 ' ',
                                 $statusEntrega
                             )
-                        )); ?>
-
+                        )
+                    }}
                 </span>
             </td>
 
             <td class="text-center">
                 <div class="d-flex justify-content-center align-items-center gap-1">
                     <span class="badge bg-light text-dark border">
-                        <?php echo e($itensConcluidos); ?>/<?php echo e($totalItens); ?>
-
+                        {{ $itensConcluidos }}/{{ $totalItens }}
                     </span>
 
                     <button type="button"
                             class="btn btn-outline-primary btn-sm itens-toggle"
                             data-bs-toggle="collapse"
-                            data-bs-target="#itens-entrega-<?php echo e($entrega->id); ?>"
+                            data-bs-target="#itens-entrega-{{ $entrega->id }}"
                             aria-expanded="false"
-                            aria-controls="itens-entrega-<?php echo e($entrega->id); ?>"
+                            aria-controls="itens-entrega-{{ $entrega->id }}"
                             title="Exibir itens da entrega">
 
                         <i class="bi bi-chevron-down"></i>
@@ -1412,19 +1366,19 @@
             <td class="text-center">
                 <div class="d-flex justify-content-center gap-1 flex-nowrap">
 
-                    
-                    <a href="<?php echo e(route(
+                    {{-- Visualizar entrega: sempre disponível --}}
+                    <a href="{{ route(
                             'entregas.show',
                             $entrega->id
-                        )); ?>"
+                        ) }}"
                     class="btn btn-outline-primary btn-sm acao-btn"
                     title="Visualizar entrega">
 
                         <i class="bi bi-eye"></i>
                     </a>
 
-                    
-                    <?php
+                    {{-- Operação do romaneio --}}
+                    @php
                         $podeOperarRomaneio = in_array(
                             $statusEntrega,
                             [
@@ -1464,79 +1418,84 @@
                             ],
                             true
                         ) && $romaneioTratativa;
-                    ?>
+                    @endphp
 
-                    <?php if(
+                    @if(
                         $podeOperarRomaneio
                         && ! $edicaoBloqueada
-                    ): ?>
-                        <a href="<?php echo e(route(
+                    )
+                        <a href="{{ route(
                                 'romaneios.create',
                                 [
                                     'entrega_id' => $entrega->id,
                                 ]
-                            )); ?>"
+                            ) }}"
                         class="btn btn-outline-secondary btn-sm acao-btn"
                         title="Operação do romaneio">
 
                             <i class="bi bi-clipboard-check"></i>
                         </a>
-                    <?php else: ?>
+                    @else
                         <button type="button"
                                 class="btn btn-outline-secondary btn-sm acao-btn"
-                                title="<?php echo e($edicaoBloqueada
+                                title="{{
+                                    $edicaoBloqueada
                                         ? $mensagemBloqueio
-                                        : 'Operação do romaneio indisponível neste status'); ?>"
+                                        : 'Operação do romaneio indisponível neste status'
+                                }}"
                                 disabled>
 
                             <i class="bi bi-clipboard-check"></i>
                         </button>
-                    <?php endif; ?>
+                    @endif
 
-                    
-                    <?php if(
+                    {{-- Registrar retorno: nunca aponta para romaneios.create --}}
+                    @if(
                         $podeRegistrarRetorno
                         && ! $edicaoBloqueada
-                    ): ?>
-                        <a href="<?php echo e(route(
+                    )
+                        <a href="{{ route(
                                 'entregas.retorno',
                                 $entrega->id
-                            )); ?>"
+                            ) }}"
                         class="btn btn-outline-success btn-sm acao-btn"
                         title="Registrar retorno e resultado da entrega">
 
                             <i class="bi bi-arrow-return-left"></i>
                         </a>
-                    <?php else: ?>
+                    @else
                         <button type="button"
                                 class="btn btn-outline-success btn-sm acao-btn"
-                                title="<?php echo e($edicaoBloqueada
+                                title="{{
+                                    $edicaoBloqueada
                                         ? $mensagemBloqueio
-                                        : 'Retorno disponível quando a entrega estiver em rota'); ?>"
+                                        : 'Retorno disponível quando a entrega estiver em rota'
+                                }}"
                                 disabled>
 
                             <i class="bi bi-arrow-return-left"></i>
                         </button>
-                    <?php endif; ?>
+                    @endif
 
-                    
-                    <?php if($podeConsultarTratativa): ?>
-                        <a href="<?php echo e(route(
+                    {{-- Tratativa --}}
+                    @if($podeConsultarTratativa)
+                        <a href="{{ route(
                                 'romaneios.ocorrencias.index',
                                 [
                                     'romaneio' =>
                                         $romaneioTratativa->id,
                                 ]
-                            )); ?>"
+                            ) }}"
                         class="btn btn-outline-warning btn-sm acao-btn"
                         title="Consultar tratativa da entrega">
 
                             <i class="bi bi-clipboard-pulse"></i>
                         </a>
-                    <?php else: ?>
+                    @else
                         <button type="button"
                                 class="btn btn-outline-warning btn-sm acao-btn"
-                                title="<?php echo e(in_array(
+                                title="{{
+                                    in_array(
                                         $statusEntrega,
                                         [
                                             'entregue_parcial',
@@ -1551,49 +1510,56 @@
                                         true
                                     )
                                         ? 'Nenhum romaneio com ocorrência foi encontrado para esta entrega'
-                                        : 'A entrega ainda não possui tratativa'); ?>"
+                                        : 'A entrega ainda não possui tratativa'
+                                }}"
                                 disabled>
 
                             <i class="bi bi-clipboard-pulse"></i>
                         </button>
-                    <?php endif; ?>
+                    @endif
 
-                    
-                    <?php if(
+                    {{-- Cancelamento --}}
+                    @if(
                         $podeCancelar
                         && ! $edicaoBloqueada
-                    ): ?>
+                    )
                         <button type="button"
                                 class="btn btn-outline-danger btn-sm acao-btn"
                                 title="Cancelar entrega"
                                 data-bs-toggle="modal"
                                 data-bs-target="#modalCancelarEntrega"
-                                data-entrega-id="<?php echo e($entrega->id); ?>"
-                                data-entrega-codigo="<?php echo e($entrega->codigo_entrega
-                                    ?? "#{$entrega->id}"); ?>">
+                                data-entrega-id="{{ $entrega->id }}"
+                                data-entrega-codigo="{{
+                                    $entrega->codigo_entrega
+                                    ?? "#{$entrega->id}"
+                                }}">
 
                             <i class="bi bi-x-circle"></i>
                         </button>
-                    <?php else: ?>
+                    @else
                         <button type="button"
                                 class="btn btn-outline-danger btn-sm acao-btn"
-                                title="<?php echo e($edicaoBloqueada
+                                title="{{
+                                    $edicaoBloqueada
                                         ? $mensagemBloqueio
-                                        : 'Cancelamento indisponível neste status'); ?>"
+                                        : 'Cancelamento indisponível neste status'
+                                }}"
                                 disabled>
 
                             <i class="bi bi-x-circle"></i>
                         </button>
-                    <?php endif; ?>
+                    @endif
 
                 </div>
             </td>
         </tr>
 
-        <tr class="collapse linha-itens <?php echo e($ocultarEntregaConcluida
+        <tr class="collapse linha-itens {{
+                $ocultarEntregaConcluida
                     ? 'd-none'
-                    : ''); ?>"
-            id="itens-entrega-<?php echo e($entrega->id); ?>">
+                    : ''
+            }}"
+            id="itens-entrega-{{ $entrega->id }}">
 
             <td colspan="8">
                 <div class="painel-itens">
@@ -1602,13 +1568,14 @@
                             <i class="bi bi-box-seam me-2"></i>
 
                             Itens da Entrega
-                            <?php echo e($entrega->codigo_entrega
-                                ?? '#' . $entrega->id); ?>
-
+                            {{
+                                $entrega->codigo_entrega
+                                ?? '#' . $entrega->id
+                            }}
                         </span>
 
                         <span class="badge bg-dark">
-                            <?php echo e($totalItens); ?> item(ns)
+                            {{ $totalItens }} item(ns)
                         </span>
                     </div>
 
@@ -1647,8 +1614,8 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php $__empty_2 = true; $__currentLoopData = $itensEntrega; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
-                                        <?php
+                                    @forelse($itensEntrega as $item)
+                                        @php
                                             $produto =
                                                 $item->produto
                                                 ?? $item->vendaItem?->produto
@@ -1722,82 +1689,85 @@
                                                     ?? 'Pendente'
                                                 )
                                             );
-                                        ?>
+                                        @endphp
 
                                         <tr>
                                             <td>
                                                 <div class="fw-semibold">
-                                                    <?php echo e($produto?->nome
+                                                    {{
+                                                        $produto?->nome
                                                         ?? $produto?->descricao
-                                                        ?? 'Produto não identificado'); ?>
-
+                                                        ?? 'Produto não identificado'
+                                                    }}
                                                 </div>
 
                                                 <div class="linha-secundaria">
                                                     Código:
-                                                    <?php echo e($produto?->id ?? '—'); ?>
-
+                                                    {{ $produto?->id ?? '—' }}
                                                 </div>
 
-                                                <?php if(! empty($item->observacao)): ?>
+                                                @if(! empty($item->observacao))
                                                     <div class="linha-secundaria mt-1">
                                                         <i class="bi bi-chat-left-text me-1"></i>
-                                                        <?php echo e($item->observacao); ?>
-
+                                                        {{ $item->observacao }}
                                                     </div>
-                                                <?php endif; ?>
+                                                @endif
                                             </td>
 
                                             <td class="text-center">
-                                                <?php echo e($localizacao); ?>
-
+                                                {{ $localizacao }}
                                             </td>
 
                                             <td class="text-end fw-semibold">
-                                                <?php echo e(number_format(
+                                                {{
+                                                    number_format(
                                                         $quantidadePrevista,
                                                         2,
                                                         ',',
                                                         '.'
-                                                    )); ?>
-
+                                                    )
+                                                }}
                                             </td>
 
                                             <td class="text-end">
-                                                <?php echo e(number_format(
+                                                {{
+                                                    number_format(
                                                         $quantidadeEntregue,
                                                         2,
                                                         ',',
                                                         '.'
-                                                    )); ?>
-
+                                                    )
+                                                }}
                                             </td>
 
-                                            <td class="text-end fw-bold <?php echo e($saldo > 0
+                                            <td class="text-end fw-bold {{
+                                                $saldo > 0
                                                     ? 'text-danger'
-                                                    : 'text-success'); ?>">
-                                                <?php echo e(number_format(
+                                                    : 'text-success'
+                                            }}">
+                                                {{
+                                                    number_format(
                                                         $saldo,
                                                         2,
                                                         ',',
                                                         '.'
-                                                    )); ?>
-
+                                                    )
+                                                }}
                                             </td>
 
                                             <td class="text-center">
-                                                <?php echo e($unidade); ?>
-
+                                                {{ $unidade }}
                                             </td>
 
                                             <td class="text-center">
-                                                <span class="badge <?php echo e($statusItemClasse); ?>">
-                                                    <?php echo e($statusItemLabel); ?>
-
+                                                <span class="badge {{
+                                                    $statusItemClasse
+                                                }}">
+                                                    {{ $statusItemLabel }}
                                                 </span>
                                             </td>
                                         </tr>
-                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
+                                    @empty
                                         <tr>
                                             <td colspan="7"
                                                 class="text-center text-muted py-3">
@@ -1805,7 +1775,7 @@
                                                 Nenhum item encontrado para esta entrega.
                                             </td>
                                         </tr>
-                                    <?php endif; ?>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -1814,34 +1784,32 @@
             </td>
         </tr>
 
-    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+    @empty
         <tr>
             <td colspan="8"
                 class="text-center text-muted py-4">
 
                 <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                <?php echo e($mensagemSemResultados ?? 'Nenhuma entrega encontrada.'); ?>
-
+                {{ $mensagemSemResultados ?? 'Nenhuma entrega encontrada.' }}
             </td>
         </tr>
-    <?php endif; ?>
+    @endforelse
 </tbody>
                 </table>
             </div>
         </div>
 
-        <?php if($entregas->hasPages()): ?>
+        @if($entregas->hasPages())
             <div class="card-footer d-flex justify-content-center py-2">
-                <?php echo e($entregas->withQueryString()->links()); ?>
-
+                {{ $entregas->withQueryString()->links() }}
             </div>
-        <?php endif; ?>
+        @endif
     </div>
 </div>
 
     <div id="configuracao-sincronizacao-entregas"
          class="d-none"
-         data-url-consultar="<?php echo e(route('edicao-bloqueios.consultar')); ?>">
+         data-url-consultar="{{ route('edicao-bloqueios.consultar') }}">
     </div>
 
     <script>
@@ -2030,5 +1998,4 @@
             }
         );
     </script>
-<?php $__env->stopSection(); ?>
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/entregas/index.blade.php ENDPATH**/ ?>
+@endsection

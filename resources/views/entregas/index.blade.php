@@ -256,115 +256,192 @@
 
     @include('entregas.partials.alertas_sla')
 
-    {{-- CARDS RESUMO --}}
-    <div class="row g-2 mb-3">
+   {{-- CARDS RESUMO --}}
+    <div class="overflow-auto mb-3">
+        <div class="row g-2 flex-nowrap">
 
-        <div class="col-xl col-lg-4 col-md-6">
-            <a href="{{ route('entregas.index', ['status' => 'pendente_pagamento']) }}"
-               class="text-decoration-none text-dark">
+            <div class="col">
+                <a href="{{ route('entregas.index', ['status' => 'pendente_pagamento']) }}"
+                class="text-decoration-none text-dark">
 
-                <div class="card shadow-sm border-start border-secondary border-4 h-100 kpi-card">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted d-block">Financeiro</small>
-                            <span class="fw-semibold d-block mb-1">Pend. Pagto</span>
-                            <h3>{{ $resumo['pendente_pagamento'] ?? 0 }}</h3>
+                    <div class="card shadow-sm border-start border-secondary border-4 h-100 kpi-card">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block">
+                                    Financeiro
+                                </small>
+
+                                <span class="fw-semibold d-block mb-1">
+                                    Pend. Pagto
+                                </span>
+
+                                <h3>
+                                    {{ $resumo['pendente_pagamento'] ?? 0 }}
+                                </h3>
+                            </div>
+
+                            <i class="bi bi-cash text-danger"></i>
                         </div>
-
-                        <i class="bi bi-cash text-danger"></i>
                     </div>
-                </div>
-            </a>
-        </div>
+                </a>
+            </div>
 
-        <div class="col-xl col-lg-4 col-md-6">
-            <a href="{{ route('entregas.index', ['status' => 'aguardando_separacao']) }}"
-               class="text-decoration-none text-dark">
+            <div class="col">
+                <a href="{{ route('entregas.index', ['status' => 'aguardando_separacao']) }}"
+                class="text-decoration-none text-dark">
 
-                <div class="card shadow-sm border-start border-warning border-4 h-100 kpi-card">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted d-block">Prioridade</small>
-                            <span class="fw-semibold d-block mb-1">Aguard. Sep.</span>
-                            <h3>{{ $resumo['aguardando_separacao'] ?? 0 }}</h3>
+                    <div class="card shadow-sm border-start border-warning border-4 h-100 kpi-card">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block">
+                                    Prioridade
+                                </small>
+
+                                <span class="fw-semibold d-block mb-1">
+                                    Aguard. Sep.
+                                </span>
+
+                                <h3>
+                                    {{ $resumo['aguardando_separacao'] ?? 0 }}
+                                </h3>
+                            </div>
+
+                            <i class="bi bi-lightning-charge text-warning"></i>
                         </div>
-
-                        <i class="bi bi-lightning-charge text-warning"></i>
                     </div>
-                </div>
-            </a>
-        </div>
+                </a>
+            </div>
 
-        <div class="col-xl col-lg-4 col-md-6">
-            <a href="{{ route('entregas.index', ['status' => 'separando']) }}"
-               class="text-decoration-none text-dark">
+            <div class="col">
+                <a href="{{ route('entregas.index', ['status' => 'separando']) }}"
+                class="text-decoration-none text-dark">
 
-                <div class="card shadow-sm border-start border-primary border-4 h-100 kpi-card">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted d-block">Operação</small>
-                            <span class="fw-semibold d-block mb-1">Separando</span>
-                            <h3>{{ $resumo['separando'] ?? 0 }}</h3>
+                    <div class="card shadow-sm border-start border-primary border-4 h-100 kpi-card">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block">
+                                    Operação
+                                </small>
+
+                                <span class="fw-semibold d-block mb-1">
+                                    Separando
+                                </span>
+
+                                <h3>
+                                    {{ $resumo['separando'] ?? 0 }}
+                                </h3>
+                            </div>
+
+                            <i class="bi bi-box-seam text-primary"></i>
                         </div>
-
-                        <i class="bi bi-box-seam text-primary"></i>
                     </div>
-                </div>
-            </a>
-        </div>
+                </a>
+            </div>
 
-        <div class="col-xl col-lg-4 col-md-6">
-            <a href="{{ route('entregas.index', ['status' => 'carregado']) }}"
-               class="text-decoration-none text-dark">
+            <div class="col">
+                <a href="{{ route('entregas.index', ['status' => 'carregado']) }}"
+                class="text-decoration-none text-dark">
 
-                <div class="card shadow-sm border-start border-info border-4 h-100 kpi-card">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted d-block">Expedição</small>
-                            <span class="fw-semibold d-block mb-1">Carregados</span>
-                            <h3>{{ $resumo['carregados'] ?? 0 }}</h3>
+                    <div class="card shadow-sm border-start border-info border-4 h-100 kpi-card">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block">
+                                    Expedição
+                                </small>
+
+                                <span class="fw-semibold d-block mb-1">
+                                    Carregados
+                                </span>
+
+                                <h3>
+                                    {{ $resumo['carregados'] ?? 0 }}
+                                </h3>
+                            </div>
+
+                            <i class="bi bi-truck-front text-info"></i>
                         </div>
-
-                        <i class="bi bi-truck-front text-info"></i>
                     </div>
-                </div>
-            </a>
-        </div>
+                </a>
+            </div>
 
-        <div class="col-xl col-lg-4 col-md-6">
-            <a href="{{ route('entregas.index', ['status' => 'em_rota']) }}"
-               class="text-decoration-none text-dark">
+            <div class="col">
+                <a href="{{ route('entregas.index', ['status' => 'em_rota']) }}"
+                class="text-decoration-none text-dark">
 
-                <div class="card shadow-sm border-start border-dark border-4 h-100 kpi-card">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted d-block">Logística</small>
-                            <span class="fw-semibold d-block mb-1 ">Em rota</span>
-                            <h3>{{ $resumo['em_rota'] ?? 0 }}</h3>
+                    <div class="card shadow-sm border-start border-dark border-4 h-100 kpi-card">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block">
+                                    Logística
+                                </small>
+
+                                <span class="fw-semibold d-block mb-1">
+                                    Em rota
+                                </span>
+
+                                <h3>
+                                    {{ $resumo['em_rota'] ?? 0 }}
+                                </h3>
+                            </div>
+
+                            <i class="bi bi-geo-alt text-dark"></i>
                         </div>
-
-                        <i class="bi bi-geo-alt text-dark"></i>
                     </div>
-                </div>
-            </a>
-        </div>
+                </a>
+            </div>
 
-        <div class="col-xl col-lg-4 col-md-6">
-            <a href="{{ route('entregas.index', ['status' => 'entregue']) }}"
-               class="text-decoration-none text-dark">
+            <div class="col">
+                <a href="{{ route('entregas.index', ['status' => 'entregue']) }}"
+                class="text-decoration-none text-dark">
 
-                <div class="card shadow-sm border-start border-success border-4 h-100 kpi-card">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted d-block">Finalizadas</small>
-                            <span class="fw-semibold d-block mb-1">Entregues</span>
-                            <h3>{{ $resumo['entregues'] ?? 0 }}</h3>
+                    <div class="card shadow-sm border-start border-success border-4 h-100 kpi-card">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block">
+                                    Finalizadas
+                                </small>
+
+                                <span class="fw-semibold d-block mb-1">
+                                    Entregues
+                                </span>
+
+                                <h3>
+                                    {{ $resumo['entregues'] ?? 0 }}
+                                </h3>
+                            </div>
+
+                            <i class="bi bi-check2-circle text-success"></i>
                         </div>
-
-                        <i class="bi bi-check2-circle text-success"></i>
                     </div>
-                </div>
-            </a>
+                </a>
+            </div>
+
+            <div class="col">
+                <a href="{{ route('entregas.index', ['status' => 'atrasadas']) }}"
+                class="text-decoration-none text-dark">
+
+                    <div class="card shadow-sm border-start border-danger border-4 h-100 kpi-card">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block">
+                                    Prazo
+                                </small>
+
+                                <span class="fw-semibold d-block mb-1">
+                                    Atrasadas
+                                </span>
+
+                                <h3>
+                                    {{ $resumo['atrasadas'] ?? 0 }}
+                                </h3>
+                            </div>
+
+                            <i class="bi bi-alarm text-danger"></i>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
         </div>
     </div>
 
@@ -654,21 +731,73 @@
                 ->values();
 
         /*
-         * Prioriza entregas vencidas sem modificar a ordenação definida
-         * pelo backend dentro dos grupos "atrasadas" e "demais".
+         * Atrasada é uma condição de prazo, não um status da entrega.
+         * Uma entrega encerrada nunca deve ser classificada como atrasada.
          */
         $hojeOrdenacaoIndex = now()->startOfDay();
+        $somenteAtrasadasIndex = request('status') === 'atrasadas';
+
+        if ($somenteAtrasadasIndex) {
+            $entregasIndexOperacionaisBase =
+                $entregasIndexOperacionaisBase
+                    ->filter(function ($entrega) use (
+                        $hojeOrdenacaoIndex,
+                        $statusEncerradosIndex,
+                        $normalizarStatusIndex
+                    ): bool {
+                        if (empty($entrega->data_prevista)) {
+                            return false;
+                        }
+
+                        $statusAtual = $normalizarStatusIndex(
+                            $entrega->status ?? ''
+                        );
+
+                        if (in_array(
+                            $statusAtual,
+                            $statusEncerradosIndex,
+                            true
+                        )) {
+                            return false;
+                        }
+
+                        return \Carbon\Carbon::parse(
+                            $entrega->data_prevista
+                        )
+                            ->startOfDay()
+                            ->lt($hojeOrdenacaoIndex);
+                    })
+                    ->values();
+        }
 
         [
             $entregasAtrasadasIndex,
             $demaisEntregasIndex,
         ] = $entregasIndexOperacionaisBase->partition(
-            function ($entrega) use ($hojeOrdenacaoIndex): bool {
+            function ($entrega) use (
+                $hojeOrdenacaoIndex,
+                $statusEncerradosIndex,
+                $normalizarStatusIndex
+            ): bool {
                 if (empty($entrega->data_prevista)) {
                     return false;
                 }
 
-                return \Carbon\Carbon::parse($entrega->data_prevista)
+                $statusAtual = $normalizarStatusIndex(
+                    $entrega->status ?? ''
+                );
+
+                if (in_array(
+                    $statusAtual,
+                    $statusEncerradosIndex,
+                    true
+                )) {
+                    return false;
+                }
+
+                return \Carbon\Carbon::parse(
+                    $entrega->data_prevista
+                )
                     ->startOfDay()
                     ->lt($hojeOrdenacaoIndex);
             }
@@ -776,14 +905,7 @@
 
             $statusFinalizado = in_array(
                 $statusEntrega,
-                [
-                    'entregue',
-                    'entregue_finalizada_com_ocorrencia',
-                    'cancelada',
-                    'cancelado',
-                    'devolvida',
-                    'devolvido',
-                ],
+                $statusEncerradosIndex,
                 true
             );
 

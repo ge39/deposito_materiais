@@ -73,131 +73,193 @@ class EntregaController extends Controller
     //         ]
     //     );
 
-    //     $statusMap = [
-    //         'pendente_pagamento' =>
+    //     /*
+    //     * ============================================================
+    //     * GRUPOS DE STATUS
+    //     * ============================================================
+    //     *
+    //     * A mesma definição é utilizada:
+    //     * - pelos cards;
+    //     * - pelo clique dos cards;
+    //     * - pelo filtro manual.
+    //     */
+    //     $statusFiltros = [
+    //         'pendente_pagamento' => [
     //             'Pendente_pagamento',
+    //         ],
 
-    //         'aguardando_faturamento' =>
+    //         'aguardando_faturamento' => [
     //             'Aguardando_faturamento',
+    //         ],
 
-    //         'aguardando_separacao' =>
+    //         'aguardando_separacao' => [
     //             'Aguardando_separacao',
+    //         ],
 
-    //         'separando' =>
+    //         'separando' => [
     //             'Em_preparacao',
+    //         ],
 
-    //         'em_preparacao' =>
+    //         'em_preparacao' => [
     //             'Em_preparacao',
+    //         ],
 
-    //         'pronta_para_carregamento' =>
+    //         'pronta_para_carregamento' => [
     //             'Pronta_para_carregamento',
+    //         ],
 
-    //         'carregado' =>
+    //         'carregado' => [
     //             'Carregada',
+    //         ],
 
-    //         'carregada' =>
+    //         'carregada' => [
     //             'Carregada',
+    //         ],
 
-    //         'liberada' =>
+    //         'liberada' => [
     //             'Liberada',
+    //         ],
 
-    //         'em_rota' =>
+    //         'em_rota' => [
     //             'Em_rota',
+    //         ],
 
-    //         'no_destino' =>
+    //         'no_destino' => [
     //             'No_destino',
+    //         ],
 
-    //         'entregue' =>
+    //         /*
+    //         * O card Entregues representa os dois estados.
+    //         */
+    //         'entregue' => [
     //             'Entregue',
-
-    //         'parcial' =>
-    //             'Entregue_parcial',
-
-    //         'entregue_parcial' =>
-    //             'Entregue_parcial',
-
-    //         'entregue_finalizada_com_ocorrencia' =>
     //             'Entregue_finalizada_com_ocorrencia',
+    //         ],
 
-    //         'finalizada_com_ocorrencia' =>
+    //         'finalizada_com_ocorrencia' => [
     //             'Entregue_finalizada_com_ocorrencia',
+    //         ],
 
-    //         'nao_entregue' =>
+    //         'entregue_finalizada_com_ocorrencia' => [
+    //             'Entregue_finalizada_com_ocorrencia',
+    //         ],
+
+    //         'parcial' => [
+    //             'Entregue_parcial',
+    //         ],
+
+    //         'entregue_parcial' => [
+    //             'Entregue_parcial',
+    //         ],
+
+    //         'nao_entregue' => [
     //             'Nao_entregue',
+    //         ],
 
-    //         'recusada' =>
+    //         'recusada' => [
     //             'Recusada',
+    //         ],
 
-    //         'reagendada' =>
+    //         'reagendada' => [
     //             'Reagendada',
+    //         ],
 
-    //         'devolvido' =>
+    //         'devolvido' => [
     //             'Devolvida',
+    //         ],
 
-    //         'devolvida' =>
+    //         'devolvida' => [
     //             'Devolvida',
+    //         ],
 
-    //         'cancelado' =>
+    //         'cancelado' => [
     //             'Cancelada',
+    //         ],
 
-    //         'cancelada' =>
+    //         'cancelada' => [
     //             'Cancelada',
+    //         ],
     //     ];
 
-    //     $dataInicio = ! empty(
-    //         $dadosValidados['data_inicio'] ?? null
-    //     )
-    //         ? \Carbon\Carbon::parse(
-    //             $dadosValidados['data_inicio']
-    //         )->startOfDay()
-    //         : now()->subDays(30)->startOfDay();
+    //     /*
+    //     * Nomes utilizados nas mensagens da tabela.
+    //     */
+    //     $statusLabelsFiltro = [
+    //         'pendente_pagamento' =>
+    //             'pendente de pagamento',
 
-    //     $dataFim = ! empty(
-    //         $dadosValidados['data_fim'] ?? null
-    //     )
-    //         ? \Carbon\Carbon::parse(
-    //             $dadosValidados['data_fim']
-    //         )->endOfDay()
-    //         : now()->addDays(30)->endOfDay();
+    //         'aguardando_faturamento' =>
+    //             'aguardando faturamento',
 
-    //     $query = Entrega::query()
-    //     ->with([
-    //         'venda',
-    //         'orcamento',
-    //         'itens',
-    //         'itens.vendaItem.produto',
-    //         'itens.itemOrcamento.produto',
-    //         'bloqueioEdicaoAtivo.usuario',
-    //     ])
-    //     ->whereBetween(
-    //         'data_prevista',
-    //         [
-    //             $dataInicio,
-    //             $dataFim,
-    //         ]
-    //     );
+    //         'aguardando_separacao' =>
+    //             'aguardando separação',
 
-    //     $statusFiltroAplicado = false;
+    //         'separando' =>
+    //             'em separação',
 
-    //     if (! empty(
-    //         $dadosValidados['status'] ?? null
-    //     )) {
-    //         $statusInformado = strtolower(
-    //             trim(
-    //                 (string) $dadosValidados['status']
-    //             )
-    //         );
+    //         'em_preparacao' =>
+    //             'em preparação',
 
-    //         if (isset($statusMap[$statusInformado])) {
-    //             $statusFiltroAplicado = true;
+    //         'pronta_para_carregamento' =>
+    //             'pronta para carregamento',
 
-    //             $query->where(
-    //                 'status',
-    //                 $statusMap[$statusInformado]
-    //             );
-    //         }
-    //     }
+    //         'carregado' =>
+    //             'carregada',
 
+    //         'carregada' =>
+    //             'carregada',
+
+    //         'liberada' =>
+    //             'liberada',
+
+    //         'em_rota' =>
+    //             'em rota',
+
+    //         'no_destino' =>
+    //             'no destino',
+
+    //         'entregue' =>
+    //             'entregue',
+
+    //         'finalizada_com_ocorrencia' =>
+    //             'finalizada com ocorrência',
+
+    //         'entregue_finalizada_com_ocorrencia' =>
+    //             'finalizada com ocorrência',
+
+    //         'parcial' =>
+    //             'entregue parcialmente',
+
+    //         'entregue_parcial' =>
+    //             'entregue parcialmente',
+
+    //         'nao_entregue' =>
+    //             'não entregue',
+
+    //         'recusada' =>
+    //             'recusada',
+
+    //         'reagendada' =>
+    //             'reagendada',
+
+    //         'devolvido' =>
+    //             'devolvida',
+
+    //         'devolvida' =>
+    //             'devolvida',
+
+    //         'cancelado' =>
+    //             'cancelada',
+
+    //         'cancelada' =>
+    //             'cancelada',
+    //     ];
+
+    //     /*
+    //     * ============================================================
+    //     * PARÂMETROS
+    //     * ============================================================
+    //     */
     //     $codigoEntregaInformado = trim(
     //         (string) (
     //             $dadosValidados['codigo_entrega']
@@ -205,7 +267,122 @@ class EntregaController extends Controller
     //         )
     //     );
 
-    //     if ($codigoEntregaInformado !== '') {
+    //     $statusInformado = strtolower(
+    //         trim(
+    //             (string) (
+    //                 $dadosValidados['status']
+    //                 ?? ''
+    //             )
+    //         )
+    //     );
+
+    //     /*
+    //     * Datas explicitamente enviadas pelo formulário.
+    //     *
+    //     * Card:
+    //     * /entregas?status=em_rota
+    //     *
+    //     * Portanto não possui data_inicio/data_fim.
+    //     */
+    //     $dataInicioInformada = ! empty(
+    //         $dadosValidados['data_inicio'] ?? null
+    //     );
+
+    //     $dataFimInformada = ! empty(
+    //         $dadosValidados['data_fim'] ?? null
+    //     );
+
+    //     $datasInformadas =
+    //         $dataInicioInformada
+    //         || $dataFimInformada;
+
+    //     /*
+    //     * Datas padrão da tela.
+    //     */
+    //     $dataInicio = $dataInicioInformada
+    //         ? \Carbon\Carbon::parse(
+    //             $dadosValidados['data_inicio']
+    //         )->startOfDay()
+    //         : now()->subDays(30)->startOfDay();
+
+    //     $dataFim = $dataFimInformada
+    //         ? \Carbon\Carbon::parse(
+    //             $dadosValidados['data_fim']
+    //         )->endOfDay()
+    //         : now()->addDays(30)->endOfDay();
+
+    //     /*
+    //     * ============================================================
+    //     * IDENTIFICAÇÃO DO MODO DE CONSULTA
+    //     * ============================================================
+    //     */
+
+    //     /*
+    //     * Código tem prioridade máxima.
+    //     */
+    //     $filtroPorCodigo =
+    //         $codigoEntregaInformado !== '';
+
+    //     /*
+    //     * Status sem datas = clique em card.
+    //     */
+    //     $filtroPorCard =
+    //         ! $filtroPorCodigo
+    //         && $statusInformado !== ''
+    //         && ! $datasInformadas;
+
+    //     /*
+    //     * Status com datas = filtro manual.
+    //     */
+    //     $filtroManualStatus =
+    //         ! $filtroPorCodigo
+    //         && $statusInformado !== ''
+    //         && $datasInformadas;
+
+    //     /*
+    //     * Tela normal / consulta somente por período.
+    //     */
+    //     $consultaPeriodo =
+    //         ! $filtroPorCodigo
+    //         && ! $filtroPorCard
+    //         && ! $filtroManualStatus;
+
+    //     /*
+    //     * Informa à Blade que status encerrados devem aparecer.
+    //     *
+    //     * Isso é essencial para o card Entregues.
+    //     */
+    //     $exibirStatusEncerrados =
+    //         $filtroPorCodigo
+    //         || $filtroPorCard
+    //         || $filtroManualStatus;
+
+    //     /*
+    //     * ============================================================
+    //     * QUERY BASE
+    //     * ============================================================
+    //     */
+    //     $query = Entrega::query()
+    //         ->with([
+    //             'venda',
+    //             'orcamento',
+    //             'itens',
+    //             'itens.vendaItem.produto',
+    //             'itens.itemOrcamento.produto',
+    //             'bloqueioEdicaoAtivo.usuario',
+    //         ]);
+
+    //     /*
+    //     * ============================================================
+    //     * 1. CÓDIGO DA ENTREGA
+    //     * ============================================================
+    //     *
+    //     * Não utiliza:
+    //     * - status;
+    //     * - data inicial;
+    //     * - data final.
+    //     */
+    //     if ($filtroPorCodigo) {
     //         $query->where(
     //             'codigo_entrega',
     //             'like',
@@ -214,25 +391,79 @@ class EntregaController extends Controller
     //     }
 
     //     /*
-    //     * Entregas concluídas não ocupam a grade operacional.
-    //     * Permanecem contabilizadas no card e podem ser localizadas
-    //     * pelo filtro de status ou pela busca do código da entrega.
+    //     * ============================================================
+    //     * 2. CARD
+    //     * ============================================================
+    //     *
+    //     * Somente status.
+    //     * Nenhuma restrição por data.
     //     */
-    //     if (
-    //         ! $statusFiltroAplicado
-    //         && $codigoEntregaInformado === ''
-    //     ) {
-    //         $query->where(
+    //     elseif ($filtroPorCard) {
+    //         if (isset($statusFiltros[$statusInformado])) {
+    //             $query->whereIn(
+    //                 'status',
+    //                 $statusFiltros[$statusInformado]
+    //             );
+    //         }
+    //     }
+
+    //     /*
+    //     * ============================================================
+    //     * 3. FILTRO MANUAL
+    //     * ============================================================
+    //     *
+    //     * Status + Data Inicial + Data Final.
+    //     */
+    //     elseif ($filtroManualStatus) {
+    //         $query->whereBetween(
+    //             'data_prevista',
+    //             [
+    //                 $dataInicio,
+    //                 $dataFim,
+    //             ]
+    //         );
+
+    //         if (isset($statusFiltros[$statusInformado])) {
+    //             $query->whereIn(
+    //                 'status',
+    //                 $statusFiltros[$statusInformado]
+    //             );
+    //         }
+    //     }
+
+    //     /*
+    //     * ============================================================
+    //     * 4. TELA NORMAL
+    //     * ============================================================
+    //     *
+    //     * Usa a janela operacional padrão.
+    //     */
+    //     else {
+    //         $query->whereBetween(
+    //             'data_prevista',
+    //             [
+    //                 $dataInicio,
+    //                 $dataFim,
+    //             ]
+    //         );
+
+    //         /*
+    //         * Entregas concluídas não ocupam a grade operacional
+    //         * normal.
+    //         */
+    //         $query->whereNotIn(
     //             'status',
-    //             '<>',
-    //             'Entregue'
+    //             [
+    //                 'Entregue',
+    //                 'Entregue_finalizada_com_ocorrencia',
+    //             ]
     //         );
     //     }
 
     //     /*
-    //     * Entregas canceladas ficam sempre no final.
-    //     * As demais continuam ordenadas pela data prevista
-    //     * e pelo identificador.
+    //     * ============================================================
+    //     * ORDENAÇÃO
+    //     * ============================================================
     //     */
     //     $query
     //         ->orderByRaw(
@@ -253,6 +484,52 @@ class EntregaController extends Controller
     //         ->paginate(20)
     //         ->withQueryString();
 
+    //     /*
+    //     * ============================================================
+    //     * MENSAGEM QUANDO NÃO HOUVER RESULTADO
+    //     * ============================================================
+    //     */
+    //     if ($filtroPorCodigo) {
+    //         $mensagemSemResultados =
+    //             'Nenhuma entrega encontrada para o código '
+    //             . $codigoEntregaInformado
+    //             . '.';
+    //     } elseif ($filtroPorCard) {
+    //         $nomeStatus =
+    //             $statusLabelsFiltro[$statusInformado]
+    //             ?? str_replace(
+    //                 '_',
+    //                 ' ',
+    //                 $statusInformado
+    //             );
+
+    //         $mensagemSemResultados =
+    //             'Nenhuma entrega '
+    //             . $nomeStatus
+    //             . ' encontrada.';
+    //     } elseif ($filtroManualStatus) {
+    //         $nomeStatus =
+    //             $statusLabelsFiltro[$statusInformado]
+    //             ?? str_replace(
+    //                 '_',
+    //                 ' ',
+    //                 $statusInformado
+    //             );
+
+    //         $mensagemSemResultados =
+    //             'Nenhuma entrega '
+    //             . $nomeStatus
+    //             . ' encontrada no período informado.';
+    //     } else {
+    //         $mensagemSemResultados =
+    //             'Nenhuma entrega encontrada no período informado.';
+    //     }
+
+    //     /*
+    //     * ============================================================
+    //     * BLOQUEIO DE EDIÇÃO
+    //     * ============================================================
+    //     */
     //     $usuarioId = (int) (
     //         $request->user()?->id
     //         ?? 0
@@ -298,13 +575,9 @@ class EntregaController extends Controller
     //         });
 
     //     /*
-    //     * A tratativa pertence ao romaneio que gerou as ocorrências,
-    //     * e não à tela de consulta da entrega.
-    //     *
-    //     * A busca é feita uma única vez para todas as entregas da página,
-    //     * evitando consultas dentro da Blade e o problema de N+1.
-    //     * Quando houver mais de um romaneio para a mesma entrega,
-    //     * utilizamos o mais recente que realmente possui ocorrências.
+    //     * ============================================================
+    //     * ROMANEIOS / TRATATIVAS
+    //     * ============================================================
     //     */
     //     $entregasIdsDaPagina = $entregas
     //         ->getCollection()
@@ -345,62 +618,69 @@ class EntregaController extends Controller
     //             );
     //     }
 
+    //     /*
+    //     * ============================================================
+    //     * CARDS
+    //     * ============================================================
+    //     *
+    //     * Os cards não possuem nenhuma restrição de data.
+    //     *
+    //     * A contagem usa os mesmos grupos de status utilizados
+    //     * pelo filtro do clique.
+    //     */
     //     $resumo = [
     //         'pendente_pagamento' =>
-    //             Entrega::where(
+    //             Entrega::whereIn(
     //                 'status',
-    //                 'Pendente_pagamento'
+    //                 $statusFiltros['pendente_pagamento']
     //             )->count(),
 
     //         'aguardando_separacao' =>
-    //             Entrega::where(
+    //             Entrega::whereIn(
     //                 'status',
-    //                 'Aguardando_separacao'
+    //                 $statusFiltros['aguardando_separacao']
     //             )->count(),
 
     //         'separando' =>
-    //             Entrega::where(
+    //             Entrega::whereIn(
     //                 'status',
-    //                 'Em_preparacao'
+    //                 $statusFiltros['separando']
     //             )->count(),
 
     //         'carregados' =>
-    //             Entrega::where(
+    //             Entrega::whereIn(
     //                 'status',
-    //                 'Carregada'
+    //                 $statusFiltros['carregado']
     //             )->count(),
 
     //         'em_rota' =>
-    //             Entrega::where(
+    //             Entrega::whereIn(
     //                 'status',
-    //                 'Em_rota'
+    //                 $statusFiltros['em_rota']
     //             )->count(),
 
     //         'entregues' =>
     //             Entrega::whereIn(
     //                 'status',
-    //                 [
-    //                     'Entregue',
-    //                     'Entregue_finalizada_com_ocorrencia',
-    //                 ]
+    //                 $statusFiltros['entregue']
     //             )->count(),
 
     //         'parciais' =>
-    //             Entrega::where(
+    //             Entrega::whereIn(
     //                 'status',
-    //                 'Entregue_parcial'
+    //                 $statusFiltros['entregue_parcial']
     //             )->count(),
 
     //         'devolvidos' =>
-    //             Entrega::where(
+    //             Entrega::whereIn(
     //                 'status',
-    //                 'Devolvida'
+    //                 $statusFiltros['devolvida']
     //             )->count(),
 
     //         'cancelados' =>
-    //             Entrega::where(
+    //             Entrega::whereIn(
     //                 'status',
-    //                 'Cancelada'
+    //                 $statusFiltros['cancelada']
     //             )->count(),
 
     //         'atrasadas' =>
@@ -428,10 +708,13 @@ class EntregaController extends Controller
     //             'romaneiosTratativa',
     //             'resumo',
     //             'dataInicio',
-    //             'dataFim'
+    //             'dataFim',
+    //             'exibirStatusEncerrados',
+    //             'mensagemSemResultados'
     //         )
     //     );
     // }
+
     public function index(Request $request)
     {
         $dadosValidados = $request->validate(
@@ -585,7 +868,70 @@ class EntregaController extends Controller
         ];
 
         /*
-        * Nomes utilizados nas mensagens da tabela.
+        * ============================================================
+        * STATUS ENCERRADOS PARA CONTROLE DE PRAZO
+        * ============================================================
+        *
+        * "Atrasada" NÃO é status.
+        *
+        * Uma entrega é atrasada somente quando:
+        * - possui data prevista;
+        * - data prevista é anterior a hoje;
+        * - ainda não foi encerrada.
+        */
+        $statusEncerradosPrazo = [
+            'Entregue',
+            'Entregue_finalizada_com_ocorrencia',
+            'Entregue_parcial',
+            'Parcial',
+
+            'Finalizada',
+            'Finalizado',
+            'Finalizada_com_ocorrencia',
+
+            'Concluida',
+            'Concluido',
+
+            'Nao_entregue',
+
+            'Recusada',
+            'Recusado',
+
+            'Devolvida',
+            'Devolvido',
+
+            'Cancelada',
+            'Cancelado',
+        ];
+
+        /*
+        * Regra única do card Atrasadas.
+        *
+        * A MESMA query será utilizada:
+        * - para contar o card;
+        * - para abrir o card;
+        * - antes do paginate(20).
+        */
+        $aplicarFiltroAtrasadas = static function ($query) use (
+            $statusEncerradosPrazo
+        ) {
+            return $query
+                ->whereNotNull('data_prevista')
+                ->whereDate(
+                    'data_prevista',
+                    '<',
+                    now()->toDateString()
+                )
+                ->whereNotIn(
+                    'status',
+                    $statusEncerradosPrazo
+                );
+        };
+
+        /*
+        * ============================================================
+        * LABELS DOS FILTROS
+        * ============================================================
         */
         $statusLabelsFiltro = [
             'pendente_pagamento' =>
@@ -684,8 +1030,9 @@ class EntregaController extends Controller
         *
         * Card:
         * /entregas?status=em_rota
+        * /entregas?status=atrasadas
         *
-        * Portanto não possui data_inicio/data_fim.
+        * Portanto cards não possuem data_inicio/data_fim.
         */
         $dataInicioInformada = ! empty(
             $dadosValidados['data_inicio'] ?? null
@@ -722,38 +1069,66 @@ class EntregaController extends Controller
 
         /*
         * Código tem prioridade máxima.
+        *
+        * Código não utiliza datas nem status.
         */
         $filtroPorCodigo =
             $codigoEntregaInformado !== '';
 
         /*
-        * Status sem datas = clique em card.
+        * Card especial ATRASADAS.
+        *
+        * Atrasadas não é um status persistido.
         */
-        $filtroPorCard =
+        $filtroAtrasadas =
             ! $filtroPorCodigo
-            && $statusInformado !== ''
+            && $statusInformado === 'atrasadas'
             && ! $datasInformadas;
 
         /*
-        * Status com datas = filtro manual.
+        * Demais cards.
+        *
+        * Ex.:
+        * em_rota
+        * entregue
+        * carregado
+        * separando
+        */
+        $filtroPorCard =
+            ! $filtroPorCodigo
+            && ! $filtroAtrasadas
+            && $statusInformado !== ''
+            && ! $datasInformadas
+            && isset(
+                $statusFiltros[$statusInformado]
+            );
+
+        /*
+        * Status + datas = filtro manual.
         */
         $filtroManualStatus =
             ! $filtroPorCodigo
             && $statusInformado !== ''
-            && $datasInformadas;
+            && $statusInformado !== 'atrasadas'
+            && $datasInformadas
+            && isset(
+                $statusFiltros[$statusInformado]
+            );
 
         /*
-        * Tela normal / consulta somente por período.
+        * Tela normal / consulta por período.
         */
         $consultaPeriodo =
             ! $filtroPorCodigo
+            && ! $filtroAtrasadas
             && ! $filtroPorCard
             && ! $filtroManualStatus;
 
         /*
-        * Informa à Blade que status encerrados devem aparecer.
+        * Informa à Blade quando status encerrados
+        * precisam permanecer visíveis.
         *
-        * Isso é essencial para o card Entregues.
+        * Atrasadas NÃO entra aqui.
         */
         $exibirStatusEncerrados =
             $filtroPorCodigo
@@ -795,72 +1170,81 @@ class EntregaController extends Controller
 
         /*
         * ============================================================
-        * 2. CARD
+        * 2. CARD ATRASADAS
+        * ============================================================
+        *
+        * Atrasada é condição de prazo.
+        *
+        * Não altera o status real da entrega.
+        *
+        * O filtro ocorre ANTES do paginate(20).
+        */
+        elseif ($filtroAtrasadas) {
+            $aplicarFiltroAtrasadas(
+                $query
+            );
+        }
+
+        /*
+        * ============================================================
+        * 3. DEMAIS CARDS
         * ============================================================
         *
         * Somente status.
         * Nenhuma restrição por data.
         */
         elseif ($filtroPorCard) {
-            if (isset($statusFiltros[$statusInformado])) {
-                $query->whereIn(
-                    'status',
-                    $statusFiltros[$statusInformado]
-                );
-            }
+            $query->whereIn(
+                'status',
+                $statusFiltros[$statusInformado]
+            );
         }
 
         /*
         * ============================================================
-        * 3. FILTRO MANUAL
+        * 4. FILTRO MANUAL
         * ============================================================
         *
         * Status + Data Inicial + Data Final.
         */
         elseif ($filtroManualStatus) {
-            $query->whereBetween(
-                'data_prevista',
-                [
-                    $dataInicio,
-                    $dataFim,
-                ]
-            );
-
-            if (isset($statusFiltros[$statusInformado])) {
-                $query->whereIn(
+            $query
+                ->whereBetween(
+                    'data_prevista',
+                    [
+                        $dataInicio,
+                        $dataFim,
+                    ]
+                )
+                ->whereIn(
                     'status',
                     $statusFiltros[$statusInformado]
                 );
-            }
         }
 
         /*
         * ============================================================
-        * 4. TELA NORMAL
+        * 5. TELA NORMAL
         * ============================================================
         *
         * Usa a janela operacional padrão.
         */
         else {
-            $query->whereBetween(
-                'data_prevista',
-                [
-                    $dataInicio,
-                    $dataFim,
-                ]
-            );
-
-            /*
-            * Entregas concluídas não ocupam a grade operacional
-            * normal.
-            */
-            $query->whereNotIn(
-                'status',
-                [
-                    'Entregue',
-                    'Entregue_finalizada_com_ocorrencia',
-                ]
-            );
+            $query
+                ->whereBetween(
+                    'data_prevista',
+                    [
+                        $dataInicio,
+                        $dataFim,
+                    ]
+                )
+                ->whereNotIn(
+                    'status',
+                    [
+                        'Entregue',
+                        'Entregue_finalizada_com_ocorrencia',
+                    ]
+                );
         }
 
         /*
@@ -883,6 +1267,18 @@ class EntregaController extends Controller
             ->orderBy('data_prevista')
             ->orderBy('id');
 
+        /*
+        * ============================================================
+        * PAGINAÇÃO
+        * ============================================================
+        *
+        * A query já está totalmente filtrada neste ponto.
+        *
+        * Portanto:
+        * 9 atrasadas  = 1 página / 9 registros
+        * 20 atrasadas = 1 página / 20 registros
+        * 21 atrasadas = 2 páginas / 20 + 1
+        */
         $entregas = $query
             ->paginate(20)
             ->withQueryString();
@@ -897,6 +1293,9 @@ class EntregaController extends Controller
                 'Nenhuma entrega encontrada para o código '
                 . $codigoEntregaInformado
                 . '.';
+        } elseif ($filtroAtrasadas) {
+            $mensagemSemResultados =
+                'Nenhuma entrega atrasada encontrada.';
         } elseif ($filtroPorCard) {
             $nomeStatus =
                 $statusLabelsFiltro[$statusInformado]
@@ -1026,10 +1425,9 @@ class EntregaController extends Controller
         * CARDS
         * ============================================================
         *
-        * Os cards não possuem nenhuma restrição de data.
-        *
-        * A contagem usa os mesmos grupos de status utilizados
-        * pelo filtro do clique.
+        * Os cards não possuem restrição de data,
+        * exceto Atrasadas, cuja própria regra é baseada
+        * em data_prevista vencida.
         */
         $resumo = [
             'pendente_pagamento' =>
@@ -1086,22 +1484,14 @@ class EntregaController extends Controller
                     $statusFiltros['cancelada']
                 )->count(),
 
+            /*
+            * Usa EXATAMENTE a mesma regra aplicada
+            * quando o card Atrasadas é aberto.
+            */
             'atrasadas' =>
-                Entrega::whereDate(
-                    'data_prevista',
-                    '<',
-                    now()->toDateString()
-                )
-                    ->whereNotIn(
-                        'status',
-                        [
-                            'Entregue',
-                            'Entregue_finalizada_com_ocorrencia',
-                            'Cancelada',
-                            'Devolvida',
-                        ]
-                    )
-                    ->count(),
+                $aplicarFiltroAtrasadas(
+                    Entrega::query()
+                )->count(),
         ];
 
         return view(
