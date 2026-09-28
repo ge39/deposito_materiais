@@ -1,0 +1,25 @@
+services:
+  valhalla:
+    image: ghcr.io/valhalla/valhalla-scripted:latest
+    container_name: deposito_valhalla
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    volumes:
+      - valhalla_data:/custom_files
+    environment:
+      tile_urls: "https://download.geofabrik.de/south-america/brazil/sudeste-latest.osm.pbf"
+      server_threads: "2"
+      serve_tiles: "True"
+      use_tiles_ignore_pbf: "True"
+      force_rebuild: "False"
+      build_elevation: "False"
+      build_admins: "True"
+      build_time_zones: "True"
+      build_transit: "False"
+      build_tar: "True"
+      update_existing_config: "True"
+
+volumes:
+  valhalla_data:
+    name: deposito_valhalla_data

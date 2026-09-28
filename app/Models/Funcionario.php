@@ -9,10 +9,8 @@ class Funcionario extends Model
 {
     use HasFactory;
 
-    // Nome da tabela no banco
     protected $table = 'funcionarios';
 
-    // Campos permitidos para mass assignment
     protected $fillable = [
         'nome',
         'cpf',
@@ -29,30 +27,39 @@ class Funcionario extends Model
         'observacoes',
         'data_admissao',
         'ativo',
+        'rastreamento_habilitado',
     ];
 
-    // Campos que devem ser tratados como datas
-    protected $dates = [
-        'data_admissao',
-        'created_at',
-        'updated_at',
-    ];
-
-    // Casts para tipos específicos
     protected $casts = [
         'data_admissao' => 'date',
         'ativo' => 'boolean',
+        'rastreamento_habilitado' => 'boolean',
+        'localizacao_consentida_em' => 'datetime',
+        'localizacao_revogada_em' => 'datetime',
     ];
 
-    // Enum de funções válidas
     public const FUNCOES = [
         'vendedor',
         'supervisor',
+        'ajudante_motorista',
+        'ajudante_geral',
         'motorista',
         'estoquista',
         'operador de caixa',
         'ADM-TI',
         'gerente',
+    ];
+
+    public const FUNCOES_LABELS = [
+        'vendedor' => 'Vendedor',
+        'supervisor' => 'Supervisor',
+        'ajudante_motorista' => 'Ajudante de motorista',
+        'ajudante_geral' => 'Ajudante geral',
+        'motorista' => 'Motorista',
+        'estoquista' => 'Estoquista',
+        'operador de caixa' => 'Operador de caixa',
+        'ADM-TI' => 'ADM-TI',
+        'gerente' => 'Gerente',
     ];
 
     public function scopeMotoristas($query)
@@ -65,17 +72,18 @@ class Funcionario extends Model
         return $query->where('ativo', 1);
     }
 
-    /**
-     * Relacionamentos úteis
-     */
+    public function podeCompartilharLocalizacao(): bool
+    {
+        return $this->funcao === 'motorista'
+            && $this->ativo
+            && $this->rastreamento_habilitado;
+    }
 
-    // Vendas realizadas pelo funcionário
     public function vendas()
     {
         return $this->hasMany(Venda::class, 'funcionario_id');
     }
 
-    // Movimentações de caixa realizadas pelo funcionário
     public function movimentacoesCaixa()
     {
         return $this->hasMany(MovimentacaoCaixa::class, 'user_id');

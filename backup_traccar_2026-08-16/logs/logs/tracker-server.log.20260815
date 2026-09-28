@@ -1,0 +1,236 @@
+2026-08-15 00:18:46  INFO: [T53f43e98] connected
+2026-08-15 00:18:46  INFO: [T53f43e98: osmand < 172.19.0.1] GET / HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,de-CH;q=0.8,de;q=0.7,ca;q=0.6\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 157.143.3.35\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 00:18:46  INFO: [T53f43e98: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 00:18:48  INFO: [T53f43e98: osmand < 172.19.0.1] GET /assets/js/auth.js HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,de-CH;q=0.8,de;q=0.7,ca;q=0.6\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 157.143.3.35\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 00:18:48  INFO: [T53f43e98: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 00:18:50  INFO: [T53f43e98: osmand < 172.19.0.1] GET /licensor.js HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,de-CH;q=0.8,de;q=0.7,ca;q=0.6\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 157.143.3.35\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 00:18:50  INFO: [T53f43e98: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 00:18:53  INFO: [T53f43e98: osmand < 172.19.0.1] GET /js/twint_ch.js HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,de-CH;q=0.8,de;q=0.7,ca;q=0.6\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 157.143.3.35\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 00:18:53  INFO: [T53f43e98: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 00:18:56  INFO: [T53f43e98: osmand < 172.19.0.1] GET /robots.txt HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,de-CH;q=0.8,de;q=0.7,ca;q=0.6\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 157.143.3.35\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 00:18:56  INFO: [T53f43e98: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 00:19:01  INFO: [T53f43e98: osmand < 172.19.0.1] GET /static/style/sys_files/index.js HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,de-CH;q=0.8,de;q=0.7,ca;q=0.6\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 157.143.3.35\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 00:19:01  INFO: [T53f43e98: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 00:19:06  INFO: [T53f43e98: osmand < 172.19.0.1] GET /assets/js/message.js HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,de-CH;q=0.8,de;q=0.7,ca;q=0.6\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 157.143.3.35\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 00:19:06  INFO: [T53f43e98: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 00:19:09  INFO: [T53f43e98: osmand < 172.19.0.1] GET /assets/js/qr_modal.js HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,de-CH;q=0.8,de;q=0.7,ca;q=0.6\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 157.143.3.35\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 00:19:09  INFO: [T53f43e98: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 00:19:11  INFO: [T53f43e98: osmand < 172.19.0.1] GET /static/style/protect/index.js HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,de-CH;q=0.8,de;q=0.7,ca;q=0.6\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 157.143.3.35\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 00:19:11  INFO: [T53f43e98: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 00:19:13  INFO: [T53f43e98: osmand < 172.19.0.1] GET /bot-connect.js HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,de-CH;q=0.8,de;q=0.7,ca;q=0.6\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 157.143.3.35\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 00:19:13  INFO: [T53f43e98: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 00:20:43  INFO: [T53f43e98] disconnected
+2026-08-15 01:03:35  INFO: Stopping server...
+2026-08-15 01:03:42  INFO: Operating system name: Linux version: 6.18.33.2-microsoft-standard-WSL2 architecture: amd64
+2026-08-15 01:03:42  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Eclipse Adoptium version: 25.0.3+9-LTS
+2026-08-15 01:03:42  INFO: Memory limit heap: 1466mb non-heap: 0mb
+2026-08-15 01:03:42  INFO: Character encoding: UTF-8
+2026-08-15 01:03:42  INFO: Version: 6.14.5
+2026-08-15 01:03:42  INFO: Starting server...
+2026-08-15 01:03:42  INFO: HikariPool-1 - Starting...
+2026-08-15 01:03:44  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2026-08-15 01:03:44  INFO: HikariPool-1 - Start completed.
+2026-08-15 01:03:44  INFO: Set default schema name to PUBLIC
+2026-08-15 01:03:45  INFO: Successfully acquired change log lock
+2026-08-15 01:03:46  INFO: Clearing database change log checksums for database h2
+2026-08-15 01:03:46  INFO: Successfully released change log lock
+2026-08-15 01:03:46  INFO: Command execution complete
+2026-08-15 01:03:47  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 01:03:51  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 01:03:52  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 01:03:52  INFO: UPDATE SUMMARY
+2026-08-15 01:03:52  INFO: Run:                          0
+2026-08-15 01:03:52  INFO: Previously run:              33
+2026-08-15 01:03:52  INFO: Filtered out:                 1
+2026-08-15 01:03:52  INFO: -------------------------------
+2026-08-15 01:03:52  INFO: Total change sets:           34
+2026-08-15 01:03:52  INFO: FILTERED CHANGE SETS SUMMARY
+2026-08-15 01:03:52  INFO: DBMS mismatch:                1
+2026-08-15 01:03:52  INFO: Update summary generated
+2026-08-15 01:03:52  INFO: Command execution complete
+2026-08-15 01:03:59  INFO: jetty-12.1.8; built: 2026-04-01T01:09:18.991Z; git: c9cdc9aaa434a3665b8a53b4d1cc3684992da649; jvm 25.0.3+9-LTS
+2026-08-15 01:03:59  INFO: Session workerName=node0
+2026-08-15 01:03:59  INFO: Started oeje10s.ServletContextHandler@42d0e41{ROOT,/,b=file:///opt/traccar/web/,a=AVAILABLE,h=oeje10s.SessionHandler@50f05307{STARTED}}
+2026-08-15 01:04:03  INFO: Started oeje10s.ServletContextHandler@42d0e41{ROOT,/,b=file:///opt/traccar/web/,a=AVAILABLE,h=oeje10s.SessionHandler@50f05307{STARTED}}
+2026-08-15 01:04:03  INFO: Started oejs.ServerConnector@27bf574b{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2026-08-15 01:04:03  INFO: Started oejs.Server@647aa45c{STARTING}[12.1.8,sto=0] @4155ms
+2026-08-15 01:36:11  INFO: [T41fd9974] connected
+2026-08-15 01:36:11  INFO: [T41fd9974: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1; subreqs=1\r\nCf-Connecting-Ip: 181.225.152.173\r\nCf-Ew-Via: 15\r\nCf-Ipcountry: BR\r\nCf-Ray: a2b4773ba8c6636e-GRU\r\nCf-Visitor: {"scheme":"https"}\r\nCf-Warp-Tag-Id: 37b291a9-74c4-4d9f-9093-05b2556ebc49\r\nCf-Worker: trycloudflare.com\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 181.225.152.173\r\nX-Forwarded-Proto: https\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="pioneer-virtually-fifty-ability.trycloudflare.com";proto=http\r\nHost: localhost:5055\r\nContent-Length: 127\r\n\r\nid=58414437&lat=-23.5259182&lon=-46.3117647&timestamp=1786757757&accuracy=17.44700050354004&altitude=735.5&batt=53&charge=false
+2026-08-15 01:36:12  INFO: [T41fd9974: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 01:36:12  INFO: [T41fd9974: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1; subreqs=1\r\nCf-Connecting-Ip: 181.225.152.173\r\nCf-Ew-Via: 15\r\nCf-Ipcountry: BR\r\nCf-Ray: a2b47788aa6f636e-GRU\r\nCf-Visitor: {"scheme":"https"}\r\nCf-Warp-Tag-Id: 37b291a9-74c4-4d9f-9093-05b2556ebc49\r\nCf-Worker: trycloudflare.com\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 181.225.152.173\r\nX-Forwarded-Proto: https\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="pioneer-virtually-fifty-ability.trycloudflare.com";proto=http\r\nHost: localhost:5055\r\nContent-Length: 165\r\n\r\n
+2026-08-15 01:36:12  INFO: [T41fd9974: osmand < 127.0.0.1] id=58414437&lat=-23.5252562&lon=-46.311603&timestamp=1786757761&accuracy=10.906999588012695&altitude=735.5&speed=0.57&bearing=1.2875938415527344&batt=53&charge=false
+2026-08-15 01:36:12  INFO: [T41fd9974: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 01:36:15  INFO: [T41fd9974] id: 58414437, time: 2026-08-15 01:35:57, lat: -23.52592, lon: -46.31176, course: 0.0, accuracy: 17.4
+2026-08-15 01:36:15  INFO: [T41fd9974] id: 58414437, time: 2026-08-15 01:36:01, lat: -23.52526, lon: -46.31160, speed: 0.6, course: 1.3, accuracy: 10.9
+2026-08-15 01:36:42  INFO: [T41fd9974] disconnected
+2026-08-15 01:37:32  INFO: [T337f14ff] connected
+2026-08-15 01:37:32  INFO: [T337f14ff: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1; subreqs=1\r\nCf-Connecting-Ip: 181.225.152.173\r\nCf-Ew-Via: 15\r\nCf-Ipcountry: BR\r\nCf-Ray: a2b4797c0faf636e-GRU\r\nCf-Visitor: {"scheme":"https"}\r\nCf-Warp-Tag-Id: 37b291a9-74c4-4d9f-9093-05b2556ebc49\r\nCf-Worker: trycloudflare.com\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 181.225.152.173\r\nX-Forwarded-Proto: https\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="pioneer-virtually-fifty-ability.trycloudflare.com";proto=http\r\nHost: localhost:5055\r\nContent-Length: 123\r\n\r\nid=58414437&lat=-23.5259889&lon=-46.311722&timestamp=1786757850&accuracy=9.5&altitude=735.5&speed=0.12&batt=53&charge=false
+2026-08-15 01:37:32  INFO: [T337f14ff: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 01:37:35  INFO: [T337f14ff] id: 58414437, time: 2026-08-15 01:37:30, lat: -23.52599, lon: -46.31172, speed: 0.1, course: 0.0, accuracy: 9.5
+2026-08-15 01:38:02  INFO: [T337f14ff] disconnected
+2026-08-15 01:38:52  INFO: [T55cbd1e1] connected
+2026-08-15 01:38:52  INFO: [T55cbd1e1: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1; subreqs=1\r\nCf-Connecting-Ip: 181.225.152.173\r\nCf-Ew-Via: 15\r\nCf-Ipcountry: BR\r\nCf-Ray: a2b47b6d2f7b636e-GRU\r\nCf-Visitor: {"scheme":"https"}\r\nCf-Warp-Tag-Id: 37b291a9-74c4-4d9f-9093-05b2556ebc49\r\nCf-Worker: trycloudflare.com\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 181.225.152.173\r\nX-Forwarded-Proto: https\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="pioneer-virtually-fifty-ability.trycloudflare.com";proto=http\r\nHost: localhost:5055\r\nContent-Length: 138\r\n\r\nid=58414437&lat=-23.5259401&lon=-46.3118053&timestamp=1786757929&accuracy=2.1659998893737793&altitude=736.5&speed=0.0&batt=53&charge=false
+2026-08-15 01:38:52  INFO: [T55cbd1e1: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 01:38:55  INFO: [T55cbd1e1] id: 58414437, time: 2026-08-15 01:38:49, lat: -23.52594, lon: -46.31181, course: 0.0, accuracy: 2.2
+2026-08-15 01:39:22  INFO: [T55cbd1e1] disconnected
+2026-08-15 13:39:17  INFO: Operating system name: Linux version: 6.18.33.2-microsoft-standard-WSL2 architecture: amd64
+2026-08-15 13:39:17  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Eclipse Adoptium version: 25.0.3+9-LTS
+2026-08-15 13:39:17  INFO: Memory limit heap: 1466mb non-heap: 0mb
+2026-08-15 13:39:17  INFO: Character encoding: UTF-8
+2026-08-15 13:39:17  INFO: Version: 6.14.5
+2026-08-15 13:39:17  INFO: Starting server...
+2026-08-15 13:39:20  INFO: HikariPool-1 - Starting...
+2026-08-15 13:39:22  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2026-08-15 13:39:22  INFO: HikariPool-1 - Start completed.
+2026-08-15 13:39:23  INFO: Set default schema name to PUBLIC
+2026-08-15 13:39:24  INFO: Successfully acquired change log lock
+2026-08-15 13:39:24  INFO: Clearing database change log checksums for database h2
+2026-08-15 13:39:24  INFO: Successfully released change log lock
+2026-08-15 13:39:24  INFO: Command execution complete
+2026-08-15 13:39:27  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 13:39:32  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 13:39:33  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 13:39:33  INFO: UPDATE SUMMARY
+2026-08-15 13:39:33  INFO: Run:                          0
+2026-08-15 13:39:33  INFO: Previously run:              33
+2026-08-15 13:39:33  INFO: Filtered out:                 1
+2026-08-15 13:39:33  INFO: -------------------------------
+2026-08-15 13:39:33  INFO: Total change sets:           34
+2026-08-15 13:39:33  INFO: FILTERED CHANGE SETS SUMMARY
+2026-08-15 13:39:33  INFO: DBMS mismatch:                1
+2026-08-15 13:39:33  INFO: Update summary generated
+2026-08-15 13:39:33  INFO: Command execution complete
+2026-08-15 13:39:51  INFO: jetty-12.1.8; built: 2026-04-01T01:09:18.991Z; git: c9cdc9aaa434a3665b8a53b4d1cc3684992da649; jvm 25.0.3+9-LTS
+2026-08-15 13:39:58  INFO: Session workerName=node0
+2026-08-15 13:39:58  INFO: Started oeje10s.ServletContextHandler@645d4639{ROOT,/,b=file:///opt/traccar/web/,a=AVAILABLE,h=oeje10s.SessionHandler@8ee03f5{STARTED}}
+2026-08-15 13:40:06  INFO: Started oeje10s.ServletContextHandler@645d4639{ROOT,/,b=file:///opt/traccar/web/,a=AVAILABLE,h=oeje10s.SessionHandler@8ee03f5{STARTED}}
+2026-08-15 13:40:06  INFO: Started oejs.ServerConnector@59e4a044{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2026-08-15 13:40:06  INFO: Started oejs.Server@6219006a{STARTING}[12.1.8,sto=0] @15365ms
+2026-08-15 13:48:28  INFO: [Te875e5f7] connected
+2026-08-15 13:48:28  INFO: [Te875e5f7: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: Dart/3.13 (dart:io)\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1; subreqs=1\r\nCf-Connecting-Ip: 181.225.152.173\r\nCf-Ew-Via: 15\r\nCf-Ipcountry: BR\r\nCf-Ray: a2b8a82c596a99b2-GRU\r\nCf-Visitor: {"scheme":"https"}\r\nCf-Warp-Tag-Id: ecc5b7a9-241f-401d-a6ff-47453434a29e\r\nCf-Worker: trycloudflare.com\r\nContent-Type: application/x-www-form-urlencoded\r\nX-Forwarded-For: 181.225.152.173\r\nX-Forwarded-Proto: https\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="vegetable-prison-accent-consultant.trycloudflare.com";proto=http\r\nHost: localhost:5055\r\nContent-Length: 174\r\n\r\nid=75789943&notificationToken=e4eXEHu6S56CbSTHojEas9%3AAPA91bHKvczQiKevJtg0eNi-57ToPOFGD3C0aa36rjja5TybXpr1KrbwOOj9kZL9_2didCg7mHGMNvYqiRKIyK4Z55bYsi4POe8n9xKQgUjDXqa_pn_OP3Q
+2026-08-15 13:48:28  INFO: [Te875e5f7: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 13:48:32  INFO: [Te875e5f7] id: 75789943, time: 1980-01-06 00:00:00, lat: 0.00000, lon: 0.00000, course: 0.0
+2026-08-15 13:48:58  INFO: [Te875e5f7] disconnected
+2026-08-15 13:49:02  WARN: Geocoder network error - HTTP 404 Not Found - NotFoundException (... < JsonGeocoder:152 < ServerResource:129 < ... < WebServer:130 < ... < OverrideFileFilter:55 < ...)
+2026-08-15 13:49:04  WARN: Geocoder network error - HTTP 404 Not Found - NotFoundException (... < JsonGeocoder:152 < ServerResource:129 < ... < WebServer:130 < ... < OverrideFileFilter:55 < ...)
+2026-08-15 13:50:25  WARN: Geocoder network error - HTTP 404 Not Found - NotFoundException (... < JsonGeocoder:152 < ServerResource:129 < ... < WebServer:130 < ... < OverrideFileFilter:55 < ...)
+2026-08-15 14:01:17  INFO: [T7c798145] connected
+2026-08-15 14:01:17  INFO: [T7c798145: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: Dart/3.13 (dart:io)\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1; subreqs=1\r\nCf-Connecting-Ip: 181.225.152.173\r\nCf-Ew-Via: 15\r\nCf-Ipcountry: BR\r\nCf-Ray: a2b8baf58d46c5f5-GRU\r\nCf-Visitor: {"scheme":"https"}\r\nCf-Warp-Tag-Id: ecc5b7a9-241f-401d-a6ff-47453434a29e\r\nCf-Worker: trycloudflare.com\r\nContent-Type: application/x-www-form-urlencoded\r\nX-Forwarded-For: 181.225.152.173\r\nX-Forwarded-Proto: https\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="vegetable-prison-accent-consultant.trycloudflare.com";proto=http\r\nHost: localhost:5055\r\nContent-Length: 174\r\n\r\nid=75789943&notificationToken=e4eXEHu6S56CbSTHojEas9%3AAPA91bHKvczQiKevJtg0eNi-57ToPOFGD3C0aa36rjja5TybXpr1KrbwOOj9kZL9_2didCg7mHGMNvYqiRKIyK4Z55bYsi4POe8n9xKQgUjDXqa_pn_OP3Q
+2026-08-15 14:01:17  INFO: [T7c798145: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 14:01:20  INFO: [T7c798145] id: 75789943, time: 1980-01-06 00:00:00, lat: 0.00000, lon: 0.00000, course: 0.0
+2026-08-15 14:01:47  INFO: [T7c798145] disconnected
+2026-08-15 14:02:06  WARN: Geocoder network error - HTTP 404 Not Found - NotFoundException (... < JsonGeocoder:152 < ServerResource:129 < ... < WebServer:130 < ... < OverrideFileFilter:55 < ...)
+2026-08-15 14:03:58  INFO: [Tb8cf6f5f] connected
+2026-08-15 14:03:58  INFO: [Tb8cf6f5f: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1; subreqs=1\r\nCf-Connecting-Ip: 181.225.152.173\r\nCf-Ew-Via: 15\r\nCf-Ipcountry: BR\r\nCf-Ray: a2b8bee4aaea0098-GRU\r\nCf-Visitor: {"scheme":"https"}\r\nCf-Warp-Tag-Id: ecc5b7a9-241f-401d-a6ff-47453434a29e\r\nCf-Worker: trycloudflare.com\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 181.225.152.173\r\nX-Forwarded-Proto: https\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="vegetable-prison-accent-consultant.trycloudflare.com";proto=http\r\nHost: localhost:5055\r\nContent-Length: 185\r\n\r\nid=75789943&lat=-23.525993733333333&lon=-46.311747399999994&timestamp=1786802637&accuracy=1.2690750360488892&altitude=669.227&speed=15.26&bearing=20.350000381469727&batt=94&charge=false
+2026-08-15 14:03:58  INFO: [Tb8cf6f5f: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 14:04:02  INFO: Event id: 75789943, time: 2026-08-15 14:03:57, type: deviceMoving, notifications: 0
+2026-08-15 14:04:02  INFO: [Tb8cf6f5f] id: 75789943, time: 2026-08-15 14:03:57, lat: -23.52599, lon: -46.31175, speed: 15.3, course: 20.4, accuracy: 1.3
+2026-08-15 14:04:28  INFO: [Tb8cf6f5f] disconnected
+2026-08-15 14:50:07  INFO: [T9164197e] connected
+2026-08-15 14:50:07  INFO: [T9164197e: osmand < 172.19.0.1] GET /wp-json/ HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (compatible; SecurityResearch/1.0; )\r\nAccept: application/json\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 195.178.110.211\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\nAccept-Encoding: gzip\r\n\r\n
+2026-08-15 14:50:08  INFO: [T9164197e: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 14:51:38  INFO: [T9164197e] disconnected
+2026-08-15 19:10:42  INFO: Operating system name: Linux version: 6.18.33.2-microsoft-standard-WSL2 architecture: amd64
+2026-08-15 19:10:42  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Eclipse Adoptium version: 25.0.3+9-LTS
+2026-08-15 19:10:42  INFO: Memory limit heap: 1466mb non-heap: 0mb
+2026-08-15 19:10:42  INFO: Character encoding: UTF-8
+2026-08-15 19:10:42  INFO: Version: 6.14.5
+2026-08-15 19:10:42  INFO: Starting server...
+2026-08-15 19:10:43  INFO: HikariPool-1 - Starting...
+2026-08-15 19:10:45  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2026-08-15 19:10:45  INFO: HikariPool-1 - Start completed.
+2026-08-15 19:10:45  INFO: Set default schema name to PUBLIC
+2026-08-15 19:10:46  INFO: Successfully acquired change log lock
+2026-08-15 19:10:46  INFO: Clearing database change log checksums for database h2
+2026-08-15 19:10:46  INFO: Successfully released change log lock
+2026-08-15 19:10:46  INFO: Command execution complete
+2026-08-15 19:10:47  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 19:10:49  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 19:10:49  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 19:10:49  INFO: UPDATE SUMMARY
+2026-08-15 19:10:49  INFO: Run:                          0
+2026-08-15 19:10:49  INFO: Previously run:              33
+2026-08-15 19:10:49  INFO: Filtered out:                 1
+2026-08-15 19:10:49  INFO: -------------------------------
+2026-08-15 19:10:49  INFO: Total change sets:           34
+2026-08-15 19:10:49  INFO: FILTERED CHANGE SETS SUMMARY
+2026-08-15 19:10:49  INFO: DBMS mismatch:                1
+2026-08-15 19:10:49  INFO: Update summary generated
+2026-08-15 19:10:49  INFO: Command execution complete
+2026-08-15 19:10:53  INFO: jetty-12.1.8; built: 2026-04-01T01:09:18.991Z; git: c9cdc9aaa434a3665b8a53b4d1cc3684992da649; jvm 25.0.3+9-LTS
+2026-08-15 19:10:53  INFO: Session workerName=node0
+2026-08-15 19:10:53  INFO: Started oeje10s.ServletContextHandler@42d0e41{ROOT,/,b=file:///opt/traccar/web/,a=AVAILABLE,h=oeje10s.SessionHandler@50f05307{STARTED}}
+2026-08-15 19:10:55  INFO: Started oeje10s.ServletContextHandler@42d0e41{ROOT,/,b=file:///opt/traccar/web/,a=AVAILABLE,h=oeje10s.SessionHandler@50f05307{STARTED}}
+2026-08-15 19:10:56  INFO: Started oejs.ServerConnector@77891e46{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2026-08-15 19:10:56  INFO: Started oejs.Server@7c460{STARTING}[12.1.8,sto=0] @2236ms
+2026-08-15 20:06:57  INFO: [T657374d1] connected
+2026-08-15 20:06:57  INFO: [T657374d1: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1\r\nCf-Connecting-Ip: 181.225.152.173\r\nCf-Ipcountry: BR\r\nCf-Ray: a2bad2a0ebf80083-GRU\r\nCf-Visitor: {"scheme":"http"}\r\nCf-Warp-Tag-Id: fd5097a5-fc2c-441d-a698-6ac38eeda19e\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 181.225.152.173\r\nX-Forwarded-Proto: http\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="gps.jmfrota.com.br";proto=http\r\nHost: localhost:5055\r\nContent-Length: 184\r\n\r\nid=75789943&lat=-23.527648583333335&lon=-46.31294928333333&timestamp=1786824417&accuracy=2.2306416034698486&altitude=613.842&speed=17.03&bearing=17.525999069213867&batt=88&charge=false
+2026-08-15 20:06:57  INFO: [T657374d1: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 20:07:00  INFO: [T657374d1: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1\r\nCf-Connecting-Ip: 181.225.152.173\r\nCf-Ipcountry: BR\r\nCf-Ray: a2bad2b40cb60083-GRU\r\nCf-Visitor: {"scheme":"http"}\r\nCf-Warp-Tag-Id: fd5097a5-fc2c-441d-a698-6ac38eeda19e\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 181.225.152.173\r\nX-Forwarded-Proto: http\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="gps.jmfrota.com.br";proto=http\r\nHost: localhost:5055\r\nContent-Length: 184\r\n\r\nid=75789943&lat=-23.527648583333335&lon=-46.31294928333333&timestamp=1786824417&accuracy=2.2306416034698486&altitude=613.842&speed=17.03&bearing=17.525999069213867&batt=88&charge=false
+2026-08-15 20:07:00  INFO: [T657374d1: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 20:07:01  INFO: [T657374d1] id: 75789943, time: 2026-08-15 20:06:57, lat: -23.52765, lon: -46.31295, speed: 17.0, course: 17.5, accuracy: 2.2
+2026-08-15 20:07:03  INFO: [T657374d1] id: 75789943, time: 2026-08-15 20:06:57, lat: -23.52765, lon: -46.31295, speed: 17.0, course: 17.5, accuracy: 2.2
+2026-08-15 20:07:30  INFO: [T657374d1] disconnected
+2026-08-15 20:35:46  INFO: [T0bd22a88] connected
+2026-08-15 20:35:46  INFO: [T0bd22a88: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1\r\nCf-Connecting-Ip: 128.201.50.106\r\nCf-Ipcountry: BR\r\nCf-Ray: a2bafcd70bdb1b25-GRU\r\nCf-Visitor: {"scheme":"http"}\r\nCf-Warp-Tag-Id: 514e7790-8a76-4772-94e0-9054355b01bb\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 128.201.50.106\r\nX-Forwarded-Proto: http\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="gps.jmfrota.com.br";proto=http\r\nHost: localhost:5055\r\nContent-Length: 183\r\n\r\nid=75789943&lat=-23.525383400000003&lon=-46.306425016666665&timestamp=1786826122&accuracy=1.3680816888809204&altitude=719.282&speed=3.16&bearing=301.1709899902344&batt=87&charge=false
+2026-08-15 20:35:46  INFO: [T0bd22a88: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 20:35:49  INFO: [T0bd22a88] id: 75789943, time: 2026-08-15 20:35:22, lat: -23.52538, lon: -46.30643, speed: 3.2, course: 301.2, accuracy: 1.4
+2026-08-15 20:36:16  INFO: [T0bd22a88] disconnected
+2026-08-15 20:37:22  INFO: [Tc3d10735] connected
+2026-08-15 20:37:22  INFO: [Tc3d10735: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip\r\nCdn-Loop: cloudflare; loops=1\r\nCf-Connecting-Ip: 128.201.50.106\r\nCf-Ipcountry: BR\r\nCf-Ray: a2baff30baf41b25-GRU\r\nCf-Visitor: {"scheme":"http"}\r\nCf-Warp-Tag-Id: 514e7790-8a76-4772-94e0-9054355b01bb\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 128.201.50.106\r\nX-Forwarded-Proto: http\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="gps.jmfrota.com.br";proto=http\r\nHost: localhost:5055\r\nContent-Length: 176\r\n\r\nid=75789943&lat=-23.52545475&lon=-46.306496916666674&timestamp=1786826242&accuracy=3.425508737564087&altitude=748.687&speed=0.32&bearing=145.56100463867188&batt=86&charge=false
+2026-08-15 20:37:22  INFO: [Tc3d10735: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 20:37:25  INFO: [Tc3d10735] id: 75789943, time: 2026-08-15 20:37:22, lat: -23.52545, lon: -46.30650, speed: 0.3, course: 145.6, accuracy: 3.4
+2026-08-15 20:37:52  INFO: [Tc3d10735] disconnected
+2026-08-15 20:48:41  INFO: [Te2d5801a] connected
+2026-08-15 20:48:41  INFO: [Te2d5801a: osmand < 172.19.0.1] GET / HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36\r\nAccept: */*\r\nAccept-Encoding: gzip, deflate\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 45.92.87.86\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 20:48:41  INFO: [Te2d5801a: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 20:48:42  INFO: [Te2d5801a: osmand < 172.19.0.1] GET / HTTP/1.1\r\nHost: notebook-gegames.tail64036f.ts.net\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36\r\nAccept: */*\r\nAccept-Encoding: gzip, deflate\r\nTailscale-Funnel-Request: ?1\r\nX-Forwarded-For: 45.92.84.56\r\nX-Forwarded-Host: notebook-gegames.tail64036f.ts.net\r\nX-Forwarded-Proto: https\r\n\r\n
+2026-08-15 20:48:42  INFO: [Te2d5801a: osmand > 172.19.0.1] HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n
+2026-08-15 20:50:12  INFO: [Te2d5801a] disconnected
+2026-08-15 21:03:53  INFO: [T6a8ec047] connected
+2026-08-15 21:03:53  INFO: [T6a8ec047: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip, br\r\nCdn-Loop: cloudflare; loops=1\r\nCf-Connecting-Ip: 2804:7f0:b800:b619:4df4:5f60:7184:4a8b\r\nCf-Ipcountry: BR\r\nCf-Ray: a2bb26058b811ce7-GRU\r\nCf-Visitor: {"scheme":"https"}\r\nCf-Warp-Tag-Id: 514e7790-8a76-4772-94e0-9054355b01bb\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 2804:7f0:b800:b619:4df4:5f60:7184:4a8b\r\nX-Forwarded-Proto: https\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="gps.jmfrota.com.br";proto=http\r\nHost: localhost:5055\r\nContent-Length: 127\r\n\r\nid=87431092&lat=-23.5346789&lon=-46.3291768&timestamp=1786827830&accuracy=100.0&altitude=742.3999633789062&batt=81&charge=false
+2026-08-15 21:03:53  INFO: [T6a8ec047: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 21:03:55  INFO: [T6a8ec047: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: ktor-client\r\nAccept: */*\r\nAccept-Encoding: gzip, br\r\nCdn-Loop: cloudflare; loops=1\r\nCf-Connecting-Ip: 2804:7f0:b800:b619:4df4:5f60:7184:4a8b\r\nCf-Ipcountry: BR\r\nCf-Ray: a2bb2612ab0b1ce7-GRU\r\nCf-Visitor: {"scheme":"https"}\r\nCf-Warp-Tag-Id: 514e7790-8a76-4772-94e0-9054355b01bb\r\nContent-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Forwarded-For: 2804:7f0:b800:b619:4df4:5f60:7184:4a8b\r\nX-Forwarded-Proto: https\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="gps.jmfrota.com.br";proto=http\r\nHost: localhost:5055\r\nContent-Length: 127\r\n\r\n
+2026-08-15 21:03:55  INFO: [T6a8ec047: osmand < 127.0.0.1] id=87431092&lat=-23.5346789&lon=-46.3291768&timestamp=1786827830&accuracy=100.0&altitude=742.3999633789062&batt=81&charge=false
+2026-08-15 21:03:55  INFO: [T6a8ec047: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 21:03:56  INFO: [T6a8ec047] id: 87431092, time: 2026-08-15 21:03:50, lat: -23.53468, lon: -46.32918, course: 0.0, accuracy: 100.0
+2026-08-15 21:03:58  INFO: Event id: 87431092, time: 2026-08-15 21:03:50, type: deviceStopped, notifications: 0
+2026-08-15 21:03:58  INFO: [T6a8ec047] id: 87431092, time: 2026-08-15 21:03:50, lat: -23.53468, lon: -46.32918, course: 0.0, accuracy: 100.0
+2026-08-15 21:04:25  INFO: [T6a8ec047] disconnected
+2026-08-15 21:20:29  INFO: [Td001bd07] connected
+2026-08-15 21:20:29  INFO: [Td001bd07: osmand < 127.0.0.1] POST /client-proxy/ HTTP/1.1\r\nUser-Agent: Dart/3.13 (dart:io)\r\nAccept-Encoding: gzip, br\r\nCdn-Loop: cloudflare; loops=1\r\nCf-Connecting-Ip: 177.27.207.26\r\nCf-Ipcountry: BR\r\nCf-Ray: a2bb3e5aca7c8a4f-GRU\r\nCf-Visitor: {"scheme":"https"}\r\nCf-Warp-Tag-Id: 514e7790-8a76-4772-94e0-9054355b01bb\r\nContent-Type: application/x-www-form-urlencoded\r\nX-Forwarded-For: 177.27.207.26\r\nX-Forwarded-Proto: https\r\nVia: 1.1 328ef8c1136c\r\nForwarded: by="172.19.0.2";for="172.19.0.1";host="gps.jmfrota.com.br";proto=http\r\nHost: localhost:5055\r\nContent-Length: 174\r\n\r\nid=87431092&notificationToken=f0VP7qtoQyyq1hYIHhexLQ%3AAPA91bEv6YEJT2fbIbH-7-dWGIv-r_-W3Y6D_BOJRZhRflRj5rBAoiOqsADnqCb8xqVYJ2j7-H0gAf5JDO-z2Sp9TYTXfbT8zPlYM1V2a7Ipzwo2jxB0yiE
+2026-08-15 21:20:30  INFO: [Td001bd07: osmand > 127.0.0.1] HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n
+2026-08-15 21:20:33  INFO: [Td001bd07] id: 87431092, time: 2026-08-15 21:03:50, lat: -23.53468, lon: -46.32918, course: 0.0, accuracy: 100.0
+2026-08-15 23:34:53  INFO: Operating system name: Linux version: 6.18.33.2-microsoft-standard-WSL2 architecture: amd64
+2026-08-15 23:34:54  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Eclipse Adoptium version: 25.0.3+9-LTS
+2026-08-15 23:34:54  INFO: Memory limit heap: 1466mb non-heap: 0mb
+2026-08-15 23:34:54  INFO: Character encoding: UTF-8
+2026-08-15 23:34:54  INFO: Version: 6.14.5
+2026-08-15 23:34:54  INFO: Starting server...
+2026-08-15 23:34:55  INFO: HikariPool-1 - Starting...
+2026-08-15 23:34:59  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2026-08-15 23:34:59  INFO: HikariPool-1 - Start completed.
+2026-08-15 23:35:00  INFO: Set default schema name to PUBLIC
+2026-08-15 23:35:01  INFO: Successfully acquired change log lock
+2026-08-15 23:35:01  INFO: Clearing database change log checksums for database h2
+2026-08-15 23:35:02  INFO: Successfully released change log lock
+2026-08-15 23:35:02  INFO: Command execution complete
+2026-08-15 23:35:04  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 23:35:07  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 23:35:07  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2026-08-15 23:35:07  INFO: UPDATE SUMMARY
+2026-08-15 23:35:07  INFO: Run:                          0
+2026-08-15 23:35:07  INFO: Previously run:              33
+2026-08-15 23:35:07  INFO: Filtered out:                 1
+2026-08-15 23:35:07  INFO: -------------------------------
+2026-08-15 23:35:07  INFO: Total change sets:           34
+2026-08-15 23:35:07  INFO: FILTERED CHANGE SETS SUMMARY
+2026-08-15 23:35:07  INFO: DBMS mismatch:                1
+2026-08-15 23:35:07  INFO: Update summary generated
+2026-08-15 23:35:07  INFO: Command execution complete
+2026-08-15 23:35:15  INFO: jetty-12.1.8; built: 2026-04-01T01:09:18.991Z; git: c9cdc9aaa434a3665b8a53b4d1cc3684992da649; jvm 25.0.3+9-LTS
+2026-08-15 23:35:16  INFO: Session workerName=node0
+2026-08-15 23:35:16  INFO: Started oeje10s.ServletContextHandler@645d4639{ROOT,/,b=file:///opt/traccar/web/,a=AVAILABLE,h=oeje10s.SessionHandler@8ee03f5{STARTED}}
+2026-08-15 23:35:21  INFO: Started oeje10s.ServletContextHandler@645d4639{ROOT,/,b=file:///opt/traccar/web/,a=AVAILABLE,h=oeje10s.SessionHandler@8ee03f5{STARTED}}
+2026-08-15 23:35:21  INFO: Started oejs.ServerConnector@59e4a044{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2026-08-15 23:35:21  INFO: Started oejs.Server@6219006a{STARTING}[12.1.8,sto=0] @5328ms

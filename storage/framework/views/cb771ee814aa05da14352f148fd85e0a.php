@@ -633,18 +633,28 @@
             method_exists($entregas, 'items')
                 ? $entregas->items()
                 : $entregas
-        )
-            ->reject(function ($entrega) use (
-                $statusEncerradosIndex,
-                $normalizarStatusIndex
-            ): bool {
-                return in_array(
-                    $normalizarStatusIndex($entrega->status ?? ''),
-                    $statusEncerradosIndex,
-                    true
-                );
-            })
-            ->values();
+        );
+
+        if (! ($exibirStatusEncerrados ?? false)) {
+            $entregasIndexOperacionaisBase =
+                $entregasIndexOperacionaisBase
+                    ->reject(function ($entrega) use (
+                        $statusEncerradosIndex,
+                        $normalizarStatusIndex
+                    ): bool {
+                        return in_array(
+                            $normalizarStatusIndex(
+                                $entrega->status ?? ''
+                            ),
+                            $statusEncerradosIndex,
+                            true
+                        );
+                    });
+        }
+
+        $entregasIndexOperacionaisBase =
+            $entregasIndexOperacionaisBase
+                ->values();
 
         /*
          * Prioriza entregas vencidas sem modificar a ordenação definida
@@ -1681,7 +1691,8 @@
                 class="text-center text-muted py-4">
 
                 <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                Nenhuma entrega encontrada.
+                <?php echo e($mensagemSemResultados ?? 'Nenhuma entrega encontrada.'); ?>
+
             </td>
         </tr>
     <?php endif; ?>

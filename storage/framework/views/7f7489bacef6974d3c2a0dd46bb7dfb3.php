@@ -90,6 +90,7 @@
                 'dias_atraso' => (int) ($entrega['dias_atraso'] ?? 0),
                 'encerrada' => (bool) $entrega['encerrada'],
                 'status_chave' => (string) ($entrega['status'] ?? ''),
+                'veiculo_id' => $entrega['veiculo_id'] ?? null,
                 'veiculo' => (string) ($entrega['veiculo'] ?? 'Não definido'),
                 'veiculo_modelo' => (string) ($entrega['veiculo_modelo'] ?? ''),
                 'veiculo_tipo' => (string) ($entrega['veiculo_tipo'] ?? ''),
@@ -97,13 +98,27 @@
                 'veiculo_possui_munck' => (bool) ($entrega['veiculo_possui_munck'] ?? false),
                 'veiculo_carroceria_aberta' => (bool) ($entrega['veiculo_carroceria_aberta'] ?? false),
                 'veiculo_carroceria_fechada' => (bool) ($entrega['veiculo_carroceria_fechada'] ?? false),
+                'motorista_id' => $entrega['motorista_id'] ?? null,
                 'motorista' => (string) ($entrega['motorista'] ?? 'Não definido'),
+                'romaneio_id' => $entrega['romaneio_id'] ?? null,
                 'romaneio_codigo' => (string) ($entrega['romaneio_codigo'] ?? ''),
                 'romaneio_status' => (string) ($entrega['romaneio_status'] ?? ''),
                 'ordem_rota' => $entrega['ordem_rota'] ?? null,
                 'ordem_inteligente' => $entrega['ordem_inteligente'] ?? null,
+                'ordem_mapa' => $entrega['ordem_mapa'] ?? null,
+                'distancia_mapa_km' => $entrega['distancia_mapa_km'] ?? null,
                 'distancia_anterior_km' => $entrega['distancia_anterior_km'] ?? null,
+                'tempo_anterior_segundos' => $entrega['tempo_anterior_segundos'] ?? null,
+                'tempo_anterior_minutos' => $entrega['tempo_anterior_minutos'] ?? null,
+                'tempo_mapa_segundos' => $entrega['tempo_mapa_segundos'] ?? null,
+                'tempo_mapa_minutos' => $entrega['tempo_mapa_minutos'] ?? null,
+                'fonte_distancia' => (string) ($entrega['fonte_distancia'] ?? 'geografica'),
+                'fonte_distancia_mapa' => (string) ($entrega['fonte_distancia_mapa'] ?? 'geografica'),
                 'agrupamento_rota' => $entrega['agrupamento_rota'] ?? null,
+                'concentracao_regional' => (int) ($entrega['concentracao_regional'] ?? 1),
+                'concentracao_bairro' => (int) ($entrega['concentracao_bairro'] ?? 1),
+                'concentracao_cep' => (int) ($entrega['concentracao_cep'] ?? 1),
+                'concentracao_100m' => (int) ($entrega['concentracao_100m'] ?? 1),
                 'liberado_em' => $entrega['liberado_em'] ?? null,
                 'saida_em' => $entrega['saida_em'] ?? null,
                 'restricoes_rota' => $entrega['restricoes_rota'] ?? [],
@@ -306,6 +321,54 @@
         color: rgba(255, 255, 255, .76);
         font-size: .78rem;
         margin-top: .18rem;
+    }
+
+    .smart-dashboard .routing-engine-status {
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, .32);
+        border-radius: 1rem;
+        display: inline-flex;
+        font-size: .65rem;
+        font-weight: 800;
+        gap: .3rem;
+        margin-top: .42rem;
+        padding: .2rem .5rem;
+        text-transform: uppercase;
+    }
+
+    .smart-dashboard .routing-engine-status.is-online {
+        background: rgba(36, 150, 84, .24);
+        color: #d8ffe7;
+    }
+
+    .smart-dashboard .routing-engine-status.is-fallback {
+        background: rgba(244, 129, 32, .25);
+        color: #fff0dc;
+    }
+
+    .smart-dashboard .route-source-badge {
+        border: 1px solid transparent;
+        border-radius: .8rem;
+        display: inline-flex;
+        font-size: .55rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-top: .2rem;
+        padding: .2rem .38rem;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .smart-dashboard .route-source-badge.is-valhalla {
+        background: #e6f0ff;
+        border-color: #92b9ec;
+        color: #174f97;
+    }
+
+    .smart-dashboard .route-source-badge.is-geographic {
+        background: #fff3cd;
+        border-color: #e5c45f;
+        color: #765900;
     }
 
     .smart-dashboard .dashboard-filter {
@@ -1934,6 +1997,8 @@
 
 <div class="smart-dashboard">
     <div class="dashboard-shell">
+        <?php echo $__env->make('entregas.partials.alertas_sla', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
         <header class="dashboard-header">
             <div>
                 <h1 class="dashboard-title">
@@ -1944,6 +2009,20 @@
                 <div class="dashboard-subtitle">
                     Entrega Inteligente · acompanhamento exclusivo das entregas em rota
                 </div>
+
+                <?php if((bool) ($roteirizador['disponivel'] ?? false)): ?>
+                    <div class="routing-engine-status is-online"
+                         title="Distâncias e tempos calculados pela malha rodoviária do Valhalla">
+                        <i class="bi bi-sign-turn-right-fill"></i>
+                        Valhalla ativo · <?php echo e((int) ($roteirizador['pontos_matriz'] ?? 0)); ?> pontos
+                    </div>
+                <?php else: ?>
+                    <div class="routing-engine-status is-fallback"
+                         title="<?php echo e($roteirizador['erro'] ?? 'Roteirizador rodoviário indisponível'); ?>">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        Cálculo geográfico de contingência
+                    </div>
+                <?php endif; ?>
             </div>
 
             <form method="GET"
@@ -2618,6 +2697,7 @@
                                 <th>#</th>
                                 <th>Entrega</th>
                                 <th>Data / janela</th>
+                                <th>Rota calculada</th>
                                 <th>Cliente / contato</th>
                                 <th>Bairro / cidade</th>
                                 <th>Produtos</th>
@@ -2630,6 +2710,18 @@
                         </thead>
                         <tbody>
                             <?php $__currentLoopData = $entregasDetalhadas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $indice => $entrega): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php
+                                    $distanciaTrecho = $entrega['distancia_anterior_km']
+                                        ?? $entrega['distancia_mapa_km']
+                                        ?? null;
+                                    $tempoTrechoMinutos = $entrega['tempo_anterior_minutos']
+                                        ?? $entrega['tempo_mapa_minutos']
+                                        ?? null;
+                                    $fonteTrecho = $entrega['fonte_distancia']
+                                        ?? $entrega['fonte_distancia_mapa']
+                                        ?? 'geografica';
+                                    $trechoValhalla = $fonteTrecho === 'valhalla';
+                                ?>
                                 <tr class="<?php echo e($entrega['atrasada'] ? 'row-overdue' : ''); ?>">
                                     <td class="text-center"><?php echo e($indice + 1); ?></td>
                                     <td class="fw-bold"><?php echo e($entrega['codigo']); ?></td>
@@ -2639,6 +2731,27 @@
                                             <?php echo e($entrega['dia_semana']); ?> · <?php echo e($entrega['periodo_rotulo']); ?>
 
                                         </small>
+                                    </td>
+                                    <td>
+                                        <?php if($distanciaTrecho !== null): ?>
+                                            <strong>
+                                                <?php echo e(number_format((float) $distanciaTrecho, 2, ',', '.')); ?> km
+                                            </strong>
+
+                                            <?php if($tempoTrechoMinutos !== null): ?>
+                                                <small class="d-block text-muted">
+                                                    <i class="bi bi-clock me-1"></i>
+                                                    <?php echo e(number_format((float) $tempoTrechoMinutos, 1, ',', '.')); ?> min
+                                                </small>
+                                            <?php endif; ?>
+
+                                            <span class="route-source-badge <?php echo e($trechoValhalla ? 'is-valhalla' : 'is-geographic'); ?>">
+                                                <?php echo e($trechoValhalla ? 'Valhalla' : 'Estimativa geográfica'); ?>
+
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted">Não calculada</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <strong><?php echo e($entrega['cliente']); ?></strong>
@@ -3187,11 +3300,25 @@
         }
 
         function classificarDistanciaEntrega(entrega) {
-            const distancia = Number(
-                entrega.distancia_anterior_km
-            );
+            const distanciaDisponivel = [
+                entrega.distancia_anterior_km,
+                entrega.distancia_mapa_km,
+            ].find(function (valor) {
+                return valor !== null
+                    && valor !== undefined
+                    && String(valor).trim() !== ''
+                    && Number.isFinite(Number(valor));
+            });
 
-            if (! Number.isFinite(distancia) || distancia < 0) {
+            const distancia = distanciaDisponivel === undefined
+                ? null
+                : Number(distanciaDisponivel);
+
+            if (
+                distancia === null
+                || ! Number.isFinite(distancia)
+                || distancia < 0
+            ) {
                 return {
                     valor: null,
                     rotulo: 'Distância não calculada',
@@ -3235,13 +3362,88 @@
                 ? 'da sede'
                 : 'da entrega anterior';
 
+            const tempo = rotuloTempoEntrega(entrega);
+            const fonte = rotuloFonteDistanciaEntrega(entrega);
+
             return distancia.valor.toLocaleString(
                 'pt-BR',
                 {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                 }
-            ) + ' km ' + origem + ' · ' + distancia.rotulo;
+            ) + ' km ' + origem
+                + (tempo ? ' · ' + tempo : '')
+                + ' · ' + fonte
+                + ' · ' + distancia.rotulo;
+        }
+
+        function fonteDistanciaEntrega(entrega) {
+            const fonte = String(
+                entrega.fonte_distancia
+                    || entrega.fonte_distancia_mapa
+                    || 'geografica'
+            ).toLowerCase();
+
+            return fonte === 'valhalla'
+                ? 'valhalla'
+                : 'geografica';
+        }
+
+        function rotuloFonteDistanciaEntrega(entrega) {
+            return fonteDistanciaEntrega(entrega) === 'valhalla'
+                ? 'Valhalla'
+                : 'Estimativa geográfica';
+        }
+
+        function minutosEstimadosEntrega(entrega) {
+            const minutosDisponiveis = [
+                entrega.tempo_anterior_minutos,
+                entrega.tempo_mapa_minutos,
+            ].find(function (valor) {
+                return valor !== null
+                    && valor !== undefined
+                    && String(valor).trim() !== ''
+                    && Number.isFinite(Number(valor));
+            });
+
+            if (minutosDisponiveis !== undefined) {
+                return Math.max(0, Number(minutosDisponiveis));
+            }
+
+            const segundosDisponiveis = [
+                entrega.tempo_anterior_segundos,
+                entrega.tempo_mapa_segundos,
+            ].find(function (valor) {
+                return valor !== null
+                    && valor !== undefined
+                    && String(valor).trim() !== ''
+                    && Number.isFinite(Number(valor));
+            });
+
+            return segundosDisponiveis === undefined
+                ? null
+                : Math.max(0, Number(segundosDisponiveis) / 60);
+        }
+
+        function rotuloTempoEntrega(entrega) {
+            const minutos = minutosEstimadosEntrega(entrega);
+
+            if (minutos === null) {
+                return '';
+            }
+
+            if (minutos < 60) {
+                return minutos.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 1,
+                }) + ' min';
+            }
+
+            const horas = Math.floor(minutos / 60);
+            const minutosRestantes = Math.round(minutos % 60);
+
+            return horas + 'h'
+                + String(minutosRestantes).padStart(2, '0');
         }
 
         function rotuloOrdemInteligente(entrega) {
@@ -3252,8 +3454,7 @@
             }
 
             let rotulo = ordem
-                + 'ª entrega da rota '
-                + (entrega.veiculo || 'sem veículo');
+                + 'ª entrega no planejamento inteligente';
 
             if (Boolean(entrega.atrasada)) {
                 rotulo += ' · PRIORIDADE POR ATRASO';
@@ -3470,13 +3671,24 @@
 
         function obterOrdemEntrega(entrega) {
             const ordem = Number(
-                entrega.ordem_inteligente
+                entrega.ordem_mapa
+                    ?? entrega.ordem_inteligente
                     ?? entrega.ordem_rota
             );
 
             return Number.isFinite(ordem) && ordem > 0
                 ? Math.trunc(ordem)
                 : null;
+        }
+
+        function rotuloOrdemCurta(entrega) {
+            const ordem = obterOrdemEntrega(entrega);
+
+            if (! ordem) {
+                return '-';
+            }
+
+            return String(ordem);
         }
 
         function criarIconeVeiculo(entrega, totalEntregas) {
@@ -3524,7 +3736,7 @@
                 && Number.isFinite(ordem)
                 && ordem > 0
                     ? '<span class="delivery-map-vehicle-order" title="Ordem da entrega">'
-                        + ordem
+                        + rotuloOrdemCurta(entrega)
                         + '</span>'
                     : '';
 
@@ -3694,6 +3906,11 @@
                             : distancia.classe === 'is-far'
                                 ? 'map-popup-value-far'
                                 : 'map-popup-value-normal'],
+                ['Tempo estimado', rotuloTempoEntrega(entrega)
+                    || 'Não calculado'],
+                ['Motor de cálculo', rotuloFonteDistanciaEntrega(
+                    entrega
+                )],
                 ['Agrupamento', entrega.agrupamento_rota
                     || 'Distância sequencial'],
                 ['Previsão', entrega.data + ' · ' + entrega.periodo],
@@ -4402,10 +4619,15 @@
                 + '<span class="delivery-route-badge is-near">Próxima ≤ 5 km</span>'
                 + '<span class="delivery-route-badge is-medium">Média ≤ 15 km</span>'
                 + '<span class="delivery-route-badge is-far">Distante &gt; 15 km</span>'
+                + '</div><div class="delivery-route-legend-line">'
+                + '<span class="delivery-route-legend-label">Cálculo</span>'
+                + '<span class="delivery-route-badge is-normal">Valhalla rodoviário</span>'
+                + '<span class="delivery-route-badge is-medium">Contingência geográfica</span>'
                 + '</div><div class="delivery-route-rule">'
                 + '<strong>Ordem inteligente:</strong> atraso como exceção prioritária, '
                 + 'data prevista, período, coordenadas até 100 m, mesmo CEP, mesmo bairro, '
-                + 'distância sequencial e menor percurso. Cidade não participa do agrupamento. '
+                + 'concentração regional, distância rodoviária e menor percurso. '
+                + 'Cidade não participa do agrupamento. '
                 + 'A rota iniciada e as validações operacionais permanecem preservadas.'
                 + '</div>';
             accordion.append(legenda);
@@ -4528,6 +4750,28 @@
                     blocoIdentificacao.append(blocoDatas);
                 }
 
+                const periodosAtendidos = Array.from(
+                    new Set(
+                        entregasRota
+                            .map(function (entrega) {
+                                return String(entrega.periodo || '').trim();
+                            })
+                            .filter(Boolean)
+                    )
+                );
+
+                if (periodosAtendidos.length > 0) {
+                    const blocoPeriodos = document.createElement('div');
+                    blocoPeriodos.className =
+                        'delivery-route-summary-neighborhoods';
+                    blocoPeriodos.textContent = 'Período(s): ';
+
+                    const periodos = document.createElement('strong');
+                    periodos.textContent = periodosAtendidos.join(' • ');
+                    blocoPeriodos.append(periodos);
+                    blocoIdentificacao.append(blocoPeriodos);
+                }
+
                 const bairrosAtendidos = Array.from(
                     new Set(
                         entregasRota
@@ -4599,9 +4843,8 @@
 
                     const ordem = document.createElement('span');
                     ordem.className = 'delivery-route-order';
-                    ordem.textContent = obterOrdemEntrega(entrega)
-                        ?? '-';
-                    ordem.title = 'Ordem da entrega';
+                    ordem.textContent = rotuloOrdemCurta(entrega);
+                    ordem.title = rotuloOrdemInteligente(entrega);
 
                     const dados = document.createElement('div');
 
@@ -4628,6 +4871,33 @@
                         badgeSituacao,
                         badgeDistancia
                     );
+
+                    const badgeFonte = document.createElement('span');
+                    badgeFonte.className = 'delivery-route-badge '
+                        + (
+                            fonteDistanciaEntrega(entrega) === 'valhalla'
+                                ? 'is-normal'
+                                : 'is-medium'
+                        );
+                    badgeFonte.textContent = rotuloFonteDistanciaEntrega(
+                        entrega
+                    );
+                    badgeFonte.title = fonteDistanciaEntrega(entrega)
+                        === 'valhalla'
+                            ? 'Distância rodoviária calculada pelo Valhalla.'
+                            : 'Estimativa geográfica usada como contingência.';
+                    badges.append(badgeFonte);
+
+                    const tempoEstimado = rotuloTempoEntrega(entrega);
+
+                    if (tempoEstimado) {
+                        const badgeTempo = document.createElement('span');
+                        badgeTempo.className =
+                            'delivery-route-badge is-normal';
+                        badgeTempo.textContent = tempoEstimado;
+                        badgeTempo.title = 'Tempo estimado do trecho';
+                        badges.append(badgeTempo);
+                    }
 
                     if (Boolean(entrega.atrasada)) {
                         const badgePrioridade = document.createElement(
@@ -4791,7 +5061,7 @@
                 const rota = document.createElement('span');
                 rota.className = 'map-info-status';
                 rota.textContent = 'Ordem: '
-                    + (obterOrdemEntrega(entrega) ?? 'Não definida')
+                    + rotuloOrdemInteligente(entrega)
                     + ' · Distância: '
                     + rotuloDistanciaEntrega(entrega)
                     + ' · Agrupamento: '

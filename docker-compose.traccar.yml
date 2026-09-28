@@ -1,0 +1,23 @@
+name: deposito-traccar
+
+services:
+  traccar:
+    image: traccar/traccar:6.14.5-alpine
+    container_name: deposito_traccar
+    restart: unless-stopped
+
+    ports:
+      - "8082:8082"
+      - "5055:5055"
+
+    volumes:
+      - ./docker/traccar/traccar.xml:/opt/traccar/conf/traccar.xml:ro
+      - traccar_data:/opt/traccar/data
+      - traccar_logs:/opt/traccar/logs
+
+volumes:
+  traccar_data:
+    name: deposito_traccar_data
+
+  traccar_logs:
+    name: deposito_traccar_logs

@@ -8,12 +8,20 @@ use App\Models\Romaneio;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Throwable;
 
 class EntregaInteligenteService
 {
     private array $metadadosRota = [];
+
+    private array $matrizValhalla = [];
+
+    private bool $valhallaDisponivel = false;
+
+    private ?string $valhallaErro = null;
 
     private const RAIO_PROXIMIDADE_KM = 0.1;
 
@@ -77,6 +85,11 @@ class EntregaInteligenteService
 
         $romaneiosAtivos = $this
             ->consultarRomaneiosAtivos($entregas);
+
+        $this->prepararMatrizValhalla(
+            $empresaNormalizada,
+            $entregas
+        );
 
         $entregas = $this->aplicarOrdemInteligente(
             $entregas,
@@ -145,6 +158,13 @@ class EntregaInteligenteService
             'dataReferencia' => $referencia,
             'inicioJanela' => $inicioJanela,
             'fimJanela' => $fimJanela,
+            'roteirizador' => [
+                'motor' => 'Valhalla',
+                'disponivel' => $this->valhallaDisponivel,
+                'pontos_matriz' => count($this->matrizValhalla),
+                'fallback_geografico' => ! $this->valhallaDisponivel,
+                'erro' => $this->valhallaErro,
+            ],
             'resumo' => [
                 'ultimos_sete' =>
                     $this->resumir($ultimosSete),
@@ -458,6 +478,200 @@ class EntregaInteligenteService
             ->keyBy('entrega_id');
     }
 
+    private function prepararMatrizValhalla(
+        array $empresa,
+        Collection $entregas
+    ): void {
+        $this->matrizValhalla = [];
+        $this->valhallaDisponivel = false;
+        $this->valhallaErro = null;
+
+        $latitudeEmpresa = $empresa['latitude'] ?? null;
+        $longitudeEmpresa = $empresa['longitude'] ?? null;
+
+        if ($latitudeEmpresa === null || $longitudeEmpresa === null) {
+            $this->valhallaErro = 'Coordenadas da empresa não configuradas.';
+
+            return;
+        }
+
+        $pontos = collect([
+            $this->chaveCoordenada(
+                (float) $latitudeEmpresa,
+                (float) $longitudeEmpresa
+            ) => [
+                'lat' => (float) $latitudeEmpresa,
+                'lon' => (float) $longitudeEmpresa,
+            ],
+        ]);
+
+        foreach ($entregas as $entrega) {
+            $latitude = $this->normalizarCoordenada(
+                $entrega->latitude_entrega,
+                -90,
+                90
+            );
+            $longitude = $this->normalizarCoordenada(
+                $entrega->longitude_entrega,
+                -180,
+                180
+            );
+
+            if (
+                ! (bool) $entrega->coordenada_confirmada
+                || $latitude === null
+                || $longitude === null
+            ) {
+                continue;
+            }
+
+            $pontos->put(
+                $this->chaveCoordenada($latitude, $longitude),
+                [
+                    'lat' => $latitude,
+                    'lon' => $longitude,
+                ]
+            );
+        }
+
+        $limite = max(
+            2,
+            (int) config(
+                'services.valhalla.max_matrix_locations',
+                50
+            )
+        );
+        $pontos = $pontos->take($limite);
+
+        if ($pontos->count() < 2) {
+            $this->valhallaErro = 'Não há entregas com coordenadas confirmadas.';
+
+            return;
+        }
+
+        $chaves = $pontos->keys()->values();
+        $localizacoes = $pontos->values()->all();
+        $url = rtrim(
+            (string) config(
+                'services.valhalla.url',
+                'http://127.0.0.1:8002'
+            ),
+            '/'
+        );
+
+        try {
+            $resposta = Http::acceptJson()
+                ->asJson()
+                ->connectTimeout(2)
+                ->timeout(
+                    (int) config(
+                        'services.valhalla.timeout',
+                        30
+                    )
+                )
+                ->post($url . '/sources_to_targets', [
+                    'sources' => $localizacoes,
+                    'targets' => $localizacoes,
+                    'costing' => 'auto',
+                    'units' => 'kilometers',
+                ]);
+
+            if (! $resposta->successful()) {
+                $this->valhallaErro = 'Valhalla respondeu HTTP '
+                    . $resposta->status()
+                    . '.';
+
+                return;
+            }
+
+            $linhas = $resposta->json('sources_to_targets');
+
+            if (! is_array($linhas)) {
+                $this->valhallaErro = 'Matriz retornada em formato inválido.';
+
+                return;
+            }
+
+            foreach ($linhas as $indiceOrigem => $destinos) {
+                $chaveOrigem = $chaves->get($indiceOrigem);
+
+                if ($chaveOrigem === null || ! is_array($destinos)) {
+                    continue;
+                }
+
+                foreach ($destinos as $indiceDestino => $trecho) {
+                    if (! is_array($trecho)) {
+                        continue;
+                    }
+
+                    $indiceDestinoReal = isset($trecho['to_index'])
+                            ? (int) $trecho['to_index']
+                            : $indiceDestino;
+                    $chaveDestino = $chaves->get(
+                        $indiceDestinoReal
+                    );
+                    $distancia = $trecho['distance'] ?? null;
+
+                    if (
+                        $chaveDestino === null
+                        || ! is_numeric($distancia)
+                    ) {
+                        continue;
+                    }
+
+                    $this->matrizValhalla[$chaveOrigem][
+                        $chaveDestino
+                    ] = [
+                        'distancia_km' => (float) $distancia,
+                        'tempo_segundos' => isset($trecho['time'])
+                            && is_numeric($trecho['time'])
+                                ? (float) $trecho['time']
+                                : null,
+                    ];
+                }
+            }
+
+            $this->valhallaDisponivel = $this->matrizValhalla !== [];
+
+            if (! $this->valhallaDisponivel) {
+                $this->valhallaErro = 'A matriz não contém rotas utilizáveis.';
+            }
+        } catch (Throwable $exception) {
+            $this->valhallaErro = Str::limit(
+                $exception->getMessage(),
+                180
+            );
+        }
+    }
+
+    private function chaveCoordenada(
+        float $latitude,
+        float $longitude
+    ): string {
+        return number_format($latitude, 7, '.', '')
+            . ':'
+            . number_format($longitude, 7, '.', '');
+    }
+
+    private function trechoValhalla(
+        float $latitudeOrigem,
+        float $longitudeOrigem,
+        float $latitudeDestino,
+        float $longitudeDestino
+    ): ?array {
+        $chaveOrigem = $this->chaveCoordenada(
+            $latitudeOrigem,
+            $longitudeOrigem
+        );
+        $chaveDestino = $this->chaveCoordenada(
+            $latitudeDestino,
+            $longitudeDestino
+        );
+
+        return $this->matrizValhalla[$chaveOrigem][$chaveDestino]
+            ?? null;
+    }
+
     private function aplicarOrdemInteligente(
         Collection $entregas,
         Collection $romaneios,
@@ -600,7 +814,7 @@ class EntregaInteligenteService
                         && $dados['cep'] === $cepAtual;
                     $dados['mesmo_bairro'] = $bairroAtual !== null
                         && $dados['bairro_chave'] === $bairroAtual;
-                    $dados['distancia_atual'] =
+                    $distanciaGeografica =
                         $dados['coordenada_valida']
                             ? $this->distanciaKm(
                             $latitudeAtual,
@@ -609,8 +823,24 @@ class EntregaInteligenteService
                             $dados['longitude']
                             )
                             : 999999;
+                    $trechoValhalla = $dados['coordenada_valida']
+                        ? $this->trechoValhalla(
+                            $latitudeAtual,
+                            $longitudeAtual,
+                            $dados['latitude'],
+                            $dados['longitude']
+                        )
+                        : null;
+                    $dados['distancia_atual'] =
+                        $trechoValhalla['distancia_km']
+                            ?? $distanciaGeografica;
+                    $dados['tempo_atual_segundos'] =
+                        $trechoValhalla['tempo_segundos'] ?? null;
+                    $dados['fonte_distancia'] = $trechoValhalla
+                        ? 'valhalla'
+                        : 'geografica';
                     $dados['proxima_100m'] =
-                        $dados['distancia_atual']
+                        $distanciaGeografica
                             <= self::RAIO_PROXIMIDADE_KM;
 
                     return $dados;
@@ -670,6 +900,10 @@ class EntregaInteligenteService
                     $selecionada['distancia_atual'],
                     2
                 ),
+                'tempo_anterior_segundos' =>
+                    $selecionada['tempo_atual_segundos'],
+                'fonte_distancia' =>
+                    $selecionada['fonte_distancia'],
                 'peso_estimado_kg' => round(
                     $selecionada['kg'],
                     2
@@ -737,14 +971,23 @@ class EntregaInteligenteService
                 (bool) $entrega->coordenada_confirmada
                 && $latitudeEntrega !== null
                 && $longitudeEntrega !== null;
+            $trechoValhalla = $coordenadaValida
+                ? $this->trechoValhalla(
+                    $latitudeAtual,
+                    $longitudeAtual,
+                    $latitudeEntrega,
+                    $longitudeEntrega
+                )
+                : null;
             $distanciaAnterior = $coordenadaValida
                 ? round(
-                    $this->distanciaKm(
-                        $latitudeAtual,
-                        $longitudeAtual,
-                        $latitudeEntrega,
-                        $longitudeEntrega
-                    ),
+                    $trechoValhalla['distancia_km']
+                        ?? $this->distanciaKm(
+                            $latitudeAtual,
+                            $longitudeAtual,
+                            $latitudeEntrega,
+                            $longitudeEntrega
+                        ),
                     2
                 )
                 : null;
@@ -757,6 +1000,11 @@ class EntregaInteligenteService
             $this->metadadosRota[$entrega->id] = [
                 'ordem_inteligente' => (int) $entrega->ordem_rota,
                 'distancia_anterior_km' => $distanciaAnterior,
+                'tempo_anterior_segundos' =>
+                    $trechoValhalla['tempo_segundos'] ?? null,
+                'fonte_distancia' => $trechoValhalla
+                    ? 'valhalla'
+                    : 'geografica',
                 'peso_estimado_kg' => null,
                 'volume_estimado_m3' => null,
                 'concentracao_regional' => (int) (
@@ -1384,6 +1632,22 @@ class EntregaInteligenteService
             'distancia_anterior_km' => $metadadosRota[
                 'distancia_anterior_km'
             ] ?? null,
+            'tempo_anterior_segundos' => $metadadosRota[
+                'tempo_anterior_segundos'
+            ] ?? null,
+            'tempo_anterior_minutos' => isset(
+                $metadadosRota['tempo_anterior_segundos']
+            )
+                ? round(
+                    (float) $metadadosRota[
+                        'tempo_anterior_segundos'
+                    ] / 60,
+                    1
+                )
+                : null,
+            'fonte_distancia' => $metadadosRota[
+                'fonte_distancia'
+            ] ?? 'geografica',
             'peso_estimado_kg' => $metadadosRota[
                 'peso_estimado_kg'
             ] ?? null,
@@ -1517,7 +1781,7 @@ class EntregaInteligenteService
                         && ($linha['latitude_entrega'] ?? null) !== null
                         && ($linha['longitude_entrega'] ?? null) !== null;
 
-                    $distancia = $coordenadaValida
+                    $distanciaGeografica = $coordenadaValida
                         && $latitudeAtual !== null
                         && $longitudeAtual !== null
                             ? $this->distanciaKm(
@@ -1527,14 +1791,42 @@ class EntregaInteligenteService
                                 (float) $linha['longitude_entrega']
                             )
                             : 999999.0;
+                    $trechoValhalla = $coordenadaValida
+                        && $latitudeAtual !== null
+                        && $longitudeAtual !== null
+                            ? $this->trechoValhalla(
+                                (float) $latitudeAtual,
+                                (float) $longitudeAtual,
+                                (float) $linha['latitude_entrega'],
+                                (float) $linha['longitude_entrega']
+                            )
+                            : null;
+                    $distancia = $trechoValhalla['distancia_km']
+                        ?? $distanciaGeografica;
 
                     $menorOrdemRota = $menoresOrdensPorRota->get(
                         $linha['rota_mapa']
                     );
 
                     $linha['distancia_mapa_km'] = $distancia;
+                    $linha['tempo_mapa_segundos'] =
+                        $trechoValhalla['tempo_segundos'] ?? null;
+                    $linha['tempo_mapa_minutos'] = isset(
+                        $trechoValhalla['tempo_segundos']
+                    )
+                        ? round(
+                            (float) $trechoValhalla[
+                                'tempo_segundos'
+                            ] / 60,
+                            1
+                        )
+                        : null;
+                    $linha['fonte_distancia_mapa'] = $trechoValhalla
+                        ? 'valhalla'
+                        : 'geografica';
                     $linha['proxima_100m_mapa'] =
-                        $distancia <= self::RAIO_PROXIMIDADE_KM;
+                        $distanciaGeografica
+                            <= self::RAIO_PROXIMIDADE_KM;
                     $linha['mesmo_cep_mapa'] = $cepAtual !== null
                         && $linha['cep_mapa'] !== ''
                         && $linha['cep_mapa'] === $cepAtual;

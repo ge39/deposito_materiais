@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Funcionario;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class FuncionarioController extends Controller
 {
@@ -11,140 +12,204 @@ class FuncionarioController extends Controller
     {
         $this->middleware('auth');
 
-        // Bloqueio de acesso: apenas admin e gerente
         $this->middleware(function ($request, $next) {
             $user = auth()->user();
-            if (!in_array($user->nivel_acesso, ['admin', 'gerente'])) {
+
+            if (! in_array($user->nivel_acesso, ['admin', 'gerente'], true)) {
                 abort(403, 'Acesso negado!');
             }
+
             return $next($request);
         });
     }
-    // Lista apenas funcionários ativos
+
     public function index()
     {
-        $funcionarios = Funcionario::where('ativo', 1)->get();
-        // return view('funcionarios.index', compact('funcionarios'));
-
-         $funcionarios = Funcionario::where('ativo', 1)->paginate(15); // 15 cards por página
-        return view('funcionarios.index', compact('funcionarios'));
-    }
-    // Pesquisa funcionários por nome, CPF ou email
-    public function search(Request $request)
-    {
-        $query = $request->input('q');
-
-        $funcionarios = \App\Models\Funcionario::where('nome', 'like', "%{$query}%")
-            ->orWhere('cpf', 'like', "%{$query}%")
-            ->orWhere('email', 'like', "%{$query}%")
+        $funcionarios = Funcionario::ativos()
+            ->orderBy('nome')
             ->paginate(15);
 
-        if ($funcionarios->isEmpty()) {
-            return view('funcionarios.index', [
-                'funcionarios' => $funcionarios,
-                'mensagem' => 'Nenhum funcionário encontrado para o termo pesquisado.'
-            ]);
-        }
-
         return view('funcionarios.index', compact('funcionarios'));
     }
 
-    // Formulário de cadastro
+    public function search(Request $request)
+    {
+        $termo = trim((string) $request->input('q', ''));
+
+        $funcionarios = Funcionario::ativos()
+            ->when($termo !== '', function ($query) use ($termo) {
+                $query->where(function ($busca) use ($termo) {
+                    $busca->where('nome', 'like', "%{$termo}%")
+                        ->orWhere('cpf', 'like', "%{$termo}%")
+                        ->orWhere('email', 'like', "%{$termo}%");
+                });
+            })
+            ->orderBy('nome')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('funcionarios.index', [
+            'funcionarios' => $funcionarios,
+            'mensagem' => $funcionarios->isEmpty()
+                ? 'Nenhum funcionário encontrado para o termo pesquisado.'
+                : null,
+        ]);
+    }
+
     public function create()
     {
         return view('funcionarios.create');
     }
 
-    // Salva um novo funcionário
     public function store(Request $request)
     {
-        $request->validate([
-            'cpf' => 'required|string|max:14|unique:funcionarios,cpf',
-            'nome' => 'required|string|max:255',
-            'funcao' => 'required|string|max:50',
-            'telefone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:100',
-            'cep' => 'nullable|string|size:9',
-            'endereco' => 'nullable|string',
-            'numero' => 'nullable|string',
-            'bairro' => 'required|string|max:255',
-            'cidade' => 'nullable|string',
-            'estado' => 'nullable|string|size:2',
-            'observacoes' => 'nullable|string',
-            'data_admissao' => 'nullable|date',
-            'ativo' => 'nullable|boolean',
-        ]);
+        $this->normalizarEntrada($request);
 
-        Funcionario::create($request->all());
+        $dados = $request->validate(
+            $this->regrasValidacao(),
+            $this->mensagensValidacao()
+        );
 
-        return redirect()->route('funcionarios.index')
+        $dados = $this->prepararDadosPersistencia($request, $dados);
+
+        Funcionario::create($dados);
+
+        return redirect()
+            ->route('funcionarios.index')
             ->with('success', 'Funcionário cadastrado com sucesso!');
     }
 
-    // Formulário de edição
     public function edit(Funcionario $funcionario)
     {
         return view('funcionarios.edit', compact('funcionario'));
     }
 
-    // Atualiza um funcionário existente
     public function update(Request $request, Funcionario $funcionario)
     {
-        $request->validate([
-            'cpf' => 'required|string|max:14|unique:funcionarios,cpf,' . $funcionario->id,
-            'nome' => 'required|string|max:255',
-            'funcao' => 'required|string|max:50',
-            'telefone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:100',
-            'cep' => 'nullable|string|size:9',
-            'endereco' => 'required|string|max:255',
-            'numero' => 'required|string|max:10',
-            'bairro' => 'required|string|max:255',
-            'cidade' => 'required|string|max:255',
-            'estado' => 'required|string|max:2',
-            'observacoes' => 'nullable|string',
-            'data_admissao' => 'nullable|date',
-            'ativo' => 'nullable|boolean',
-        ]);
+        $this->normalizarEntrada($request);
 
-        $funcionario->update($request->all());
+        $dados = $request->validate(
+            $this->regrasValidacao($funcionario),
+            $this->mensagensValidacao()
+        );
 
-        return redirect()->route('funcionarios.index')
+        $dados = $this->prepararDadosPersistencia($request, $dados);
+
+        $funcionario->fill($dados);
+        $funcionario->save();
+
+        return redirect()
+            ->route('funcionarios.index')
             ->with('success', 'Funcionário atualizado com sucesso!');
     }
 
-    // Desativa um funcionário (marca como inativo)
     public function desativa(Funcionario $funcionario)
     {
-        $funcionario->ativo = 0;
+        $funcionario->ativo = false;
+        $funcionario->rastreamento_habilitado = false;
         $funcionario->save();
 
-        return redirect()->route('funcionarios.index')
+        return redirect()
+            ->route('funcionarios.index')
             ->with('success', 'Funcionário desativado com sucesso!');
     }
 
     public function show($id)
     {
         $funcionario = Funcionario::findOrFail($id);
+
         return view('funcionarios.show', compact('funcionario'));
     }
+
     public function buscarPorCPF($cpf)
     {
-        $cpf = preg_replace('/\D/', '', $cpf); // remove tudo que não é número
+        $cpf = preg_replace('/\D/', '', (string) $cpf);
 
-        $funcionario = Funcionario::whereRaw("REPLACE(REPLACE(REPLACE(cpf,'.',''),'-',''),' ','') = ?", [$cpf])->first();
+        $funcionario = Funcionario::whereRaw(
+            "REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), ' ', '') = ?",
+            [$cpf]
+        )->first();
 
         if ($funcionario) {
             return response()->json([
                 'success' => true,
-                'data' => $funcionario
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Funcionário não encontrado.'
+                'data' => $funcionario,
             ]);
         }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Funcionário não encontrado.',
+        ]);
     }
 
+    private function normalizarEntrada(Request $request): void
+    {
+        $estado = strtoupper(
+            trim((string) $request->input('estado', ''))
+        );
+
+        $request->merge([
+            'cpf' => preg_replace(
+                '/\D/',
+                '',
+                (string) $request->input('cpf', '')
+            ),
+            'estado' => $estado !== '' ? $estado : null,
+        ]);
+    }
+
+    private function regrasValidacao(
+        ?Funcionario $funcionario = null
+    ): array {
+        return [
+            'cpf' => [
+                'required',
+                'digits:11',
+                Rule::unique('funcionarios', 'cpf')
+                    ->ignore($funcionario?->id),
+            ],
+            'nome' => ['required', 'string', 'max:255'],
+            'funcao' => [
+                'required',
+                Rule::in(Funcionario::FUNCOES),
+            ],
+            'telefone' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:100'],
+            'cep' => ['nullable', 'string', 'max:12'],
+            'endereco' => ['nullable', 'string', 'max:255'],
+            'numero' => ['nullable', 'string', 'max:12'],
+            'bairro' => ['nullable', 'string', 'max:255'],
+            'cidade' => ['nullable', 'string', 'max:255'],
+            'estado' => ['nullable', 'string', 'size:2'],
+            'observacoes' => ['nullable', 'string', 'max:250'],
+            'data_admissao' => ['nullable', 'date'],
+            'ativo' => ['nullable', 'boolean'],
+            'rastreamento_habilitado' => ['nullable', 'boolean'],
+        ];
+    }
+
+    private function mensagensValidacao(): array
+    {
+        return [
+            'cpf.digits' => 'O CPF deve conter exatamente 11 números.',
+            'cpf.unique' => 'Este CPF já está cadastrado.',
+            'funcao.in' => 'A função selecionada não é válida.',
+            'rastreamento_habilitado.boolean' =>
+                'A opção de rastreamento informada não é válida.',
+        ];
+    }
+
+    private function prepararDadosPersistencia(
+        Request $request,
+        array $dados
+    ): array {
+        $dados['ativo'] = $request->boolean('ativo');
+
+        $dados['rastreamento_habilitado'] =
+            $dados['funcao'] === 'motorista'
+            && $request->boolean('rastreamento_habilitado');
+
+        return $dados;
+    }
 }
