@@ -40,4 +40,15 @@ return [
         'password' => env('TRACCAR_PASSWORD'),
     ],
 
+        'valhalla' => [
+        'url' => env(
+            'VALHALLA_URL',
+            'http://127.0.0.1:8002'
+        ),
+        'timeout' => env(
+            'VALHALLA_TIMEOUT',
+            30
+        ),
+    ],
+
 ];
