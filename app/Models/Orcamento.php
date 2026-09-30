@@ -16,7 +16,7 @@ class Orcamento extends Model
     const EXPIRADO = 'Expirado';
     const CANCELADO = 'Cancelado';
     const STATUS_FATURADO = 'Faturado';
-    
+
     protected $table = 'orcamentos';
 
     protected $fillable = [
@@ -28,6 +28,7 @@ class Orcamento extends Model
         'tipo_entrega',
         'usar_endereco_cliente',
         'endereco_entrega',
+        'bairro_entrega',
         'latitude_entrega',
         'longitude_entrega',
         'coordenada_confirmada',
@@ -71,19 +72,19 @@ class Orcamento extends Model
         return $this->belongsTo(User::class, 'usuario_id');
     }
 
-    /** Cliente do orçamento */
+    /** Cliente do or├ºamento */
    public function cliente()
     {
         return $this->belongsTo(Cliente::class, 'cliente_id');
     }
 
-    /** Usuário que está editando o orçamento */
+    /** Usu├írio que est├í editando o or├ºamento */
     public function editor()
     {
         return $this->belongsTo(User::class, 'editando_por');
     }
 
-    /** Fornecedor (caso aplicável) */
+    /** Fornecedor (caso aplic├ível) */
     public function fornecedor()
     {
         return $this->belongsTo(Fornecedor::class);
@@ -104,13 +105,13 @@ class Orcamento extends Model
         return $this->hasMany(Entrega::class, 'orcamento_id');
     }
 
-    /** Itens do orçamento */
+    /** Itens do or├ºamento */
     public function itens()
     {
         return $this->hasMany(ItemOrcamento::class, 'orcamento_id');
     }
 
-    /** Unidade de medida (se usada no cabeçalho) */
+    /** Unidade de medida (se usada no cabe├ºalho) */
     public function unidadeMedida()
     {
         return $this->belongsTo(UnidadeMedida::class, 'unidade_medida_id');
@@ -123,22 +124,22 @@ class Orcamento extends Model
 
 
     /* =========================
-     | SCOPES ÚTEIS PARA O PDV
+     | SCOPES ├ÜTEIS PARA O PDV
      ========================= */
 
-    /** Orçamentos ativos */
+    /** Or├ºamentos ativos */
     public function scopeAtivo($query)
     {
         return $query->where('ativo', true);
     }
 
-    /** Orçamento pelo código */
+    /** Or├ºamento pelo c├│digo */
     public function scopeCodigo($query, $codigo)
     {
         return $query->where('codigo_orcamento', $codigo);
     }
 
-    /** Orçamentos não faturados */
+    /** Or├ºamentos n├úo faturados */
     public function scopeNaoFaturado($query)
     {
         return $query->where('status', '!=', 'Faturado');

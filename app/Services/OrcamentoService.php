@@ -134,6 +134,7 @@ class OrcamentoService
             );
 
             $enderecoEntrega = null;
+            $bairroEntrega = null;
             $responsavelRecebimento = null;
             $telefoneRecebimento = null;
             $dataPrevistaEntrega = null;
@@ -247,6 +248,10 @@ class OrcamentoService
                         . ' - '
                         . $ufEntrega;
 
+                    $bairroEntrega = trim(
+                        (string) $request['bairro_entrega']
+                    );
+
                     $enderecoEntrega = collect([
                         trim(
                             (string) $request['endereco_entrega']
@@ -264,9 +269,7 @@ class OrcamentoService
                             )
                         ) ?: null,
 
-                        trim(
-                            (string) $request['bairro_entrega']
-                        ),
+                        $bairroEntrega,
 
                         $cidadeUf,
 
@@ -317,6 +320,10 @@ class OrcamentoService
                             )
                         );
 
+                    $bairroEntrega = trim(
+                        (string) $cliente->bairro
+                    );
+
                     $enderecoEntrega = collect([
                         trim(
                             (string) $cliente->endereco
@@ -334,9 +341,7 @@ class OrcamentoService
                             )
                         ) ?: null,
 
-                        trim(
-                            (string) $cliente->bairro
-                        ),
+                        $bairroEntrega,
 
                         $cidadeUf,
 
@@ -409,6 +414,9 @@ class OrcamentoService
 
                 'endereco_entrega' =>
                     $enderecoEntrega,
+
+                'bairro_entrega' =>
+                    $bairroEntrega,
 
                 'latitude_entrega' =>
                     $latitudeEntrega,

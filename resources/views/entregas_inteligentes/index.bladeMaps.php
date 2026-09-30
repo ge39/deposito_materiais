@@ -1110,7 +1110,7 @@
                                 <th>Cliente / contato</th>
                                 <th>Bairro / cidade</th>
                                 <th>Produtos</th>
-                                <th>Qtd. prevista</th>
+                                <th>Qtd. Itens</th>
                                 <th>Veículo / motorista</th>
                                 <th>Romaneio</th>
                                 <th>Status</th>

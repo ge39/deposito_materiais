@@ -2701,7 +2701,7 @@
                                 <th>Cliente / contato</th>
                                 <th>Bairro / cidade</th>
                                 <th>Produtos</th>
-                                <th>Qtd. prevista</th>
+                                <th>Qtd. Itens</th>
                                 <th>Veículo / motorista</th>
                                 <th>Romaneio</th>
                                 <th>Status</th>
@@ -3105,71 +3105,51 @@
         }
 
         function definirCorMarcador(entregasDoEndereco) {
+            const classificacoes = entregasDoEndereco.map(
+                entrega => classificarSituacaoEntrega(entrega)
+            );
+
             if (
-                entregasDoEndereco.some(
-                    entrega => entrega.atrasada
+                classificacoes.some(
+                    classificacao => classificacao.chave === 'overdue'
                 )
             ) {
                 return '#dc3e3e';
             }
 
             if (
-                entregasDoEndereco.every(
-                    entrega => entrega.encerrada
+                classificacoes.some(
+                    classificacao => classificacao.chave === 'today'
                 )
             ) {
                 return '#249654';
             }
 
-            if (
-                entregasDoEndereco.some(
-                    entrega => entrega.status_chave === 'No_destino'
-                )
-            ) {
-                return '#249654';
-            }
-
-            if (
-                entregasDoEndereco.some(
-                    entrega => entrega.status_chave === 'Em_rota'
-                )
-            ) {
-                return '#072b62';
-            }
-
-            if (
-                entregasDoEndereco.some(
-                    entrega => entrega.status_chave === 'Carregada'
-                )
-            ) {
-                return '#6c757d';
-            }
-
-            return '#f48120';
+            return '#0d6efd';
         }
 
         function rotuloIndicadorEntregas(entregasDoEndereco) {
+            const classificacoes = entregasDoEndereco.map(
+                entrega => classificarSituacaoEntrega(entrega)
+            );
+
             if (
-                entregasDoEndereco.some(
-                    entrega => entrega.atrasada
+                classificacoes.some(
+                    classificacao => classificacao.chave === 'overdue'
                 )
             ) {
                 return 'Atrasada';
             }
 
-            const status = [
-                ...new Set(
-                    entregasDoEndereco.map(
-                        entrega => entrega.status_chave
-                    )
-                ),
-            ];
-
-            if (status.length !== 1) {
-                return 'Múltiplas';
+            if (
+                classificacoes.some(
+                    classificacao => classificacao.chave === 'today'
+                )
+            ) {
+                return 'Em dia';
             }
 
-            return rotuloStatusVeiculo(status[0]);
+            return 'Normal';
         }
 
         function criarIconeMarcador(numero, cor, rotulo) {
@@ -4337,7 +4317,7 @@
                         6500
                     );
                 } else {
-                    L.marker(
+                    const marcadorGps = L.marker(
                         posicao,
                         {
                             icon: iconeGps,
@@ -4357,6 +4337,11 @@
                             }
                         )
                         .addTo(mapa);
+
+                    marcadoresOperacionaisPorVeiculo.set(
+                        veiculoId,
+                        marcadorGps
+                    );
                 }
 
                 limites.extend(posicao);
@@ -4860,7 +4845,11 @@
                                     ordem
                                         ? ' · Ordem ' + ordem
                                         : ''
-                                ),
+                                )
+                                + ' · '
+                                + classificarSituacaoEntrega(
+                                    entrega
+                                ).rotulo,
                             zIndexOffset: 4000
                                 + Math.max(
                                     0,
@@ -5497,7 +5486,11 @@
                             ponto.grupo.entregas
                         )
                     ),
-                    title: ponto.grupo.endereco,
+                    title: ponto.grupo.endereco
+                        + ' · '
+                        + rotuloIndicadorEntregas(
+                            ponto.grupo.entregas
+                        ),
                     zIndexOffset: ponto.atrasada
                         ? 1000
                         : 0,
@@ -6261,10 +6254,37 @@
              * A posição GPS é carregada em segundo plano para
              * não atrasar a renderização inicial.
              */
-            adicionarMarcadoresVeiculosRastreados(
-                mapa,
-                limites,
-                resumoVeiculos.marcadoresPorVeiculo
+            const marcadoresRastreadosPorVeiculo =
+                resumoVeiculos.marcadoresPorVeiculo;
+
+            let atualizacaoGpsEmAndamento = false;
+
+            async function atualizarVeiculosRastreados() {
+                if (
+                    atualizacaoGpsEmAndamento
+                    || document.visibilityState !== 'visible'
+                ) {
+                    return;
+                }
+
+                atualizacaoGpsEmAndamento = true;
+
+                try {
+                    await adicionarMarcadoresVeiculosRastreados(
+                        mapa,
+                        limites,
+                        marcadoresRastreadosPorVeiculo
+                    );
+                } finally {
+                    atualizacaoGpsEmAndamento = false;
+                }
+            }
+
+            atualizarVeiculosRastreados();
+
+            window.setInterval(
+                atualizarVeiculosRastreados,
+                5000
             );
 
             if (mensagem) {

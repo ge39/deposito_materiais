@@ -1,26 +1,26 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 <div class="container">
     <h2>Novo Cliente</h2>
 
-    @if ($errors->any())
+    <?php if($errors->any()): ?>
         <div class="alert alert-danger" id="alerta">
             <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
+                <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><?php echo e($error); ?></li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </ul>
         </div>
-    @endif
+    <?php endif; ?>
 
     <form
-        action="{{ route('clientes.store') }}"
+        action="<?php echo e(route('clientes.store')); ?>"
         method="POST"
         id="formCliente"
         novalidate
     >
-        @csrf
+        <?php echo csrf_field(); ?>
 
         <div class="row g-3">
 
@@ -35,15 +35,23 @@
                     name="nome"
                     id="nome"
                     class="form-control"
-                    value="{{ old('nome') }}"
+                    value="<?php echo e(old('nome')); ?>"
                     required
                 >
 
-                @error('nome')
+                <?php $__errorArgs = ['nome'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -59,24 +67,34 @@
                 >
                     <option
                         value="fisica"
-                        {{ old('tipo', 'fisica') === 'fisica' ? 'selected' : '' }}
+                        <?php echo e(old('tipo', 'fisica') === 'fisica' ? 'selected' : ''); ?>
+
                     >
                         Pessoa Física
                     </option>
 
                     <option
                         value="juridica"
-                        {{ old('tipo') === 'juridica' ? 'selected' : '' }}
+                        <?php echo e(old('tipo') === 'juridica' ? 'selected' : ''); ?>
+
                     >
                         Pessoa Jurídica
                     </option>
                 </select>
 
-                @error('tipo')
+                <?php $__errorArgs = ['tipo'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -94,21 +112,24 @@
                 >
                     <option
                         value="markup_1"
-                        {{ old('tipo_cliente', 'markup_1') === 'markup_1' ? 'selected' : '' }}
+                        <?php echo e(old('tipo_cliente', 'markup_1') === 'markup_1' ? 'selected' : ''); ?>
+
                     >
                         Varejo (Markup 1 - Padrão)
                     </option>
 
                     <option
                         value="markup_2"
-                        {{ old('tipo_cliente') === 'markup_2' ? 'selected' : '' }}
+                        <?php echo e(old('tipo_cliente') === 'markup_2' ? 'selected' : ''); ?>
+
                     >
                         Empresa / Empreiteiro (Markup 2)
                     </option>
 
                     <option
                         value="markup_3"
-                        {{ old('tipo_cliente') === 'markup_3' ? 'selected' : '' }}
+                        <?php echo e(old('tipo_cliente') === 'markup_3' ? 'selected' : ''); ?>
+
                     >
                         Atacado (Markup 3)
                     </option>
@@ -120,11 +141,19 @@
                     style="min-height: 50px; line-height: 1.4;"
                 ></div>
 
-                @error('tipo_cliente')
+                <?php $__errorArgs = ['tipo_cliente'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <!-- Documentos -->
@@ -142,7 +171,7 @@
                     name="cpf_cnpj"
                     id="cpf_cnpj"
                     class="form-control"
-                    value="{{ old('cpf_cnpj') }}"
+                    value="<?php echo e(old('cpf_cnpj')); ?>"
                     inputmode="numeric"
                     autocomplete="off"
                     required
@@ -162,11 +191,19 @@
                     Documento inválido.
                 </div>
 
-                @error('cpf_cnpj')
+                <?php $__errorArgs = ['cpf_cnpj'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -183,7 +220,7 @@
                     name="rg_ie"
                     id="rg_ie"
                     class="form-control"
-                    value="{{ old('rg_ie') }}"
+                    value="<?php echo e(old('rg_ie')); ?>"
                     maxlength="20"
                     autocomplete="off"
                 >
@@ -202,11 +239,19 @@
                     Documento inválido.
                 </div>
 
-                @error('rg_ie')
+                <?php $__errorArgs = ['rg_ie'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -219,15 +264,23 @@
                     name="orgao_emissor"
                     id="orgao_emissor"
                     class="form-control text-uppercase"
-                    value="{{ old('orgao_emissor') }}"
+                    value="<?php echo e(old('orgao_emissor')); ?>"
                     maxlength="20"
                 >
 
-                @error('orgao_emissor')
+                <?php $__errorArgs = ['orgao_emissor'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -240,14 +293,22 @@
                     name="data_emissao"
                     id="data_emissao"
                     class="form-control"
-                    value="{{ old('data_emissao') }}"
+                    value="<?php echo e(old('data_emissao')); ?>"
                 >
 
-                @error('data_emissao')
+                <?php $__errorArgs = ['data_emissao'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -260,14 +321,22 @@
                     name="data_nascimento"
                     id="data_nascimento"
                     class="form-control"
-                    value="{{ old('data_nascimento') }}"
+                    value="<?php echo e(old('data_nascimento')); ?>"
                 >
 
-                @error('data_nascimento')
+                <?php $__errorArgs = ['data_nascimento'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -284,31 +353,42 @@
 
                     <option
                         value="masculino"
-                        {{ old('sexo') === 'masculino' ? 'selected' : '' }}
+                        <?php echo e(old('sexo') === 'masculino' ? 'selected' : ''); ?>
+
                     >
                         Masculino
                     </option>
 
                     <option
                         value="feminino"
-                        {{ old('sexo') === 'feminino' ? 'selected' : '' }}
+                        <?php echo e(old('sexo') === 'feminino' ? 'selected' : ''); ?>
+
                     >
                         Feminino
                     </option>
 
                     <option
                         value="outro"
-                        {{ old('sexo') === 'outro' ? 'selected' : '' }}
+                        <?php echo e(old('sexo') === 'outro' ? 'selected' : ''); ?>
+
                     >
                         Outro
                     </option>
                 </select>
 
-                @error('sexo')
+                <?php $__errorArgs = ['sexo'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <!-- Contato -->
@@ -322,15 +402,23 @@
                     name="telefone"
                     id="telefone"
                     class="form-control"
-                    value="{{ old('telefone') }}"
+                    value="<?php echo e(old('telefone')); ?>"
                     autocomplete="tel"
                 >
 
-                @error('telefone')
+                <?php $__errorArgs = ['telefone'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -343,15 +431,23 @@
                     name="email"
                     id="email"
                     class="form-control"
-                    value="{{ old('email') }}"
+                    value="<?php echo e(old('email')); ?>"
                     autocomplete="email"
                 >
 
-                @error('email')
+                <?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <!-- Endereço -->
@@ -370,7 +466,7 @@
                         name="cep"
                         id="cep"
                         class="form-control"
-                        value="{{ old('cep') }}"
+                        value="<?php echo e(old('cep')); ?>"
                         placeholder="00000-000"
                         maxlength="9"
                         inputmode="numeric"
@@ -392,11 +488,19 @@
                     Digite os oito números do CEP e clique em Buscar.
                 </div>
 
-                @error('cep')
+                <?php $__errorArgs = ['cep'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -409,15 +513,23 @@
                     name="endereco"
                     id="endereco"
                     class="form-control"
-                    value="{{ old('endereco') }}"
+                    value="<?php echo e(old('endereco')); ?>"
                     autocomplete="address-line1"
                 >
 
-                @error('endereco')
+                <?php $__errorArgs = ['endereco'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -430,15 +542,23 @@
                     name="numero"
                     id="numero"
                     class="form-control"
-                    value="{{ old('numero') }}"
+                    value="<?php echo e(old('numero')); ?>"
                     autocomplete="address-line2"
                 >
 
-                @error('numero')
+                <?php $__errorArgs = ['numero'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -451,14 +571,22 @@
                     name="bairro"
                     id="bairro"
                     class="form-control"
-                    value="{{ old('bairro') }}"
+                    value="<?php echo e(old('bairro')); ?>"
                 >
 
-                @error('bairro')
+                <?php $__errorArgs = ['bairro'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -471,15 +599,23 @@
                     name="cidade"
                     id="cidade"
                     class="form-control"
-                    value="{{ old('cidade') }}"
+                    value="<?php echo e(old('cidade')); ?>"
                     autocomplete="address-level2"
                 >
 
-                @error('cidade')
+                <?php $__errorArgs = ['cidade'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-4">
@@ -492,16 +628,24 @@
                     name="estado"
                     id="uf"
                     class="form-control text-uppercase"
-                    value="{{ old('estado') }}"
+                    value="<?php echo e(old('estado')); ?>"
                     maxlength="2"
                     autocomplete="address-level1"
                 >
 
-                @error('estado')
+                <?php $__errorArgs = ['estado'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <!-- Financeiro -->
@@ -517,14 +661,22 @@
                     name="limite_credito"
                     id="limite_credito"
                     class="form-control"
-                    value="{{ old('limite_credito') }}"
+                    value="<?php echo e(old('limite_credito')); ?>"
                 >
 
-                @error('limite_credito')
+                <?php $__errorArgs = ['limite_credito'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-8">
@@ -537,13 +689,21 @@
                     id="observacoes"
                     rows="3"
                     class="form-control"
-                >{{ old('observacoes') }}</textarea>
+                ><?php echo e(old('observacoes')); ?></textarea>
 
-                @error('observacoes')
+                <?php $__errorArgs = ['observacoes'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
                     <div class="text-danger small mt-1">
-                        {{ $message }}
+                        <?php echo e($message); ?>
+
                     </div>
-                @enderror
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <div class="col-md-12 mt-2">
@@ -554,7 +714,8 @@
                         id="ativo"
                         class="form-check-input"
                         value="1"
-                        {{ old('ativo', 1) ? 'checked' : '' }}
+                        <?php echo e(old('ativo', 1) ? 'checked' : ''); ?>
+
                     >
 
                     <label for="ativo" class="form-check-label">
@@ -575,7 +736,7 @@
             </button>
 
             <a
-                href="{{ route('clientes.index') }}"
+                href="<?php echo e(route('clientes.index')); ?>"
                 class="btn btn-secondary"
             >
                 <i class="bi bi-arrow-left-circle me-1"></i>
@@ -1193,6 +1354,8 @@
     });
 </script>
 
-<script src="{{ asset('js/form-masks.js') }}"></script>
-<script src="{{ asset('js/cep.js') }}"></script>
-@endsection
+<script src="<?php echo e(asset('js/form-masks.js')); ?>"></script>
+<script src="<?php echo e(asset('js/cep.js')); ?>"></script>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/clientes/create.blade.php ENDPATH**/ ?>

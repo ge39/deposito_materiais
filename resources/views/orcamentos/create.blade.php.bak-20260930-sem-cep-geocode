@@ -2184,13 +2184,12 @@
                 );
             }
 
-            const cliente =
-                clienteSelect?.options[
-                    clienteSelect.selectedIndex
-                ] || null;
+            const cepExibido = montarEnderecoCliente().match(
+                /\b\d{5}-?\d{3}\b/
+            );
 
             return somenteNumeros(
-                cliente?.dataset?.cep || ''
+                cepExibido?.[0] || ''
             );
         }
 
@@ -2642,17 +2641,14 @@
         const coordenadaRestaurada = (
             latitudeEntrega.value !== ''
             && longitudeEntrega.value !== ''
+            && coordenadaConfirmada.value === '1'
+            && coordenadaOrigem.value === 'endereco'
         );
 
         if (coordenadaRestaurada) {
-            const confirmada =
-                coordenadaConfirmada.value === '1';
-
             definirStatus(
-                confirmada
-                    ? 'Endereço localizado automaticamente.'
-                    : 'Coordenadas aproximadas disponíveis para a entrega.',
-                confirmada ? 'confirmed' : 'pending'
+                'Endereço localizado automaticamente.',
+                'confirmed'
             );
         } else if (
             tipoEntrega?.value === 'entrega'
@@ -2686,11 +2682,16 @@
                 'longitude_entrega'
             );
 
+            const coordenadaConfirmada = document.getElementById(
+                'coordenada_confirmada'
+            );
+
             if (
                 tipoEntrega?.value === 'entrega'
                 && (
                     !latitudeEntrega?.value
                     || !longitudeEntrega?.value
+                    || coordenadaConfirmada?.value !== '1'
                 )
             ) {
                 e.preventDefault();

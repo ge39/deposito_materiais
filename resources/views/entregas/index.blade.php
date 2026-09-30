@@ -661,7 +661,7 @@
                             <th style="width: 20%;">Entrega</th>
                             <th style="width: 18%;">Cliente / Contato</th>
                             <th style="width: 12%;">Documentos</th>
-                            <th style="width: 12%;">Previsão</th>
+                            <th style="width: 12%;">Data Entrega</th>
                             <th style="width: 9%;">Tipo</th>
                             <th style="width: 10%;">Status</th>
                             <th style="width: 5%;">Itens</th>
@@ -1352,7 +1352,7 @@
                 </div>
             </td>
 
-            <td class="text-center">
+            <!-- <td class="text-center">
                 @if($entrega->tipo_entrega === 'retira_loja')
                     <span class="badge bg-secondary">
                         <i class="bi bi-shop me-1"></i>
@@ -1364,8 +1364,21 @@
                         Entrega
                     </span>
                 @endif
-            </td>
+            </td> -->
 
+            <td class="text-center align-middle">
+                <span class="badge bg-info text-dark">
+                    <i class="bi bi-truck me-1"></i>
+                    Entrega
+                </span>
+
+                @if(! empty($entrega->bairro_entrega))
+                    <div class="mt-1 small fw-semibold text-secondary">
+                        <i class="bi bi-geo-alt me-1"></i>
+                        {{ $entrega->bairro_entrega }}
+                    </div>
+                @endif
+            </td>
             <td class="text-center">
                 <span class="badge {{
                     $statusClasses[$statusEntrega]

@@ -28,6 +28,7 @@ class Entrega extends Model
     'tipo_entrega',
     'usar_endereco_cliente',
     'endereco_entrega',
+    'bairro_entrega',
     'latitude_entrega',
     'longitude_entrega',
     'coordenada_confirmada',
