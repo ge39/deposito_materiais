@@ -719,6 +719,11 @@ Route::middleware(['auth'])
         [EntregaInteligenteController::class, 'index']
     )->name('entregas-inteligentes.index');
 
+    Route::get(
+        '/entregas-inteligentes/posicoes-veiculos',
+        [EntregaInteligenteController::class, 'posicoesVeiculos']
+    )->name('entregas-inteligentes.posicoes-veiculos');
+
     Route::post(
         '/entregas-inteligentes/decidir-consolidacao',
         [
@@ -781,14 +786,45 @@ Route::middleware(['auth'])
            
 
     // Veiculos
+    // Route::prefix('veiculos')->name('veiculos.')->group(function () {
+    //     Route::get('/', [VeiculoController::class, 'index'])->name('index');
+    //     Route::get('/create', [VeiculoController::class, 'create'])->name('create');
+    //     Route::post('/', [VeiculoController::class, 'store'])->name('store');
+    //     Route::get('/{veiculo}', [VeiculoController::class, 'show'])->name('show');
+    //     Route::get('/{veiculo}/edit', [VeiculoController::class, 'edit'])->name('edit');
+    //     Route::put('/{veiculo}', [VeiculoController::class, 'update'])->name('update');
+    //     Route::delete('/{veiculo}', [VeiculoController::class, 'destroy'])->name('destroy');
+    // });
+
+    // Veiculos
     Route::prefix('veiculos')->name('veiculos.')->group(function () {
-        Route::get('/', [VeiculoController::class, 'index'])->name('index');
-        Route::get('/create', [VeiculoController::class, 'create'])->name('create');
-        Route::post('/', [VeiculoController::class, 'store'])->name('store');
-        Route::get('/{veiculo}', [VeiculoController::class, 'show'])->name('show');
-        Route::get('/{veiculo}/edit', [VeiculoController::class, 'edit'])->name('edit');
-        Route::put('/{veiculo}', [VeiculoController::class, 'update'])->name('update');
-        Route::delete('/{veiculo}', [VeiculoController::class, 'destroy'])->name('destroy');
+
+        Route::get('/', [VeiculoController::class, 'index'])
+            ->name('index');
+
+        Route::get('/create', [VeiculoController::class, 'create'])
+            ->name('create');
+
+        // Rastreamento da frota
+        // IMPORTANTE: precisa vir antes de /{veiculo}
+        Route::get('/rastreamento', function () {
+            return view('veiculos.rastreamento');
+        })->name('rastreamento');
+
+        Route::post('/', [VeiculoController::class, 'store'])
+            ->name('store');
+
+        Route::get('/{veiculo}', [VeiculoController::class, 'show'])
+            ->name('show');
+
+        Route::get('/{veiculo}/edit', [VeiculoController::class, 'edit'])
+            ->name('edit');
+
+        Route::put('/{veiculo}', [VeiculoController::class, 'update'])
+            ->name('update');
+
+        Route::delete('/{veiculo}', [VeiculoController::class, 'destroy'])
+            ->name('destroy');
     });
 
     Route::resource('veiculos', VeiculoController::class);

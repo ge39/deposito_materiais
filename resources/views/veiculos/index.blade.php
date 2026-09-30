@@ -14,9 +14,23 @@
             </p>
         </div>
 
-        <a href="{{ route('veiculos.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-1"></i>Novo Veículo
-        </a>
+        <div class="d-flex gap-2">
+            <a
+                href="{{ route('veiculos.rastreamento') }}"
+                class="btn btn-outline-primary"
+            >
+                <i class="bi bi-geo-alt-fill me-1"></i>
+                Rastreamento
+            </a>
+
+            <a
+                href="{{ route('veiculos.create') }}"
+                class="btn btn-primary"
+            >
+                <i class="bi bi-plus-circle me-1"></i>
+                Novo Veículo
+            </a>
+        </div>
     </div>
 
     {{-- Alertas --}}

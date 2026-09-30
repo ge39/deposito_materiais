@@ -34,6 +34,15 @@ class Empresa extends Model
         'ativo' => 'boolean',
     ];
 
+    public function veiculos()
+    {
+        return $this->hasMany(
+            Veiculo::class,
+            'empresa_id',
+            'id'
+        );
+    }
+
     public static function ativa()
     {
         return self::where('ativo', 1)->first();
@@ -43,6 +52,15 @@ class Empresa extends Model
     {
         return $this->hasOne(
             ConfiguracoesCaixa::class,
+            'empresa_id',
+            'id'
+        );
+    }
+
+    public function rastreamentoConfig(): HasOne
+    {
+        return $this->hasOne(
+            EmpresaRastreamentoConfig::class,
             'empresa_id',
             'id'
         );

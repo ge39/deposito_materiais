@@ -1303,7 +1303,7 @@
 
     .smart-dashboard .delivery-map-vehicle-pin {
         align-items: center;
-        background: var(--dash-navy);
+        background: #0b6bcb;
         border: 3px solid #fff;
         border-radius: 50%;
         box-shadow: 0 3px 11px rgba(0, 0, 0, .42);
@@ -2857,6 +2857,9 @@
         };
 
         const entregasMapa = @json($pontosMapa);
+        const urlPosicoesVeiculos = @json(
+            url('/entregas-inteligentes/posicoes-veiculos')
+        );
         const raioAgrupamentoMetros = 100;
         const chaveCache = 'entregas-inteligentes-geocodificacao-v2';
 
@@ -3140,9 +3143,33 @@
                 html: '<div class="delivery-map-marker-wrap">'
                     + '<div class="delivery-map-pin" style="background:'
                     + cor
-                    + '"><span>'
+                    + ';border-radius:8px;transform:none;">'
+                    + '<i class="bi bi-house-door-fill" '
+                    + 'style="font-size:1rem;"></i>'
+                    + '<span style="'
+                    + 'position:absolute;'
+                    + 'right:-7px;'
+                    + 'top:-8px;'
+                    + 'width:20px;'
+                    + 'height:20px;'
+                    + 'border-radius:50%;'
+                    + 'background:#fff;'
+                    + 'border:2px solid '
+                    + cor
+                    + ';'
+                    + 'color:'
+                    + cor
+                    + ';'
+                    + 'display:flex;'
+                    + 'align-items:center;'
+                    + 'justify-content:center;'
+                    + 'font-size:.58rem;'
+                    + 'font-weight:900;'
+                    + 'transform:none;'
+                    + '">'
                     + numero
-                    + '</span></div>'
+                    + '</span>'
+                    + '</div>'
                     + '<span class="delivery-map-status-label" style="color:'
                     + cor
                     + '">'
@@ -3816,6 +3843,52 @@
             }
         }
 
+        function criarIconeVeiculoRastreado(
+            entrega,
+            totalEntregas
+        ) {
+            const base = criarIconeVeiculo(
+                entrega,
+                totalEntregas
+            );
+
+            const html = String(
+                base.options.html || ''
+            )
+                .replace(
+                    /style="background:[^"]+"/,
+                    'style="background:#7c3aed"'
+                )
+                .replace(
+                    'delivery-map-vehicle-pin',
+                    'delivery-map-vehicle-pin delivery-map-vehicle-pin-gps'
+                );
+
+            return L.divIcon({
+                ...base.options,
+                className:
+                    'delivery-map-vehicle-icon '
+                    + 'delivery-map-vehicle-icon-gps',
+                html: html,
+
+                /*
+                 * Mantém a coordenada GPS real.
+                 * O deslocamento é apenas visual para o ícone não
+                 * ficar encoberto pelo marcador da empresa/pátio.
+                 */
+                iconAnchor: [
+                    -34,
+                    54,
+                ],
+
+                popupAnchor: [
+                    -58,
+                    -50,
+                ],
+            });
+        }
+
+
         function criarConteudoVeiculo(
             entrega,
             totalEntregas
@@ -3976,6 +4049,292 @@
             );
         }
 
+        async function buscarPosicoesVeiculosRastreados() {
+            try {
+                const resposta = await fetch(
+                    urlPosicoesVeiculos,
+                    {
+                        headers: {
+                            Accept: 'application/json',
+                        },
+                        credentials: 'same-origin',
+                    }
+                );
+
+                if (! resposta.ok) {
+                    throw new Error(
+                        'Rastreamento HTTP ' + resposta.status
+                    );
+                }
+
+                const dados = await resposta.json();
+
+                if (
+                    ! dados
+                    || dados.ok !== true
+                    || ! Array.isArray(dados.veiculos)
+                ) {
+                    return [];
+                }
+
+                return dados.veiculos;
+            } catch (erro) {
+                console.warn(
+                    'Não foi possível carregar as posições dos veículos.',
+                    erro
+                );
+
+                return [];
+            }
+        }
+
+        function criarConteudoVeiculoRastreado(
+            entrega,
+            rastreamento,
+            totalEntregas
+        ) {
+            const conteudo = criarConteudoVeiculo(
+                entrega,
+                totalEntregas
+            );
+
+            const titulo = conteudo.querySelector(
+                '.map-vehicle-popup-title'
+            );
+
+            const dadosGps = [
+                [
+                    'Rastreamento',
+                    'Posição GPS do Traccar',
+                    'map-popup-value-success',
+                ],
+                [
+                    'Identificador',
+                    rastreamento.traccar_unique_id || 'Não informado',
+                ],
+                [
+                    'Dispositivo',
+                    rastreamento.device_name || 'Não informado',
+                ],
+                [
+                    'Status Traccar',
+                    rastreamento.status || 'unknown',
+                ],
+                [
+                    'Último fix',
+                    rastreamento.fix_time || 'Não informado',
+                ],
+                [
+                    'Velocidade',
+                    rastreamento.speed_kmh !== null
+                    && rastreamento.speed_kmh !== undefined
+                        ? String(rastreamento.speed_kmh) + ' km/h'
+                        : 'Não informada',
+                ],
+                [
+                    'Bateria',
+                    rastreamento.battery_level !== null
+                    && rastreamento.battery_level !== undefined
+                        ? String(rastreamento.battery_level) + '%'
+                        : 'Não informada',
+                ],
+            ];
+
+            const fragmento = document.createDocumentFragment();
+
+            dadosGps.forEach(function (dado) {
+                const linha = document.createElement('div');
+                linha.className = 'map-vehicle-popup-row';
+
+                const rotulo = document.createElement('span');
+                rotulo.textContent = dado[0];
+
+                const valor = document.createElement('strong');
+                valor.textContent = dado[1];
+
+                if (dado[2]) {
+                    valor.classList.add(dado[2]);
+                }
+
+                linha.append(rotulo, valor);
+                fragmento.append(linha);
+            });
+
+            if (titulo && titulo.nextSibling) {
+                conteudo.insertBefore(
+                    fragmento,
+                    titulo.nextSibling
+                );
+            } else {
+                conteudo.append(fragmento);
+            }
+
+            return conteudo;
+        }
+
+        async function adicionarMarcadoresVeiculosRastreados(
+            mapa,
+            limites,
+            marcadoresOperacionaisPorVeiculo = new Map()
+        ) {
+            const idsVeiculosDaOperacao = new Set(
+                entregasMapa
+                    .map(
+                        entrega => Number(
+                            entrega.veiculo_id
+                        )
+                    )
+                    .filter(
+                        id => Number.isFinite(id) && id > 0
+                    )
+            );
+
+            if (idsVeiculosDaOperacao.size === 0) {
+                return {
+                    total: 0,
+                    veiculoIds: new Set(),
+                };
+            }
+
+            const posicoes = await buscarPosicoesVeiculosRastreados();
+            const idsComPosicaoGps = new Set();
+            let total = 0;
+
+            posicoes.forEach(function (rastreamento) {
+                const veiculoId = Number(
+                    rastreamento.veiculo_id
+                );
+
+                if (
+                    ! idsVeiculosDaOperacao.has(veiculoId)
+                    || rastreamento.posicao_disponivel !== true
+                ) {
+                    return;
+                }
+
+                const latitude = Number(
+                    rastreamento.latitude
+                );
+                const longitude = Number(
+                    rastreamento.longitude
+                );
+
+                if (
+                    ! Number.isFinite(latitude)
+                    || latitude < -90
+                    || latitude > 90
+                    || ! Number.isFinite(longitude)
+                    || longitude < -180
+                    || longitude > 180
+                ) {
+                    return;
+                }
+
+                const entregasDoVeiculo = entregasMapa.filter(
+                    entrega =>
+                        Number(entrega.veiculo_id) === veiculoId
+                );
+
+                if (entregasDoVeiculo.length === 0) {
+                    return;
+                }
+
+                const referencia = entregasDoVeiculo
+                    .slice()
+                    .sort(function (a, b) {
+                        const prioridade = {
+                            No_destino: 0,
+                            Em_rota: 1,
+                            Liberada: 2,
+                            Carregada: 3,
+                        };
+
+                        return (
+                            prioridade[a.status_chave] ?? 9
+                        ) - (
+                            prioridade[b.status_chave] ?? 9
+                        );
+                    })[0];
+
+                const posicao = L.latLng(
+                    latitude,
+                    longitude
+                );
+
+                const marcadorExistente =
+                    marcadoresOperacionaisPorVeiculo.get(
+                        veiculoId
+                    );
+
+                const iconeGps =
+                    criarIconeVeiculoRastreado(
+                        referencia,
+                        entregasDoVeiculo.length
+                    );
+
+                const popupGps =
+                    criarConteudoVeiculoRastreado(
+                        referencia,
+                        rastreamento,
+                        entregasDoVeiculo.length
+                    );
+
+                if (marcadorExistente) {
+                    marcadorExistente.setLatLng(
+                        posicao
+                    );
+
+                    marcadorExistente.setIcon(
+                        iconeGps
+                    );
+
+                    marcadorExistente.unbindPopup();
+
+                    marcadorExistente.bindPopup(
+                        popupGps,
+                        {
+                            maxWidth: 380,
+                            minWidth: 255,
+                        }
+                    );
+
+                    marcadorExistente.setZIndexOffset(
+                        6500
+                    );
+                } else {
+                    L.marker(
+                        posicao,
+                        {
+                            icon: iconeGps,
+                            title: String(
+                                referencia.veiculo
+                                || rastreamento.placa
+                                || 'Veículo'
+                            ) + ' · GPS',
+                            zIndexOffset: 6500,
+                        }
+                    )
+                        .bindPopup(
+                            popupGps,
+                            {
+                                maxWidth: 380,
+                                minWidth: 255,
+                            }
+                        )
+                        .addTo(mapa);
+                }
+
+                limites.extend(posicao);
+                idsComPosicaoGps.add(veiculoId);
+                total++;
+            });
+
+            return {
+                total: total,
+                veiculoIds: idsComPosicaoGps,
+            };
+        }
+
         function adicionarMarcadoresVeiculos(
             mapa,
             pontos,
@@ -3993,11 +4352,16 @@
             });
 
             const veiculos = new Map();
+            const marcadoresPorVeiculo = new Map();
 
             entregasMapa.forEach(function (entrega) {
                 const veiculo = String(
                     entrega.veiculo || ''
                 ).trim();
+
+                const veiculoId = Number(
+                    entrega.veiculo_id
+                );
 
                 if (
                     veiculo === ''
@@ -4150,7 +4514,7 @@
                     }
                 ).addTo(mapa);
 
-                L.marker(
+                const marcadorVeiculo = L.marker(
                     posicao,
                     {
                         icon: criarIconeVeiculo(
@@ -4175,6 +4539,20 @@
                     )
                     .addTo(mapa);
 
+                const veiculoId = Number(
+                    carga.referencia.veiculo_id
+                );
+
+                if (
+                    Number.isFinite(veiculoId)
+                    && veiculoId > 0
+                ) {
+                    marcadoresPorVeiculo.set(
+                        veiculoId,
+                        marcadorVeiculo
+                    );
+                }
+
                 limites.extend(posicao);
             });
 
@@ -4187,7 +4565,7 @@
                     return;
                 }
 
-                L.marker(
+                const marcadorVeiculo = L.marker(
                     posicao,
                     {
                         icon: criarIconeVeiculo(
@@ -4212,12 +4590,28 @@
                     )
                     .addTo(mapa);
 
+                const veiculoId = Number(
+                    carga.referencia.veiculo_id
+                );
+
+                if (
+                    Number.isFinite(veiculoId)
+                    && veiculoId > 0
+                ) {
+                    marcadoresPorVeiculo.set(
+                        veiculoId,
+                        marcadorVeiculo
+                    );
+                }
+
                 limites.extend(posicao);
             });
 
             return {
                 patio: cargasPatio.length,
                 rua: cargasRua.length,
+                marcadoresPorVeiculo:
+                    marcadoresPorVeiculo,
             };
         }
 
@@ -4417,9 +4811,10 @@
                     const marcador = L.marker(
                         posicoes.posicaoExibicao,
                         {
-                            icon: criarIconeVeiculo(
-                                entrega,
-                                entregasRota.length
+                            icon: criarIconeMarcador(
+                                ordem || '•',
+                                definirCorMarcador([entrega]),
+                                rotuloIndicadorEntregas([entrega])
                             ),
                             title: entrega.codigo
                                 + ' · '
@@ -5825,6 +6220,17 @@
             );
 
             centralizarMapaAposLayout();
+
+            /*
+             * O mapa operacional já está visível neste ponto.
+             * A posição GPS é carregada em segundo plano para
+             * não atrasar a renderização inicial.
+             */
+            adicionarMarcadoresVeiculosRastreados(
+                mapa,
+                limites,
+                resumoVeiculos.marcadoresPorVeiculo
+            );
 
             if (mensagem) {
                 mensagem.textContent = localizados

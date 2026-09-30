@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'traccar' => [
+        'email' => env('TRACCAR_EMAIL'),
+        'password' => env('TRACCAR_PASSWORD'),
+    ],
+
 ];

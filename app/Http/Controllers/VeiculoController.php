@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Veiculo;
-use App\Models\Funcionario;
-use App\Models\TipoVeiculo;
 use App\Models\ClasseVeiculo;
+use App\Models\Empresa;
+use App\Models\Funcionario;
 use App\Models\TipoCarroceria;
+use App\Models\TipoVeiculo;
+use App\Models\Veiculo;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class VeiculoController extends Controller
 {
@@ -21,19 +23,15 @@ class VeiculoController extends Controller
         ]);
 
         if ($request->filled('busca')) {
-
             $busca = trim($request->busca);
 
             $query->where(function ($q) use ($busca) {
-
                 $q->where('placa', 'like', "%{$busca}%")
                     ->orWhere('modelo', 'like', "%{$busca}%")
                     ->orWhere('marca', 'like', "%{$busca}%")
                     ->orWhere('renavam', 'like', "%{$busca}%")
                     ->orWhere('chassi', 'like', "%{$busca}%");
-
             });
-
         }
 
         if ($request->filled('status')) {
@@ -41,23 +39,38 @@ class VeiculoController extends Controller
         }
 
         if ($request->filled('disponibilidade')) {
-            $query->where('disponibilidade', $request->disponibilidade);
+            $query->where(
+                'disponibilidade',
+                $request->disponibilidade
+            );
         }
 
         if ($request->filled('tipo_frota')) {
-            $query->where('tipo_frota', $request->tipo_frota);
+            $query->where(
+                'tipo_frota',
+                $request->tipo_frota
+            );
         }
 
         if ($request->filled('tipo_veiculo_id')) {
-            $query->where('tipo_veiculo_id', $request->tipo_veiculo_id);
+            $query->where(
+                'tipo_veiculo_id',
+                $request->tipo_veiculo_id
+            );
         }
 
         if ($request->filled('classe_veiculo_id')) {
-            $query->where('classe_veiculo_id', $request->classe_veiculo_id);
+            $query->where(
+                'classe_veiculo_id',
+                $request->classe_veiculo_id
+            );
         }
 
         if ($request->filled('tipo_carroceria_id')) {
-            $query->where('tipo_carroceria_id', $request->tipo_carroceria_id);
+            $query->where(
+                'tipo_carroceria_id',
+                $request->tipo_carroceria_id
+            );
         }
 
         $veiculos = $query
@@ -66,12 +79,17 @@ class VeiculoController extends Controller
             ->withQueryString();
 
         $kpis = [
-
             'total' => Veiculo::count(),
 
-            'ativos' => Veiculo::where('status', 'Ativo')->count(),
+            'ativos' => Veiculo::where(
+                'status',
+                'Ativo'
+            )->count(),
 
-            'disponiveis' => Veiculo::where('disponibilidade', 'Disponível')->count(),
+            'disponiveis' => Veiculo::where(
+                'disponibilidade',
+                'Disponível'
+            )->count(),
 
             'em_operacao' => Veiculo::whereIn(
                 'disponibilidade',
@@ -83,12 +101,15 @@ class VeiculoController extends Controller
             )->count(),
 
             'manutencao' => Veiculo::where(function ($q) {
-
-                $q->where('status', 'Manutenção')
-                ->orWhere('disponibilidade', 'Manutenção');
-
+                $q->where(
+                    'status',
+                    'Manutenção'
+                )
+                    ->orWhere(
+                        'disponibilidade',
+                        'Manutenção'
+                    );
             })->count(),
-
         ];
 
         return view(
@@ -100,59 +121,98 @@ class VeiculoController extends Controller
         );
     }
 
-   public function create()
-{
-    $veiculo = new Veiculo();
+    public function create()
+    {
+        $veiculo = new Veiculo();
 
-    $motoristas = Funcionario::where('ativo', 1)
-        ->orderBy('nome')
-        ->get();
+        $motoristas = Funcionario::where(
+            'ativo',
+            1
+        )
+            ->orderBy('nome')
+            ->get();
 
-    $tiposVeiculo = TipoVeiculo::where('ativo', true)
-        ->orderBy('descricao')
-        ->get();
+        $tiposVeiculo = TipoVeiculo::where(
+            'ativo',
+            true
+        )
+            ->orderBy('descricao')
+            ->get();
 
-    return view('veiculos.create', compact(
-        'veiculo',
-        'motoristas',
-        'tiposVeiculo'
-    ));
-}
+        return view(
+            'veiculos.create',
+            compact(
+                'veiculo',
+                'motoristas',
+                'tiposVeiculo'
+            )
+        );
+    }
 
     public function store(Request $request)
     {
-        $dados = $this->validarDados($request);
+        $dados = $this->validarDados(
+            $request
+        );
 
-        $dados = $this->normalizarCheckboxes($dados);
+        $dados = $this->normalizarCheckboxes(
+            $dados
+        );
+
+        $dados = $this->normalizarRastreamento(
+            $dados
+        );
+
+        $empresa = Empresa::ativa();
+
+        abort_unless(
+            $empresa,
+            422,
+            'Empresa ativa não encontrada.'
+        );
+
+        $dados['empresa_id'] = $empresa->id;
 
         Veiculo::create($dados);
 
         return redirect()
             ->route('veiculos.index')
-            ->with('success', 'Veículo cadastrado com sucesso.');
+            ->with(
+                'success',
+                'Veículo cadastrado com sucesso.'
+            );
     }
 
-   public function edit(Veiculo $veiculo)
+    public function edit(Veiculo $veiculo)
     {
-        $motoristas = Funcionario::where('ativo', 1)
+        $motoristas = Funcionario::where(
+            'ativo',
+            1
+        )
             ->orderBy('nome')
             ->get();
 
-        $tiposVeiculo = TipoVeiculo::where('ativo', true)
+        $tiposVeiculo = TipoVeiculo::where(
+            'ativo',
+            true
+        )
             ->orderBy('descricao')
             ->get();
 
         $classesVeiculo = ClasseVeiculo::where(
-                'tipo_veiculo_id',
-                $veiculo->tipo_veiculo_id
+            'tipo_veiculo_id',
+            $veiculo->tipo_veiculo_id
+        )
+            ->where(
+                'ativo',
+                true
             )
-            ->where('ativo', true)
             ->orderBy('descricao')
             ->get();
 
         $tiposCarroceria = TipoCarroceria::select(
-                'tipos_carroceria.*'
-            )
+            'tipos_carroceria.*'
+        )
             ->join(
                 'classe_veiculo_carroceria',
                 'classe_veiculo_carroceria.tipo_carroceria_id',
@@ -170,26 +230,43 @@ class VeiculoController extends Controller
             ->orderBy('descricao')
             ->get();
 
-        return view('veiculos.edit', compact(
-            'veiculo',
-            'motoristas',
-            'tiposVeiculo',
-            'classesVeiculo',
-            'tiposCarroceria'
-        ));
+        return view(
+            'veiculos.edit',
+            compact(
+                'veiculo',
+                'motoristas',
+                'tiposVeiculo',
+                'classesVeiculo',
+                'tiposCarroceria'
+            )
+        );
     }
 
-    public function update(Request $request, Veiculo $veiculo)
-    {
-        $dados = $this->validarDados($request, $veiculo->id);
+    public function update(
+        Request $request,
+        Veiculo $veiculo
+    ) {
+        $dados = $this->validarDados(
+            $request,
+            $veiculo->id
+        );
 
-        $dados = $this->normalizarCheckboxes($dados);
+        $dados = $this->normalizarCheckboxes(
+            $dados
+        );
+
+        $dados = $this->normalizarRastreamento(
+            $dados
+        );
 
         $veiculo->update($dados);
 
         return redirect()
             ->route('veiculos.index')
-            ->with('success', 'Veículo atualizado com sucesso.');
+            ->with(
+                'success',
+                'Veículo atualizado com sucesso.'
+            );
     }
 
     public function destroy(Veiculo $veiculo)
@@ -198,27 +275,28 @@ class VeiculoController extends Controller
 
         return redirect()
             ->route('veiculos.index')
-            ->with('success', 'Veículo removido com sucesso.');
+            ->with(
+                'success',
+                'Veículo removido com sucesso.'
+            );
     }
 
     private function buscarMotoristas()
     {
         return Funcionario::query()
-            ->where('ativo', true)
+            ->where(
+                'ativo',
+                true
+            )
             ->orderBy('nome')
             ->get();
     }
 
-   private function validarDados(Request $request, ?int $veiculoId = null): array
-    {
+    private function validarDados(
+        Request $request,
+        ?int $veiculoId = null
+    ): array {
         return $request->validate([
-
-            /*
-            |--------------------------------------------------------------------------
-            | Identificação
-            |--------------------------------------------------------------------------
-            */
-
             'placa' => [
                 'required',
                 'string',
@@ -263,12 +341,6 @@ class VeiculoController extends Controller
                 'max:40',
             ],
 
-            /*
-            |--------------------------------------------------------------------------
-            | Nova arquitetura da Frota
-            |--------------------------------------------------------------------------
-            */
-
             'tipo_veiculo_id' => [
                 'required',
                 'integer',
@@ -287,12 +359,6 @@ class VeiculoController extends Controller
                 'exists:tipos_carroceria,id',
             ],
 
-            /*
-            |--------------------------------------------------------------------------
-            | Operação
-            |--------------------------------------------------------------------------
-            */
-
             'tipo_frota' => [
                 'required',
                 'in:Frota,Agregado,Terceirizado',
@@ -308,12 +374,6 @@ class VeiculoController extends Controller
                 'string',
                 'max:10',
             ],
-
-            /*
-            |--------------------------------------------------------------------------
-            | Capacidades
-            |--------------------------------------------------------------------------
-            */
 
             'capacidade_kg' => [
                 'nullable',
@@ -339,12 +399,6 @@ class VeiculoController extends Controller
                 'min:0',
             ],
 
-            /*
-            |--------------------------------------------------------------------------
-            | Dimensões
-            |--------------------------------------------------------------------------
-            */
-
             'comprimento_m' => [
                 'nullable',
                 'numeric',
@@ -363,45 +417,81 @@ class VeiculoController extends Controller
                 'min:0',
             ],
 
-            /*
-            |--------------------------------------------------------------------------
-            | Recursos
-            |--------------------------------------------------------------------------
-            */
+            'possui_munck' => [
+                'nullable',
+                'boolean',
+            ],
 
-            'possui_munck' => ['nullable', 'boolean'],
+            'possui_rastreador' => [
+                'nullable',
+                'boolean',
+            ],
 
-            'possui_rastreador' => ['nullable', 'boolean'],
+            'rastreamento_ativo' => [
+                'nullable',
+                'boolean',
+            ],
 
-            /*
-            |--------------------------------------------------------------------------
-            | Tipos de carga aceitos
-            |--------------------------------------------------------------------------
-            */
+            'traccar_unique_id' => [
+                'nullable',
+                'required_if:possui_rastreador,1',
+                'string',
+                'max:128',
+                Rule::unique(
+                    'veiculos',
+                    'traccar_unique_id'
+                )->ignore($veiculoId),
+            ],
 
-            'aceita_areia_pedra' => ['nullable', 'boolean'],
-            'aceita_blocos_tijolos' => ['nullable', 'boolean'],
-            'aceita_cimento_argamassa' => ['nullable', 'boolean'],
-            'aceita_tintas_quimicos' => ['nullable', 'boolean'],
-            'aceita_telhas' => ['nullable', 'boolean'],
-            'aceita_madeiras' => ['nullable', 'boolean'],
+            'aceita_areia_pedra' => [
+                'nullable',
+                'boolean',
+            ],
 
-            /*
-            |--------------------------------------------------------------------------
-            | Restrições
-            |--------------------------------------------------------------------------
-            */
+            'aceita_blocos_tijolos' => [
+                'nullable',
+                'boolean',
+            ],
 
-            'restricao_rodizio' => ['nullable', 'boolean'],
-            'restricao_zona_central' => ['nullable', 'boolean'],
-            'restricao_altura' => ['nullable', 'boolean'],
-            'restricao_peso' => ['nullable', 'boolean'],
+            'aceita_cimento_argamassa' => [
+                'nullable',
+                'boolean',
+            ],
 
-            /*
-            |--------------------------------------------------------------------------
-            | Situação
-            |--------------------------------------------------------------------------
-            */
+            'aceita_tintas_quimicos' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'aceita_telhas' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'aceita_madeiras' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'restricao_rodizio' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'restricao_zona_central' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'restricao_altura' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'restricao_peso' => [
+                'nullable',
+                'boolean',
+            ],
 
             'status' => [
                 'required',
@@ -417,15 +507,16 @@ class VeiculoController extends Controller
                 'nullable',
                 'string',
             ],
-
         ]);
     }
 
-    private function normalizarCheckboxes(array $dados): array
-    {
+    private function normalizarCheckboxes(
+        array $dados
+    ): array {
         $checkboxes = [
             'possui_munck',
             'possui_rastreador',
+            'rastreamento_ativo',
 
             'aceita_areia_pedra',
             'aceita_blocos_tijolos',
@@ -441,17 +532,50 @@ class VeiculoController extends Controller
         ];
 
         foreach ($checkboxes as $campo) {
-            $dados[$campo] = isset($dados[$campo]) && (bool) $dados[$campo];
+            $dados[$campo] =
+                isset($dados[$campo])
+                && (bool) $dados[$campo];
         }
 
         return $dados;
     }
 
-     public function show(Veiculo $veiculo)
-    {
-        $veiculo->load('motoristaPadrao');
+    private function normalizarRastreamento(
+        array $dados
+    ): array {
+        if (
+            ! ($dados['possui_rastreador'] ?? false)
+        ) {
+            $dados['rastreamento_ativo'] = false;
+            $dados['traccar_unique_id'] = null;
 
-        return view('veiculos.show', compact('veiculo'));
+            return $dados;
+        }
+
+        $uniqueId = trim(
+            (string) (
+                $dados['traccar_unique_id']
+                ?? ''
+            )
+        );
+
+        $dados['traccar_unique_id'] =
+            $uniqueId !== ''
+                ? $uniqueId
+                : null;
+
+        return $dados;
     }
-    
+
+    public function show(Veiculo $veiculo)
+    {
+        $veiculo->load(
+            'motoristaPadrao'
+        );
+
+        return view(
+            'veiculos.show',
+            compact('veiculo')
+        );
+    }
 }

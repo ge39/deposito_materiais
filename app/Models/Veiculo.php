@@ -9,6 +9,7 @@ class Veiculo extends Model
     protected $table = 'veiculos';
 
     protected $fillable = [
+        'empresa_id',
         'placa',
         'modelo',
         'marca',
@@ -39,7 +40,10 @@ class Veiculo extends Model
         'possui_munck',
         'possui_carroceria_aberta',
         'possui_carroceria_fechada',
+
         'possui_rastreador',
+        'rastreamento_ativo',
+        'traccar_unique_id',
 
         'aceita_areia_pedra',
         'aceita_blocos_tijolos',
@@ -56,7 +60,7 @@ class Veiculo extends Model
 
     protected $casts = [
         'ano_fabricacao' => 'integer',
-
+        'empresa_id' => 'integer',
         'tipo_veiculo_id' => 'integer',
         'classe_veiculo_id' => 'integer',
         'tipo_carroceria_id' => 'integer',
@@ -74,7 +78,9 @@ class Veiculo extends Model
         'possui_munck' => 'boolean',
         'possui_carroceria_aberta' => 'boolean',
         'possui_carroceria_fechada' => 'boolean',
+
         'possui_rastreador' => 'boolean',
+        'rastreamento_ativo' => 'boolean',
 
         'aceita_areia_pedra' => 'boolean',
         'aceita_blocos_tijolos' => 'boolean',
@@ -88,21 +94,41 @@ class Veiculo extends Model
 
     public function motoristaPadrao()
     {
-        return $this->belongsTo(Funcionario::class, 'motorista_padrao_id');
+        return $this->belongsTo(
+            Funcionario::class,
+            'motorista_padrao_id'
+        );
     }
 
     public function tipoVeiculo()
     {
-        return $this->belongsTo(TipoVeiculo::class, 'tipo_veiculo_id');
+        return $this->belongsTo(
+            TipoVeiculo::class,
+            'tipo_veiculo_id'
+        );
     }
 
     public function classeVeiculo()
     {
-        return $this->belongsTo(ClasseVeiculo::class, 'classe_veiculo_id');
+        return $this->belongsTo(
+            ClasseVeiculo::class,
+            'classe_veiculo_id'
+        );
     }
 
     public function tipoCarroceria()
     {
-        return $this->belongsTo(TipoCarroceria::class, 'tipo_carroceria_id');
+        return $this->belongsTo(
+            TipoCarroceria::class,
+            'tipo_carroceria_id'
+        );
+    }
+
+    public function empresa()
+    {
+        return $this->belongsTo(
+            Empresa::class,
+            'empresa_id'
+        );
     }
 }
