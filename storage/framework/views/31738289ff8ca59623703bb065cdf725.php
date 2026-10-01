@@ -1,8 +1,8 @@
-@extends('layouts.app')
 
-@section('content')
 
-@php
+<?php $__env->startSection('content'); ?>
+
+<?php
     $entregas = collect(
         $entregasDisponiveis ?? []
     )
@@ -370,7 +370,7 @@
         default =>
             'Acompanhe a operação do romaneio.',
     };
-@endphp
+?>
 
 <style>
     .romaneio-page {
@@ -833,18 +833,20 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-            @if($codigoRomaneio)
+            <?php if($codigoRomaneio): ?>
                 <span class="badge bg-dark fs-6">
-                    {{ $codigoRomaneio }}
-                </span>
-            @endif
+                    <?php echo e($codigoRomaneio); ?>
 
-            <span class="badge {{ $statusClasses[$etapaAtual] }}">
-                {{ $romaneioAtivo?->status
-                    ?? $etapas[$etapaAtual]['label'] }}
+                </span>
+            <?php endif; ?>
+
+            <span class="badge <?php echo e($statusClasses[$etapaAtual]); ?>">
+                <?php echo e($romaneioAtivo?->status
+                    ?? $etapas[$etapaAtual]['label']); ?>
+
             </span>
 
-            <a href="{{ route('romaneios.index') }}"
+            <a href="<?php echo e(route('romaneios.index')); ?>"
                class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>
                 Voltar
@@ -852,65 +854,67 @@
         </div>
     </div>
 
-    @if(session('success'))
+    <?php if(session('success')): ?>
         <div class="alert alert-success">
             <i class="bi bi-check-circle me-1"></i>
-            {{ session('success') }}
-        </div>
-    @endif
+            <?php echo e(session('success')); ?>
 
-    @if(session('error'))
+        </div>
+    <?php endif; ?>
+
+    <?php if(session('error')): ?>
         <div class="alert alert-danger">
             <i class="bi bi-exclamation-triangle me-1"></i>
-            {{ session('error') }}
-        </div>
-    @endif
+            <?php echo e(session('error')); ?>
 
-    @if($errors->any())
+        </div>
+    <?php endif; ?>
+
+    <?php if($errors->any()): ?>
         <div class="alert alert-danger">
             <strong>Não foi possível concluir a operação.</strong>
 
             <ul class="mb-0 mt-2">
-                @foreach($errors->all() as $erro)
-                    <li>{{ $erro }}</li>
-                @endforeach
+                <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $erro): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><?php echo e($erro); ?></li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </ul>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @if($entregas->isEmpty())
+    <?php if($entregas->isEmpty()): ?>
         <div class="alert alert-warning">
             Nenhuma entrega disponível para operação.
         </div>
-    @else
+    <?php else: ?>
         <form id="formRomaneio"
               method="POST"
-              action="{{ $formAction }}">
+              action="<?php echo e($formAction); ?>">
 
-            @csrf
+            <?php echo csrf_field(); ?>
 
-            @if($formMethod === 'PUT')
-                @method('PUT')
-            @endif
+            <?php if($formMethod === 'PUT'): ?>
+                <?php echo method_field('PUT'); ?>
+            <?php endif; ?>
 
             <input type="hidden"
                    name="etapa_atual"
-                   value="{{ $etapaAtual }}">
+                   value="<?php echo e($etapaAtual); ?>">
 
-            @if($entregaPrincipal)
+            <?php if($entregaPrincipal): ?>
                 <input type="hidden"
                        name="entrega_id"
-                       value="{{ $entregaPrincipal->id }}">
-            @endif
+                       value="<?php echo e($entregaPrincipal->id); ?>">
+            <?php endif; ?>
 
             <div class="section-card workflow-card mb-3">
                 <div class="workflow">
                     <div class="workflow-progress"
-                         style="width: {{ $progressoWorkflow }}%;">
+                         style="width: <?php echo e($progressoWorkflow); ?>%;">
                     </div>
 
-                    @foreach($etapas as $chave => $etapa)
-                        @php
+                    <?php $__currentLoopData = $etapas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $chave => $etapa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php
                             $classeEtapa = '';
 
                             if ($etapa['ordem'] < $ordemAtual) {
@@ -918,29 +922,31 @@
                             } elseif ($chave === $etapaAtual) {
                                 $classeEtapa = 'active';
                             }
-                        @endphp
+                        ?>
 
-                        <div class="workflow-step {{ $classeEtapa }}">
+                        <div class="workflow-step <?php echo e($classeEtapa); ?>">
                             <div class="workflow-circle">
-                                <i class="bi {{ $etapa['icone'] }}"></i>
+                                <i class="bi <?php echo e($etapa['icone']); ?>"></i>
                             </div>
 
                             <span class="workflow-label">
-                                {{ $etapa['label'] }}
+                                <?php echo e($etapa['label']); ?>
+
                             </span>
                         </div>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </div>
             </div>
 
-            <div class="operation-banner {{ $etapaAtual }} mb-3">
+            <div class="operation-banner <?php echo e($etapaAtual); ?> mb-3">
                 <div>
                     <div class="operation-title">
-                        {{ $descricaoEtapa }}
+                        <?php echo e($descricaoEtapa); ?>
+
                     </div>
 
                     <div class="operation-description">
-                       @if($criandoRomaneio)
+                       <?php if($criandoRomaneio): ?>
             <button type="submit"
                     class="btn btn-primary btn-sm"
                     id="btnPrincipal">
@@ -948,7 +954,7 @@
                 Criar Romaneio
             </button>
 
-            @elseif($statusOriginal === 'montagem')
+            <?php elseif($statusOriginal === 'montagem'): ?>
                 <button type="submit"
                         name="acao"
                         value="concluir_montagem"
@@ -958,7 +964,7 @@
                     Concluir Montagem
                 </button>
 
-            @elseif($statusOriginal === 'aguardando_separacao')
+            <?php elseif($statusOriginal === 'aguardando_separacao'): ?>
                 <button type="submit"
                         name="acao"
                         value="iniciar_separacao"
@@ -968,7 +974,7 @@
                     Iniciar Separação
                 </button>
 
-            @elseif($statusOriginal === 'em_separacao')
+            <?php elseif($statusOriginal === 'em_separacao'): ?>
                 <button type="submit"
                         name="acao"
                         value="finalizar_separacao"
@@ -978,7 +984,7 @@
                     Finalizar Separação
                 </button>
 
-            @elseif($statusOriginal === 'aguardando_conferencia_separacao')
+            <?php elseif($statusOriginal === 'aguardando_conferencia_separacao'): ?>
                 <button type="submit"
                         name="acao"
                         value="iniciar_conferencia_separacao"
@@ -988,7 +994,7 @@
                     Iniciar Conferência
                 </button>
 
-            @elseif($statusOriginal === 'em_conferencia_separacao')
+            <?php elseif($statusOriginal === 'em_conferencia_separacao'): ?>
                 <button type="submit"
                         name="acao"
                         value="finalizar_conferencia_separacao"
@@ -998,14 +1004,14 @@
                     Finalizar Conferência
                 </button>
 
-            @elseif(in_array(
+            <?php elseif(in_array(
                 $statusOriginal,
                 [
                     'separacao_conferida',
                     'aguardando_carregamento',
                 ],
                 true
-            ))
+            )): ?>
                 <button type="submit"
                         name="acao"
                         value="iniciar_carregamento"
@@ -1015,7 +1021,7 @@
                     Iniciar Carregamento
                 </button>
 
-            @elseif($statusOriginal === 'carregando')
+            <?php elseif($statusOriginal === 'carregando'): ?>
                 <button type="submit"
                         name="acao"
                         value="finalizar_carregamento"
@@ -1025,7 +1031,7 @@
                     Finalizar Carregamento
                 </button>
 
-            @elseif($statusOriginal === 'aguardando_conferencia_saida')
+            <?php elseif($statusOriginal === 'aguardando_conferencia_saida'): ?>
                 <button type="submit"
                         name="acao"
                         value="iniciar_conferencia_saida"
@@ -1035,7 +1041,7 @@
                     Iniciar Conf. Saída
                 </button>
 
-            @elseif($statusOriginal === 'em_conferencia_saida')
+            <?php elseif($statusOriginal === 'em_conferencia_saida'): ?>
                 <button type="submit"
                         name="acao"
                         value="finalizar_conferencia_saida"
@@ -1045,20 +1051,21 @@
                     Finalizar Conf. Saída
                 </button>
 
-            @elseif($statusOriginal === 'aguardando_liberacao')
-            @php
+            <?php elseif($statusOriginal === 'aguardando_liberacao'): ?>
+            <?php
                 $romaneioImpresso =
                     ! empty($romaneioAtivo?->impresso_em);
-            @endphp
+            ?>
 
             <button type="submit"
                     form="formImprimirRomaneio"
                     class="btn btn-outline-dark btn-sm js-imprimir-romaneio">
                 <i class="bi bi-printer me-1"></i>
 
-                {{ $romaneioImpresso
+                <?php echo e($romaneioImpresso
                     ? 'Imprimir novamente'
-                    : 'Imprimir Romaneio' }}
+                    : 'Imprimir Romaneio'); ?>
+
             </button>
 
             <button type="submit"
@@ -1066,20 +1073,20 @@
                     value="liberar_veiculo"
                     class="btn btn-success btn-sm"
                     id="btnPrincipal"
-                    @disabled(! $romaneioImpresso)>
+                    <?php if(! $romaneioImpresso): echo 'disabled'; endif; ?>>
 
                 <i class="bi bi-shield-check me-1"></i>
                 Liberar Veículo
             </button>
 
-            @if(! $romaneioImpresso)
+            <?php if(! $romaneioImpresso): ?>
                 <span class="small text-danger align-self-center">
                     <i class="bi bi-lock me-1"></i>
                     Imprima o romaneio para liberar o veículo.
                 </span>
-            @endif
+            <?php endif; ?>
 
-            @elseif($statusOriginal === 'liberado')
+            <?php elseif($statusOriginal === 'liberado'): ?>
                 <button type="button"
                         class="btn btn-dark btn-sm"
                         data-bs-toggle="modal"
@@ -1088,87 +1095,94 @@
                     Conferir documentos e registrar saída
                 </button>
 
-            @elseif($statusOriginal === 'em_rota')
+            <?php elseif($statusOriginal === 'em_rota'): ?>
                 <button type="button"
                         class="btn btn-dark btn-sm"
                         disabled>
                     <i class="bi bi-sign-turn-right me-1"></i>
                     Veículo em Rota
                 </button>
-            @endif
+            <?php endif; ?>
                     </div>
 
-                    @if($romaneioAtivo)
+                    <?php if($romaneioAtivo): ?>
                         <div class="operation-meta">
                             <span class="badge bg-light text-dark border">
                                 <i class="bi bi-person me-1"></i>
                                 Criado por:
-                                {{ $romaneioAtivo?->criador?->name
+                                <?php echo e($romaneioAtivo?->criador?->name
                                     ?? $romaneioAtivo?->criador?->nome
                                     ?? $romaneioAtivo?->criado_por
-                                    ?? 'Não registrado' }}
+                                    ?? 'Não registrado'); ?>
+
                             </span>
 
                             <span class="badge bg-light text-dark border">
                                 <i class="bi bi-calendar-check me-1"></i>
                                 Emissão:
-                                {{ $formatarData(
+                                <?php echo e($formatarData(
                                     $romaneioAtivo?->data_emissao,
                                     true
-                                ) }}
+                                )); ?>
+
                             </span>
 
-                            @if($romaneioAtivo?->data_inicio_separacao)
+                            <?php if($romaneioAtivo?->data_inicio_separacao): ?>
                                 <span class="badge bg-warning text-dark">
                                     Separação:
-                                    {{ $formatarData(
+                                    <?php echo e($formatarData(
                                         $romaneioAtivo->data_inicio_separacao,
                                         true
-                                    ) }}
-                                </span>
-                            @endif
+                                    )); ?>
 
-                            @if($romaneioAtivo?->data_inicio_conferencia_separacao)
+                                </span>
+                            <?php endif; ?>
+
+                            <?php if($romaneioAtivo?->data_inicio_conferencia_separacao): ?>
                                 <span class="badge bg-info text-dark">
                                     Conf. separação:
-                                    {{ $formatarData(
+                                    <?php echo e($formatarData(
                                         $romaneioAtivo->data_inicio_conferencia_separacao,
                                         true
-                                    ) }}
-                                </span>
-                            @endif
+                                    )); ?>
 
-                            @if($romaneioAtivo?->data_inicio_carregamento)
+                                </span>
+                            <?php endif; ?>
+
+                            <?php if($romaneioAtivo?->data_inicio_carregamento): ?>
                                 <span class="badge bg-primary">
                                     Carga:
-                                    {{ $formatarData(
+                                    <?php echo e($formatarData(
                                         $romaneioAtivo->data_inicio_carregamento,
                                         true
-                                    ) }}
-                                </span>
-                            @endif
+                                    )); ?>
 
-                            @if($romaneioAtivo?->data_inicio_conferencia_saida)
+                                </span>
+                            <?php endif; ?>
+
+                            <?php if($romaneioAtivo?->data_inicio_conferencia_saida): ?>
                                 <span class="badge bg-info text-dark">
                                     Conf. saída:
-                                    {{ $formatarData(
+                                    <?php echo e($formatarData(
                                         $romaneioAtivo->data_inicio_conferencia_saida,
                                         true
-                                    ) }}
-                                </span>
-                            @endif
+                                    )); ?>
 
-                            @if($romaneioAtivo?->data_saida)
+                                </span>
+                            <?php endif; ?>
+
+                            <?php if($romaneioAtivo?->data_saida): ?>
                                 <span class="badge bg-dark">
                                     Saída:
-                                    {{ $formatarData(
+                                    <?php echo e($formatarData(
                                         $romaneioAtivo->data_saida,
                                         true
-                                    ) }}
+                                    )); ?>
+
                                 </span>
-                            @endif
+                            <?php endif; ?>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -1191,25 +1205,26 @@
                             <select id="motorista_id"
                                     name="motorista_id"
                                     class="form-select form-select-sm"
-                                    {{ $podeEditarEquipe ? '' : 'disabled' }}>
+                                    <?php echo e($podeEditarEquipe ? '' : 'disabled'); ?>>
                                 <option value="">Selecione...</option>
 
-                                @foreach($motoristas as $motorista)
-                                    <option value="{{ $motorista->id }}"
-                                        @selected(
+                                <?php $__currentLoopData = $motoristas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $motorista): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($motorista->id); ?>"
+                                        <?php if(
                                             (int) $motoristaSelecionado
                                             === (int) $motorista->id
-                                        )>
-                                        {{ $motorista->nome }}
+                                        ): echo 'selected'; endif; ?>>
+                                        <?php echo e($motorista->nome); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
 
-                            @if(! $podeEditarEquipe)
+                            <?php if(! $podeEditarEquipe): ?>
                                 <input type="hidden"
                                        name="motorista_id"
-                                       value="{{ $motoristaSelecionado }}">
-                            @endif
+                                       value="<?php echo e($motoristaSelecionado); ?>">
+                            <?php endif; ?>
                         </div>
 
                         <div class="col-lg-3">
@@ -1221,31 +1236,32 @@
                             <select id="veiculo_id"
                                     name="veiculo_id"
                                     class="form-select form-select-sm"
-                                    {{ $podeEditarEquipe ? '' : 'disabled' }}>
+                                    <?php echo e($podeEditarEquipe ? '' : 'disabled'); ?>>
                                 <option value="">Selecione...</option>
 
-                                @foreach($veiculos as $veiculo)
-                                    <option value="{{ $veiculo->id }}"
-                                        @selected(
+                                <?php $__currentLoopData = $veiculos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $veiculo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($veiculo->id); ?>"
+                                        <?php if(
                                             (int) $veiculoSelecionado
                                             === (int) $veiculo->id
-                                        )>
-                                        {{ $veiculo->placa
+                                        ): echo 'selected'; endif; ?>>
+                                        <?php echo e($veiculo->placa
                                             ?? $veiculo->descricao
                                             ?? $veiculo->observacao
-                                            ?? 'Veículo #' . $veiculo->id }}
+                                            ?? 'Veículo #' . $veiculo->id); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
 
-                            @if(! $podeEditarEquipe)
+                            <?php if(! $podeEditarEquipe): ?>
                                 <input type="hidden"
                                        name="veiculo_id"
-                                       value="{{ $veiculoSelecionado }}">
-                            @endif
+                                       value="<?php echo e($veiculoSelecionado); ?>">
+                            <?php endif; ?>
                         </div>
 
-                        @if($podeEditarDataEntregaComplementar)
+                        <?php if($podeEditarDataEntregaComplementar): ?>
                             <div class="col-lg-3">
                                 <label for="data_prevista_entrega"
                                        class="form-label">
@@ -1256,17 +1272,17 @@
                                        id="data_prevista_entrega"
                                        name="data_prevista_entrega"
                                        class="form-control form-control-sm"
-                                       value="{{ $dataPrevistaEntregaComplementar }}"
-                                       min="{{ now()->format('Y-m-d') }}"
+                                       value="<?php echo e($dataPrevistaEntregaComplementar); ?>"
+                                       min="<?php echo e(now()->format('Y-m-d')); ?>"
                                        required>
 
                                 <div class="form-text">
                                     Altera somente esta entrega complementar.
                                 </div>
                             </div>
-                        @endif
+                        <?php endif; ?>
 
-                        @if($statusOriginal === 'em_separacao')
+                        <?php if($statusOriginal === 'em_separacao'): ?>
                             <div class="col-lg-3">
                                 <label for="separado_por"
                                        class="form-label">
@@ -1278,20 +1294,21 @@
                                         class="form-select form-select-sm">
                                     <option value="">Selecione...</option>
 
-                                    @foreach($funcionariosOperacionais as $funcionario)
-                                        <option value="{{ $funcionario->id }}"
-                                            @selected(
+                                    <?php $__currentLoopData = $funcionariosOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $funcionario): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($funcionario->id); ?>"
+                                            <?php if(
                                                 (int) old('separado_por')
                                                 === (int) $funcionario->id
-                                            )>
-                                            {{ $funcionario->nome }}
+                                            ): echo 'selected'; endif; ?>>
+                                            <?php echo e($funcionario->nome); ?>
+
                                         </option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </div>
-                        @endif
+                        <?php endif; ?>
 
-                        @if($statusOriginal === 'aguardando_conferencia_separacao')
+                        <?php if($statusOriginal === 'aguardando_conferencia_separacao'): ?>
                             <div class="col-lg-3">
                                 <label for="conferencia_separacao_por"
                                        class="form-label">
@@ -1303,20 +1320,21 @@
                                         class="form-select form-select-sm">
                                     <option value="">Selecione...</option>
 
-                                    @foreach($funcionariosOperacionais as $funcionario)
-                                        <option value="{{ $funcionario->id }}"
-                                            @selected(
+                                    <?php $__currentLoopData = $funcionariosOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $funcionario): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($funcionario->id); ?>"
+                                            <?php if(
                                                 (int) old('conferencia_separacao_por')
                                                 === (int) $funcionario->id
-                                            )>
-                                            {{ $funcionario->nome }}
+                                            ): echo 'selected'; endif; ?>>
+                                            <?php echo e($funcionario->nome); ?>
+
                                         </option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </div>
-                        @endif
+                        <?php endif; ?>
 
-                        @if($statusOriginal === 'aguardando_carregamento')
+                        <?php if($statusOriginal === 'aguardando_carregamento'): ?>
                             <div class="col-lg-3">
                                 <label for="carregado_por"
                                        class="form-label">
@@ -1328,20 +1346,21 @@
                                         class="form-select form-select-sm">
                                     <option value="">Selecione...</option>
 
-                                    @foreach($funcionariosOperacionais as $funcionario)
-                                        <option value="{{ $funcionario->id }}"
-                                            @selected(
+                                    <?php $__currentLoopData = $funcionariosOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $funcionario): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($funcionario->id); ?>"
+                                            <?php if(
                                                 (int) old('carregado_por')
                                                 === (int) $funcionario->id
-                                            )>
-                                            {{ $funcionario->nome }}
+                                            ): echo 'selected'; endif; ?>>
+                                            <?php echo e($funcionario->nome); ?>
+
                                         </option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </div>
-                        @endif
+                        <?php endif; ?>
 
-                        @if($statusOriginal === 'aguardando_conferencia_saida')
+                        <?php if($statusOriginal === 'aguardando_conferencia_saida'): ?>
                             <div class="col-lg-3">
                                 <label for="conferencia_saida_por"
                                        class="form-label">
@@ -1353,18 +1372,19 @@
                                         class="form-select form-select-sm">
                                     <option value="">Selecione...</option>
 
-                                    @foreach($funcionariosOperacionais as $funcionario)
-                                        <option value="{{ $funcionario->id }}"
-                                            @selected(
+                                    <?php $__currentLoopData = $funcionariosOperacionais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $funcionario): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($funcionario->id); ?>"
+                                            <?php if(
                                                 (int) old('conferencia_saida_por')
                                                 === (int) $funcionario->id
-                                            )>
-                                            {{ $funcionario->nome }}
+                                            ): echo 'selected'; endif; ?>>
+                                            <?php echo e($funcionario->nome); ?>
+
                                         </option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </div>
-                        @endif
+                        <?php endif; ?>
 
                         <div class="col-lg-3">
                             <label for="observacao"
@@ -1377,8 +1397,9 @@
                                    name="observacao"
                                    class="form-control form-control-sm"
                                    maxlength="1000"
-                                   value="{{ $observacaoRomaneio }}"
-                                   {{ $operacaoInternaFinalizada ? 'readonly' : '' }}
+                                   value="<?php echo e($observacaoRomaneio); ?>"
+                                   <?php echo e($operacaoInternaFinalizada ? 'readonly' : ''); ?>
+
                                    placeholder="Orientação de carga, acesso ou prioridade...">
                         </div>
                     </div>
@@ -1391,8 +1412,8 @@
                         <div class="accordion"
                              id="accordionEntregas">
 
-                            @foreach($entregas as $indiceEntrega => $entrega)
-                                @php
+                            <?php $__currentLoopData = $entregas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $indiceEntrega => $entrega): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php
                                     $cliente = $resolverCliente($entrega);
 
                                     $clienteNome =
@@ -1421,36 +1442,40 @@
                                     $codigoEntrega =
                                         $entrega?->codigo_entrega
                                         ?? 'ENT-' . $entrega->id;
-                                @endphp
+                                ?>
 
                                 <div class="delivery-item">
                                     <h2 class="accordion-header"
-                                        id="headingEntrega{{ $entrega->id }}">
+                                        id="headingEntrega<?php echo e($entrega->id); ?>">
 
-                                        <button class="accordion-button delivery-button {{ $indiceEntrega > 0 ? 'collapsed' : '' }}"
+                                        <button class="accordion-button delivery-button <?php echo e($indiceEntrega > 0 ? 'collapsed' : ''); ?>"
                                                 type="button"
                                                 data-bs-toggle="collapse"
-                                                data-bs-target="#collapseEntrega{{ $entrega->id }}">
+                                                data-bs-target="#collapseEntrega<?php echo e($entrega->id); ?>">
 
                                             <div class="d-flex justify-content-between align-items-center gap-3 w-100 me-2">
                                                 <div>
                                                     <div class="delivery-code">
-                                                        {{ $codigoEntrega }}
+                                                        <?php echo e($codigoEntrega); ?>
+
                                                     </div>
 
                                                     <div class="delivery-client">
-                                                        {{ $clienteNome }}
+                                                        <?php echo e($clienteNome); ?>
+
                                                     </div>
                                                 </div>
 
                                                 <div class="d-flex flex-wrap gap-2">
                                                     <span class="badge bg-light text-dark border">
                                                         <i class="bi bi-calendar3 me-1"></i>
-                                                        {{ $dataPrevista }}
+                                                        <?php echo e($dataPrevista); ?>
+
                                                     </span>
 
                                                     <span class="badge bg-primary">
-                                                        {{ $itensEntrega->count() }}
+                                                        <?php echo e($itensEntrega->count()); ?>
+
                                                         item(ns)
                                                     </span>
                                                 </div>
@@ -1458,8 +1483,8 @@
                                         </button>
                                     </h2>
 
-                                    <div id="collapseEntrega{{ $entrega->id }}"
-                                         class="accordion-collapse collapse {{ $indiceEntrega === 0 ? 'show' : '' }}"
+                                    <div id="collapseEntrega<?php echo e($entrega->id); ?>"
+                                         class="accordion-collapse collapse <?php echo e($indiceEntrega === 0 ? 'show' : ''); ?>"
                                          data-bs-parent="#accordionEntregas">
 
                                         <div class="accordion-body p-0">
@@ -1471,7 +1496,8 @@
                                                         </span>
 
                                                         <div class="info-value">
-                                                            {{ $clienteNome }}
+                                                            <?php echo e($clienteNome); ?>
+
                                                         </div>
                                                     </div>
 
@@ -1481,7 +1507,8 @@
                                                         </span>
 
                                                         <div class="info-value">
-                                                            {{ $telefoneCliente }}
+                                                            <?php echo e($telefoneCliente); ?>
+
                                                         </div>
                                                     </div>
 
@@ -1491,7 +1518,8 @@
                                                         </span>
 
                                                         <div class="info-value">
-                                                            {{ $enderecoEntrega }}
+                                                            <?php echo e($enderecoEntrega); ?>
+
                                                         </div>
                                                     </div>
 
@@ -1501,7 +1529,8 @@
                                                         </span>
 
                                                         <div class="info-value">
-                                                            {{ $dataPrevista }}
+                                                            <?php echo e($dataPrevista); ?>
+
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1518,19 +1547,19 @@
                                                             <th>Local</th>
                                                             <th>Prevista</th>
                                                             <th>Romaneio</th>
-                                                            <th class="phase-separated {{ $campoQuantidadeAtiva === 'quantidade_separada' ? 'phase-current' : '' }}">
+                                                            <th class="phase-separated <?php echo e($campoQuantidadeAtiva === 'quantidade_separada' ? 'phase-current' : ''); ?>">
                                                                 Separada
                                                             </th>
 
-                                                            <th class="phase-separation-check {{ $campoQuantidadeAtiva === 'quantidade_conferida_separacao' ? 'phase-current' : '' }}">
+                                                            <th class="phase-separation-check <?php echo e($campoQuantidadeAtiva === 'quantidade_conferida_separacao' ? 'phase-current' : ''); ?>">
                                                                 Conf. Separação
                                                             </th>
 
-                                                            <th class="phase-loaded {{ $campoQuantidadeAtiva === 'quantidade_carregada' ? 'phase-current' : '' }}">
+                                                            <th class="phase-loaded <?php echo e($campoQuantidadeAtiva === 'quantidade_carregada' ? 'phase-current' : ''); ?>">
                                                                 Carregada
                                                             </th>
 
-                                                            <th class="phase-exit-check {{ $campoQuantidadeAtiva === 'quantidade_conferida_saida' ? 'phase-current' : '' }}">
+                                                            <th class="phase-exit-check <?php echo e($campoQuantidadeAtiva === 'quantidade_conferida_saida' ? 'phase-current' : ''); ?>">
                                                                 Conf. Saída
                                                             </th>
                                                             <th>Situação</th>
@@ -1539,8 +1568,8 @@
                                                     </thead>
 
                                                     <tbody>
-                                                        @forelse($itensEntrega as $item)
-                                                            @php
+                                                        <?php $__empty_1 = true; $__currentLoopData = $itensEntrega; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                                            <?php
                                                                 $produto = $resolverProduto($item);
                                                                 $itemRomaneio = $resolverItemRomaneio($item);
 
@@ -1586,218 +1615,229 @@
                                                                     $produto?->localizacao_estoque
                                                                     ?? $produto?->localizacao
                                                                     ?? '—';
-                                                            @endphp
+                                                            ?>
 
                                                             <tr class="item-row"
-                                                                data-prevista="{{ number_format($quantidadeRomaneio, 2, '.', '') }}">
+                                                                data-prevista="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>">
 
                                                                 <td>
                                                                     <input type="hidden"
-                                                                           name="itens[{{ $item->id }}][entrega_item_id]"
-                                                                           value="{{ $item->id }}">
+                                                                           name="itens[<?php echo e($item->id); ?>][entrega_item_id]"
+                                                                           value="<?php echo e($item->id); ?>">
 
-                                                                    @if($itemRomaneio)
+                                                                    <?php if($itemRomaneio): ?>
                                                                         <input type="hidden"
-                                                                               name="itens[{{ $item->id }}][romaneio_item_id]"
-                                                                               value="{{ $itemRomaneio->id }}">
-                                                                    @endif
+                                                                               name="itens[<?php echo e($item->id); ?>][romaneio_item_id]"
+                                                                               value="<?php echo e($itemRomaneio->id); ?>">
+                                                                    <?php endif; ?>
 
                                                                     <div class="product-name">
-                                                                        {{ $produto?->nome
+                                                                        <?php echo e($produto?->nome
                                                                             ?? $produto?->descricao
-                                                                            ?? 'Produto não identificado' }}
+                                                                            ?? 'Produto não identificado'); ?>
+
                                                                     </div>
 
                                                                     <div class="product-code">
                                                                         Código:
-                                                                        {{ $produto?->codigo
+                                                                        <?php echo e($produto?->codigo
                                                                             ?? $produto?->id
-                                                                            ?? '-' }}
+                                                                            ?? '-'); ?>
+
                                                                     </div>
                                                                 </td>
 
                                                                 <td class="text-center">
-                                                                    {{ $localizacao }}
+                                                                    <?php echo e($localizacao); ?>
+
                                                                 </td>
 
                                                                 <td class="text-end">
-                                                                    {{ number_format(
+                                                                    <?php echo e(number_format(
                                                                         $quantidadePrevista,
                                                                         2,
                                                                         ',',
                                                                         '.'
-                                                                    ) }}
+                                                                    )); ?>
+
                                                                 </td>
 
                                                                 <td class="text-center">
-                                                                    @if($criandoRomaneio)
+                                                                    <?php if($criandoRomaneio): ?>
                                                                         <input type="number"
-                                                                               name="itens[{{ $item->id }}][quantidade]"
-                                                                               value="{{ number_format($quantidadeRomaneio, 2, '.', '') }}"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade]"
+                                                                               value="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>"
                                                                                min="1"
-                                                                               max="{{ number_format($quantidadePrevista, 2, '.', '') }}"
+                                                                               max="<?php echo e(number_format($quantidadePrevista, 2, '.', '')); ?>"
                                                                                step="1"
                                                                                class="form-control form-control-sm quantity-input"
                                                                                data-active-quantity>
-                                                                    @else
+                                                                    <?php else: ?>
                                                                         <strong>
-                                                                            {{ number_format(
+                                                                            <?php echo e(number_format(
                                                                                 $quantidadeRomaneio,
                                                                                 2,
                                                                                 ',',
                                                                                 '.'
-                                                                            ) }}
+                                                                            )); ?>
+
                                                                         </strong>
 
                                                                         <input type="hidden"
-                                                                               name="itens[{{ $item->id }}][quantidade]"
-                                                                               value="{{ number_format($quantidadeRomaneio, 2, '.', '') }}">
-                                                                    @endif
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade]"
+                                                                               value="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>">
+                                                                    <?php endif; ?>
                                                                 </td>
 
-                                                                <td class="text-center phase-separated {{ $campoQuantidadeAtiva === 'quantidade_separada' ? 'phase-current' : '' }}">
-                                                                    @if($campoQuantidadeAtiva === 'quantidade_separada')
+                                                                <td class="text-center phase-separated <?php echo e($campoQuantidadeAtiva === 'quantidade_separada' ? 'phase-current' : ''); ?>">
+                                                                    <?php if($campoQuantidadeAtiva === 'quantidade_separada'): ?>
                                                                         <input type="number"
-                                                                               name="itens[{{ $item->id }}][quantidade_separada]"
-                                                                               value="{{ number_format($quantidadeSeparada, 2, '.', '') }}"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_separada]"
+                                                                               value="<?php echo e(number_format($quantidadeSeparada, 2, '.', '')); ?>"
                                                                                min="0"
-                                                                               max="{{ number_format($quantidadeRomaneio, 2, '.', '') }}"
+                                                                               max="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>"
                                                                                step="1"
                                                                                class="form-control form-control-sm quantity-input"
                                                                                data-active-quantity>
-                                                                    @else
+                                                                    <?php else: ?>
                                                                         <strong>
-                                                                            {{ number_format(
+                                                                            <?php echo e(number_format(
                                                                                 $quantidadeSeparada,
                                                                                 2,
                                                                                 ',',
                                                                                 '.'
-                                                                            ) }}
+                                                                            )); ?>
+
                                                                         </strong>
 
                                                                         <input type="hidden"
-                                                                               name="itens[{{ $item->id }}][quantidade_separada]"
-                                                                               value="{{ number_format($quantidadeSeparada, 2, '.', '') }}">
-                                                                    @endif
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_separada]"
+                                                                               value="<?php echo e(number_format($quantidadeSeparada, 2, '.', '')); ?>">
+                                                                    <?php endif; ?>
                                                                 </td>
 
-                                                                <td class="text-center phase-separation-check {{ $campoQuantidadeAtiva === 'quantidade_conferida_separacao' ? 'phase-current' : '' }}">
-                                                                    @if($campoQuantidadeAtiva === 'quantidade_conferida_separacao')
+                                                                <td class="text-center phase-separation-check <?php echo e($campoQuantidadeAtiva === 'quantidade_conferida_separacao' ? 'phase-current' : ''); ?>">
+                                                                    <?php if($campoQuantidadeAtiva === 'quantidade_conferida_separacao'): ?>
                                                                         <input type="number"
-                                                                               name="itens[{{ $item->id }}][quantidade_conferida_separacao]"
-                                                                               value="{{ number_format($quantidadeConferidaSeparacao, 2, '.', '') }}"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_conferida_separacao]"
+                                                                               value="<?php echo e(number_format($quantidadeConferidaSeparacao, 2, '.', '')); ?>"
                                                                                min="0"
-                                                                               max="{{ number_format($quantidadeSeparada, 2, '.', '') }}"
+                                                                               max="<?php echo e(number_format($quantidadeSeparada, 2, '.', '')); ?>"
                                                                                step="1"
                                                                                class="form-control form-control-sm quantity-input"
                                                                                data-active-quantity>
-                                                                    @else
+                                                                    <?php else: ?>
                                                                         <strong>
-                                                                            {{ number_format(
+                                                                            <?php echo e(number_format(
                                                                                 $quantidadeConferidaSeparacao,
                                                                                 2,
                                                                                 ',',
                                                                                 '.'
-                                                                            ) }}
+                                                                            )); ?>
+
                                                                         </strong>
 
                                                                         <input type="hidden"
-                                                                               name="itens[{{ $item->id }}][quantidade_conferida_separacao]"
-                                                                               value="{{ number_format($quantidadeConferidaSeparacao, 2, '.', '') }}">
-                                                                    @endif
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_conferida_separacao]"
+                                                                               value="<?php echo e(number_format($quantidadeConferidaSeparacao, 2, '.', '')); ?>">
+                                                                    <?php endif; ?>
                                                                 </td>
 
-                                                                <td class="text-center phase-loaded {{ $campoQuantidadeAtiva === 'quantidade_carregada' ? 'phase-current' : '' }}">
-                                                                    @if($campoQuantidadeAtiva === 'quantidade_carregada')
+                                                                <td class="text-center phase-loaded <?php echo e($campoQuantidadeAtiva === 'quantidade_carregada' ? 'phase-current' : ''); ?>">
+                                                                    <?php if($campoQuantidadeAtiva === 'quantidade_carregada'): ?>
                                                                         <input type="number"
-                                                                               name="itens[{{ $item->id }}][quantidade_carregada]"
-                                                                               value="{{ number_format($quantidadeCarregada, 2, '.', '') }}"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_carregada]"
+                                                                               value="<?php echo e(number_format($quantidadeCarregada, 2, '.', '')); ?>"
                                                                                min="0"
-                                                                               max="{{ number_format($quantidadeConferidaSeparacao, 2, '.', '') }}"
+                                                                               max="<?php echo e(number_format($quantidadeConferidaSeparacao, 2, '.', '')); ?>"
                                                                                step="1"
                                                                                class="form-control form-control-sm quantity-input"
                                                                                data-active-quantity>
-                                                                    @else
+                                                                    <?php else: ?>
                                                                         <strong>
-                                                                            {{ number_format(
+                                                                            <?php echo e(number_format(
                                                                                 $quantidadeCarregada,
                                                                                 2,
                                                                                 ',',
                                                                                 '.'
-                                                                            ) }}
+                                                                            )); ?>
+
                                                                         </strong>
 
                                                                         <input type="hidden"
-                                                                               name="itens[{{ $item->id }}][quantidade_carregada]"
-                                                                               value="{{ number_format($quantidadeCarregada, 2, '.', '') }}">
-                                                                    @endif
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_carregada]"
+                                                                               value="<?php echo e(number_format($quantidadeCarregada, 2, '.', '')); ?>">
+                                                                    <?php endif; ?>
                                                                 </td>
 
-                                                                <td class="text-center phase-exit-check {{ $campoQuantidadeAtiva === 'quantidade_conferida_saida' ? 'phase-current' : '' }}">
-                                                                    @if($campoQuantidadeAtiva === 'quantidade_conferida_saida')
+                                                                <td class="text-center phase-exit-check <?php echo e($campoQuantidadeAtiva === 'quantidade_conferida_saida' ? 'phase-current' : ''); ?>">
+                                                                    <?php if($campoQuantidadeAtiva === 'quantidade_conferida_saida'): ?>
                                                                         <input type="number"
-                                                                               name="itens[{{ $item->id }}][quantidade_conferida_saida]"
-                                                                               value="{{ number_format($quantidadeConferidaSaida, 2, '.', '') }}"
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_conferida_saida]"
+                                                                               value="<?php echo e(number_format($quantidadeConferidaSaida, 2, '.', '')); ?>"
                                                                                min="0"
-                                                                               max="{{ number_format($quantidadeCarregada, 2, '.', '') }}"
+                                                                               max="<?php echo e(number_format($quantidadeCarregada, 2, '.', '')); ?>"
                                                                                step="1"
                                                                                class="form-control form-control-sm quantity-input"
                                                                                data-active-quantity>
-                                                                    @else
+                                                                    <?php else: ?>
                                                                         <strong>
-                                                                            {{ number_format(
+                                                                            <?php echo e(number_format(
                                                                                 $quantidadeConferidaSaida,
                                                                                 2,
                                                                                 ',',
                                                                                 '.'
-                                                                            ) }}
+                                                                            )); ?>
+
                                                                         </strong>
 
                                                                         <input type="hidden"
-                                                                               name="itens[{{ $item->id }}][quantidade_conferida_saida]"
-                                                                               value="{{ number_format($quantidadeConferidaSaida, 2, '.', '') }}">
-                                                                    @endif
+                                                                               name="itens[<?php echo e($item->id); ?>][quantidade_conferida_saida]"
+                                                                               value="<?php echo e(number_format($quantidadeConferidaSaida, 2, '.', '')); ?>">
+                                                                    <?php endif; ?>
                                                                 </td>
 
                                                                 <td class="text-center">
                                                                     <span class="badge bg-light text-dark border">
-                                                                        {{ $itemRomaneio?->status
-                                                                            ?? 'Pendente' }}
+                                                                        <?php echo e($itemRomaneio?->status
+                                                                            ?? 'Pendente'); ?>
+
                                                                     </span>
                                                                 </td>
 
                                                                 <td class="text-center">
-                                                                    {{ $unidade }}
+                                                                    <?php echo e($unidade); ?>
+
                                                                 </td>
                                                             </tr>
-                                                        @empty
+                                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                                             <tr>
                                                                 <td colspan="10"
                                                                     class="text-center text-muted py-4">
                                                                     Nenhum item encontrado.
                                                                 </td>
                                                             </tr>
-                                                        @endforelse
+                                                        <?php endif; ?>
                                                     </tbody>
                                                 </table>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </div>
                     </div>
 
                     <div class="section-card mt-3">
                 <div class="footer-actions flex-column align-items-stretch">
                     <div class="d-flex flex-wrap gap-2 justify-content-end">
-                        <a href="{{ route('entregas.index') }}"
+                        <a href="<?php echo e(route('entregas.index')); ?>"
                            class="btn btn-outline-secondary btn-sm">
                             <i class="bi bi-x-circle me-1"></i>
                             Fechar
                         </a>
 
-                        @if(! $criandoRomaneio && $podeVoltarEtapa)
+                        <?php if(! $criandoRomaneio && $podeVoltarEtapa): ?>
                             <button type="button"
                                 class="btn btn-outline-danger"
                                 data-bs-toggle="modal"
@@ -1806,9 +1846,9 @@
                             <i class="bi bi-arrow-counterclockwise me-1"></i>
                             Alterar Etapa
                         </button>
-                        @endif
+                        <?php endif; ?>
 
-                        @if(! $criandoRomaneio && $podeSalvarAndamento)
+                        <?php if(! $criandoRomaneio && $podeSalvarAndamento): ?>
                             <button type="submit"
                                     name="acao"
                                     value="salvar_andamento"
@@ -1816,9 +1856,9 @@
                                 <i class="bi bi-floppy me-1"></i>
                                 Salvar Andamento
                             </button>
-                        @endif
+                        <?php endif; ?>
 
-                        @if($criandoRomaneio)
+                        <?php if($criandoRomaneio): ?>
                             <button type="submit"
                                     class="btn btn-primary btn-sm"
                                     id="btnPrincipal">
@@ -1826,7 +1866,7 @@
                                 Criar Romaneio
                             </button>
 
-                        @elseif($statusOriginal === 'aguardando_separacao')
+                        <?php elseif($statusOriginal === 'aguardando_separacao'): ?>
                             <button type="submit"
                                     name="acao"
                                     value="iniciar_separacao"
@@ -1836,7 +1876,7 @@
                                 Iniciar Separação
                             </button>
 
-                        @elseif($statusOriginal === 'em_separacao')
+                        <?php elseif($statusOriginal === 'em_separacao'): ?>
                             <button type="submit"
                                     name="acao"
                                     value="finalizar_separacao"
@@ -1846,7 +1886,7 @@
                                 Finalizar Separação
                             </button>
 
-                        @elseif($statusOriginal === 'aguardando_conferencia_separacao')
+                        <?php elseif($statusOriginal === 'aguardando_conferencia_separacao'): ?>
                             <button type="submit"
                                     name="acao"
                                     value="iniciar_conferencia_separacao"
@@ -1856,7 +1896,7 @@
                                 Iniciar Conferência
                             </button>
 
-                        @elseif($statusOriginal === 'em_conferencia_separacao')
+                        <?php elseif($statusOriginal === 'em_conferencia_separacao'): ?>
                             <button type="submit"
                                     name="acao"
                                     value="finalizar_conferencia_separacao"
@@ -1866,14 +1906,14 @@
                                 Finalizar Conferência
                             </button>
 
-                        @elseif(in_array(
+                        <?php elseif(in_array(
                             $statusOriginal,
                             [
                                 'separacao_conferida',
                                 'aguardando_carregamento',
                             ],
                             true
-                        ))
+                        )): ?>
                             <button type="submit"
                                     name="acao"
                                     value="iniciar_carregamento"
@@ -1883,7 +1923,7 @@
                                 Iniciar Carregamento
                             </button>
 
-                        @elseif($statusOriginal === 'carregando')
+                        <?php elseif($statusOriginal === 'carregando'): ?>
                             <button type="submit"
                                     name="acao"
                                     value="finalizar_carregamento"
@@ -1893,7 +1933,7 @@
                                 Finalizar Carregamento
                             </button>
 
-                        @elseif($statusOriginal === 'aguardando_conferencia_saida')
+                        <?php elseif($statusOriginal === 'aguardando_conferencia_saida'): ?>
                             <button type="submit"
                                     name="acao"
                                     value="iniciar_conferencia_saida"
@@ -1903,7 +1943,7 @@
                                 Iniciar Conf. Saída
                             </button>
 
-                        @elseif($statusOriginal === 'em_conferencia_saida')
+                        <?php elseif($statusOriginal === 'em_conferencia_saida'): ?>
                             <button type="submit"
                                     name="acao"
                                     value="finalizar_conferencia_saida"
@@ -1913,7 +1953,7 @@
                                 Finalizar Conf. Saída
                             </button>
 
-                        @elseif($statusOriginal === 'aguardando_liberacao')
+                        <?php elseif($statusOriginal === 'aguardando_liberacao'): ?>
                             <button type="submit"
                                     form="formImprimirRomaneio"
                                     class="btn btn-outline-dark btn-sm">
@@ -1926,16 +1966,16 @@
                                     value="liberar_veiculo"
                                     class="btn btn-success btn-sm"
                                     id="btnPrincipal"
-                                    @disabled(
+                                    <?php if(
                                         empty(
                                             $romaneioAtivo?->impresso_em
                                         )
-                                    )>
+                                    ): echo 'disabled'; endif; ?>>
                                 <i class="bi bi-shield-check me-1"></i>
                                 Liberar Veículo
                             </button>
 
-                        @elseif($statusOriginal === 'liberado')
+                        <?php elseif($statusOriginal === 'liberado'): ?>
             <button type="button"
                     class="btn btn-dark btn-sm"
                     data-bs-toggle="modal"
@@ -1944,18 +1984,19 @@
                 Conferir documentos e registrar saída
             </button>
 
-                        @elseif($statusOriginal === 'em_rota')
+                        <?php elseif($statusOriginal === 'em_rota'): ?>
                             <button type="button"
                                     class="btn btn-dark btn-sm"
                                     disabled>
                                 <i class="bi bi-sign-turn-right me-1"></i>
                                 Veículo em Rota
                             </button>
-                        @endif
+                        <?php endif; ?>
                     </div>
 
                     <div class="small text-muted mt-2 text-center">
-                        {{ $descricaoEtapa }}
+                        <?php echo e($descricaoEtapa); ?>
+
                     </div>
                 </div>
             </div>
@@ -2036,7 +2077,7 @@
                                 </div>
                             </div>
 
-                            @if($romaneioAtivo)
+                            <?php if($romaneioAtivo): ?>
                                 <hr>
 
                                 <div class="small text-muted">
@@ -2045,8 +2086,9 @@
                                         Motorista:
 
                                         <strong>
-                                            {{ $romaneioAtivo?->motorista?->nome
-                                                ?? 'A definir' }}
+                                            <?php echo e($romaneioAtivo?->motorista?->nome
+                                                ?? 'A definir'); ?>
+
                                         </strong>
                                     </div>
 
@@ -2055,23 +2097,24 @@
                                         Veículo:
 
                                         <strong>
-                                            {{ $romaneioAtivo?->veiculo?->placa
+                                            <?php echo e($romaneioAtivo?->veiculo?->placa
                                                 ?? $romaneioAtivo?->veiculo?->descricao
-                                                ?? 'A definir' }}
+                                                ?? 'A definir'); ?>
+
                                         </strong>
                                     </div>
                                 </div>
-                            @endif
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
             </div>
 
             
-            @if(
+            <?php if(
                 ! $criandoRomaneio
                 && $statusOriginal === 'em_separacao'
-            )
+            ): ?>
                 <div class="modal fade"
                      id="modalDecisaoSaldo"
                      tabindex="-1"
@@ -2187,15 +2230,16 @@
                                                 A definir posteriormente
                                             </option>
 
-                                            @foreach($motoristas as $motorista)
-                                                <option value="{{ $motorista->id }}"
-                                                    @selected(
+                                            <?php $__currentLoopData = $motoristas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $motorista): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                <option value="<?php echo e($motorista->id); ?>"
+                                                    <?php if(
                                                         (string) old('proximo_motorista_id')
                                                         === (string) $motorista->id
-                                                    )>
-                                                    {{ $motorista->nome }}
+                                                    ): echo 'selected'; endif; ?>>
+                                                    <?php echo e($motorista->nome); ?>
+
                                                 </option>
-                                            @endforeach
+                                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                         </select>
                                     </div>
 
@@ -2212,18 +2256,19 @@
                                                 A definir posteriormente
                                             </option>
 
-                                            @foreach($veiculos as $veiculo)
-                                                <option value="{{ $veiculo->id }}"
-                                                    @selected(
+                                            <?php $__currentLoopData = $veiculos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $veiculo): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                <option value="<?php echo e($veiculo->id); ?>"
+                                                    <?php if(
                                                         (string) old('proximo_veiculo_id')
                                                         === (string) $veiculo->id
-                                                    )>
-                                                    {{ $veiculo->placa
+                                                    ): echo 'selected'; endif; ?>>
+                                                    <?php echo e($veiculo->placa
                                                         ?? $veiculo->descricao
                                                         ?? $veiculo->modelo
-                                                        ?? ('Veículo #' . $veiculo->id) }}
+                                                        ?? ('Veículo #' . $veiculo->id)); ?>
+
                                                 </option>
-                                            @endforeach
+                                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                         </select>
                                     </div>
 
@@ -2237,8 +2282,8 @@
                                         <input type="date"
                                                name="data_prevista_saldo"
                                                id="data_prevista_saldo"
-                                               value="{{ old('data_prevista_saldo') }}"
-                                               min="{{ now()->format('Y-m-d') }}"
+                                               value="<?php echo e(old('data_prevista_saldo')); ?>"
+                                               min="<?php echo e(now()->format('Y-m-d')); ?>"
                                                class="form-control">
 
                                         <div class="invalid-feedback">
@@ -2257,7 +2302,7 @@
                                                   class="form-control"
                                                   rows="3"
                                                   maxlength="500"
-                                                  placeholder="Registre orientações para o próximo romaneio.">{{ old('observacao_saldo') }}</textarea>
+                                                  placeholder="Registre orientações para o próximo romaneio."><?php echo e(old('observacao_saldo')); ?></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -2279,30 +2324,30 @@
                         </div>
                     </div>
                 </div>
-            @endif
+            <?php endif; ?>
 
         </form>
 
-        @if(! $criandoRomaneio && $statusOriginal === 'liberado')
-            @include('romaneios.partials.modal-confirmacao-saida')
-        @endif
+        <?php if(! $criandoRomaneio && $statusOriginal === 'liberado'): ?>
+            <?php echo $__env->make('romaneios.partials.modal-confirmacao-saida', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+        <?php endif; ?>
 
-        @if(
+        <?php if(
             ! $criandoRomaneio
             && $statusOriginal === 'aguardando_liberacao'
-        )
+        ): ?>
             <form id="formImprimirRomaneio"
                   method="POST"
-                  action="{{ route(
+                  action="<?php echo e(route(
                       'romaneios.registrar-impressao',
                       $romaneioAtivo
-                  ) }}"
+                  )); ?>"
                   class="d-none">
-                @csrf
+                <?php echo csrf_field(); ?>
             </form>
-        @endif
+        <?php endif; ?>
 
-       @if(! $criandoRomaneio && $podeVoltarEtapa)
+       <?php if(! $criandoRomaneio && $podeVoltarEtapa): ?>
     <div class="modal fade"
          id="modalNavegarEtapa"
          tabindex="-1"
@@ -2347,16 +2392,17 @@
                                 Selecione a etapa
                             </option>
 
-                            @foreach($etapas as $chaveEtapa => $configuracaoEtapa)
-                                @if(
+                            <?php $__currentLoopData = $etapas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $chaveEtapa => $configuracaoEtapa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php if(
                                     $configuracaoEtapa['ordem'] < $ordemAtual
                                     && $chaveEtapa !== 'em_rota'
-                                )
-                                    <option value="{{ $chaveEtapa }}">
-                                        {{ $configuracaoEtapa['label'] }}
+                                ): ?>
+                                    <option value="<?php echo e($chaveEtapa); ?>">
+                                        <?php echo e($configuracaoEtapa['label']); ?>
+
                                     </option>
-                                @endif
-                            @endforeach
+                                <?php endif; ?>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </select>
 
                         <div class="invalid-feedback">
@@ -2402,8 +2448,8 @@
             </div>
         </div>
     </div>
-    @endif
-    @endif
+    <?php endif; ?>
+    <?php endif; ?>
 </div>
 
 <script>
@@ -2962,4 +3008,5 @@
     });
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/romaneios/create.blade.php ENDPATH**/ ?>

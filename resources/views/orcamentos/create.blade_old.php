@@ -1018,28 +1018,28 @@
                         </div>
 
                         <input
-                            type="hidden"
+                            type="text"
                             name="latitude_entrega"
                             id="latitude_entrega"
                             value="{{ old('latitude_entrega') }}"
                         >
 
                         <input
-                            type="hidden"
+                            type="text"
                             name="longitude_entrega"
                             id="longitude_entrega"
                             value="{{ old('longitude_entrega') }}"
                         >
 
                         <input
-                            type="hidden"
+                            type="text"
                             name="coordenada_confirmada"
                             id="coordenada_confirmada"
                             value="{{ old('coordenada_confirmada', '0') }}"
                         >
 
                         <input
-                            type="hidden"
+                            type="text"
                             name="coordenada_origem"
                             id="coordenada_origem"
                             value="{{ old('coordenada_origem') }}"
@@ -2184,12 +2184,13 @@
                 );
             }
 
-            const cepExibido = montarEnderecoCliente().match(
-                /\b\d{5}-?\d{3}\b/
-            );
+            const cliente =
+                clienteSelect?.options[
+                    clienteSelect.selectedIndex
+                ] || null;
 
             return somenteNumeros(
-                cepExibido?.[0] || ''
+                cliente?.dataset?.cep || ''
             );
         }
 
@@ -2641,14 +2642,17 @@
         const coordenadaRestaurada = (
             latitudeEntrega.value !== ''
             && longitudeEntrega.value !== ''
-            && coordenadaConfirmada.value === '1'
-            && coordenadaOrigem.value === 'endereco'
         );
 
         if (coordenadaRestaurada) {
+            const confirmada =
+                coordenadaConfirmada.value === '1';
+
             definirStatus(
-                'Endereço localizado automaticamente.',
-                'confirmed'
+                confirmada
+                    ? 'Endereço localizado automaticamente.'
+                    : 'Coordenadas aproximadas disponíveis para a entrega.',
+                confirmada ? 'confirmed' : 'pending'
             );
         } else if (
             tipoEntrega?.value === 'entrega'
@@ -2682,16 +2686,11 @@
                 'longitude_entrega'
             );
 
-            const coordenadaConfirmada = document.getElementById(
-                'coordenada_confirmada'
-            );
-
             if (
                 tipoEntrega?.value === 'entrega'
                 && (
                     !latitudeEntrega?.value
                     || !longitudeEntrega?.value
-                    || coordenadaConfirmada?.value !== '1'
                 )
             ) {
                 e.preventDefault();

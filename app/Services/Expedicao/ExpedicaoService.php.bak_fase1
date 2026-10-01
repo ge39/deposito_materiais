@@ -512,99 +512,10 @@ class ExpedicaoService
         );
     }
 
-    // public function salvarEquipe(Romaneio $romaneio, array $dados): void
-    // {
-    //     DB::transaction(function () use ($romaneio, $dados) {
-    //         $romaneio = Romaneio::whereKey($romaneio->id)
-    //             ->lockForUpdate()
-    //             ->firstOrFail();
-
-    //         $veiculo = Veiculo::whereKey($dados['veiculo_id'])
-    //             ->lockForUpdate()
-    //             ->firstOrFail();
-
-    //         $motoristaId = (int) $dados['motorista_id'];
-    //         $veiculoId = (int) $dados['veiculo_id'];
-
-    //         $motoristaEmOutroRomaneio = RomaneioEquipe::where('motorista_id', $motoristaId)
-    //             ->where('status', 'Ativa')
-    //             ->where('romaneio_id', '!=', $romaneio->id)
-    //             ->exists();
-
-    //         // if ($motoristaEmOutroRomaneio) {
-    //         //     throw ValidationException::withMessages([
-    //         //         'motorista_id' => 'Este motorista já está atribuído a outro romaneio ativo.',
-    //         //     ]);
-    //         // }
-
-    //         $veiculoEmOutroRomaneio = RomaneioEquipe::where('veiculo_id', $veiculoId)
-    //             ->where('status', 'Ativa')
-    //             ->where('romaneio_id', '!=', $romaneio->id)
-    //             ->exists();
-
-    //         if ($veiculoEmOutroRomaneio) {
-    //             throw ValidationException::withMessages([
-    //                 'veiculo_id' => "O veículo {$veiculo->placa} já está atribuído a outro romaneio ativo.",
-    //             ]);
-    //         }
-
-    //         if (
-    //             $veiculo->disponibilidade !== 'Disponivel' &&
-    //             (int) $romaneio->veiculo_id !== $veiculoId
-    //         ) {
-    //             throw ValidationException::withMessages([
-    //                 'veiculo_id' => "O veículo {$veiculo->placa} não está disponível.",
-    //             ]);
-    //         }
-
-    //         $equipeAtivaAnterior = RomaneioEquipe::where('romaneio_id', $romaneio->id)
-    //             ->where('status', 'Ativa')
-    //             ->lockForUpdate()
-    //             ->first();
-
-    //         if ($equipeAtivaAnterior) {
-    //             $equipeAtivaAnterior->update([
-    //                 'status' => 'Substituida',
-    //                 'liberado_por' => Auth::id(),
-    //                 'liberado_em' => now(),
-    //                 'motivo_substituicao' => 'Equipe substituída pela expedição.',
-    //             ]);
-
-    //             if ((int) $equipeAtivaAnterior->veiculo_id !== $veiculoId) {
-    //                 Veiculo::whereKey($equipeAtivaAnterior->veiculo_id)
-    //                     ->update([
-    //                         'motorista_atual_id' => null,
-    //                         'disponibilidade' => 'Disponivel',
-    //                     ]);
-    //             }
-    //         }
-
-    //         RomaneioEquipe::create([
-    //             'romaneio_id' => $romaneio->id,
-    //             'motorista_id' => $motoristaId,
-    //             'veiculo_id' => $veiculoId,
-    //             'status' => 'Ativa',
-    //             'atribuido_por' => Auth::id(),
-    //             'atribuido_em' => now(),
-    //         ]);
-
-    //         $romaneio->update([
-    //             'motorista_id' => $motoristaId,
-    //             'veiculo_id' => $veiculoId,
-    //         ]);
-
-    //         $veiculo->update([
-    //             'motorista_atual_id' => $motoristaId,
-    //             'disponibilidade' => 'Reservado',
-    //         ]);
-    //     });
-    // }
-    
-    public function salvarEquipe(Romaneio $romaneio, array $dados): void
+   public function salvarEquipe(Romaneio $romaneio, array $dados): void
     {
         DB::transaction(function () use ($romaneio, $dados) {
-            $romaneio = Romaneio::with('entrega')
-                ->whereKey($romaneio->id)
+            $romaneio = Romaneio::whereKey($romaneio->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
@@ -615,190 +526,56 @@ class ExpedicaoService
             $motoristaId = (int) $dados['motorista_id'];
             $veiculoId = (int) $dados['veiculo_id'];
 
-            $periodoEntrega = trim(
-                (string) (
-                    $romaneio->entrega?->periodo_entrega
-                    ?? ''
-                )
-            );
+            $motoristaEmOutroRomaneio = RomaneioEquipe::where('motorista_id', $motoristaId)
+                ->where('status', 'Ativa')
+                ->where('romaneio_id', '!=', $romaneio->id)
+                ->exists();
 
-            $dataEntrega =
-                $romaneio->entrega?->data_prevista_entrega;
+            // if ($motoristaEmOutroRomaneio) {
+            //     throw ValidationException::withMessages([
+            //         'motorista_id' => 'Este motorista já está atribuído a outro romaneio ativo.',
+            //     ]);
+            // }
 
-            if ($periodoEntrega !== '' && $dataEntrega) {
+            $veiculoEmOutroRomaneio = RomaneioEquipe::where('veiculo_id', $veiculoId)
+                ->where('status', 'Ativa')
+                ->where('romaneio_id', '!=', $romaneio->id)
+                ->exists();
 
-                /*
-                * REGRA 1:
-                * Mesmo veículo não pode ter motoristas diferentes
-                * na mesma data e período.
-                */
-                $veiculoComOutroMotorista =
-                    Romaneio::query()
-                        ->where('id', '!=', $romaneio->id)
-                        ->where('veiculo_id', $veiculoId)
-                        ->whereNotNull('motorista_id')
-                        ->where('motorista_id', '!=', $motoristaId)
-                        ->whereHas(
-                            'entrega',
-                            function ($query) use (
-                                $periodoEntrega,
-                                $dataEntrega
-                            ): void {
-                                $query
-                                    ->where(
-                                        'periodo_entrega',
-                                        $periodoEntrega
-                                    )
-                                    ->whereDate(
-                                        'data_prevista_entrega',
-                                        $dataEntrega
-                                    );
-                            }
-                        )
-                        ->exists();
-
-                if ($veiculoComOutroMotorista) {
-                    throw ValidationException::withMessages([
-                        'veiculo_id' =>
-                            "O veículo {$veiculo->placa} já está atribuído "
-                            . 'a outro motorista nesta mesma data e período de entrega.',
-                    ]);
-                }
-
-                /*
-                * REGRA 2:
-                * Mesmo motorista não pode ter veículos diferentes
-                * na mesma data e período.
-                */
-                $motoristaComOutroVeiculo =
-                    Romaneio::query()
-                        ->where('id', '!=', $romaneio->id)
-                        ->where('motorista_id', $motoristaId)
-                        ->whereNotNull('veiculo_id')
-                        ->where('veiculo_id', '!=', $veiculoId)
-                        ->whereHas(
-                            'entrega',
-                            function ($query) use (
-                                $periodoEntrega,
-                                $dataEntrega
-                            ): void {
-                                $query
-                                    ->where(
-                                        'periodo_entrega',
-                                        $periodoEntrega
-                                    )
-                                    ->whereDate(
-                                        'data_prevista_entrega',
-                                        $dataEntrega
-                                    );
-                            }
-                        )
-                        ->exists();
-
-                if ($motoristaComOutroVeiculo) {
-                    throw ValidationException::withMessages([
-                        'motorista_id' =>
-                            'Este motorista já está atribuído a outro veículo '
-                            . 'nesta mesma data e período de entrega.',
-                    ]);
-                }
+            if ($veiculoEmOutroRomaneio) {
+                throw ValidationException::withMessages([
+                    'veiculo_id' => "O veículo {$veiculo->placa} já está atribuído a outro romaneio ativo.",
+                ]);
             }
 
-            /*
-            * Disponibilidade do veículo.
-            */
             if (
-                $veiculo->disponibilidade !== 'Disponivel'
-                && (int) $romaneio->veiculo_id !== $veiculoId
+                $veiculo->disponibilidade !== 'Disponivel' &&
+                (int) $romaneio->veiculo_id !== $veiculoId
             ) {
-                $reservaCompativel = false;
-
-                if (
-                    $veiculo->disponibilidade === 'Reservado'
-                    && $periodoEntrega !== ''
-                    && $dataEntrega
-                ) {
-                    $reservaCompativel =
-                        Romaneio::query()
-                            ->where('id', '!=', $romaneio->id)
-                            ->where('veiculo_id', $veiculoId)
-                            ->where('motorista_id', $motoristaId)
-                            ->whereHas(
-                                'entrega',
-                                function ($query) use (
-                                    $periodoEntrega,
-                                    $dataEntrega
-                                ): void {
-                                    $query
-                                        ->where(
-                                            'periodo_entrega',
-                                            $periodoEntrega
-                                        )
-                                        ->whereDate(
-                                            'data_prevista_entrega',
-                                            $dataEntrega
-                                        );
-                                }
-                            )
-                            ->exists();
-                }
-
-                if (! $reservaCompativel) {
-                    throw ValidationException::withMessages([
-                        'veiculo_id' =>
-                            "O veículo {$veiculo->placa} não está disponível.",
-                    ]);
-                }
+                throw ValidationException::withMessages([
+                    'veiculo_id' => "O veículo {$veiculo->placa} não está disponível.",
+                ]);
             }
 
-            $equipeAtivaAnterior =
-                RomaneioEquipe::query()
-                    ->where(
-                        'romaneio_id',
-                        $romaneio->id
-                    )
-                    ->where(
-                        'status',
-                        'Ativa'
-                    )
-                    ->lockForUpdate()
-                    ->first();
+            $equipeAtivaAnterior = RomaneioEquipe::where('romaneio_id', $romaneio->id)
+                ->where('status', 'Ativa')
+                ->lockForUpdate()
+                ->first();
 
             if ($equipeAtivaAnterior) {
-                $veiculoAnteriorId =
-                    (int) $equipeAtivaAnterior->veiculo_id;
-
                 $equipeAtivaAnterior->update([
                     'status' => 'Substituida',
                     'liberado_por' => Auth::id(),
                     'liberado_em' => now(),
-                    'motivo_substituicao' =>
-                        'Equipe substituída pela expedição.',
+                    'motivo_substituicao' => 'Equipe substituída pela expedição.',
                 ]);
 
-                if ($veiculoAnteriorId !== $veiculoId) {
-                    $veiculoAindaEmUso =
-                        Romaneio::query()
-                            ->where(
-                                'id',
-                                '!=',
-                                $romaneio->id
-                            )
-                            ->where(
-                                'veiculo_id',
-                                $veiculoAnteriorId
-                            )
-                            ->exists();
-
-                    if (! $veiculoAindaEmUso) {
-                        Veiculo::whereKey(
-                            $veiculoAnteriorId
-                        )
-                            ->update([
-                                'motorista_atual_id' => null,
-                                'disponibilidade' => 'Disponivel',
-                            ]);
-                    }
+                if ((int) $equipeAtivaAnterior->veiculo_id !== $veiculoId) {
+                    Veiculo::whereKey($equipeAtivaAnterior->veiculo_id)
+                        ->update([
+                            'motorista_atual_id' => null,
+                            'disponibilidade' => 'Disponivel',
+                        ]);
                 }
             }
 
@@ -822,4 +599,5 @@ class ExpedicaoService
             ]);
         });
     }
+  
 }

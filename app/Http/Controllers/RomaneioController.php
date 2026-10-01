@@ -1552,73 +1552,205 @@ class RomaneioController extends Controller
 
     }
 
+    // public function salvarEquipe(Request $request, Romaneio $romaneio)
+    // {
+    //     $dadosValidados = $request->validate(
+    //         [
+    //             'motorista_id' => ['required', 'integer', 'exists:funcionarios,id'],
+
+    //             'veiculo_id' => ['required', 'integer', 'exists:veiculos,id'],
+
+    //             'data_prevista_saida' => ['nullable', 'date'],
+
+    //             'data_prevista_retorno' => [
+    //                 'nullable',
+
+    //                 'date',
+
+    //                 'after_or_equal:data_prevista_saida',
+
+    //             ],
+
+    //             'ordem_execucao' => ['nullable', 'integer', 'min:1'],
+
+    //             'prioridade' => ['nullable', Rule::in(['Baixa', 'Normal', 'Alta', 'Urgente'])],
+
+    //         ],
+
+    //         [
+    //             'motorista_id.required' => 'Selecione o motorista.',
+
+    //             'motorista_id.exists' => 'O motorista selecionado não foi encontrado.',
+
+    //             'veiculo_id.required' => 'Selecione o veículo.',
+
+    //             'veiculo_id.exists' => 'O veículo selecionado não foi encontrado.',
+
+    //             'data_prevista_retorno.after_or_equal' => 'O retorno previsto não pode ser anterior à saída prevista.',
+
+    //         ]
+    //     );
+
+    //     if (! $romaneio->podeAlterarPlanejamento()) {
+    //         return back()->with(
+    //             'error',
+
+    //             'A equipe e o planejamento não podem ser alterados após a liberação da viagem.'
+    //         );
+
+    //     }
+
+    //     $romaneio->update([
+    //         'motorista_id' => $dadosValidados['motorista_id'],
+
+    //         'veiculo_id' => $dadosValidados['veiculo_id'],
+
+    //         'data_prevista_saida' => $dadosValidados['data_prevista_saida'] ?? $romaneio->data_prevista_saida,
+
+    //         'data_prevista_retorno' => $dadosValidados['data_prevista_retorno'] ?? $romaneio->data_prevista_retorno,
+
+    //         'ordem_execucao' => $dadosValidados['ordem_execucao'] ?? $romaneio->ordem_execucao,
+
+    //         'prioridade' => $dadosValidados['prioridade'] ?? $romaneio->prioridade,
+
+    //     ]);
+
+    //     return redirect()
+    //         ->route('romaneios.create', ['entrega_id' => $romaneio->entrega_id])
+    //         ->with('success', 'Equipe e planejamento atualizados com sucesso.');
+
+    // }
+
     public function salvarEquipe(Request $request, Romaneio $romaneio)
     {
         $dadosValidados = $request->validate(
             [
-                'motorista_id' => ['required', 'integer', 'exists:funcionarios,id'],
+                'motorista_id' => [
+                    'required',
+                    'integer',
+                    'exists:funcionarios,id',
+                ],
 
-                'veiculo_id' => ['required', 'integer', 'exists:veiculos,id'],
+                'veiculo_id' => [
+                    'required',
+                    'integer',
+                    'exists:veiculos,id',
+                ],
 
-                'data_prevista_saida' => ['nullable', 'date'],
+                'data_prevista_saida' => [
+                    'nullable',
+                    'date',
+                ],
 
                 'data_prevista_retorno' => [
                     'nullable',
-
                     'date',
-
                     'after_or_equal:data_prevista_saida',
-
                 ],
 
-                'ordem_execucao' => ['nullable', 'integer', 'min:1'],
+                'ordem_execucao' => [
+                    'nullable',
+                    'integer',
+                    'min:1',
+                ],
 
-                'prioridade' => ['nullable', Rule::in(['Baixa', 'Normal', 'Alta', 'Urgente'])],
-
+                'prioridade' => [
+                    'nullable',
+                    Rule::in([
+                        'Baixa',
+                        'Normal',
+                        'Alta',
+                        'Urgente',
+                    ]),
+                ],
             ],
-
             [
-                'motorista_id.required' => 'Selecione o motorista.',
+                'motorista_id.required' =>
+                    'Selecione o motorista.',
 
-                'motorista_id.exists' => 'O motorista selecionado não foi encontrado.',
+                'motorista_id.exists' =>
+                    'O motorista selecionado não foi encontrado.',
 
-                'veiculo_id.required' => 'Selecione o veículo.',
+                'veiculo_id.required' =>
+                    'Selecione o veículo.',
 
-                'veiculo_id.exists' => 'O veículo selecionado não foi encontrado.',
+                'veiculo_id.exists' =>
+                    'O veículo selecionado não foi encontrado.',
 
-                'data_prevista_retorno.after_or_equal' => 'O retorno previsto não pode ser anterior à saída prevista.',
-
+                'data_prevista_retorno.after_or_equal' =>
+                    'O retorno previsto não pode ser anterior à saída prevista.',
             ]
         );
 
         if (! $romaneio->podeAlterarPlanejamento()) {
             return back()->with(
                 'error',
-
                 'A equipe e o planejamento não podem ser alterados após a liberação da viagem.'
             );
-
         }
 
-        $romaneio->update([
-            'motorista_id' => $dadosValidados['motorista_id'],
+        try {
+            /*
+            * Atribuição/substituição de motorista e veículo.
+            *
+            * IMPORTANTE:
+            * Toda regra de conflito, disponibilidade e histórico
+            * deve permanecer centralizada no ExpedicaoService.
+            */
+            $this->expedicaoService->salvarEquipe(
+                $romaneio,
+                [
+                    'motorista_id' =>
+                        $dadosValidados['motorista_id'],
 
-            'veiculo_id' => $dadosValidados['veiculo_id'],
+                    'veiculo_id' =>
+                        $dadosValidados['veiculo_id'],
+                ]
+            );
 
-            'data_prevista_saida' => $dadosValidados['data_prevista_saida'] ?? $romaneio->data_prevista_saida,
+            /*
+            * Campos de planejamento pertencentes ao romaneio.
+            */
+            $romaneio->refresh();
 
-            'data_prevista_retorno' => $dadosValidados['data_prevista_retorno'] ?? $romaneio->data_prevista_retorno,
+            $romaneio->update([
+                'data_prevista_saida' =>
+                    $dadosValidados['data_prevista_saida']
+                    ?? $romaneio->data_prevista_saida,
 
-            'ordem_execucao' => $dadosValidados['ordem_execucao'] ?? $romaneio->ordem_execucao,
+                'data_prevista_retorno' =>
+                    $dadosValidados['data_prevista_retorno']
+                    ?? $romaneio->data_prevista_retorno,
 
-            'prioridade' => $dadosValidados['prioridade'] ?? $romaneio->prioridade,
+                'ordem_execucao' =>
+                    $dadosValidados['ordem_execucao']
+                    ?? $romaneio->ordem_execucao,
 
-        ]);
+                'prioridade' =>
+                    $dadosValidados['prioridade']
+                    ?? $romaneio->prioridade,
+            ]);
 
-        return redirect()
-            ->route('romaneios.create', ['entrega_id' => $romaneio->entrega_id])
-            ->with('success', 'Equipe e planejamento atualizados com sucesso.');
-
+            return redirect()
+                ->route(
+                    'romaneios.create',
+                    [
+                        'entrega_id' =>
+                            $romaneio->entrega_id,
+                    ]
+                )
+                ->with(
+                    'success',
+                    'Equipe e planejamento atualizados com sucesso.'
+                );
+        } catch (\Throwable $e) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    $e->getMessage()
+                );
+        }
     }
 
     public function separacao(Romaneio $romaneio)

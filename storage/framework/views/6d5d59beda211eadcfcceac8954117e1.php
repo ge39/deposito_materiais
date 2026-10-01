@@ -1,10 +1,10 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 
 <div class="container-fluid px-2">
 
-    {{-- CABEÇALHO OPERACIONAL --}}
+    
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h4 class="mb-0 fw-bold">
@@ -17,12 +17,12 @@
         </div>
 
         <div class="d-flex gap-1">
-            <a href="{{ route('entregas.index') }}" class="btn btn-outline-secondary btn-sm">
+            <a href="<?php echo e(route('entregas.index')); ?>" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>
                 Entregas
             </a>
 
-            <!-- <a href="{{ route('romaneios.create') }}" class="btn btn-success btn-sm">
+            <!-- <a href="<?php echo e(route('romaneios.create')); ?>" class="btn btn-success btn-sm">
                 <i class="bi bi-box-seam me-1"></i>
                 Separar Itens
             </a> -->
@@ -34,24 +34,26 @@
         </div>
     </div>
 
-    {{-- ALERTAS --}}
-    @if(session('success'))
+    
+    <?php if(session('success')): ?>
         <div class="alert alert-success alert-dismissible fade show shadow-sm py-2" role="alert">
             <i class="bi bi-check-circle me-1"></i>
-            {{ session('success') }}
+            <?php echo e(session('success')); ?>
+
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @if(session('error'))
+    <?php if(session('error')): ?>
         <div class="alert alert-danger alert-dismissible fade show shadow-sm py-2" role="alert">
             <i class="bi bi-exclamation-triangle me-1"></i>
-            {{ session('error') }}
+            <?php echo e(session('error')); ?>
+
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-    @endif
+    <?php endif; ?>
 
-    {{-- KPIS --}}
+    
     <div class="row g-2 mb-3">
 
         <div class="col-md-2">
@@ -59,7 +61,7 @@
                 <div class="card-body py-2 d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-semibold">AGUARDANDO SEPARAÇÃO</small>
-                        <h4 class="mb-0 fw-bold">{{ $kpis['entregas_disponiveis'] ?? 0 }}</h4>
+                        <h4 class="mb-0 fw-bold"><?php echo e($kpis['entregas_disponiveis'] ?? 0); ?></h4>
                     </div>
                     <i class="bi bi-box-seam fs-3 text-primary opacity-75"></i>
                 </div>
@@ -71,7 +73,7 @@
                 <div class="card-body py-2 d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-semibold">ROMANEIOS GERADOS</small>
-                        <h4 class="mb-0 fw-bold">{{ $kpis['romaneios_abertos'] ?? 0 }}</h4>
+                        <h4 class="mb-0 fw-bold"><?php echo e($kpis['romaneios_abertos'] ?? 0); ?></h4>
                     </div>
                     <i class="bi bi-clipboard-check fs-3 text-secondary opacity-75"></i>
                 </div>
@@ -83,7 +85,7 @@
                 <div class="card-body py-2 d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-semibold">EM SEPARAÇÃO</small>
-                        <h4 class="mb-0 fw-bold">{{ $kpis['romaneios_em_separacao'] ?? 0 }}</h4>
+                        <h4 class="mb-0 fw-bold"><?php echo e($kpis['romaneios_em_separacao'] ?? 0); ?></h4>
                     </div>
                     <i class="bi bi-hourglass-split fs-3 text-warning opacity-75"></i>
                 </div>
@@ -95,7 +97,7 @@
                 <div class="card-body py-2 d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-semibold">SEPARADOS</small>
-                        <h4 class="mb-0 fw-bold">{{ $kpis['romaneios_separados'] ?? 0 }}</h4>
+                        <h4 class="mb-0 fw-bold"><?php echo e($kpis['romaneios_separados'] ?? 0); ?></h4>
                     </div>
                     <i class="bi bi-check2-square fs-3 text-info opacity-75"></i>
                 </div>
@@ -107,7 +109,7 @@
                 <div class="card-body py-2 d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-semibold">CARREGANDO</small>
-                        <h4 class="mb-0 fw-bold">{{ $kpis['romaneios_carregando'] ?? 0 }}</h4>
+                        <h4 class="mb-0 fw-bold"><?php echo e($kpis['romaneios_carregando'] ?? 0); ?></h4>
                     </div>
                     <i class="bi bi-truck fs-3 text-dark opacity-75"></i>
                 </div>
@@ -119,7 +121,7 @@
                 <div class="card-body py-2 d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted fw-semibold">EM ROTA</small>
-                        <h4 class="mb-0 fw-bold">{{ $kpis['romaneios_em_rota'] ?? 0 }}</h4>
+                        <h4 class="mb-0 fw-bold"><?php echo e($kpis['romaneios_em_rota'] ?? 0); ?></h4>
                     </div>
                     <i class="bi bi-geo-alt fs-3 text-success opacity-75"></i>
                 </div>
@@ -128,7 +130,7 @@
 
     </div>
 
-    {{-- FILTROS --}}
+    
     <div class="card shadow-sm mb-3">
         <div class="card-header py-2 bg-light d-flex justify-content-between align-items-center">
             <strong class="small text-muted">
@@ -137,17 +139,17 @@
             </strong>
 
             <span class="badge bg-secondary">
-                {{ $romaneios->count() ?? 0 }} romaneio(s) no período
+                <?php echo e($romaneios->count() ?? 0); ?> romaneio(s) no período
             </span>
         </div>
 
         <div class="card-body py-2">
-            <form method="GET" action="{{ route('expedicao.index') }}" class="row g-2 align-items-end">
+            <form method="GET" action="<?php echo e(route('expedicao.index')); ?>" class="row g-2 align-items-end">
                 <div class="col-md-2">
                     <label class="form-label mb-1 small fw-semibold">Data inicial</label>
                     <input type="date"
                            name="data_inicio"
-                           value="{{ $dataInicio ?? now()->subDays(15)->toDateString() }}"
+                           value="<?php echo e($dataInicio ?? now()->subDays(15)->toDateString()); ?>"
                            class="form-control form-control-sm">
                 </div>
 
@@ -155,7 +157,7 @@
                     <label class="form-label mb-1 small fw-semibold">Data final</label>
                     <input type="date"
                            name="data_fim"
-                           value="{{ $dataFim ?? now()->toDateString() }}"
+                           value="<?php echo e($dataFim ?? now()->toDateString()); ?>"
                            class="form-control form-control-sm">
                 </div>
 
@@ -164,7 +166,7 @@
                     <select name="status" class="form-select form-select-sm">
                         <option value="">Todos</option>
 
-                        @foreach([
+                        <?php $__currentLoopData = [
                             'Gerado' => 'Gerado',
                             'Em_separacao' => 'Em separação',
                             'Separado' => 'Separado',
@@ -176,11 +178,12 @@
                             'Parcial' => 'Parcial',
                             'Devolvido' => 'Devolvido',
                             'Cancelado' => 'Cancelado',
-                        ] as $statusValor => $statusTexto)
-                            <option value="{{ $statusValor }}" @selected(($status ?? '') === $statusValor)>
-                                {{ $statusTexto }}
+                        ]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $statusValor => $statusTexto): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($statusValor); ?>" <?php if(($status ?? '') === $statusValor): echo 'selected'; endif; ?>>
+                                <?php echo e($statusTexto); ?>
+
                             </option>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
                 </div>
 
@@ -190,7 +193,7 @@
                         Filtrar
                     </button>
 
-                    <a href="{{ route('expedicao.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <a href="<?php echo e(route('expedicao.index')); ?>" class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-x-circle me-1"></i>
                         Limpar
                     </a>
@@ -201,7 +204,7 @@
 
     <div class="row g-3">
 
-        {{-- ROMANEIOS OPERACIONAIS --}}
+        
         <div class="col-md-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
@@ -210,7 +213,7 @@
                         Romaneios em Operação
                     </strong>
 
-                    <small>{{ $romaneios->count() }} registro(s)</small>
+                    <small><?php echo e($romaneios->count()); ?> registro(s)</small>
                 </div>
 
                 <div class="card-body p-0">
@@ -230,8 +233,8 @@
                             </thead>
 
                             <tbody>
-                                @forelse($romaneios as $romaneio)
-                                    @php
+                                <?php $__empty_1 = true; $__currentLoopData = $romaneios; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $romaneio): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                    <?php
                                         $totalItens = $romaneio->itens->count() ?? 0;
 
                                         $itensConcluidos = $romaneio->itens
@@ -292,75 +295,83 @@
                                             'Cancelado' => 'Cancelado',
                                             default => $romaneio->status,
                                         };
-                                    @endphp
+                                    ?>
 
                                     <tr>
                                         <td class="fw-semibold">
-                                            {{ $codigoRomaneio }}
+                                            <?php echo e($codigoRomaneio); ?>
+
                                             <br>
 
                                             <small class="text-muted">
                                                 Emitido:
-                                                {{ optional($romaneio->data_emissao ?? $romaneio->created_at)->format('d/m/Y H:i') }}
+                                                <?php echo e(optional($romaneio->data_emissao ?? $romaneio->created_at)->format('d/m/Y H:i')); ?>
+
                                             </small>
 
-                                            @if(!empty($romaneio->token_abertura) && !empty($romaneio->token_fechamento))
+                                            <?php if(!empty($romaneio->token_abertura) && !empty($romaneio->token_fechamento)): ?>
                                                 <br>
                                                 <span class="badge bg-light text-dark border mt-1">
                                                     Tokens OK
                                                 </span>
-                                            @endif
+                                            <?php endif; ?>
                                         </td>
 
                                         <td>
                                             <div class="fw-semibold">
-                                                {{ $clienteNome }}
+                                                <?php echo e($clienteNome); ?>
+
                                             </div>
 
                                             <small class="text-muted">
-                                                Entrega: {{ $codigoEntrega }}
+                                                Entrega: <?php echo e($codigoEntrega); ?>
+
                                             </small>
 
                                             <br>
 
                                             <small class="text-muted">
-                                                {{ $totalEntregas }} entrega(s) vinculada(s)
+                                                <?php echo e($totalEntregas); ?> entrega(s) vinculada(s)
                                             </small>
                                         </td>
 
                                         <td>
-                                            {{ $romaneio->motorista->nome ?? 'Não informado' }}
+                                            <?php echo e($romaneio->motorista->nome ?? 'Não informado'); ?>
+
                                         </td>
 
                                         <td class="text-center">
                                             <span class="badge bg-secondary">
-                                                {{ $totalItens }}
+                                                <?php echo e($totalItens); ?>
+
                                             </span>
                                         </td>
 
                                         <td class="text-center">
-                                            <span class="badge {{ $statusClass }}">
-                                                {{ $statusLabel }}
+                                            <span class="badge <?php echo e($statusClass); ?>">
+                                                <?php echo e($statusLabel); ?>
+
                                             </span>
                                         </td>
 
                                         <td>
                                             <div class="d-flex justify-content-between">
-                                                <small>{{ number_format($percentual, 2, ',', '.') }}%</small>
+                                                <small><?php echo e(number_format($percentual, 2, ',', '.')); ?>%</small>
                                             </div>
 
                                             <div class="progress" style="height: 8px;">
-                                                <div class="progress-bar" style="width: {{ $percentual }}%;"></div>
+                                                <div class="progress-bar" style="width: <?php echo e($percentual); ?>%;"></div>
                                             </div>
                                         </td>
 
                                         <td class="text-center">
-                                            {{ $romaneio->veiculo->placa ?? $romaneio->veiculo->descricao ?? '-' }}
+                                            <?php echo e($romaneio->veiculo->placa ?? $romaneio->veiculo->descricao ?? '-'); ?>
+
                                         </td>
                                        
                                         <td class="text-center">
                                             <div class="btn-group btn-group-sm">
-                                                <a href="{{ route('expedicao.atribuir-equipe', $romaneio->id) }}"
+                                                <a href="<?php echo e(route('expedicao.atribuir-equipe', $romaneio->id)); ?>"
                                                     class="btn btn-primary"
                                                     title="Atribuir equipe">
                                                         <i class="bi bi-truck"></i>
@@ -368,20 +379,20 @@
                                             </div>
 
                                             <div class="btn-group btn-group-sm">
-                                                <a href="{{ route('expedicao.show', $romaneio->id) }}"
+                                                <a href="<?php echo e(route('expedicao.show', $romaneio->id)); ?>"
                                                    class="btn btn-outline-secondary"
                                                    title="Visualizar">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
 
-                                                <a href="{{ route('romaneios.imprimir', $romaneio->id) }}"
+                                                <a href="<?php echo e(route('romaneios.imprimir', $romaneio->id)); ?>"
                                                    target="_blank"
                                                    class="btn btn-outline-dark"
                                                    title="Imprimir romaneio">
                                                     <i class="bi bi-printer"></i>
                                                 </a>
 
-                                                <a href="{{ route('expedicao.operacao', $romaneio->id) }}"
+                                                <a href="<?php echo e(route('expedicao.operacao', $romaneio->id)); ?>"
                                                    class="btn btn-primary"
                                                    title="Operar romaneio">
                                                     <i class="bi bi-box-arrow-in-right"></i>
@@ -389,14 +400,14 @@
                                             </div>
                                         </td>
                                     </tr>
-                                @empty
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                     <tr>
                                         <td colspan="8" class="text-center text-muted py-4">
                                             <i class="bi bi-inbox fs-4 d-block mb-2"></i>
                                             Nenhum romaneio encontrado para o período selecionado.
                                         </td>
                                     </tr>
-                                @endforelse
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -404,7 +415,7 @@
             </div>
         </div>
 
-        {{-- ENTREGAS AGUARDANDO SEPARAÇÃO --}}
+        
         <!-- <div class="col-md-4">
 
             <div class="card shadow-sm mb-3">
@@ -415,13 +426,14 @@
                     </strong>
 
                     <span class="badge bg-light text-dark">
-                        {{ $entregasDisponiveis->count() ?? 0 }}
+                        <?php echo e($entregasDisponiveis->count() ?? 0); ?>
+
                     </span>
                 </div>
 
                 <div class="card-body">
-                    @forelse($entregasDisponiveis as $entrega)
-                        @php
+                    <?php $__empty_1 = true; $__currentLoopData = $entregasDisponiveis; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $entrega): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <?php
                             $clienteEntrega =
                             $entrega->orcamento->cliente->nome
                             ?? $entrega->orcamento->cliente->razao_social
@@ -440,10 +452,10 @@
                             : '-';
 
                         $periodo = $entrega->periodo_entrega ?? '-';
-                        @endphp
+                        ?>
 
                         <div class="border rounded p-2 mb-2 bg-light">
-                            @php
+                            <?php
                                 $badgeData = 'bg-secondary';
                                 $textoData = $dataPrevista;
 
@@ -469,67 +481,74 @@
                                     'noite' => 'bg-dark',
                                     default => 'bg-secondary',
                                 };
-                            @endphp
+                            ?>
 
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>
                                     <div class="fw-semibold">
-                                        {{ $codigoEntrega }} - {{ $clienteEntrega }}
+                                        <?php echo e($codigoEntrega); ?> - <?php echo e($clienteEntrega); ?>
+
                                     </div>
 
                                     <small class="text-muted d-block">
-                                        Orçamento: {{ $codigoOrcamento }}
+                                        Orçamento: <?php echo e($codigoOrcamento); ?>
+
                                     </small>
 
                                     <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
-                                        <span class="badge {{ $badgeData }}">
+                                        <span class="badge <?php echo e($badgeData); ?>">
                                             <i class="bi bi-calendar-event me-1"></i>
-                                            {{ $textoData }}
+                                            <?php echo e($textoData); ?>
+
                                         </span>
 
-                                        <span class="badge {{ $badgePeriodo }}">
+                                        <span class="badge <?php echo e($badgePeriodo); ?>">
                                             <i class="bi bi-clock me-1"></i>
-                                            {{ ucfirst($periodo) }}
+                                            <?php echo e(ucfirst($periodo)); ?>
+
                                         </span>
                                     </div>
 
                                     <small class="text-primary d-block mt-1">
                                         <i class="bi bi-calendar-check me-1"></i>
                                         Data Entrega:
-                                        <strong>{{ $dataPrevista }}</strong>
+                                        <strong><?php echo e($dataPrevista); ?></strong>
                                     </small>
                                 </div>
 
                                 <span class="badge bg-success">
-                                    {{ str_replace('_', ' ', $entrega->status) }}
+                                    <?php echo e(str_replace('_', ' ', $entrega->status)); ?>
+
                                 </span>
                             </div>
 
                             <small class="text-muted d-block mt-1">
                                 <i class="bi bi-geo-alt me-1"></i>
-                                {{ $entrega->endereco_entrega ?? $entrega->endereco_entrega_concatenado ?? 'Endereço não informado' }}
+                                <?php echo e($entrega->endereco_entrega ?? $entrega->endereco_entrega_concatenado ?? 'Endereço não informado'); ?>
+
                             </small>
 
                             <div class="d-flex justify-content-end align-items-end mt-2">
                                 <!-- <small class="text-muted">
-                                    Itens: {{ $entrega->itens->count() }}
+                                    Itens: <?php echo e($entrega->itens->count()); ?>
+
                                 </small> -->
 
-                                <a href="{{ route('romaneios.create', ['entrega_id' => $entrega->id]) }}"
+                                <a href="<?php echo e(route('romaneios.create', ['entrega_id' => $entrega->id])); ?>"
                                 class="btn btn-success btn-sm">
                                     <i class="bi bi-box-seam me-1"></i>
                                     Separar
                                 </a>
                             </div>
                         </div>
-                    @empty
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <div class="text-muted text-center py-3">
                             <i class="bi bi-check2-circle fs-4 d-block mb-2"></i>
                             Nenhuma entrega aguardando separação.
                         </div>
-                    @endforelse
+                    <?php endif; ?>
 
-                    <a href="{{ route('romaneios.create') }}" class="btn btn-success btn-sm w-100 mt-2">
+                    <a href="<?php echo e(route('romaneios.create')); ?>" class="btn btn-success btn-sm w-100 mt-2">
                         <i class="bi bi-plus-circle me-1"></i>
                         Separar Itens
                     </a>
@@ -546,4 +565,5 @@
 
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/expedicao/index.blade.php ENDPATH**/ ?>
