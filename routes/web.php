@@ -51,6 +51,8 @@ use App\Http\Controllers\{
     ExpedicaoController,
     LocalizacaoEstoqueController,
     VeiculoController,
+    AjustePrecoController,
+    
 };
 
 // ===============================
@@ -1064,4 +1066,30 @@ Route::middleware(['auth'])
         Route::patch('/unidades-medida/{unidadeMedida}/status', [UnidadeMedidaController::class, 'alternarStatus'])
             ->name('unidades-medida.alternar-status');
     });
+
+
+
+    // 2) ADICIONAR DENTRO DO Route::middleware('auth')->group(...)
+    //    Preferencialmente logo após o bloco de PRODUTOS:
+
+    Route::prefix('ajuste-precos')
+        ->name('ajuste-precos.')
+        ->group(function () {
+
+            Route::get(
+                '/',
+                [AjustePrecoController::class, 'index']
+            )->name('index');
+
+            Route::post(
+                '/simular',
+                [AjustePrecoController::class, 'simular']
+            )->name('simular');
+
+            Route::post(
+                '/aplicar',
+                [AjustePrecoController::class, 'aplicar']
+            )->name('aplicar');
+        });
+
 

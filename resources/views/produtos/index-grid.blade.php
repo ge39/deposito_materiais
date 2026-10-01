@@ -21,9 +21,22 @@
         </div>
     </form>
 
-    <div class="d-flex gap-1 align-items-center mb-2">
-        <a href="{{ route('produtos.create') }}" class="btn btn-success btn-sm">Novo</a>
-        <a href="{{ route('produtos.index') }}" class="btn btn-warning btn-sm">Visão em Cards</a>
+   <div class="d-flex flex-wrap gap-1 align-items-center mb-2">
+        <a href="{{ route('produtos.create') }}"
+        class="btn btn-success btn-sm">
+            Novo
+        </a>
+
+        <a href="{{ route('ajuste-precos.index') }}"
+        class="btn btn-primary btn-sm">
+            <i class="bi bi-tags-fill me-1"></i>
+            Ajuste de Preços
+        </a>
+
+        <a href="{{ route('produtos.index') }}"
+        class="btn btn-warning btn-sm">
+            Visão em Cards
+        </a>
     </div>
 
     <div class="border rounded overflow-hidden">
@@ -107,11 +120,27 @@
 
                         <a href="{{ route('produtos.edit', $produto->id) }}" class="btn btn-warning btn-sm">Editar</a>
 
-                        <form action="{{ route('produtos.desativar', $produto->id) }}" method="POST">
+                        <!-- <form action="{{ route('produtos.desativar', $produto->id) }}" method="POST">
                             @csrf
-                            @method('PATCH')
+                            @method('Put')
                             <button type="submit" class="btn btn-danger btn-sm"
                                 onclick="return confirm('Deseja realmente desativar este produto?')">
+                                Inativar
+                            </button>
+                        </form> -->
+
+                        <form action="{{ route('produtos.desativar', $produto->id) }}"
+                            method="POST">
+                            @csrf
+                            @method('PUT')
+
+                            <input type="hidden"
+                                name="origem"
+                                value="grid">
+
+                            <button type="submit"
+                                    class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Deseja realmente desativar este produto?')">
                                 Inativar
                             </button>
                         </form>

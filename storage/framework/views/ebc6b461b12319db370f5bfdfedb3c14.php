@@ -26,7 +26,7 @@
 
 
 <?php $__env->startSection('content'); ?>
-<div class="container pt-4" style="border:1px solid #ddd; padding:15px; border-radius:5px; background-color:#f9f9f9;">
+<div class="container pt-4 md-12" style="border:1px solid #ddd; padding:15px; border-radius:5px; background-color:#f9f9f9;">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">Produtos Ativos</h2>
@@ -66,12 +66,39 @@
         </div>
     </form>
 
-    <div class="col-md-4 d-flex gap-2">
+    <div class="col-md-12 d-flex gap-2 mb-2">
         <a href="<?php echo e(route('produtos.create')); ?>" class="btn btn-success btn-sm" style="width: 6.3rem">
             <i class="bi bi-plus-circle"></i> Novo
         </a>
-    </div>
+   
+            <!-- <h3 class="page-title">
+                <i class="bi bi-tags-fill me-1"></i>
+                Ajuste de Preços em Massa
+            </h3> -->
 
+            
+            <div >
+                <?php if(
+                    optional(auth()->user())->nivel_acesso === 'admin'
+                    || optional(auth()->user())->nivel_acesso === 'gerente'
+                ): ?>
+                    <a href="<?php echo e(route('ajuste-precos.index')); ?>"
+                    class="btn btn-primary btn-sm">
+                        <i class="bi bi-tags-fill me-1"></i>
+                        Ajuste de Preços
+                    </a>
+                <?php else: ?>
+                    <span class="badge bg-warning text-dark me-2">
+                        <i class="bi bi-shield-lock-fill me-1"></i>
+                        Acesso restrito
+                    </span>
+
+                    Somente administradores e gerentes podem acessar e aplicar alterações
+                    de preços.
+                <?php endif; ?>
+            </div>
+        </div>
+    
     <?php if($produtos->count() > 0): ?>
 
         <div class="d-flex justify-content-center mt-6">

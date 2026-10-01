@@ -392,6 +392,21 @@ class ProdutoController extends Controller
             ->with('success','Produto desativado com sucesso!');
     }
 
+//    public function desativar($id)
+// {
+//     $produto = Produto::findOrFail($id);
+
+//     $produto->ativo = 0;
+//     $produto->save();
+
+//     return redirect()
+//         ->back()
+//         ->with(
+//             'success',
+//             'Produto desativado com sucesso!'
+//         );
+// }
+
     public function reativar($id)
     {
         $produto = Produto::findOrFail($id);
