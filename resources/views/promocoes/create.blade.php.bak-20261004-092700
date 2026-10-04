@@ -43,10 +43,10 @@
                                 value="{{ $produto->id }}"
                                 data-preco="{{ $produto->preco_venda }}"
                                 data-nome="{{ $produto->nome }}"
-                                data-marca="{{ ($produto->marca?->nome ?? 'Sem marca') }}"
-                                data-unidade="{{ ($produto->unidadeMedida?->nome ?? 'Sem unidade')}}"
+                                data-marca="{{ $produto->marca->nome }}"
+                                data-unidade="{{ $produto->unidadeMedida->nome}}"
                                 data-estoque="{{ $produto->estoque }}"
-                                data-fornecedor="{{ ($produto->fornecedor?->nome ?? 'Sem fornecedor') ?? '' }}"
+                                data-fornecedor="{{ $produto->fornecedor->nome ?? '' }}"
                                 data-descricao="{{ $produto->descricao }}"
                             >
                                 {{ $produto->nome }}

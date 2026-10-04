@@ -1090,12 +1090,12 @@ Route::middleware(['auth'])
                 '/aplicar',
                 [AjustePrecoController::class, 'aplicar']
             )->name('aplicar');
-        });
+    });
 
 
 
-Route::patch(
-    '/entregas/{entrega}/reagendar',
-    [\App\Http\Controllers\EntregaController::class, 'reagendar']
-)->name('entregas.reagendar');
+    Route::patch(
+        '/entregas/{entrega}/reagendar',
+        [\App\Http\Controllers\EntregaController::class, 'reagendar']
+    )->name('entregas.reagendar');
 

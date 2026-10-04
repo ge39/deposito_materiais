@@ -150,15 +150,6 @@ class RomaneioService
                 ]);
             }
 
-            $this->validarConflitoEquipeDataPeriodo(
-                (int) $entregaPrincipal->id,
-                ! empty($dados['motorista_id'] ?? null)
-                    ? (int) $dados['motorista_id']
-                    : null,
-                ! empty($dados['veiculo_id'] ?? null)
-                    ? (int) $dados['veiculo_id']
-                    : null
-            );
             $romaneio = Romaneio::create([
                 'entrega_id' => $entregaPrincipal->id,
                 'criado_por' => Auth::id(),
@@ -431,12 +422,6 @@ class RomaneioService
             ? (int) $dados['veiculo_id']
             : $romaneio->veiculo_id;
 
-        $this->validarConflitoEquipeDataPeriodo(
-            (int) $romaneio->entrega_id,
-            $motoristaId ? (int) $motoristaId : null,
-            $veiculoId ? (int) $veiculoId : null,
-            (int) $romaneio->id
-        );
         $statusAnterior = $romaneio->status;
 
         $romaneio->update([
@@ -1012,23 +997,16 @@ class RomaneioService
      * - mesmo motorista não pode possuir veículo diferente;
      * - períodos diferentes da mesma data são independentes.
      */
-    /**
-     * Valida conflito operacional da equipe por data + período.
-     *
-     * Regras:
-     * - mesmo veículo não pode possuir motorista diferente
-     *   na mesma data e período;
-     * - mesmo motorista não pode possuir veículo diferente
-     *   na mesma data e período;
-     * - períodos diferentes são independentes;
-     * - entregas encerradas abaixo não reservam equipe.
-     */
     private function validarConflitoEquipeDataPeriodo(
         int $entregaId,
         ?int $motoristaId,
         ?int $veiculoId,
         ?int $romaneioIgnorarId = null
     ): void {
+        /*
+         * Enquanto a equipe estiver incompleta, não existe
+         * par operacional suficiente para validar conflito.
+         */
         if (
             empty($motoristaId)
             || empty($veiculoId)
@@ -1053,6 +1031,12 @@ class RomaneioService
             return;
         }
 
+        /*
+         * Considera somente outras entregas no mesmo
+         * recorte operacional:
+         *
+         * data + período.
+         */
         $consultaBase = Romaneio::query()
             ->with([
                 'entrega',
@@ -1100,15 +1084,6 @@ class RomaneioService
                         ->where(
                             'periodo_entrega',
                             $periodoEntrega
-                        )
-                        ->whereNotIn(
-                            'status',
-                            [
-                                'Entregue',
-                                'Cancelada',
-                                'Devolvida',
-                                'No_destino',
-                            ]
                         );
                 }
             );
@@ -1122,9 +1097,10 @@ class RomaneioService
         }
 
         /*
-         * REGRA 1:
-         * mesmo veículo não pode estar com outro motorista
-         * na mesma data e período.
+         * REGRA 1
+         *
+         * Mesmo veículo + mesmo slot
+         * não pode possuir motorista diferente.
          */
         $conflitoVeiculo = (
             clone $consultaBase
@@ -1158,9 +1134,10 @@ class RomaneioService
         }
 
         /*
-         * REGRA 2:
-         * mesmo motorista não pode estar com outro veículo
-         * na mesma data e período.
+         * REGRA 2
+         *
+         * Mesmo motorista + mesmo slot
+         * não pode possuir veículo diferente.
          */
         $conflitoMotorista = (
             clone $consultaBase
@@ -1193,8 +1170,7 @@ class RomaneioService
             ]);
         }
     }
-
-        private function liberarVeiculo(Romaneio $romaneio, array $dados): Romaneio 
+    private function liberarVeiculo(Romaneio $romaneio, array $dados): Romaneio 
     {
         $motoristaId = (int) (
             $dados['motorista_id']
@@ -1222,12 +1198,6 @@ class RomaneioService
             ]);
         }
 
-        $this->validarConflitoEquipeDataPeriodo(
-            (int) $romaneio->entrega_id,
-            $motoristaId,
-            $veiculoId,
-            (int) $romaneio->id
-        );
         /*
         * Persiste a equipe definida na etapa de liberação.
         */

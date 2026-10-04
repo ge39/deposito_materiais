@@ -629,6 +629,16 @@
 
                                 <li>
                                     <a
+                                        class="dropdown-item"
+                                        href="{{ route('ajuste-precos.index') }}">
+
+                                        <i class="bi bi-tags me-2"></i>
+                                        Ajuste de Preços
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a
                                         class="dropdown-item disabled"
                                         href="#">
 
