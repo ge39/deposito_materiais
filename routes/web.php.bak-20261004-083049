@@ -1093,9 +1093,3 @@ Route::middleware(['auth'])
         });
 
 
-
-Route::patch(
-    '/entregas/{entrega}/reagendar',
-    [\App\Http\Controllers\EntregaController::class, 'reagendar']
-)->name('entregas.reagendar');
-

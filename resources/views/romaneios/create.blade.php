@@ -150,6 +150,14 @@
         $romaneioAtivo?->veiculo_id
     );
 
+    $separadorSelecionado = old(
+        'separado_por',
+        $romaneioAtivo?->itens
+            ?->pluck('separado_por')
+            ->filter()
+            ->first()
+    );
+
     $observacaoRomaneio = old(
         'observacao',
         $romaneioAtivo?->observacao
@@ -1266,7 +1274,14 @@
                             </div>
                         @endif
 
-                        @if($statusOriginal === 'em_separacao')
+                        @if(in_array(
+                            $statusOriginal,
+                            [
+                                'aguardando_separacao',
+                                'em_separacao',
+                            ],
+                            true
+                        ))
                             <div class="col-lg-3">
                                 <label for="separado_por"
                                        class="form-label">
@@ -1275,19 +1290,24 @@
 
                                 <select id="separado_por"
                                         name="separado_por"
-                                        class="form-select form-select-sm">
+                                        class="form-select form-select-sm"
+                                        required>
                                     <option value="">Selecione...</option>
 
                                     @foreach($funcionariosOperacionais as $funcionario)
                                         <option value="{{ $funcionario->id }}"
                                             @selected(
-                                                (int) old('separado_por')
+                                                (int) $separadorSelecionado
                                                 === (int) $funcionario->id
                                             )>
                                             {{ $funcionario->nome }}
                                         </option>
                                     @endforeach
                                 </select>
+
+                                <div class="form-text">
+                                    Funcionário responsável pela separação física.
+                                </div>
                             </div>
                         @endif
 
@@ -1787,10 +1807,121 @@
                             @endforeach
                         </div>
                     </div>
+                </div>
 
-                    <div class="section-card mt-3">
-                <div class="footer-actions flex-column align-items-stretch">
-                    <div class="d-flex flex-wrap gap-2 justify-content-end">
+                <div class="col-xl-3">
+                    <div class="section-card summary-card">
+                        <div class="section-header">
+                            <span>
+                                <i class="bi bi-graph-up me-1"></i>
+                                Resumo
+                            </span>
+                        </div>
+
+                        <div class="p-3">
+                            <div class="summary-row">
+                                <span class="summary-label">
+                                    Total previsto
+                                </span>
+
+                                <span class="summary-value"
+                                      id="summaryExpected">
+                                    0,00
+                                </span>
+                            </div>
+
+                            <div class="summary-row">
+                                <span class="summary-label">
+                                    Total informado
+                                </span>
+
+                                <span class="summary-value"
+                                      id="summaryCompleted">
+                                    0,00
+                                </span>
+                            </div>
+
+                            <div class="summary-row">
+                                <span class="summary-label">
+                                    Pendente
+                                </span>
+
+                                <span class="summary-value"
+                                      id="summaryPending">
+                                    0,00
+                                </span>
+                            </div>
+
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="summary-label">
+                                        Progresso
+                                    </span>
+
+                                    <span class="summary-value"
+                                          id="summaryPercent">
+                                        0%
+                                    </span>
+                                </div>
+
+                                <div class="progress summary-progress">
+                                    <div id="summaryProgress"
+                                         class="progress-bar"
+                                         style="width: 0%;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="nextStep"
+                                 class="next-step mt-3">
+                                <div class="fw-bold small"
+                                     id="nextStepTitle">
+                                    Preencha as quantidades.
+                                </div>
+
+                                <div class="small text-muted mt-1">
+                                    Quantidades menores serão tratadas individualmente como entrega fracionada ou promessa sem estoque.
+                                </div>
+                            </div>
+
+                            @if($romaneioAtivo)
+                                <hr>
+
+                                <div class="small text-muted">
+                                    <div class="mb-2">
+                                        <i class="bi bi-person-badge me-1"></i>
+                                        Motorista:
+
+                                        <strong>
+                                            {{ $romaneioAtivo?->motorista?->nome
+                                                ?? 'A definir' }}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <i class="bi bi-truck me-1"></i>
+                                        Veículo:
+
+                                        <strong>
+                                            {{ $romaneioAtivo?->veiculo?->placa
+                                                ?? $romaneioAtivo?->veiculo?->descricao
+                                                ?? 'A definir' }}
+                                        </strong>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card mt-3">
+                <div class="footer-actions">
+                    <div class="small text-muted">
+                        {{ $descricaoEtapa }}
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
                         <a href="{{ route('entregas.index') }}"
                            class="btn btn-outline-secondary btn-sm">
                             <i class="bi bi-x-circle me-1"></i>
@@ -1953,121 +2084,9 @@
                             </button>
                         @endif
                     </div>
-
-                    <div class="small text-muted mt-2 text-center">
-                        {{ $descricaoEtapa }}
-                    </div>
-                </div>
-            </div>
-                </div>
-
-                <div class="col-xl-3">
-                    <div class="section-card summary-card">
-                        <div class="section-header">
-                            <span>
-                                <i class="bi bi-graph-up me-1"></i>
-                                Resumo
-                            </span>
-                        </div>
-
-                        <div class="p-3">
-                            <div class="summary-row">
-                                <span class="summary-label">
-                                    Total previsto
-                                </span>
-
-                                <span class="summary-value"
-                                      id="summaryExpected">
-                                    0,00
-                                </span>
-                            </div>
-
-                            <div class="summary-row">
-                                <span class="summary-label">
-                                    Total informado
-                                </span>
-
-                                <span class="summary-value"
-                                      id="summaryCompleted">
-                                    0,00
-                                </span>
-                            </div>
-
-                            <div class="summary-row">
-                                <span class="summary-label">
-                                    Pendente
-                                </span>
-
-                                <span class="summary-value"
-                                      id="summaryPending">
-                                    0,00
-                                </span>
-                            </div>
-
-                            <div class="mt-3">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span class="summary-label">
-                                        Progresso
-                                    </span>
-
-                                    <span class="summary-value"
-                                          id="summaryPercent">
-                                        0%
-                                    </span>
-                                </div>
-
-                                <div class="progress summary-progress">
-                                    <div id="summaryProgress"
-                                         class="progress-bar"
-                                         style="width: 0%;">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="nextStep"
-                                 class="next-step mt-3">
-                                <div class="fw-bold small"
-                                     id="nextStepTitle">
-                                    Preencha as quantidades.
-                                </div>
-
-                                <div class="small text-muted mt-1">
-                                    Quantidades menores serão tratadas individualmente como entrega fracionada ou promessa sem estoque.
-                                </div>
-                            </div>
-
-                            @if($romaneioAtivo)
-                                <hr>
-
-                                <div class="small text-muted">
-                                    <div class="mb-2">
-                                        <i class="bi bi-person-badge me-1"></i>
-                                        Motorista:
-
-                                        <strong>
-                                            {{ $romaneioAtivo?->motorista?->nome
-                                                ?? 'A definir' }}
-                                        </strong>
-                                    </div>
-
-                                    <div>
-                                        <i class="bi bi-truck me-1"></i>
-                                        Veículo:
-
-                                        <strong>
-                                            {{ $romaneioAtivo?->veiculo?->placa
-                                                ?? $romaneioAtivo?->veiculo?->descricao
-                                                ?? 'A definir' }}
-                                        </strong>
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            
             @if(
                 ! $criandoRomaneio
                 && $statusOriginal === 'em_separacao'

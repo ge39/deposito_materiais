@@ -75,6 +75,7 @@ class EntregaService
     private array $statusFinais = [
 
         'Entregue',
+        'Entregue_finalizada_com_ocorrencia',
 
         'Devolvida',
 
@@ -102,7 +103,7 @@ class EntregaService
 
                 throw ValidationException::withMessages([
 
-                    'data_prevista' => 'A data prevista da entrega é obrigatória.',
+                    'data_prevista' => 'A data prevista da entrega Ã© obrigatÃ³ria.',
 
                 ]);
 
@@ -290,7 +291,7 @@ class EntregaService
 
                             'itens' =>
 
-                                'Os itens da entrega fracionada são inválidos.',
+                                'Os itens da entrega fracionada sÃ£o invÃ¡lidos.',
 
                         ]);
 
@@ -330,7 +331,7 @@ class EntregaService
 
                             'itens' =>
 
-                                'Informe um item de origem e uma quantidade válida para o fracionamento.',
+                                'Informe um item de origem e uma quantidade vÃ¡lida para o fracionamento.',
 
                         ]);
 
@@ -416,7 +417,7 @@ class EntregaService
 
                     'itens' =>
 
-                        'Um ou mais itens informados não pertencem à entrega de origem.',
+                        'Um ou mais itens informados nÃ£o pertencem Ã  entrega de origem.',
 
                 ]);
 
@@ -528,7 +529,7 @@ class EntregaService
 
                         'entrega' =>
 
-                            "A entrega complementar {$entregaFilhaExistente->codigo_entrega} já existe com uma composição diferente.",
+                            "A entrega complementar {$entregaFilhaExistente->codigo_entrega} jÃ¡ existe com uma composiÃ§Ã£o diferente.",
 
                     ]);
 
@@ -570,7 +571,7 @@ class EntregaService
 
                             'entrega' =>
 
-                                "O saldo atual é diferente da entrega complementar {$entregaFilhaExistente->codigo_entrega} já criada.",
+                                "O saldo atual Ã© diferente da entrega complementar {$entregaFilhaExistente->codigo_entrega} jÃ¡ criada.",
 
                         ]);
 
@@ -712,7 +713,7 @@ class EntregaService
 
                 /*
 
-                * O fracionamento não cria uma nova cobrança
+                * O fracionamento nÃ£o cria uma nova cobranÃ§a
 
                 * automaticamente para a mesma venda.
 
@@ -970,11 +971,11 @@ class EntregaService
 
             /*
 
-            * A fonte principal do endereço é o próprio orçamento.
+            * A fonte principal do endereÃ§o Ã© o prÃ³prio orÃ§amento.
 
-            * Esse campo já contém o endereço cadastrado ou o endereço
+            * Esse campo jÃ¡ contÃ©m o endereÃ§o cadastrado ou o endereÃ§o
 
-            * manual informado durante a criação do orçamento.
+            * manual informado durante a criaÃ§Ã£o do orÃ§amento.
 
             */
 
@@ -994,7 +995,7 @@ class EntregaService
 
             /*
 
-            * Compatibilidade com orçamentos antigos que ainda não
+            * Compatibilidade com orÃ§amentos antigos que ainda nÃ£o
 
             * possuem endereco_entrega preenchido.
 
@@ -1038,7 +1039,7 @@ class EntregaService
 
                     ! empty($cliente?->numero)
 
-                        ? 'Nº ' . trim(
+                        ? 'NÂº ' . trim(
 
                             (string) $cliente->numero
 
@@ -1140,7 +1141,7 @@ class EntregaService
 
                     'endereco_entrega' =>
 
-                        'Não foi possível identificar o endereço da entrega informado no orçamento.',
+                        'NÃ£o foi possÃ­vel identificar o endereÃ§o da entrega informado no orÃ§amento.',
 
                 ]);
 
@@ -1394,11 +1395,11 @@ class EntregaService
 
                 /*
 
-                * Permite corrigir uma pré-entrega ainda não iniciada.
+                * Permite corrigir uma prÃ©-entrega ainda nÃ£o iniciada.
 
-                * Entregas que já entraram na operação não têm seu
+                * Entregas que jÃ¡ entraram na operaÃ§Ã£o nÃ£o tÃªm seu
 
-                * endereço alterado silenciosamente.
+                * endereÃ§o alterado silenciosamente.
 
                 */
 
@@ -1482,7 +1483,7 @@ class EntregaService
 
                         'observacao' =>
 
-                            'Pré-entrega gerada automaticamente pelo orçamento #'
+                            'PrÃ©-entrega gerada automaticamente pelo orÃ§amento #'
 
                             . $orcamento->id,
 
@@ -1756,11 +1757,11 @@ class EntregaService
 
             'status' => 'pendente',
 
-            'observacao' => 'Entrega liberada para separação após faturamento da venda #' .
+            'observacao' => 'Entrega liberada para separaÃ§Ã£o apÃ³s faturamento da venda #' .
 
                 $venda->id .
 
-                ' vinculada ao orçamento #' .
+                ' vinculada ao orÃ§amento #' .
 
                 $orcamento->id,
 
@@ -1896,7 +1897,7 @@ class EntregaService
 
                     throw ValidationException::withMessages([
 
-                        'quantidade_entregue' => 'A quantidade entregue não pode ser negativa.',
+                        'quantidade_entregue' => 'A quantidade entregue nÃ£o pode ser negativa.',
 
                     ]);
 
@@ -1908,7 +1909,7 @@ class EntregaService
 
                     throw ValidationException::withMessages([
 
-                        'quantidade_entregue' => 'A quantidade entregue não pode ser maior que a quantidade prevista.',
+                        'quantidade_entregue' => 'A quantidade entregue nÃ£o pode ser maior que a quantidade prevista.',
 
                     ]);
 
@@ -2030,7 +2031,7 @@ class EntregaService
 
             throw ValidationException::withMessages([
 
-                'entrega' => 'Não é possível cancelar uma entrega já concluída.',
+                'entrega' => 'NÃ£o Ã© possÃ­vel cancelar uma entrega jÃ¡ concluÃ­da.',
 
             ]);
 
@@ -2042,7 +2043,7 @@ class EntregaService
 
             throw ValidationException::withMessages([
 
-                'entrega' => 'Esta entrega já está cancelada.',
+                'entrega' => 'Esta entrega jÃ¡ estÃ¡ cancelada.',
 
             ]);
 
@@ -2070,7 +2071,7 @@ class EntregaService
 
                 "\nCancelamento: " .
 
-                ($motivo ?: 'Entrega cancelada pelo usuário.')
+                ($motivo ?: 'Entrega cancelada pelo usuÃ¡rio.')
 
             );
 
@@ -2110,7 +2111,7 @@ class EntregaService
 
             throw ValidationException::withMessages([
 
-                'status' => 'Status de entrega inválido.',
+                'status' => 'Status de entrega invÃ¡lido.',
 
             ]);
 
@@ -2120,6 +2121,62 @@ class EntregaService
 
 
 
+
+    /**
+     * Reagenda somente a data da entrega.
+     *
+     * Não altera status, romaneio, motorista, veículo
+     * ou qualquer etapa operacional já executada.
+     */
+    public function reagendar(
+        Entrega $entrega,
+        string $novaData,
+        string $motivo
+    ): Entrega {
+        $this->bloquearSeFinalizada($entrega);
+
+        return DB::transaction(function () use (
+            $entrega,
+            $novaData,
+            $motivo
+        ) {
+            $entrega = Entrega::query()
+                ->lockForUpdate()
+                ->findOrFail($entrega->id);
+
+            $this->bloquearSeFinalizada($entrega);
+
+            $dataAnterior =
+                $entrega->data_prevista_entrega
+                ?? $entrega->data_prevista;
+
+            $observacaoAtual = trim(
+                (string) $entrega->observacao_entrega
+            );
+
+            $registro = sprintf(
+                "[REAGENDAMENTO %s]\nData anterior: %s\nNova data: %s\nJustificativa: %s",
+                now()->format('d/m/Y H:i'),
+                $dataAnterior,
+                $novaData,
+                trim($motivo)
+            );
+
+            $entrega->update([
+                'data_prevista' => $novaData,
+                'data_prevista_entrega' => $novaData,
+                'observacao_entrega' =>
+                    $observacaoAtual !== ''
+                        ? $observacaoAtual
+                            . PHP_EOL
+                            . PHP_EOL
+                            . $registro
+                        : $registro,
+            ]);
+
+            return $entrega->fresh();
+        });
+    }
     private function bloquearSeFinalizada(Entrega $entrega): void
 
     {
@@ -2128,7 +2185,7 @@ class EntregaService
 
             throw ValidationException::withMessages([
 
-                'entrega' => 'Esta entrega já está finalizada e não pode mais ser alterada.',
+                'entrega' => 'Esta entrega jÃ¡ estÃ¡ finalizada e nÃ£o pode mais ser alterada.',
 
             ]);
 

@@ -98,6 +98,8 @@ class ProdutoController extends Controller
             'largura'               => 'nullable|numeric|min:0',
             'altura'                => 'nullable|numeric|min:0',
             'profundidade'          => 'nullable|numeric|min:0',
+            'rendimento'          => 'nullable|numeric|min:0',
+            'unidades_por_pacote' => 'nullable|integer|min:1',
             'localizacao_estoque_id'=> 'nullable|exists:localizacoes_estoque,id',
             'descricao'             => 'nullable|string',
             'ncm'                   => 'nullable|string|max:8',
@@ -392,20 +394,6 @@ class ProdutoController extends Controller
             ->with('success','Produto desativado com sucesso!');
     }
 
-//    public function desativar($id)
-// {
-//     $produto = Produto::findOrFail($id);
-
-//     $produto->ativo = 0;
-//     $produto->save();
-
-//     return redirect()
-//         ->back()
-//         ->with(
-//             'success',
-//             'Produto desativado com sucesso!'
-//         );
-// }
 
     public function reativar($id)
     {
@@ -426,6 +414,8 @@ class ProdutoController extends Controller
             'unidade_medida_id' => 'required|exists:unidades_medida,id',
             'marca_id' => 'required|exists:marcas,id',
             'localizacao_estoque_id' => 'nullable|exists:localizacoes_estoque,id',
+            'rendimento'          => 'nullable|numeric|min:0',
+            'unidades_por_pacote' => 'nullable|integer|min:1',
             'validade_produto' => 'nullable|date',
             'imagem' => 'nullable|image|max:2048',
         ];

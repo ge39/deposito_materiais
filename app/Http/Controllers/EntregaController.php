@@ -57,19 +57,19 @@ class EntregaController extends Controller
     //         ],
     //         [
     //             'codigo_entrega.string' =>
-    //                 'O código da entrega informado é inválido.',
+    //                 'O cÃ³digo da entrega informado Ã© invÃ¡lido.',
 
     //             'codigo_entrega.max' =>
-    //                 'O código da entrega pode possuir no máximo 100 caracteres.',
+    //                 'O cÃ³digo da entrega pode possuir no mÃ¡ximo 100 caracteres.',
 
     //             'data_inicio.date' =>
-    //                 'A data inicial informada é inválida.',
+    //                 'A data inicial informada Ã© invÃ¡lida.',
 
     //             'data_fim.date' =>
-    //                 'A data final informada é inválida.',
+    //                 'A data final informada Ã© invÃ¡lida.',
 
     //             'data_fim.after_or_equal' =>
-    //                 'A data final deve ser igual ou posterior à data inicial.',
+    //                 'A data final deve ser igual ou posterior Ã  data inicial.',
     //         ]
     //     );
 
@@ -78,7 +78,7 @@ class EntregaController extends Controller
     //     * GRUPOS DE STATUS
     //     * ============================================================
     //     *
-    //     * A mesma definição é utilizada:
+    //     * A mesma definiÃ§Ã£o Ã© utilizada:
     //     * - pelos cards;
     //     * - pelo clique dos cards;
     //     * - pelo filtro manual.
@@ -192,13 +192,13 @@ class EntregaController extends Controller
     //             'aguardando faturamento',
 
     //         'aguardando_separacao' =>
-    //             'aguardando separação',
+    //             'aguardando separaÃ§Ã£o',
 
     //         'separando' =>
-    //             'em separação',
+    //             'em separaÃ§Ã£o',
 
     //         'em_preparacao' =>
-    //             'em preparação',
+    //             'em preparaÃ§Ã£o',
 
     //         'pronta_para_carregamento' =>
     //             'pronta para carregamento',
@@ -222,10 +222,10 @@ class EntregaController extends Controller
     //             'entregue',
 
     //         'finalizada_com_ocorrencia' =>
-    //             'finalizada com ocorrência',
+    //             'finalizada com ocorrÃªncia',
 
     //         'entregue_finalizada_com_ocorrencia' =>
-    //             'finalizada com ocorrência',
+    //             'finalizada com ocorrÃªncia',
 
     //         'parcial' =>
     //             'entregue parcialmente',
@@ -234,7 +234,7 @@ class EntregaController extends Controller
     //             'entregue parcialmente',
 
     //         'nao_entregue' =>
-    //             'não entregue',
+    //             'nÃ£o entregue',
 
     //         'recusada' =>
     //             'recusada',
@@ -257,7 +257,7 @@ class EntregaController extends Controller
 
     //     /*
     //     * ============================================================
-    //     * PARÂMETROS
+    //     * PARÃ‚METROS
     //     * ============================================================
     //     */
     //     $codigoEntregaInformado = trim(
@@ -277,12 +277,12 @@ class EntregaController extends Controller
     //     );
 
     //     /*
-    //     * Datas explicitamente enviadas pelo formulário.
+    //     * Datas explicitamente enviadas pelo formulÃ¡rio.
     //     *
     //     * Card:
     //     * /entregas?status=em_rota
     //     *
-    //     * Portanto não possui data_inicio/data_fim.
+    //     * Portanto nÃ£o possui data_inicio/data_fim.
     //     */
     //     $dataInicioInformada = ! empty(
     //         $dadosValidados['data_inicio'] ?? null
@@ -297,7 +297,7 @@ class EntregaController extends Controller
     //         || $dataFimInformada;
 
     //     /*
-    //     * Datas padrão da tela.
+    //     * Datas padrÃ£o da tela.
     //     */
     //     $dataInicio = $dataInicioInformada
     //         ? \Carbon\Carbon::parse(
@@ -313,12 +313,12 @@ class EntregaController extends Controller
 
     //     /*
     //     * ============================================================
-    //     * IDENTIFICAÇÃO DO MODO DE CONSULTA
+    //     * IDENTIFICAÃ‡ÃƒO DO MODO DE CONSULTA
     //     * ============================================================
     //     */
 
     //     /*
-    //     * Código tem prioridade máxima.
+    //     * CÃ³digo tem prioridade mÃ¡xima.
     //     */
     //     $filtroPorCodigo =
     //         $codigoEntregaInformado !== '';
@@ -340,7 +340,7 @@ class EntregaController extends Controller
     //         && $datasInformadas;
 
     //     /*
-    //     * Tela normal / consulta somente por período.
+    //     * Tela normal / consulta somente por perÃ­odo.
     //     */
     //     $consultaPeriodo =
     //         ! $filtroPorCodigo
@@ -348,9 +348,9 @@ class EntregaController extends Controller
     //         && ! $filtroManualStatus;
 
     //     /*
-    //     * Informa à Blade que status encerrados devem aparecer.
+    //     * Informa Ã  Blade que status encerrados devem aparecer.
     //     *
-    //     * Isso é essencial para o card Entregues.
+    //     * Isso Ã© essencial para o card Entregues.
     //     */
     //     $exibirStatusEncerrados =
     //         $filtroPorCodigo
@@ -374,10 +374,10 @@ class EntregaController extends Controller
 
     //     /*
     //     * ============================================================
-    //     * 1. CÓDIGO DA ENTREGA
+    //     * 1. CÃ“DIGO DA ENTREGA
     //     * ============================================================
     //     *
-    //     * Não utiliza:
+    //     * NÃ£o utiliza:
     //     * - status;
     //     * - data inicial;
     //     * - data final.
@@ -396,7 +396,7 @@ class EntregaController extends Controller
     //     * ============================================================
     //     *
     //     * Somente status.
-    //     * Nenhuma restrição por data.
+    //     * Nenhuma restriÃ§Ã£o por data.
     //     */
     //     elseif ($filtroPorCard) {
     //         if (isset($statusFiltros[$statusInformado])) {
@@ -436,7 +436,7 @@ class EntregaController extends Controller
     //     * 4. TELA NORMAL
     //     * ============================================================
     //     *
-    //     * Usa a janela operacional padrão.
+    //     * Usa a janela operacional padrÃ£o.
     //     */
     //     else {
     //         $query->whereBetween(
@@ -448,7 +448,7 @@ class EntregaController extends Controller
     //         );
 
     //         /*
-    //         * Entregas concluídas não ocupam a grade operacional
+    //         * Entregas concluÃ­das nÃ£o ocupam a grade operacional
     //         * normal.
     //         */
     //         $query->whereNotIn(
@@ -462,7 +462,7 @@ class EntregaController extends Controller
 
     //     /*
     //     * ============================================================
-    //     * ORDENAÇÃO
+    //     * ORDENAÃ‡ÃƒO
     //     * ============================================================
     //     */
     //     $query
@@ -486,12 +486,12 @@ class EntregaController extends Controller
 
     //     /*
     //     * ============================================================
-    //     * MENSAGEM QUANDO NÃO HOUVER RESULTADO
+    //     * MENSAGEM QUANDO NÃƒO HOUVER RESULTADO
     //     * ============================================================
     //     */
     //     if ($filtroPorCodigo) {
     //         $mensagemSemResultados =
-    //             'Nenhuma entrega encontrada para o código '
+    //             'Nenhuma entrega encontrada para o cÃ³digo '
     //             . $codigoEntregaInformado
     //             . '.';
     //     } elseif ($filtroPorCard) {
@@ -519,15 +519,15 @@ class EntregaController extends Controller
     //         $mensagemSemResultados =
     //             'Nenhuma entrega '
     //             . $nomeStatus
-    //             . ' encontrada no período informado.';
+    //             . ' encontrada no perÃ­odo informado.';
     //     } else {
     //         $mensagemSemResultados =
-    //             'Nenhuma entrega encontrada no período informado.';
+    //             'Nenhuma entrega encontrada no perÃ­odo informado.';
     //     }
 
     //     /*
     //     * ============================================================
-    //     * BLOQUEIO DE EDIÇÃO
+    //     * BLOQUEIO DE EDIÃ‡ÃƒO
     //     * ============================================================
     //     */
     //     $usuarioId = (int) (
@@ -623,7 +623,7 @@ class EntregaController extends Controller
     //     * CARDS
     //     * ============================================================
     //     *
-    //     * Os cards não possuem nenhuma restrição de data.
+    //     * Os cards nÃ£o possuem nenhuma restriÃ§Ã£o de data.
     //     *
     //     * A contagem usa os mesmos grupos de status utilizados
     //     * pelo filtro do clique.
@@ -743,19 +743,19 @@ class EntregaController extends Controller
             ],
             [
                 'codigo_entrega.string' =>
-                    'O código da entrega informado é inválido.',
+                    'O cÃ³digo da entrega informado Ã© invÃ¡lido.',
 
                 'codigo_entrega.max' =>
-                    'O código da entrega pode possuir no máximo 100 caracteres.',
+                    'O cÃ³digo da entrega pode possuir no mÃ¡ximo 100 caracteres.',
 
                 'data_inicio.date' =>
-                    'A data inicial informada é inválida.',
+                    'A data inicial informada Ã© invÃ¡lida.',
 
                 'data_fim.date' =>
-                    'A data final informada é inválida.',
+                    'A data final informada Ã© invÃ¡lida.',
 
                 'data_fim.after_or_equal' =>
-                    'A data final deve ser igual ou posterior à data inicial.',
+                    'A data final deve ser igual ou posterior Ã  data inicial.',
             ]
         );
 
@@ -764,7 +764,7 @@ class EntregaController extends Controller
         * GRUPOS DE STATUS
         * ============================================================
         *
-        * A mesma definição é utilizada:
+        * A mesma definiÃ§Ã£o Ã© utilizada:
         * - pelos cards;
         * - pelo clique dos cards;
         * - pelo filtro manual.
@@ -782,28 +782,51 @@ class EntregaController extends Controller
                 'Aguardando_separacao',
             ],
 
+            'material_separado' => [
+                'Material_separado',
+            ],
+
+            /*
+            * Compatibilidade temporÃ¡ria com os filtros antigos da Blade.
+            */
             'separando' => [
-                'Em_preparacao',
+                'Material_separado',
             ],
 
             'em_preparacao' => [
-                'Em_preparacao',
+                'Material_separado',
+            ],
+
+            'separacao_conferida' => [
+                'Separacao_conferida',
             ],
 
             'pronta_para_carregamento' => [
-                'Pronta_para_carregamento',
+                'Separacao_conferida',
+            ],
+
+            'material_carregado' => [
+                'Material_carregado',
             ],
 
             'carregado' => [
-                'Carregada',
+                'Material_carregado',
             ],
 
             'carregada' => [
-                'Carregada',
+                'Material_carregado',
+            ],
+
+            'saida_conferida' => [
+                'Saida_conferida',
+            ],
+
+            'liberado' => [
+                'Liberado',
             ],
 
             'liberada' => [
-                'Liberada',
+                'Liberado',
             ],
 
             'em_rota' => [
@@ -872,12 +895,12 @@ class EntregaController extends Controller
         * STATUS ENCERRADOS PARA CONTROLE DE PRAZO
         * ============================================================
         *
-        * "Atrasada" NÃO é status.
+        * "Atrasada" NÃƒO Ã© status.
         *
-        * Uma entrega é atrasada somente quando:
+        * Uma entrega Ã© atrasada somente quando:
         * - possui data prevista;
-        * - data prevista é anterior a hoje;
-        * - ainda não foi encerrada.
+        * - data prevista Ã© anterior a hoje;
+        * - ainda nÃ£o foi encerrada.
         */
         $statusEncerradosPrazo = [
             'Entregue',
@@ -905,9 +928,9 @@ class EntregaController extends Controller
         ];
 
         /*
-        * Regra única do card Atrasadas.
+        * Regra Ãºnica do card Atrasadas.
         *
-        * A MESMA query será utilizada:
+        * A MESMA query serÃ¡ utilizada:
         * - para contar o card;
         * - para abrir o card;
         * - antes do paginate(20).
@@ -941,25 +964,40 @@ class EntregaController extends Controller
                 'aguardando faturamento',
 
             'aguardando_separacao' =>
-                'aguardando separação',
+                'aguardando separaÃ§Ã£o',
+
+            'material_separado' =>
+                'material separado',
 
             'separando' =>
-                'em separação',
+                'material separado',
 
             'em_preparacao' =>
-                'em preparação',
+                'material separado',
+
+            'separacao_conferida' =>
+                'separaÃ§Ã£o conferida',
 
             'pronta_para_carregamento' =>
-                'pronta para carregamento',
+                'separaÃ§Ã£o conferida',
+
+            'material_carregado' =>
+                'material carregado',
 
             'carregado' =>
-                'carregada',
+                'material carregado',
 
             'carregada' =>
-                'carregada',
+                'material carregado',
+
+            'saida_conferida' =>
+                'saÃ­da conferida',
+
+            'liberado' =>
+                'liberado',
 
             'liberada' =>
-                'liberada',
+                'liberado',
 
             'em_rota' =>
                 'em rota',
@@ -971,10 +1009,10 @@ class EntregaController extends Controller
                 'entregue',
 
             'finalizada_com_ocorrencia' =>
-                'finalizada com ocorrência',
+                'finalizada com ocorrÃªncia',
 
             'entregue_finalizada_com_ocorrencia' =>
-                'finalizada com ocorrência',
+                'finalizada com ocorrÃªncia',
 
             'parcial' =>
                 'entregue parcialmente',
@@ -983,7 +1021,7 @@ class EntregaController extends Controller
                 'entregue parcialmente',
 
             'nao_entregue' =>
-                'não entregue',
+                'nÃ£o entregue',
 
             'recusada' =>
                 'recusada',
@@ -1006,7 +1044,7 @@ class EntregaController extends Controller
 
         /*
         * ============================================================
-        * PARÂMETROS
+        * PARÃ‚METROS
         * ============================================================
         */
         $codigoEntregaInformado = trim(
@@ -1026,13 +1064,13 @@ class EntregaController extends Controller
         );
 
         /*
-        * Datas explicitamente enviadas pelo formulário.
+        * Datas explicitamente enviadas pelo formulÃ¡rio.
         *
         * Card:
         * /entregas?status=em_rota
         * /entregas?status=atrasadas
         *
-        * Portanto cards não possuem data_inicio/data_fim.
+        * Portanto cards nÃ£o possuem data_inicio/data_fim.
         */
         $dataInicioInformada = ! empty(
             $dadosValidados['data_inicio'] ?? null
@@ -1047,7 +1085,7 @@ class EntregaController extends Controller
             || $dataFimInformada;
 
         /*
-        * Datas padrão da tela.
+        * Datas padrÃ£o da tela.
         */
         $dataInicio = $dataInicioInformada
             ? \Carbon\Carbon::parse(
@@ -1063,14 +1101,14 @@ class EntregaController extends Controller
 
         /*
         * ============================================================
-        * IDENTIFICAÇÃO DO MODO DE CONSULTA
+        * IDENTIFICAÃ‡ÃƒO DO MODO DE CONSULTA
         * ============================================================
         */
 
         /*
-        * Código tem prioridade máxima.
+        * CÃ³digo tem prioridade mÃ¡xima.
         *
-        * Código não utiliza datas nem status.
+        * CÃ³digo nÃ£o utiliza datas nem status.
         */
         $filtroPorCodigo =
             $codigoEntregaInformado !== '';
@@ -1078,7 +1116,7 @@ class EntregaController extends Controller
         /*
         * Card especial ATRASADAS.
         *
-        * Atrasadas não é um status persistido.
+        * Atrasadas nÃ£o Ã© um status persistido.
         */
         $filtroAtrasadas =
             ! $filtroPorCodigo
@@ -1116,7 +1154,7 @@ class EntregaController extends Controller
             );
 
         /*
-        * Tela normal / consulta por período.
+        * Tela normal / consulta por perÃ­odo.
         */
         $consultaPeriodo =
             ! $filtroPorCodigo
@@ -1125,10 +1163,10 @@ class EntregaController extends Controller
             && ! $filtroManualStatus;
 
         /*
-        * Informa à Blade quando status encerrados
-        * precisam permanecer visíveis.
+        * Informa Ã  Blade quando status encerrados
+        * precisam permanecer visÃ­veis.
         *
-        * Atrasadas NÃO entra aqui.
+        * Atrasadas NÃƒO entra aqui.
         */
         $exibirStatusEncerrados =
             $filtroPorCodigo
@@ -1152,10 +1190,10 @@ class EntregaController extends Controller
 
         /*
         * ============================================================
-        * 1. CÓDIGO DA ENTREGA
+        * 1. CÃ“DIGO DA ENTREGA
         * ============================================================
         *
-        * Não utiliza:
+        * NÃ£o utiliza:
         * - status;
         * - data inicial;
         * - data final.
@@ -1173,9 +1211,9 @@ class EntregaController extends Controller
         * 2. CARD ATRASADAS
         * ============================================================
         *
-        * Atrasada é condição de prazo.
+        * Atrasada Ã© condiÃ§Ã£o de prazo.
         *
-        * Não altera o status real da entrega.
+        * NÃ£o altera o status real da entrega.
         *
         * O filtro ocorre ANTES do paginate(20).
         */
@@ -1191,7 +1229,7 @@ class EntregaController extends Controller
         * ============================================================
         *
         * Somente status.
-        * Nenhuma restrição por data.
+        * Nenhuma restriÃ§Ã£o por data.
         */
         elseif ($filtroPorCard) {
             $query->whereIn(
@@ -1227,7 +1265,7 @@ class EntregaController extends Controller
         * 5. TELA NORMAL
         * ============================================================
         *
-        * Usa a janela operacional padrão.
+        * Usa a janela operacional padrÃ£o.
         */
         else {
             $query
@@ -1249,7 +1287,7 @@ class EntregaController extends Controller
 
         /*
         * ============================================================
-        * ORDENAÇÃO
+        * ORDENAÃ‡ÃƒO
         * ============================================================
         */
         $query
@@ -1269,15 +1307,15 @@ class EntregaController extends Controller
 
         /*
         * ============================================================
-        * PAGINAÇÃO
+        * PAGINAÃ‡ÃƒO
         * ============================================================
         *
-        * A query já está totalmente filtrada neste ponto.
+        * A query jÃ¡ estÃ¡ totalmente filtrada neste ponto.
         *
         * Portanto:
-        * 9 atrasadas  = 1 página / 9 registros
-        * 20 atrasadas = 1 página / 20 registros
-        * 21 atrasadas = 2 páginas / 20 + 1
+        * 9 atrasadas  = 1 pÃ¡gina / 9 registros
+        * 20 atrasadas = 1 pÃ¡gina / 20 registros
+        * 21 atrasadas = 2 pÃ¡ginas / 20 + 1
         */
         $entregas = $query
             ->paginate(20)
@@ -1285,12 +1323,12 @@ class EntregaController extends Controller
 
         /*
         * ============================================================
-        * MENSAGEM QUANDO NÃO HOUVER RESULTADO
+        * MENSAGEM QUANDO NÃƒO HOUVER RESULTADO
         * ============================================================
         */
         if ($filtroPorCodigo) {
             $mensagemSemResultados =
-                'Nenhuma entrega encontrada para o código '
+                'Nenhuma entrega encontrada para o cÃ³digo '
                 . $codigoEntregaInformado
                 . '.';
         } elseif ($filtroAtrasadas) {
@@ -1321,15 +1359,15 @@ class EntregaController extends Controller
             $mensagemSemResultados =
                 'Nenhuma entrega '
                 . $nomeStatus
-                . ' encontrada no período informado.';
+                . ' encontrada no perÃ­odo informado.';
         } else {
             $mensagemSemResultados =
-                'Nenhuma entrega encontrada no período informado.';
+                'Nenhuma entrega encontrada no perÃ­odo informado.';
         }
 
         /*
         * ============================================================
-        * BLOQUEIO DE EDIÇÃO
+        * BLOQUEIO DE EDIÃ‡ÃƒO
         * ============================================================
         */
         $usuarioId = (int) (
@@ -1425,8 +1463,8 @@ class EntregaController extends Controller
         * CARDS
         * ============================================================
         *
-        * Os cards não possuem restrição de data,
-        * exceto Atrasadas, cuja própria regra é baseada
+        * Os cards nÃ£o possuem restriÃ§Ã£o de data,
+        * exceto Atrasadas, cuja prÃ³pria regra Ã© baseada
         * em data_prevista vencida.
         */
         $resumo = [
@@ -1486,7 +1524,7 @@ class EntregaController extends Controller
 
             /*
             * Usa EXATAMENTE a mesma regra aplicada
-            * quando o card Atrasadas é aberto.
+            * quando o card Atrasadas Ã© aberto.
             */
             'atrasadas' =>
                 $aplicarFiltroAtrasadas(
@@ -1709,8 +1747,8 @@ class EntregaController extends Controller
         }
 
         /*
-        * A cadeia contém somente a entrega atual e suas origens.
-        * Entregas futuras ou de outro ramo não entram no histórico.
+        * A cadeia contÃ©m somente a entrega atual e suas origens.
+        * Entregas futuras ou de outro ramo nÃ£o entram no histÃ³rico.
         */
         $cadeiaEntregas = collect();
         $entregaAtualId = (int) $entrega->id;
@@ -1733,7 +1771,7 @@ class EntregaController extends Controller
             if (! $entregaDaCadeia) {
                 throw ValidationException::withMessages([
                     'entrega' =>
-                        "A cadeia de fracionamento da entrega #{$entrega->id} está incompleta.",
+                        "A cadeia de fracionamento da entrega #{$entrega->id} estÃ¡ incompleta.",
                 ]);
             }
 
@@ -2230,7 +2268,7 @@ class EntregaController extends Controller
         /*
         * Gera uma fotografia acumulada de cada documento da cadeia.
         * Cada fotografia considera somente a entrega exibida e suas
-        * antecessoras, preservando a ordem cronológica do fracionamento.
+        * antecessoras, preservando a ordem cronolÃ³gica do fracionamento.
         */
         $estadoAcumuladoPorItemPrincipal = collect();
 
@@ -2674,7 +2712,7 @@ class EntregaController extends Controller
                             'produto' =>
                                 $produto?->nome
                                 ?? $produto?->descricao
-                                ?? 'Produto não identificado',
+                                ?? 'Produto nÃ£o identificado',
 
                             'previsto' =>
                                 round(
@@ -2755,7 +2793,7 @@ class EntregaController extends Controller
 
     public function separar(Entrega $entrega)
     {
-        return $this->alterarStatusComRetorno($entrega, 'Separando', 'Entrega enviada para separação.');
+        return $this->alterarStatusComRetorno($entrega, 'Separando', 'Entrega enviada para separaÃ§Ã£o.');
     }
 
     public function carregar(Entrega $entrega)
@@ -2773,7 +2811,7 @@ class EntregaController extends Controller
         try {
             if ($entrega->status !== 'Em_rota') {
                 throw ValidationException::withMessages([
-                    'status' => 'A entrega só pode ser confirmada quando estiver Em rota.',
+                    'status' => 'A entrega sÃ³ pode ser confirmada quando estiver Em rota.',
                 ]);
             }
 
@@ -2846,7 +2884,7 @@ class EntregaController extends Controller
                 ->route('entregas.index')
                 ->with(
                     'error',
-                    'Não foi encontrado um romaneio ativo para esta entrega.'
+                    'NÃ£o foi encontrado um romaneio ativo para esta entrega.'
                 );
         }
 
@@ -2869,7 +2907,7 @@ class EntregaController extends Controller
                 ->route('entregas.index')
                 ->with(
                     'error',
-                    'O romaneio não está disponível para operação de retorno.'
+                    'O romaneio nÃ£o estÃ¡ disponÃ­vel para operaÃ§Ã£o de retorno.'
                 );
         }
 
@@ -2914,13 +2952,13 @@ class EntregaController extends Controller
             ],
             [
                 'retorno_conferido_por.required' =>
-                    'Informe o funcionário responsável pela conferência do retorno.',
+                    'Informe o funcionÃ¡rio responsÃ¡vel pela conferÃªncia do retorno.',
 
                 'retorno_conferido_por.integer' =>
-                    'O funcionário informado é inválido.',
+                    'O funcionÃ¡rio informado Ã© invÃ¡lido.',
 
                 'retorno_conferido_por.exists' =>
-                    'O funcionário selecionado não foi encontrado.',
+                    'O funcionÃ¡rio selecionado nÃ£o foi encontrado.',
             ]
         );
 
@@ -2938,7 +2976,7 @@ class EntregaController extends Controller
             if (! $romaneio) {
                 throw ValidationException::withMessages([
                     'romaneio' =>
-                        'Não foi encontrado um romaneio ativo para esta entrega.',
+                        'NÃ£o foi encontrado um romaneio ativo para esta entrega.',
                 ]);
             }
 
@@ -2948,14 +2986,14 @@ class EntregaController extends Controller
             ) {
                 throw ValidationException::withMessages([
                     'romaneio' =>
-                        'O romaneio não está aguardando conferência do retorno.',
+                        'O romaneio nÃ£o estÃ¡ aguardando conferÃªncia do retorno.',
                 ]);
             }
 
             /*
-            * Enviamos somente a identificação dos itens.
-            * As quantidades permanecem com a declaração inicial
-            * até o conferente verificar fisicamente os produtos.
+            * Enviamos somente a identificaÃ§Ã£o dos itens.
+            * As quantidades permanecem com a declaraÃ§Ã£o inicial
+            * atÃ© o conferente verificar fisicamente os produtos.
             */
             $itens = $romaneio->itens
                 ->map(
@@ -2989,7 +3027,7 @@ class EntregaController extends Controller
                 )
                 ->with(
                     'success',
-                    'Conferência física do retorno iniciada.'
+                    'ConferÃªncia fÃ­sica do retorno iniciada.'
                 );
 
         } catch (ValidationException $e) {
@@ -3004,7 +3042,7 @@ class EntregaController extends Controller
                 ->withInput()
                 ->with(
                     'error',
-                    'Erro ao iniciar a conferência do retorno: '
+                    'Erro ao iniciar a conferÃªncia do retorno: '
                     . $e->getMessage()
                 );
         }
@@ -3082,7 +3120,7 @@ class EntregaController extends Controller
             ],
             [
                 'retorno_conferido_por.required' =>
-                    'Informe o responsável pela conferência.',
+                    'Informe o responsÃ¡vel pela conferÃªncia.',
 
                 'itens.required' =>
                     'Informe o resultado conferido dos produtos.',
@@ -3106,7 +3144,7 @@ class EntregaController extends Controller
             if (! $romaneio) {
                 throw ValidationException::withMessages([
                     'romaneio' =>
-                        'Não foi encontrado um romaneio ativo para esta entrega.',
+                        'NÃ£o foi encontrado um romaneio ativo para esta entrega.',
                 ]);
             }
 
@@ -3116,7 +3154,7 @@ class EntregaController extends Controller
             ) {
                 throw ValidationException::withMessages([
                     'romaneio' =>
-                        'A conferência do retorno ainda não foi iniciada.',
+                        'A conferÃªncia do retorno ainda nÃ£o foi iniciada.',
                 ]);
             }
 
@@ -3137,7 +3175,7 @@ class EntregaController extends Controller
                 ) {
                     throw ValidationException::withMessages([
                         "itens.{$indice}.romaneio_item_id" =>
-                            'O produto informado não pertence a este romaneio.',
+                            'O produto informado nÃ£o pertence a este romaneio.',
                     ]);
                 }
 
@@ -3159,7 +3197,7 @@ class EntregaController extends Controller
                 if ($totalResultado !== $quantidadeSaida) {
                     throw ValidationException::withMessages([
                         "itens.{$indice}.quantidade_entregue" =>
-                            "A soma do resultado do item #{$romaneioItem->entrega_item_id} deve ser igual à quantidade conferida na saída: "
+                            "A soma do resultado do item #{$romaneioItem->entrega_item_id} deve ser igual Ã  quantidade conferida na saÃ­da: "
                             . number_format(
                                 $quantidadeSaida,
                                 2,
@@ -3194,7 +3232,7 @@ class EntregaController extends Controller
                 )
                 ->with(
                     'success',
-                    'Conferência do retorno concluída. O romaneio está aguardando a prestação de contas.'
+                    'ConferÃªncia do retorno concluÃ­da. O romaneio estÃ¡ aguardando a prestaÃ§Ã£o de contas.'
                 );
 
         } catch (ValidationException $e) {
@@ -3209,7 +3247,7 @@ class EntregaController extends Controller
                 ->withInput()
                 ->with(
                     'error',
-                    'Erro ao finalizar a conferência do retorno: '
+                    'Erro ao finalizar a conferÃªncia do retorno: '
                     . $e->getMessage()
                 );
         }
@@ -3238,10 +3276,10 @@ class EntregaController extends Controller
                     'Informe se a entrega ocorreu normalmente ou se houve alguma falha.',
 
                 'tipo_retorno.in' =>
-                    'O tipo de retorno informado é inválido.',
+                    'O tipo de retorno informado Ã© invÃ¡lido.',
 
                 'observacao_retorno.max' =>
-                    'A observação geral pode possuir no máximo 1000 caracteres.',
+                    'A observaÃ§Ã£o geral pode possuir no mÃ¡ximo 1000 caracteres.',
             ]
         );
 
@@ -3265,7 +3303,7 @@ class EntregaController extends Controller
             if (! $romaneio) {
                 throw ValidationException::withMessages([
                     'romaneio' =>
-                        'Não foi encontrado um romaneio ativo para esta entrega.',
+                        'NÃ£o foi encontrado um romaneio ativo para esta entrega.',
                 ]);
             }
 
@@ -3281,7 +3319,7 @@ class EntregaController extends Controller
             ) {
                 throw ValidationException::withMessages([
                     'romaneio' =>
-                        'O romaneio não está disponível para registro de retorno.',
+                        'O romaneio nÃ£o estÃ¡ disponÃ­vel para registro de retorno.',
                 ]);
             }
 
@@ -3328,7 +3366,7 @@ class EntregaController extends Controller
                     ->all();
 
                 $observacaoRetorno =
-                    'Entrega realizada normalmente, sem ocorrências.';
+                    'Entrega realizada normalmente, sem ocorrÃªncias.';
             } else {
                 $dadosOcorrencia = $request->validate(
                     [
@@ -3394,10 +3432,10 @@ class EntregaController extends Controller
                             'Informe o resultado de pelo menos um produto.',
 
                         'itens.*.romaneio_item_id.required' =>
-                            'Não foi possível identificar um item do romaneio.',
+                            'NÃ£o foi possÃ­vel identificar um item do romaneio.',
 
                         'itens.*.entrega_item_id.required' =>
-                            'Não foi possível identificar um item da entrega.',
+                            'NÃ£o foi possÃ­vel identificar um item da entrega.',
 
                         'itens.*.quantidade_entregue.required' =>
                             'Informe a quantidade entregue.',
@@ -3486,7 +3524,7 @@ class EntregaController extends Controller
                 ) {
                     throw ValidationException::withMessages([
                         'observacao_retorno' =>
-                            'Descreva a falha ocorrida no trajeto ou informe a ocorrência de pelo menos um produto.',
+                            'Descreva a falha ocorrida no trajeto ou informe a ocorrÃªncia de pelo menos um produto.',
                     ]);
                 }
             }
@@ -3516,7 +3554,7 @@ class EntregaController extends Controller
                 ) {
                     throw ValidationException::withMessages([
                         "itens.{$indice}.romaneio_item_id" =>
-                            'O produto informado não pertence a este romaneio.',
+                            'O produto informado nÃ£o pertence a este romaneio.',
                     ]);
                 }
 
@@ -3576,7 +3614,7 @@ class EntregaController extends Controller
                 ) {
                     throw ValidationException::withMessages([
                         "itens.{$indice}.quantidade_entregue" =>
-                            'A soma do resultado do produto deve ser igual à quantidade que saiu no romaneio: '
+                            'A soma do resultado do produto deve ser igual Ã  quantidade que saiu no romaneio: '
                             . number_format(
                                 $quantidadeSaida,
                                 2,
@@ -3612,8 +3650,8 @@ class EntregaController extends Controller
             ) {
                 /*
                 * O retorno normal conclui o fluxo operacional.
-                * O middleware liberará o bloqueio dentro da
-                * mesma transação da operação.
+                * O middleware liberarÃ¡ o bloqueio dentro da
+                * mesma transaÃ§Ã£o da operaÃ§Ã£o.
                 */
                 $request->attributes->set(
                     'liberarBloqueioEdicaoAoConcluir',
@@ -3626,7 +3664,7 @@ class EntregaController extends Controller
                     )
                     ->with(
                         'success',
-                        'Entrega finalizada normalmente. O romaneio foi encaminhado para a prestação de contas.'
+                        'Entrega finalizada normalmente. O romaneio foi encaminhado para a prestaÃ§Ã£o de contas.'
                     );
             }
 
@@ -3637,7 +3675,7 @@ class EntregaController extends Controller
                 )
                 ->with(
                     'success',
-                    'Retorno com ocorrência registrado. O romaneio está aguardando a conferência física.'
+                    'Retorno com ocorrÃªncia registrado. O romaneio estÃ¡ aguardando a conferÃªncia fÃ­sica.'
                 );
         } catch (
             ValidationException $e
@@ -3712,7 +3750,7 @@ class EntregaController extends Controller
                 ->route('entregas.show', $entrega->id)
                 ->with(
                     'error',
-                    'Não foi encontrado um romaneio para gerar o relatório de retorno.'
+                    'NÃ£o foi encontrado um romaneio para gerar o relatÃ³rio de retorno.'
                 );
         }
 
@@ -3737,7 +3775,7 @@ class EntregaController extends Controller
                 ->route('entregas.retorno', $entrega->id)
                 ->with(
                     'error',
-                    'O retorno desta entrega ainda não foi registrado.'
+                    'O retorno desta entrega ainda nÃ£o foi registrado.'
                 );
         }
 
@@ -3824,7 +3862,7 @@ class EntregaController extends Controller
 
                 return str_contains(
                     $nomeEvento,
-                    'ocorrência'
+                    'ocorrÃªncia'
                 )
                     || str_contains(
                         $nomeEvento,
@@ -3847,6 +3885,54 @@ class EntregaController extends Controller
                 'possuiOcorrencias'
             )
         );
+    }
+
+
+    public function reagendar(
+        Request $request,
+        Entrega $entrega
+    ) {
+        $dados = $request->validate([
+            'data_prevista_entrega' => [
+                'required',
+                'date',
+            ],
+
+            'motivo_reagendamento' => [
+                'required',
+                'string',
+                'max:1000',
+            ],
+        ]);
+
+        try {
+            $this->entregaService->reagendar(
+                $entrega,
+                $dados['data_prevista_entrega'],
+                $dados['motivo_reagendamento']
+            );
+
+            return redirect()
+                ->back()
+                ->with(
+                    'success',
+                    'Data da entrega alterada com sucesso.'
+                );
+        } catch (ValidationException $e) {
+            return redirect()
+                ->back()
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (Throwable $e) {
+            return redirect()
+                ->back()
+                ->with(
+                    'error',
+                    'Erro ao alterar a data da entrega: '
+                    . $e->getMessage()
+                )
+                ->withInput();
+        }
     }
 
 }

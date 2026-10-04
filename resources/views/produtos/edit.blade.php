@@ -276,6 +276,11 @@
                         <input type="number" min="0"  step="0.01" class="form-control" id="peso" name="peso" value="{{ old('peso', $produto->peso ?? '0.00') }}">
                     </div>
 
+                     <div class="col-md-3">
+                        <label for="unidades_por_pacote" class="form-label">Quantidade (Pct/Cx)</label>
+                        <input type="number" min="0"  step="0.01" class="form-control" id="unidades_por_pacote" name="unidades_por_pacote" value="{{ old('unidades_por_pacote', $produto->unidades_por_pacote ?? '0.00') }}">
+                    </div>
+
                     <div class="col-md-2">
                         <label for="largura" class="form-label">Largura (cm)</label>
                         <input type="number" min="0"  step="0.01" class="form-control" id="largura" name="largura" value="{{ old('largura', $produto->largura ?? '0.00') }}">

@@ -2574,4 +2574,7 @@
 
 </div>
 
+
+@include('entregas.partials.reagendar')
+
 @endsection

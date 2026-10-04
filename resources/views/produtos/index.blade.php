@@ -174,10 +174,19 @@
 
                             <p class="card-text mb-1 text-primary">
                                 <strong>Validade:</strong>
-                                @if($produto->lotes->count() > 0)
-                                    {{ $produto->lotes->min('validade_lote')->format('d/m/Y') }}
+
+                                @php
+                                    $validadeMinima = $produto->lotes
+                                        ->whereNotNull('validade_lote')
+                                        ->min('validade_lote');
+                                @endphp
+
+                                @if($validadeMinima)
+                                    {{ \Carbon\Carbon::parse($validadeMinima)->format('d/m/Y') }}
+                                @elseif($produto->controla_validade)
+                                    <span class="text-warning">Sem validade informada</span>
                                 @else
-                                    <span class="text-danger">Sem lote</span>
+                                    <span class="text-muted">Não controla validade</span>
                                 @endif
                             </p>
 

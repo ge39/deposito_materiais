@@ -318,7 +318,7 @@
             </div>
 
             <div class="col">
-                <a href="<?php echo e(route('entregas.index', ['status' => 'separando'])); ?>"
+                <a href="<?php echo e(route('entregas.index', ['status' => 'material_separado'])); ?>"
                 class="text-decoration-none text-dark">
 
                     <div class="card shadow-sm border-start border-primary border-4 h-100 kpi-card">
@@ -329,7 +329,7 @@
                                 </small>
 
                                 <span class="fw-semibold d-block mb-1">
-                                    Separando
+                                    Material separado
                                 </span>
 
                                 <h3>
@@ -345,7 +345,7 @@
             </div>
 
             <div class="col">
-                <a href="<?php echo e(route('entregas.index', ['status' => 'carregado'])); ?>"
+                <a href="<?php echo e(route('entregas.index', ['status' => 'material_carregado'])); ?>"
                 class="text-decoration-none text-dark">
 
                     <div class="card shadow-sm border-start border-info border-4 h-100 kpi-card">
@@ -356,7 +356,7 @@
                                 </small>
 
                                 <span class="fw-semibold d-block mb-1">
-                                    Carregados
+                                    Material carregado
                                 </span>
 
                                 <h3>
@@ -512,20 +512,44 @@
                             Aguardando separação
                         </option>
 
-                        <option value="separando"
+                        <option value="material_separado"
                             <?php if(
                                 request('status')
-                                === 'separando'
+                                === 'material_separado'
                             ): echo 'selected'; endif; ?>>
-                            Separando
+                            Material separado
                         </option>
 
-                        <option value="carregado"
+                        <option value="separacao_conferida"
                             <?php if(
                                 request('status')
-                                === 'carregado'
+                                === 'separacao_conferida'
                             ): echo 'selected'; endif; ?>>
-                            Carregada
+                            Separação conferida
+                        </option>
+
+                        <option value="material_carregado"
+                            <?php if(
+                                request('status')
+                                === 'material_carregado'
+                            ): echo 'selected'; endif; ?>>
+                            Material carregado
+                        </option>
+
+                        <option value="saida_conferida"
+                            <?php if(
+                                request('status')
+                                === 'saida_conferida'
+                            ): echo 'selected'; endif; ?>>
+                            Saída conferida
+                        </option>
+
+                        <option value="liberado"
+                            <?php if(
+                                request('status')
+                                === 'liberado'
+                            ): echo 'selected'; endif; ?>>
+                            Liberado
                         </option>
 
                         <option value="em_rota"
@@ -856,6 +880,11 @@
                 $statusClasses = [
                     'pendente_pagamento' => 'bg-secondary',
                     'aguardando_separacao' => 'bg-secondary',
+                    'material_separado' => 'bg-primary',
+                    'separacao_conferida' => 'bg-info text-dark',
+                    'material_carregado' => 'bg-info text-dark',
+                    'saida_conferida' => 'bg-warning text-dark',
+                    'liberado' => 'bg-success',
                     'separando' => 'bg-primary',
                     'em_preparacao' => 'bg-primary',
                     'pronta_para_carregamento' => 'bg-info text-dark',
@@ -882,6 +911,11 @@
                 $statusLabels = [
                     'pendente_pagamento' => 'Pendente pagamento',
                     'aguardando_separacao' => 'Aguardando separação',
+                    'material_separado' => 'Material separado',
+                    'separacao_conferida' => 'Separação conferida',
+                    'material_carregado' => 'Material carregado',
+                    'saida_conferida' => 'Saída conferida',
+                    'liberado' => 'Liberado',
                     'separando' => 'Separando',
                     'em_preparacao' => 'Em preparação',
                     'pronta_para_carregamento' => 'Pronta para carregamento',
@@ -947,6 +981,11 @@
                 * entrega_itens.status não tenha sido alterado para Entregue.
                 */
                 $itensConcluidos = match ($statusEntrega) {
+                    'material_separado',
+                    'separacao_conferida',
+                    'material_carregado',
+                    'saida_conferida',
+                    'liberado',
                     'pronta_para_carregamento',
                     'carregando',
                     'carregado',
@@ -1024,10 +1063,14 @@
                     'pendente_pagamento' =>
                         'table-light',
 
+                    'material_separado',
                     'separando',
                     'em_preparacao' =>
                         'table-primary',
 
+                    'separacao_conferida',
+                    'material_carregado',
+                    'saida_conferida',
                     'pronta_para_carregamento',
                     'carregando',
                     'carregado',
@@ -1035,6 +1078,7 @@
                     'aguardando_conferencia' =>
                         'table-info',
 
+                    'liberado',
                     'em_rota' =>
                         'table-success',
 
@@ -1097,6 +1141,65 @@
                             'romaneio',
                     ],
 
+                    'material_separado' => [
+                        'titulo' =>
+                            'Continuar conferência da separação',
+                        'icone' =>
+                            'bi-clipboard-check',
+                        'classe' =>
+                            'btn-outline-primary',
+                        'tipo' =>
+                            'romaneio',
+                    ],
+
+                    'separacao_conferida' => [
+                        'titulo' =>
+                            'Continuar carregamento',
+                        'icone' =>
+                            'bi-truck-front',
+                        'classe' =>
+                            'btn-outline-info',
+                        'tipo' =>
+                            'romaneio',
+                    ],
+
+                    'material_carregado' => [
+                        'titulo' =>
+                            'Continuar conferência de saída',
+                        'icone' =>
+                            'bi-clipboard-check',
+                        'classe' =>
+                            'btn-outline-primary',
+                        'tipo' =>
+                            'romaneio',
+                    ],
+
+                    'saida_conferida' => [
+                        'titulo' =>
+                            'Continuar liberação do veículo',
+                        'icone' =>
+                            'bi-check2-square',
+                        'classe' =>
+                            'btn-outline-success',
+                        'tipo' =>
+                            'romaneio',
+                    ],
+
+                    'liberado' => [
+                        'titulo' =>
+                            'Registrar saída do veículo',
+                        'icone' =>
+                            'bi-sign-turn-right',
+                        'classe' =>
+                            'btn-outline-success',
+                        'tipo' =>
+                            'romaneio',
+                    ],
+
+                    /*
+                    * Compatibilidade temporária com entregas que ainda
+                    * estejam persistidas nos status antigos.
+                    */
                     'separando',
                     'em_preparacao' => [
                         'titulo' =>
@@ -1443,6 +1546,11 @@
                             $statusEntrega,
                             [
                                 'aguardando_separacao',
+                                'material_separado',
+                                'separacao_conferida',
+                                'material_carregado',
+                                'saida_conferida',
+                                'liberado',
                                 'separando',
                                 'em_preparacao',
                                 'pronta_para_carregamento',

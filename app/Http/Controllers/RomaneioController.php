@@ -89,6 +89,25 @@ class RomaneioController extends Controller
         'Aguardando_separacao',
 
 
+        'Material_separado',
+
+
+        'Separacao_conferida',
+
+
+        'Material_carregado',
+
+
+        'Saida_conferida',
+
+
+        'Liberado',
+
+
+        /*
+        * Compatibilidade temporária com entregas que ainda estejam
+        * persistidas nos status antigos.
+        */
         'Em_preparacao',
 
 
@@ -586,6 +605,16 @@ class RomaneioController extends Controller
 
         $statusEntregasPreparacaoSaida = [
             'Aguardando_separacao',
+            'Material_separado',
+            'Separacao_conferida',
+            'Material_carregado',
+            'Saida_conferida',
+            'Liberado',
+
+            /*
+            * Compatibilidade temporária com entregas que ainda estejam
+            * persistidas nos status antigos.
+            */
             'Em_preparacao',
             'Pronta_para_carregamento',
             'Carregada',

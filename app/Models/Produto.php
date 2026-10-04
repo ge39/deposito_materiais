@@ -62,7 +62,9 @@ class Produto extends Model
         'controla_validade',
         'validade_produto',
         'editando_por', 
-        'editando_em'
+        'editando_em',
+        'rendimento',
+        'unidades_por_pacote',
     ];
     
     /**
@@ -111,6 +113,8 @@ class Produto extends Model
         'largura' => 'decimal:2',
         'altura' => 'decimal:2',
         'profundidade' => 'decimal:2',
+        'rendimento' => 'decimal:4',
+        'unidades_por_pacote' => 'integer',
     ];
 
     // -------------------------------

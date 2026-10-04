@@ -3,6 +3,7 @@
 namespace App\Services\Expedicao;
 
 use App\Models\Entrega;
+use App\Models\Funcionario;
 use App\Models\EntregaFracionamento;
 use App\Models\EntregaItem;
 use App\Models\Romaneio;
@@ -566,6 +567,12 @@ class RomaneioService
 
     private function iniciarSeparacao(Romaneio $romaneio, array $dados): Romaneio 
     {
+        $separadorId = $this->validarFuncionario(
+            $dados,
+            'separado_por',
+            'Informe o funcionário responsável pela separação.'
+        );
+
         $statusAnterior = $romaneio->status;
 
         $romaneio->update([
@@ -576,17 +583,28 @@ class RomaneioService
                 $romaneio->data_inicio_separacao ?? now(),
         ]);
 
-        $this->atualizarStatusEntregas(
-            $romaneio,
-            'Em_preparacao'
-        );
-
         $romaneio->load('itens');
+
+        foreach ($romaneio->itens as $romaneioItem) {
+            $romaneioItem->update([
+                'separado_por' => $separadorId,
+                'separado_em' =>
+                    $romaneioItem->separado_em ?? now(),
+            ]);
+        }
 
         $this->salvarDadosOperacionais(
             $romaneio,
-            $dados
+            array_merge(
+                $dados,
+                [
+                    'separado_por' => $separadorId,
+                ]
+            )
         );
+
+        $romaneio->refresh();
+        $romaneio->load('itens');
 
         $this->eventoService->registrarAbertura(
             $romaneio,
@@ -630,6 +648,11 @@ class RomaneioService
             'data_fim_separacao' =>
                 $romaneio->data_fim_separacao ?? now(),
         ]);
+
+        $this->atualizarStatusEntregas(
+            $romaneio,
+            'Material_separado'
+        );
 
         $observacaoEvento = $romaneioSaldo
             ? sprintf(
@@ -746,7 +769,7 @@ class RomaneioService
 
         $this->atualizarStatusEntregas(
             $romaneio,
-            'Pronta_para_carregamento'
+            'Separacao_conferida'
         );
 
         $this->eventoService->registrarTransicao(
@@ -785,11 +808,6 @@ class RomaneioService
                 $romaneio->data_inicio_carregamento
                 ?? now(),
         ]);
-
-        $this->atualizarStatusEntregas(
-            $romaneio,
-            'Pronta_para_carregamento'
-        );
 
         $romaneio->load('itens');
 
@@ -856,7 +874,7 @@ class RomaneioService
 
         $this->atualizarStatusEntregas(
             $romaneio,
-            'Carregada'
+            'Material_carregado'
         );
 
         $this->eventoService->registrarTransicao(
@@ -951,6 +969,11 @@ class RomaneioService
             'conferencia_saida_finalizada_por' =>
                 Auth::id(),
         ]);
+
+        $this->atualizarStatusEntregas(
+            $romaneio,
+            'Saida_conferida'
+        );
 
         $this->eventoService->registrarTransicao(
             romaneio: $romaneio,
@@ -1051,7 +1074,7 @@ class RomaneioService
 
         $this->atualizarStatusEntregas(
             $romaneio,
-            'Liberada'
+            'Liberado'
         );
 
         $this->eventoService->registrarTransicao(
@@ -1130,6 +1153,13 @@ class RomaneioService
 
         $statusEntregasPreparacaoSaida = [
             'Aguardando_separacao',
+            'Material_separado',
+            'Separacao_conferida',
+            'Material_carregado',
+            'Saida_conferida',
+            'Liberado',
+
+            // Compatibilidade temporária com entregas abertas antes deste ajuste.
             'Em_preparacao',
             'Pronta_para_carregamento',
             'Carregada',
@@ -5384,31 +5414,31 @@ class RomaneioService
             ) {
                 self::STATUS_LIBERADO => [
                     self::STATUS_AGUARDANDO_LIBERACAO,
-                    'Carregada',
+                    'Saida_conferida',
                     'Liberacao',
                 ],
 
                 self::STATUS_AGUARDANDO_LIBERACAO => [
                     self::STATUS_EM_CONFERENCIA_SAIDA,
-                    'Carregada',
+                    'Material_carregado',
                     'Conferencia_saida',
                 ],
 
                 self::STATUS_AGUARDANDO_CONFERENCIA_SAIDA => [
                     self::STATUS_CARREGANDO,
-                    'Pronta_para_carregamento',
+                    'Separacao_conferida',
                     'Carregamento',
                 ],
 
                 self::STATUS_AGUARDANDO_CARREGAMENTO => [
                     self::STATUS_EM_CONFERENCIA_SEPARACAO,
-                    'Em_preparacao',
+                    'Material_separado',
                     'Conferencia_separacao',
                 ],
 
                 self::STATUS_AGUARDANDO_CONFERENCIA_SEPARACAO => [
                     self::STATUS_EM_SEPARACAO,
-                    'Em_preparacao',
+                    'Aguardando_separacao',
                     'Separacao',
                 ],
 
@@ -6127,35 +6157,35 @@ class RomaneioService
                     'ordem' => 2,
                     'label' => 'Separação',
                     'status_romaneio' => 'Em_separacao',
-                    'status_entrega' => 'Em_preparacao',
+                    'status_entrega' => 'Aguardando_separacao',
                 ],
 
                 'conferencia_separacao' => [
                     'ordem' => 3,
                     'label' => 'Conferência da Separação',
                     'status_romaneio' => 'Em_conferencia_separacao',
-                    'status_entrega' => 'Em_preparacao',
+                    'status_entrega' => 'Material_separado',
                 ],
 
                 'carregamento' => [
                     'ordem' => 4,
                     'label' => 'Carregamento',
                     'status_romaneio' => 'Carregando',
-                    'status_entrega' => 'Pronta_para_carregamento',
+                    'status_entrega' => 'Separacao_conferida',
                 ],
 
                 'conferencia_saida' => [
                     'ordem' => 5,
                     'label' => 'Conferência de Saída',
                     'status_romaneio' => 'Em_conferencia_saida',
-                    'status_entrega' => 'Carregada',
+                    'status_entrega' => 'Material_carregado',
                 ],
 
                 'liberacao' => [
                     'ordem' => 6,
                     'label' => 'Liberação',
                     'status_romaneio' => 'Aguardando_liberacao',
-                    'status_entrega' => 'Carregada',
+                    'status_entrega' => 'Saida_conferida',
                 ],
 
                 'em_rota' => [
@@ -6465,23 +6495,106 @@ class RomaneioService
                 : null;
         }
 
-        private function atualizarStatusEntregas(
-                Romaneio $romaneio,
-                string $status
-            ): void {
-            $entregasIds = $romaneio->itens()
+        // private function atualizarStatusEntregas(
+        //         Romaneio $romaneio,
+        //         string $status
+        //     ): void {
+        //     $entregasIds = $romaneio->itens()
+        //         ->with('entregaItem')
+        //         ->get()
+        //         ->pluck('entregaItem.entrega_id')
+        //         ->filter()
+        //         ->unique()
+        //         ->values();
+
+        //     Entrega::query()
+        //         ->whereIn('id', $entregasIds)
+        //         ->update([
+        //             'status' => $status,
+        //         ]);
+        // }
+
+        private function atualizarStatusEntregas(Romaneio $romaneio,string $status): void {
+            $itens = $romaneio->itens()
                 ->with('entregaItem')
-                ->get()
+                ->get();
+
+            $entregasIds = $itens
                 ->pluck('entregaItem.entrega_id')
                 ->filter()
                 ->unique()
                 ->values();
 
-            Entrega::query()
-                ->whereIn('id', $entregasIds)
-                ->update([
-                    'status' => $status,
-                ]);
+            $campoOperador = match ($status) {
+                'Material_separado' =>
+                    'separado_por',
+
+                'Separacao_conferida' =>
+                    'conferencia_separacao_por',
+
+                'Material_carregado' =>
+                    'carregado_por',
+
+                'Saida_conferida' =>
+                    'conferencia_saida_por',
+
+                default =>
+                    null,
+            };
+
+            $operadorId = null;
+            $operadorNome = null;
+
+            if ($campoOperador !== null) {
+                $operadoresIds = $itens
+                    ->pluck($campoOperador)
+                    ->filter()
+                    ->unique()
+                    ->values();
+
+                if ($operadoresIds->count() === 1) {
+                    $operadorId = (int) $operadoresIds->first();
+
+                    $operadorNome = Funcionario::query()
+                        ->whereKey($operadorId)
+                        ->value('nome');
+                }
+            }
+
+            DB::statement(
+                'SET @entrega_usuario_id = ?',
+                [Auth::id()]
+            );
+
+            DB::statement(
+                'SET @entrega_operador_id = ?',
+                [$operadorId]
+            );
+
+            DB::statement(
+                'SET @entrega_operador_nome = ?',
+                [$operadorNome]
+            );
+
+            try {
+                Entrega::query()
+                    ->whereIn('id', $entregasIds)
+                    ->update([
+                        'status' => $status,
+                    ]);
+            } finally {
+                DB::statement(
+                    'SET @entrega_usuario_id = NULL'
+                );
+
+                DB::statement(
+                    'SET @entrega_operador_id = NULL'
+                );
+
+                DB::statement(
+                    'SET @entrega_operador_nome = NULL'
+                );
+            }
         }
 
         private function atualizarPercentualCarregado(

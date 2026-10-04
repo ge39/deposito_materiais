@@ -69,6 +69,8 @@ class OrcamentoService
                 ->get(),
 
             'produtos' => Produto::with([
+                'categoria:id,nome,tipo_calculo',
+                'unidadeMedida',
                 'lotes' => function ($q) {
                     $q->where('status', 1)
                         ->whereRaw(

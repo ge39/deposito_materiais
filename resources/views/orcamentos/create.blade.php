@@ -572,6 +572,199 @@
         font-size: .78rem;
     }
 
+    /* Calculadora de revestimento: ocupa praticamente toda a área útil da tela */
+    #revestimentoModal .modal-dialog {
+        width: 96vw;
+        max-width: 96vw;
+        height: 94vh;
+        margin: 2vh auto;
+    }
+
+    #revestimentoModal .modal-content {
+        height: 94vh;
+        border: 0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, .22);
+    }
+
+    #revestimentoModal .modal-header,
+    #revestimentoModal .modal-footer {
+        flex: 0 0 auto;
+        padding: .72rem 1rem;
+    }
+
+    #revestimentoModal .modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+        padding: .6rem .8rem;
+        background: #f8fafc;
+    }
+
+    #revestimentoModal .revestimento-workspace {
+        height: 100%;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: .45rem;
+    }
+
+    #revestimentoModal .revestimento-section {
+        border: 1px solid #dfe6ef;
+        border-radius: 10px;
+        background: #fff;
+        padding: .55rem .65rem;
+    }
+
+    #revestimentoModal .revestimento-section-title {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        margin-bottom: .35rem;
+        color: #1f2937;
+        font-size: .8rem;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: .035em;
+    }
+
+    #revestimentoModal .revestimento-inputs-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .65rem;
+    }
+
+    #revestimentoModal .revestimento-complementos-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .7rem;
+        min-height: 0;
+    }
+
+    #revestimentoModal .revestimento-complement-card {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
+        border: 1px solid #dfe6ef;
+        border-radius: 10px;
+        background: #fff;
+        padding: .75rem;
+        height: auto;
+    }
+
+    #revestimentoModal .revestimento-complement-card .form-check {
+        margin: 0;
+    }
+
+    #revestimentoModal .revestimento-complement-card .form-check-label {
+        font-size: .9rem;
+    }
+
+    #revestimentoModal .revestimento-summary {
+        margin-top: .35rem;
+        border: 1px solid #cfe0f5;
+        border-radius: 8px;
+        background: #f5f9ff;
+        padding: .65rem .75rem;
+        min-height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+        flex-wrap: wrap;
+    }
+
+    #revestimentoModal .revestimento-summary strong {
+        color: #1d4ed8;
+        font-size: 1rem;
+    }
+
+    #revestimentoModal .revestimento-workspace > .revestimento-section:last-child {
+        padding: .4rem .55rem;
+    }
+
+    #revestimentoModal .revestimento-workspace > .revestimento-section:last-child
+    .revestimento-section-title {
+        margin-bottom: .25rem;
+        font-size: .75rem;
+    }
+
+    #revestimentoModal .revestimento-result-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: .35rem;
+    }
+
+    #revestimentoModal .revestimento-result-item {
+        min-width: 0;
+        border: 1px solid #dfe6ef;
+        border-radius: 7px;
+        background: #fff;
+        padding: .34rem .48rem;
+        line-height: 1.15;
+        font-size: .76rem;
+    }
+
+    #revestimentoModal .revestimento-result-item strong {
+        display: block;
+        margin-top: .08rem;
+        color: #0f172a;
+        font-size: .83rem;
+        line-height: 1.1;
+    }
+
+    #revestimentoModal .form-label {
+        margin-bottom: .22rem;
+    }
+
+    #revestimentoModal .form-control,
+    #revestimentoModal .form-select {
+        min-height: 36px;
+    }
+
+    @media (max-width: 991.98px) {
+        #revestimentoModal .modal-dialog {
+            width: 98vw;
+            max-width: 98vw;
+            height: 96vh;
+            margin: 1vh auto;
+        }
+
+        #revestimentoModal .modal-content {
+            height: 96vh;
+        }
+
+        #revestimentoModal .modal-body {
+            overflow-y: auto;
+        }
+
+        #revestimentoModal .revestimento-workspace {
+            height: auto;
+            display: block;
+        }
+
+        #revestimentoModal .revestimento-inputs-grid,
+        #revestimentoModal .revestimento-complementos-grid,
+        #revestimentoModal .revestimento-result-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        #revestimentoModal .revestimento-complementos-grid,
+        #revestimentoModal .revestimento-section {
+            margin-bottom: .7rem;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        #revestimentoModal .revestimento-inputs-grid,
+        #revestimentoModal .revestimento-complementos-grid,
+        #revestimentoModal .revestimento-result-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
     @media (max-width: 767.98px) {
         .orcamento-create-page {
             width: 100%;
@@ -1208,6 +1401,157 @@
                 </form>
     </div>
 
+    {{-- Calculadora de revestimento: apenas apoio ao lançamento dos itens do orçamento --}}
+    <div class="modal fade" id="revestimentoModal" tabindex="-1" aria-labelledby="revestimentoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="revestimentoModalLabel">
+                            <i class="bi bi-calculator me-1"></i>
+                            Calculadora de Revestimento
+                        </h5>
+                        <small class="text-muted" id="revestimentoProdutoNome"></small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="revestimento-workspace">
+                        <section class="revestimento-section">
+                            <div class="revestimento-section-title">
+                                <i class="bi bi-rulers"></i>
+                                Dados do revestimento
+                            </div>
+                            <div class="revestimento-inputs-grid">
+                                <div>
+                                    <label class="form-label" for="revestArea">Área solicitada (m²) *</label>
+                                    <input type="number" class="form-control" id="revestArea" min="0.01" step="0.01" placeholder="50,00">
+                                </div>
+
+                                <div>
+                                    <label class="form-label" for="revestPerda">Perda (%)</label>
+                                    <input type="number" class="form-control" id="revestPerda" min="0" step="0.01" value="10">
+                                </div>
+
+                                <div>
+                                    <label class="form-label">M² por caixa</label>
+                                    <div class="form-control bg-light">
+                                        <span id="revestM2CaixaTexto">—</span>
+                                    </div>
+                                    <input type="hidden" id="revestM2Caixa">
+                                </div>
+
+                                <div>
+                                    <label class="form-label">Peças por caixa</label>
+                                    <div class="form-control bg-light">
+                                        <span id="revestPecasCaixaTexto">—</span>
+                                    </div>
+                                    <input type="hidden" id="revestPecasCaixa">
+                                </div>
+                            </div>
+                        </section>
+
+                        <div class="revestimento-complementos-grid">
+                            <section class="revestimento-complement-card">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="revestIncluirArgamassa" checked>
+                                    <label class="form-check-label fw-semibold" for="revestIncluirArgamassa">
+                                        <i class="bi bi-box-seam me-1"></i>Argamassa
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="revestArgamassaProduto">Produto</label>
+                                    <select class="form-select" id="revestArgamassaProduto"></select>
+                                </div>
+                                <div>
+                                    <label class="form-label">Rendimento (m²/saco)</label>
+                                    <div class="form-control bg-light">
+                                        <span id="revestArgamassaRendimentoTexto">—</span>
+                                    </div>
+                                    <input type="hidden" id="revestArgamassaRendimento">
+                                </div>
+                                <div class="revestimento-summary">
+                                    Quantidade necessária:<strong><span id="revestArgamassaQtd">0</span> saco(s)</strong>
+                                </div>
+                            </section>
+
+                            <section class="revestimento-complement-card">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="revestIncluirRejunte" checked>
+                                    <label class="form-check-label fw-semibold" for="revestIncluirRejunte">
+                                        <i class="bi bi-grid-3x3-gap me-1"></i>Rejunte
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="revestRejunteProduto">Produto</label>
+                                    <select class="form-select" id="revestRejunteProduto"></select>
+                                </div>
+                                <div>
+                                    <label class="form-label">Rendimento (m²/pacote)</label>
+                                    <div class="form-control bg-light">
+                                        <span id="revestRejunteRendimentoTexto">—</span>
+                                    </div>
+                                    <input type="hidden" id="revestRejunteRendimento">
+                                </div>
+                                <div class="revestimento-summary">
+                                    Quantidade necessária:<strong><span id="revestRejunteQtd">0</span> pacote(s)</strong>
+                                </div>
+                            </section>
+
+                            <section class="revestimento-complement-card">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="revestIncluirEspacador" checked>
+                                    <label class="form-check-label fw-semibold" for="revestIncluirEspacador">
+                                        <i class="bi bi-bounding-box-circles me-1"></i>Espaçador
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="revestEspacadorProduto">Produto</label>
+                                    <select class="form-select" id="revestEspacadorProduto"></select>
+                                </div>
+                                <div>
+                                    <label class="form-label">Unidades por pacote</label>
+                                    <div class="form-control bg-light">
+                                        <span id="revestEspacadorPacoteTexto">—</span>
+                                    </div>
+                                    <input type="hidden" id="revestEspacadorPacote">
+                                    <small class="text-muted d-block mt-1">Consumo adotado: 4 espaçadores por peça.</small>
+                                </div>
+                                <div class="revestimento-summary">
+                                    Quantidade necessária:<strong><span id="revestEspacadorQtd">0</span> pacote(s)</strong>
+                                </div>
+                            </section>
+                        </div>
+
+                        <section class="revestimento-section">
+                            <div class="revestimento-section-title">
+                                <i class="bi bi-clipboard-data"></i>
+                                Resumo do cálculo
+                            </div>
+                            <div class="revestimento-result-grid">
+                                <div class="revestimento-result-item">Área com perda<strong><span id="revestAreaComPerda">0,00</span> m²</strong></div>
+                                <div class="revestimento-result-item">Caixas<strong><span id="revestCaixasQtd">0</span></strong></div>
+                                <div class="revestimento-result-item">Área fornecida<strong><span id="revestAreaFornecida">0,0000</span> m²</strong></div>
+                                <div class="revestimento-result-item">Peças de revestimento<strong><span id="revestPecasQtd">0</span></strong></div>
+                                <div class="revestimento-result-item">Pacotes de espaçador<strong><span id="revestEspacadoresUnidades">0</span> pacote(s)</strong></div>
+                                <div class="revestimento-result-item">Regra comercial<strong>Arredondar para cima</strong></div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="revestAplicarCalculo">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Aplicar ao orçamento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
   document.addEventListener('DOMContentLoaded', () => {
 
@@ -1225,6 +1569,38 @@
         const totalDescontoInput = document.getElementById('totalDescontoInput');
         const totalLiquidoInput = document.getElementById('totalLiquidoInput');
 
+        const revestimentoModalEl = document.getElementById('revestimentoModal');
+        const revestimentoProdutoNome = document.getElementById('revestimentoProdutoNome');
+        const revestArea = document.getElementById('revestArea');
+        const revestPerda = document.getElementById('revestPerda');
+        const revestM2Caixa = document.getElementById('revestM2Caixa');
+        const revestM2CaixaTexto = document.getElementById('revestM2CaixaTexto');
+        const revestPecasCaixa = document.getElementById('revestPecasCaixa');
+        const revestPecasCaixaTexto = document.getElementById('revestPecasCaixaTexto');
+        const revestIncluirArgamassa = document.getElementById('revestIncluirArgamassa');
+        const revestArgamassaProduto = document.getElementById('revestArgamassaProduto');
+        const revestArgamassaRendimento = document.getElementById('revestArgamassaRendimento');
+        const revestArgamassaRendimentoTexto = document.getElementById('revestArgamassaRendimentoTexto');
+        const revestIncluirRejunte = document.getElementById('revestIncluirRejunte');
+        const revestRejunteProduto = document.getElementById('revestRejunteProduto');
+        const revestRejunteRendimento = document.getElementById('revestRejunteRendimento');
+        const revestRejunteRendimentoTexto = document.getElementById('revestRejunteRendimentoTexto');
+        const revestIncluirEspacador = document.getElementById('revestIncluirEspacador');
+        const revestEspacadorProduto = document.getElementById('revestEspacadorProduto');
+        const revestEspacadorPacote = document.getElementById('revestEspacadorPacote');
+        const revestEspacadorPacoteTexto = document.getElementById('revestEspacadorPacoteTexto');
+        const revestAreaComPerda = document.getElementById('revestAreaComPerda');
+        const revestCaixasQtd = document.getElementById('revestCaixasQtd');
+        const revestAreaFornecida = document.getElementById('revestAreaFornecida');
+        const revestPecasQtd = document.getElementById('revestPecasQtd');
+        const revestEspacadoresUnidades = document.getElementById('revestEspacadoresUnidades');
+        const revestArgamassaQtd = document.getElementById('revestArgamassaQtd');
+        const revestRejunteQtd = document.getElementById('revestRejunteQtd');
+        const revestEspacadorQtd = document.getElementById('revestEspacadorQtd');
+        const revestAplicarCalculo = document.getElementById('revestAplicarCalculo');
+
+        let revestimentoRowAtual = null;
+        let revestimentoProdutoAtual = null;
         let index = 0;
 
         function getProdutosSelecionados() {
@@ -1258,6 +1634,220 @@
                     option.hidden = selecionados.includes(option.value);
                 });
             });
+        }
+
+        function produtosPorTipoCalculo(tipo) {
+            return produtos.filter(p => p?.categoria?.tipo_calculo === tipo);
+        }
+
+        function preencherSelectComplemento(select, tipo, placeholder) {
+            if (!select) return;
+
+            const lista = produtosPorTipoCalculo(tipo);
+
+            select.innerHTML = `
+                <option value="">${placeholder}</option>
+                ${lista.map(p => `
+                    <option value="${p.id}">${p.id} - ${p.nome}</option>
+                `).join('')}
+            `;
+        }
+
+        function produtoPorId(produtoId) {
+            return produtos.find(p => String(p.id) === String(produtoId)) || null;
+        }
+
+        function definirDadoTecnico(input, texto, valor, casas = 4) {
+            const numero = parseFloat(valor || 0);
+            const valido = Number.isFinite(numero) && numero > 0;
+
+            if (input) {
+                input.value = valido ? String(numero) : '';
+            }
+
+            if (texto) {
+                texto.textContent = valido
+                    ? numero.toFixed(casas).replace('.', ',')
+                    : 'Não cadastrado';
+            }
+        }
+
+        function atualizarDadoComplemento(select, input, texto, campo, casas = 4) {
+            const produto = produtoPorId(select?.value);
+            definirDadoTecnico(
+                input,
+                texto,
+                produto ? produto[campo] : null,
+                casas
+            );
+            calcularRevestimento();
+        }
+
+        function numeroPositivo(input) {
+            const valor = parseFloat(input?.value || 0);
+            return Number.isFinite(valor) && valor > 0 ? valor : 0;
+        }
+
+        function numeroNaoNegativo(input) {
+            const valor = parseFloat(input?.value || 0);
+            return Number.isFinite(valor) && valor >= 0 ? valor : 0;
+        }
+
+        function calcularRevestimento() {
+            const area = numeroPositivo(revestArea);
+            const perda = numeroNaoNegativo(revestPerda);
+            const m2Caixa = numeroPositivo(revestM2Caixa);
+            const pecasCaixa = Math.floor(numeroPositivo(revestPecasCaixa));
+
+            const areaComPerda = area > 0
+                ? area * (1 + (perda / 100))
+                : 0;
+
+            const caixas = areaComPerda > 0 && m2Caixa > 0
+                ? Math.ceil(areaComPerda / m2Caixa)
+                : 0;
+
+            const areaFornecida = caixas * m2Caixa;
+            const pecas = caixas * pecasCaixa;
+            const espacadores = pecas * 4;
+
+            const rendimentoArgamassa = numeroPositivo(revestArgamassaRendimento);
+            const rendimentoRejunte = numeroPositivo(revestRejunteRendimento);
+            const unidadesEspacadorPacote = Math.floor(numeroPositivo(revestEspacadorPacote));
+
+            const qtdArgamassa = area > 0 && rendimentoArgamassa > 0
+                ? Math.ceil(area / rendimentoArgamassa)
+                : 0;
+
+            const qtdRejunte = areaComPerda > 0 && rendimentoRejunte > 0
+                ? Math.ceil(areaComPerda / rendimentoRejunte)
+                : 0;
+
+            const qtdEspacador = espacadores > 0 && unidadesEspacadorPacote > 0
+                ? Math.ceil(espacadores / unidadesEspacadorPacote)
+                : 0;
+
+            revestAreaComPerda.textContent = areaComPerda.toFixed(2).replace('.', ',');
+            revestCaixasQtd.textContent = caixas;
+            revestAreaFornecida.textContent = areaFornecida.toFixed(4).replace('.', ',');
+            revestPecasQtd.textContent = pecas;
+            revestEspacadoresUnidades.textContent = qtdEspacador;
+            revestArgamassaQtd.textContent = qtdArgamassa;
+            revestRejunteQtd.textContent = qtdRejunte;
+            revestEspacadorQtd.textContent = qtdEspacador;
+
+            return {
+                area,
+                perda,
+                m2Caixa,
+                pecasCaixa,
+                areaComPerda,
+                caixas,
+                areaFornecida,
+                pecas,
+                espacadores,
+                qtdArgamassa,
+                qtdRejunte,
+                qtdEspacador,
+            };
+        }
+
+        function abrirCalculadoraRevestimento(produto, tr) {
+            if (!revestimentoModalEl || typeof bootstrap === 'undefined') {
+                return;
+            }
+
+            revestimentoProdutoAtual = produto;
+            revestimentoRowAtual = tr;
+            revestimentoProdutoNome.textContent = produto?.nome || '';
+
+            preencherSelectComplemento(
+                revestArgamassaProduto,
+                'complemento_argamassa',
+                'Selecione a argamassa...'
+            );
+
+            preencherSelectComplemento(
+                revestRejunteProduto,
+                'complemento_rejunte',
+                'Selecione o rejunte...'
+            );
+
+            preencherSelectComplemento(
+                revestEspacadorProduto,
+                'complemento_espacador',
+                'Selecione o espaçador...'
+            );
+
+            revestArea.value = '';
+            revestPerda.value = '10';
+
+            definirDadoTecnico(
+                revestM2Caixa,
+                revestM2CaixaTexto,
+                produto?.rendimento,
+                4
+            );
+
+            definirDadoTecnico(
+                revestPecasCaixa,
+                revestPecasCaixaTexto,
+                produto?.unidades_por_pacote,
+                0
+            );
+
+            definirDadoTecnico(
+                revestArgamassaRendimento,
+                revestArgamassaRendimentoTexto,
+                null,
+                4
+            );
+
+            definirDadoTecnico(
+                revestRejunteRendimento,
+                revestRejunteRendimentoTexto,
+                null,
+                4
+            );
+
+            definirDadoTecnico(
+                revestEspacadorPacote,
+                revestEspacadorPacoteTexto,
+                null,
+                0
+            );
+
+            revestIncluirArgamassa.checked = true;
+            revestIncluirRejunte.checked = true;
+            revestIncluirEspacador.checked = true;
+
+            calcularRevestimento();
+
+            bootstrap.Modal.getOrCreateInstance(revestimentoModalEl).show();
+        }
+
+        function encontrarLinhaPorProduto(produtoId, ignorarTr = null) {
+            return Array.from(tableBody.querySelectorAll('tr')).find(tr => {
+                if (ignorarTr && tr === ignorarTr) return false;
+                return tr.querySelector('.produtoSelect')?.value == produtoId;
+            }) || null;
+        }
+
+        function aplicarProdutoCalculado(produtoId, quantidade) {
+            if (!produtoId || quantidade <= 0) return;
+
+            let tr = encontrarLinhaPorProduto(produtoId);
+
+            if (!tr) {
+                tr = criarItem();
+                const select = tr.querySelector('.produtoSelect');
+                select.value = String(produtoId);
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            const qtdInput = tr.querySelector('.qtd');
+            qtdInput.value = String(quantidade);
+            atualizarTotal();
         }
 
         function criarItem() {
@@ -1316,6 +1906,7 @@
             index++;
 
             atualizarOpcoesProdutos();
+            return tr;
         }
 
         function atualizarTotal() {
@@ -1459,6 +2050,10 @@
 
             atualizarOpcoesProdutos();
             atualizarTotal();
+
+            if (produto?.categoria?.tipo_calculo === 'revestimento') {
+                abrirCalculadoraRevestimento(produto, tr);
+            }
         });
 
         tableBody.addEventListener('input', e => {
@@ -1466,6 +2061,111 @@
                 atualizarTotal();
             }
         });
+
+        [
+            revestArea,
+            revestPerda,
+        ].filter(Boolean).forEach(input => {
+            input.addEventListener('input', calcularRevestimento);
+        });
+
+        revestArgamassaProduto?.addEventListener('change', () => {
+            atualizarDadoComplemento(
+                revestArgamassaProduto,
+                revestArgamassaRendimento,
+                revestArgamassaRendimentoTexto,
+                'rendimento',
+                4
+            );
+        });
+
+        revestRejunteProduto?.addEventListener('change', () => {
+            atualizarDadoComplemento(
+                revestRejunteProduto,
+                revestRejunteRendimento,
+                revestRejunteRendimentoTexto,
+                'rendimento',
+                4
+            );
+        });
+
+        revestEspacadorProduto?.addEventListener('change', () => {
+            atualizarDadoComplemento(
+                revestEspacadorProduto,
+                revestEspacadorPacote,
+                revestEspacadorPacoteTexto,
+                'unidades_por_pacote',
+                0
+            );
+        });
+
+        if (revestAplicarCalculo) {
+            revestAplicarCalculo.addEventListener('click', () => {
+                const calculo = calcularRevestimento();
+
+                if (
+                    !revestimentoRowAtual
+                    || !revestimentoProdutoAtual
+                    || calculo.area <= 0
+                    || calculo.m2Caixa <= 0
+                    || calculo.pecasCaixa <= 0
+                    || calculo.caixas <= 0
+                ) {
+                    alert('Informe a área e verifique o rendimento e a quantidade por caixa cadastrados no produto.');
+                    return;
+                }
+
+                if (revestIncluirArgamassa.checked) {
+                    if (!revestArgamassaProduto.value || numeroPositivo(revestArgamassaRendimento) <= 0) {
+                        alert('Selecione a argamassa e verifique o rendimento cadastrado no produto.');
+                        return;
+                    }
+                }
+
+                if (revestIncluirRejunte.checked) {
+                    if (!revestRejunteProduto.value || numeroPositivo(revestRejunteRendimento) <= 0) {
+                        alert('Selecione o rejunte e verifique o rendimento cadastrado no produto.');
+                        return;
+                    }
+                }
+
+                if (revestIncluirEspacador.checked) {
+                    if (!revestEspacadorProduto.value || numeroPositivo(revestEspacadorPacote) <= 0) {
+                        alert('Selecione o espaçador e verifique a quantidade por embalagem cadastrada no produto.');
+                        return;
+                    }
+                }
+
+                const qtdPiso = revestimentoRowAtual.querySelector('.qtd');
+                qtdPiso.value = String(calculo.caixas);
+
+                if (revestIncluirArgamassa.checked) {
+                    aplicarProdutoCalculado(
+                        revestArgamassaProduto.value,
+                        calculo.qtdArgamassa
+                    );
+                }
+
+                if (revestIncluirRejunte.checked) {
+                    aplicarProdutoCalculado(
+                        revestRejunteProduto.value,
+                        calculo.qtdRejunte
+                    );
+                }
+
+                if (revestIncluirEspacador.checked) {
+                    aplicarProdutoCalculado(
+                        revestEspacadorProduto.value,
+                        calculo.qtdEspacador
+                    );
+                }
+
+                atualizarOpcoesProdutos();
+                atualizarTotal();
+
+                bootstrap.Modal.getOrCreateInstance(revestimentoModalEl).hide();
+            });
+        }
 
         if (descontoGlobalInput) {
             descontoGlobalInput.addEventListener('input', atualizarTotal);
