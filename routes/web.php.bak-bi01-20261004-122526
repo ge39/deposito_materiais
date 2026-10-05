@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\BI\BiExecutivoController;
-use App\Http\Controllers\BI\BiController;
 use App\Http\Controllers\Sistema\BloqueioEdicaoController;
 
 use App\Http\Controllers\{
@@ -1101,63 +1099,3 @@ Route::middleware(['auth'])
         [\App\Http\Controllers\EntregaController::class, 'reagendar']
     )->name('entregas.reagendar');
 
-/*
-|--------------------------------------------------------------------------
-| BI & Relatórios
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/bi', [BiController::class, 'index'])
-    ->name('bi.index');
-
-Route::get(
-    '/bi/executivo',
-    [BiExecutivoController::class, 'index']
-)->name('bi.executivo.index');
-
-
-/*
-|--------------------------------------------------------------------------
-| BI - Produtos & Estoque
-|--------------------------------------------------------------------------
-*/
-
-Route::get(
-    '/bi/produtos',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'index']
-)->name('bi.produtos.index');
-
-Route::get(
-    '/bi/produtos/estoque-zero',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'estoqueZero']
-)->name('bi.produtos.estoque-zero');
-
-Route::get(
-    '/bi/produtos/estoque-zero/pdf',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'estoqueZeroPdf']
-)->name('bi.produtos.estoque-zero.pdf');
-
-Route::get(
-    '/bi/produtos/estoque-zero/planilha',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'estoqueZeroPlanilha']
-)->name('bi.produtos.estoque-zero.planilha');
-
-Route::get(
-    '/bi/produtos/ativos',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'ativos']
-)->name('bi.produtos.ativos');
-
-Route::get(
-    '/bi/produtos/abaixo-minimo',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'abaixoMinimo']
-)->name('bi.produtos.abaixo-minimo');
-
-Route::get(
-    '/bi/produtos/valor-estoque',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'valorEstoque']
-)->name('bi.produtos.valor-estoque');
-
-Route::get(
-    '/bi/produtos/estoque-parado',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'estoqueParado']
-)->name('bi.produtos.estoque-parado');

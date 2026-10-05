@@ -1,0 +1,187 @@
+<?php
+
+namespace App\Services\BI;
+
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
+
+class BiExecutivoService
+{
+    public function obter(
+        CarbonImmutable $inicio,
+        CarbonImmutable $fim
+    ): array {
+        $vendas = DB::table('vendas')
+            ->where('status', 'finalizada')
+            ->whereBetween(
+                'data_venda',
+                [
+                    $inicio->startOfDay(),
+                    $fim->endOfDay(),
+                ]
+            );
+
+        $faturamento = (float) (clone $vendas)
+            ->sum('total');
+
+        $quantidadeVendas = (int) (clone $vendas)
+            ->count();
+
+        $ticketMedio = $quantidadeVendas > 0
+            ? $faturamento / $quantidadeVendas
+            : 0.0;
+
+
+        $compras = DB::table('pedido_compras')
+            ->where('status', 'recebido')
+            ->whereBetween(
+                'data_pedido',
+                [
+                    $inicio->startOfDay(),
+                    $fim->endOfDay(),
+                ]
+            );
+
+        $valorComprasRecebidas = (float) (clone $compras)
+            ->sum('total');
+
+        $quantidadeComprasRecebidas = (int) (clone $compras)
+            ->count();
+
+
+        $valorEstoqueAtual = (float) DB::table('produtos')
+            ->where('ativo', 1)
+            ->selectRaw(
+                '
+                COALESCE(
+                    SUM(
+                        COALESCE(quantidade_estoque, 0)
+                        *
+                        COALESCE(custo_real_entrada, 0)
+                    ),
+                    0
+                ) AS total
+                '
+            )
+            ->value('total');
+
+
+        $orcamentosFaturados = DB::table('orcamentos')
+            ->where('status', 'Faturado')
+            ->whereDate(
+                'data_orcamento',
+                '>=',
+                $inicio->toDateString()
+            )
+            ->whereDate(
+                'data_orcamento',
+                '<=',
+                $fim->toDateString()
+            );
+
+        $quantidadeOrcamentosFaturados =
+            (int) (clone $orcamentosFaturados)
+                ->count();
+
+        $valorOrcamentosFaturados =
+            (float) (clone $orcamentosFaturados)
+                ->sum('total');
+
+
+        $entregasConcluidas = (int) DB::table('entregas')
+            ->whereIn(
+                'status',
+                [
+                    'Entregue',
+                    'Entregue_finalizada_com_ocorrencia',
+                ]
+            )
+            ->whereNotNull('data_realizada')
+            ->whereDate(
+                'data_realizada',
+                '>=',
+                $inicio->toDateString()
+            )
+            ->whereDate(
+                'data_realizada',
+                '<=',
+                $fim->toDateString()
+            )
+            ->count();
+
+
+        $entregasEmAberto = (int) DB::table('entregas')
+            ->whereNotIn(
+                'status',
+                [
+                    'Entregue',
+                    'Entregue_finalizada_com_ocorrencia',
+                    'Devolvida',
+                    'Cancelada',
+                ]
+            )
+            ->count();
+
+
+        $movimentacoesCaixa = (int) DB::table(
+            'movimentacoes_caixa'
+        )
+            ->whereBetween(
+                'data_movimentacao',
+                [
+                    $inicio->startOfDay(),
+                    $fim->endOfDay(),
+                ]
+            )
+            ->count();
+
+
+        $valorSangrias = (float) DB::table('sangrias')
+            ->whereBetween(
+                'created_at',
+                [
+                    $inicio->startOfDay(),
+                    $fim->endOfDay(),
+                ]
+            )
+            ->sum('valor');
+
+
+        return [
+            'faturamento' => $faturamento,
+
+            'vendas_finalizadas' =>
+                $quantidadeVendas,
+
+            'ticket_medio' =>
+                $ticketMedio,
+
+            'compras_recebidas_valor' =>
+                $valorComprasRecebidas,
+
+            'compras_recebidas_quantidade' =>
+                $quantidadeComprasRecebidas,
+
+            'valor_estoque_atual' =>
+                $valorEstoqueAtual,
+
+            'orcamentos_faturados_quantidade' =>
+                $quantidadeOrcamentosFaturados,
+
+            'orcamentos_faturados_valor' =>
+                $valorOrcamentosFaturados,
+
+            'entregas_concluidas' =>
+                $entregasConcluidas,
+
+            'entregas_em_aberto' =>
+                $entregasEmAberto,
+
+            'movimentacoes_caixa' =>
+                $movimentacoesCaixa,
+
+            'valor_sangrias' =>
+                $valorSangrias,
+        ];
+    }
+}

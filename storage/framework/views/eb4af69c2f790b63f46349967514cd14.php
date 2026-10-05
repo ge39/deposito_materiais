@@ -1,0 +1,280 @@
+<?php $__env->startSection('content'); ?>
+
+<div class="container-fluid">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="bi bi-bar-chart-line me-2"></i>
+                BI & Relatórios
+            </h1>
+
+            <p class="text-muted mb-0">
+                Central de inteligência gerencial e relatórios do ERP.
+            </p>
+        </div>
+
+        <span class="badge text-bg-primary fs-6">
+            BI-01
+        </span>
+
+    </div>
+
+    <div class="alert alert-info shadow-sm">
+        <i class="bi bi-info-circle-fill me-2"></i>
+
+        Esta central será construída sobre os dados e regras já homologados
+        no ERP, sem criar uma segunda fonte de verdade.
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        <i class="bi bi-speedometer2 me-2"></i>
+                        Visão Executiva
+                    </h5>
+
+                    <p class="card-text text-muted">
+                        Faturamento, margem, compras, caixa, estoque,
+                        entregas e principais indicadores da empresa.
+                    </p>
+
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+
+                        <span class="badge text-bg-success">
+                            BI-02
+                        </span>
+
+                        <a
+                            href="<?php echo e(route('bi.executivo.index')); ?>"
+                            class="btn btn-sm btn-primary">
+
+                            <i class="bi bi-box-arrow-up-right me-1"></i>
+                            Abrir dashboard
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        <i class="bi bi-boxes me-2"></i>
+                        Produtos & Estoque
+                    </h5>
+
+                    <p class="card-text text-muted">
+                        Giro, curva ABC, margem, estoque parado,
+                        cobertura e ruptura.
+                    </p>
+
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+
+                        <span class="badge text-bg-success">
+                            BI-03
+                        </span>
+
+                        <a
+                            href="<?php echo e(route('bi.produtos.index')); ?>"
+                            class="btn btn-sm btn-primary">
+
+                            <i class="bi bi-box-arrow-up-right me-1"></i>
+                            Abrir dashboard
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        <i class="bi bi-cart-check me-2"></i>
+                        Compras
+                    </h5>
+
+                    <p class="card-text text-muted">
+                        Compras por fornecedor, produto, custo médio,
+                        variação de preços e histórico.
+                    </p>
+
+                    <span class="badge text-bg-secondary">
+                        BI-03
+                    </span>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        <i class="bi bi-cash-stack me-2"></i>
+                        Vendas
+                    </h5>
+
+                    <p class="card-text text-muted">
+                        Faturamento, margem, ticket médio, vendedores,
+                        produtos e clientes.
+                    </p>
+
+                    <span class="badge text-bg-secondary">
+                        BI-04
+                    </span>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        <i class="bi bi-clipboard-data me-2"></i>
+                        Orçamentos
+                    </h5>
+
+                    <p class="card-text text-muted">
+                        Conversão, valores orçados, aprovados,
+                        perdidos e desempenho comercial.
+                    </p>
+
+                    <span class="badge text-bg-secondary">
+                        BI-04
+                    </span>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        <i class="bi bi-safe me-2"></i>
+                        Caixa
+                    </h5>
+
+                    <p class="card-text text-muted">
+                        Entradas, saídas, sangrias, diferenças,
+                        fechamentos e auditoria.
+                    </p>
+
+                    <span class="badge text-bg-secondary">
+                        BI-04
+                    </span>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        <i class="bi bi-truck me-2"></i>
+                        Entregas & Logística
+                    </h5>
+
+                    <p class="card-text text-muted">
+                        Entregas realizadas, atrasos, reagendamentos,
+                        devoluções, veículos e motoristas.
+                    </p>
+
+                    <span class="badge text-bg-secondary">
+                        BI-05
+                    </span>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        <i class="bi bi-people me-2"></i>
+                        Funcionários & Comissões
+                    </h5>
+
+                    <p class="card-text text-muted">
+                        Produtividade, operações realizadas,
+                        desempenho e comissões.
+                    </p>
+
+                    <span class="badge text-bg-secondary">
+                        BI-06
+                    </span>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        <i class="bi bi-currency-dollar me-2"></i>
+                        Financeiro
+                    </h5>
+
+                    <p class="card-text text-muted">
+                        Receitas, despesas, contas a receber,
+                        inadimplência e fluxo de caixa.
+                    </p>
+
+                    <span class="badge text-bg-secondary">
+                        BI-07
+                    </span>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/bi/index.blade.php ENDPATH**/ ?>

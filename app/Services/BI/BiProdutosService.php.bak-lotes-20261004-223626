@@ -1,0 +1,333 @@
+<?php
+
+namespace App\Services\BI;
+
+use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
+class BiProdutosService
+{
+    public function resumo(): array
+    {
+        $ativos = DB::table('produtos')
+            ->where('ativo', 1)
+            ->count();
+
+        $estoqueZero = DB::table('produtos')
+            ->where('ativo', 1)
+            ->whereRaw(
+                'COALESCE(quantidade_estoque, 0) <= 0'
+            )
+            ->count();
+
+        $abaixoMinimo = DB::table('produtos')
+            ->where('ativo', 1)
+            ->whereRaw(
+                '
+                COALESCE(quantidade_estoque, 0) > 0
+                AND
+                COALESCE(quantidade_estoque, 0)
+                <=
+                COALESCE(estoque_minimo, 0)
+                '
+            )
+            ->count();
+
+        /*
+         * REGRA BI-03:
+         * Produtos com estoque zero aparecem no BI,
+         * mas nao entram nos agregados financeiros.
+         */
+        $valorEstoque = (float) DB::table('produtos')
+            ->where('ativo', 1)
+            ->whereRaw(
+                'COALESCE(quantidade_estoque, 0) > 0'
+            )
+            ->selectRaw(
+                '
+                COALESCE(
+                    SUM(
+                        COALESCE(quantidade_estoque, 0)
+                        *
+                        COALESCE(custo_real_entrada, 0)
+                    ),
+                    0
+                ) AS total
+                '
+            )
+            ->value('total');
+
+        return [
+            'produtos_ativos' =>
+                (int) $ativos,
+
+            'estoque_zero' =>
+                (int) $estoqueZero,
+
+            'abaixo_minimo' =>
+                (int) $abaixoMinimo,
+
+            'valor_estoque' =>
+                $valorEstoque,
+        ];
+    }
+
+    public function categorias(): Collection
+    {
+        return DB::table('categorias')
+            ->orderBy('nome')
+            ->get([
+                'id',
+                'nome',
+            ]);
+    }
+
+    public function estoqueZeroPaginado(
+        array $filtros,
+        int $porPagina = 25
+    ): LengthAwarePaginator {
+        $paginador = $this
+            ->queryEstoqueZero($filtros)
+            ->paginate($porPagina)
+            ->withQueryString();
+
+        $paginador
+            ->getCollection()
+            ->transform(
+                fn ($produto) =>
+                    $this->enriquecerProduto(
+                        $produto
+                    )
+            );
+
+        return $paginador;
+    }
+
+    public function estoqueZeroCompleto(
+        array $filtros
+    ): Collection {
+        return $this
+            ->queryEstoqueZero($filtros)
+            ->get()
+            ->map(
+                fn ($produto) =>
+                    $this->enriquecerProduto(
+                        $produto
+                    )
+            );
+    }
+
+    private function queryEstoqueZero(
+        array $filtros
+    ): Builder {
+        $ultimaVenda = DB::table(
+            'item_vendas as iv'
+        )
+            ->join(
+                'vendas as v',
+                'v.id',
+                '=',
+                'iv.venda_id'
+            )
+            ->where(
+                'v.status',
+                'finalizada'
+            )
+            ->groupBy(
+                'iv.produto_id'
+            )
+            ->selectRaw(
+                '
+                iv.produto_id,
+                MAX(v.data_venda) AS ultima_venda,
+                COALESCE(
+                    SUM(iv.quantidade),
+                    0
+                ) AS quantidade_vendida_historica
+                '
+            );
+
+        $query = DB::table('produtos as p')
+            ->leftJoin(
+                'categorias as c',
+                'c.id',
+                '=',
+                'p.categoria_id'
+            )
+            ->leftJoinSub(
+                $ultimaVenda,
+                'uv',
+                'uv.produto_id',
+                '=',
+                'p.id'
+            )
+            ->where(
+                'p.ativo',
+                1
+            )
+            ->whereRaw(
+                'COALESCE(p.quantidade_estoque, 0) <= 0'
+            )
+            ->selectRaw(
+                '
+                p.id,
+                p.nome,
+                p.sku,
+                p.codigo_barras,
+                p.estoque_minimo,
+                p.quantidade_estoque,
+                p.em_promocao,
+                p.preco_venda,
+                c.nome AS categoria,
+                uv.ultima_venda,
+                COALESCE(
+                    uv.quantidade_vendida_historica,
+                    0
+                ) AS quantidade_vendida_historica
+                '
+            );
+
+        $busca = trim(
+            (string) (
+                $filtros['q']
+                ?? ''
+            )
+        );
+
+        if ($busca !== '') {
+            $query->where(
+                function ($subquery) use ($busca) {
+                    $subquery
+                        ->where(
+                            'p.nome',
+                            'like',
+                            '%' . $busca . '%'
+                        )
+                        ->orWhere(
+                            'p.sku',
+                            'like',
+                            '%' . $busca . '%'
+                        )
+                        ->orWhere(
+                            'p.codigo_barras',
+                            'like',
+                            '%' . $busca . '%'
+                        );
+                }
+            );
+        }
+
+        if (
+            ! empty(
+                $filtros['categoria_id']
+            )
+        ) {
+            $query->where(
+                'p.categoria_id',
+                (int) $filtros[
+                    'categoria_id'
+                ]
+            );
+        }
+
+        $ordenacao =
+            $filtros['ordenacao']
+            ?? 'nome';
+
+        if ($ordenacao === 'ultima_venda') {
+            $query
+                ->orderByRaw(
+                    'uv.ultima_venda IS NULL DESC'
+                )
+                ->orderBy(
+                    'uv.ultima_venda'
+                )
+                ->orderBy(
+                    'p.nome'
+                );
+
+            return $query;
+        }
+
+        if ($ordenacao === 'estoque_minimo') {
+            $query
+                ->orderByDesc(
+                    'p.estoque_minimo'
+                )
+                ->orderBy(
+                    'p.nome'
+                );
+
+            return $query;
+        }
+
+        if ($ordenacao === 'vendido') {
+            $query
+                ->orderByDesc(
+                    'quantidade_vendida_historica'
+                )
+                ->orderBy(
+                    'p.nome'
+                );
+
+            return $query;
+        }
+
+        return $query->orderBy(
+            'p.nome'
+        );
+    }
+
+    private function enriquecerProduto(
+        object $produto
+    ): object {
+        $produto->dias_sem_venda = null;
+
+        if ($produto->ultima_venda) {
+            $produto->dias_sem_venda =
+                CarbonImmutable::parse(
+                    $produto->ultima_venda
+                )
+                    ->startOfDay()
+                    ->diffInDays(
+                        CarbonImmutable::now()
+                            ->startOfDay()
+                    );
+        }
+
+        if (! $produto->ultima_venda) {
+            $produto->situacao =
+                'Sem estoque / nunca vendeu';
+
+            return $produto;
+        }
+
+        if (
+            $produto->dias_sem_venda
+            >= 90
+        ) {
+            $produto->situacao =
+                'Sem estoque / sem venda ha 90+ dias';
+
+            return $produto;
+        }
+
+        if (
+            $produto->dias_sem_venda
+            >= 30
+        ) {
+            $produto->situacao =
+                'Sem estoque / baixa atividade recente';
+
+            return $produto;
+        }
+
+        $produto->situacao =
+            'Sem estoque / venda recente';
+
+        return $produto;
+    }
+}

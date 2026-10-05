@@ -1,0 +1,585 @@
+@extends('layouts.app')
+
+@section('content')
+
+<div class="container-fluid">
+
+    {{-- CABEÇALHO --}}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+
+        <div>
+
+            <h1 class="h3 mb-1">
+
+                <i class="bi bi-speedometer2 me-2"></i>
+
+                Visão Executiva
+
+            </h1>
+
+            <p class="text-muted mb-0">
+
+                Indicadores consolidados do ERP.
+
+            </p>
+
+        </div>
+
+        <a
+            href="{{ route('bi.index') }}"
+            class="btn btn-outline-secondary">
+
+            <i class="bi bi-arrow-left me-1"></i>
+
+            Central BI
+
+        </a>
+
+    </div>
+
+
+    {{-- FILTRO --}}
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <form
+                method="GET"
+                action="{{ route('bi.executivo.index') }}"
+                class="row g-3 align-items-end">
+
+                <div class="col-md-4">
+
+                    <label
+                        for="data_inicio"
+                        class="form-label">
+
+                        Data inicial
+
+                    </label>
+
+                    <input
+                        type="date"
+                        class="form-control
+                               @error('data_inicio')
+                                   is-invalid
+                               @enderror"
+                        id="data_inicio"
+                        name="data_inicio"
+                        value="{{ old(
+                            'data_inicio',
+                            $inicio->format('Y-m-d')
+                        ) }}">
+
+                    @error('data_inicio')
+
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
+
+                    @enderror
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label
+                        for="data_fim"
+                        class="form-label">
+
+                        Data final
+
+                    </label>
+
+                    <input
+                        type="date"
+                        class="form-control
+                               @error('data_fim')
+                                   is-invalid
+                               @enderror"
+                        id="data_fim"
+                        name="data_fim"
+                        value="{{ old(
+                            'data_fim',
+                            $fim->format('Y-m-d')
+                        ) }}">
+
+                    @error('data_fim')
+
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
+
+                    @enderror
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary w-100">
+
+                        <i class="bi bi-funnel me-1"></i>
+
+                        Aplicar período
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    {{-- PERÍODO --}}
+    <div class="alert alert-light border shadow-sm">
+
+        <i class="bi bi-calendar3 me-2"></i>
+
+        Período analisado:
+
+        <strong>
+            {{ $inicio->format('d/m/Y') }}
+        </strong>
+
+        até
+
+        <strong>
+            {{ $fim->format('d/m/Y') }}
+        </strong>
+
+    </div>
+
+
+    {{-- KPIs --}}
+    <div class="row g-4">
+
+
+        {{-- FATURAMENTO --}}
+        <div class="col-sm-6 col-xl-3">
+
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="text-muted small mb-1">
+                        Faturamento
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+
+                        R$
+                        {{ number_format(
+                            $indicadores['faturamento'],
+                            2,
+                            ',',
+                            '.'
+                        ) }}
+
+                    </div>
+
+                    <div class="small text-muted mt-2">
+
+                        Vendas finalizadas no período
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- VENDAS --}}
+        <div class="col-sm-6 col-xl-3">
+
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="text-muted small mb-1">
+                        Vendas finalizadas
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+
+                        {{ number_format(
+                            $indicadores['vendas_finalizadas'],
+                            0,
+                            ',',
+                            '.'
+                        ) }}
+
+                    </div>
+
+                    <div class="small text-muted mt-2">
+
+                        Quantidade de vendas
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- TICKET --}}
+        <div class="col-sm-6 col-xl-3">
+
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="text-muted small mb-1">
+                        Ticket médio
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+
+                        R$
+                        {{ number_format(
+                            $indicadores['ticket_medio'],
+                            2,
+                            ',',
+                            '.'
+                        ) }}
+
+                    </div>
+
+                    <div class="small text-muted mt-2">
+
+                        Faturamento ÷ vendas finalizadas
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- ESTOQUE --}}
+        <div class="col-sm-6 col-xl-3">
+
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="text-muted small mb-1">
+
+                        Estoque a custo atual
+
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+
+                        R$
+                        {{ number_format(
+                            $indicadores['valor_estoque_atual'],
+                            2,
+                            ',',
+                            '.'
+                        ) }}
+
+                    </div>
+
+                    <div class="small text-muted mt-2">
+
+                        Estoque atual × custo real de entrada
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- COMPRAS --}}
+        <div class="col-sm-6 col-xl-3">
+
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="text-muted small mb-1">
+
+                        Compras recebidas
+
+                    </div>
+
+                    <div class="fs-4 fw-bold">
+
+                        R$
+                        {{ number_format(
+                            $indicadores[
+                                'compras_recebidas_valor'
+                            ],
+                            2,
+                            ',',
+                            '.'
+                        ) }}
+
+                    </div>
+
+                    <div class="small text-muted mt-2">
+
+                        {{
+                            $indicadores[
+                                'compras_recebidas_quantidade'
+                            ]
+                        }}
+                        pedido(s) recebido(s)
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- ORÇAMENTOS --}}
+        <div class="col-sm-6 col-xl-3">
+
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="text-muted small mb-1">
+
+                        Orçamentos faturados
+
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+
+                        {{
+                            number_format(
+                                $indicadores[
+                                    'orcamentos_faturados_quantidade'
+                                ],
+                                0,
+                                ',',
+                                '.'
+                            )
+                        }}
+
+                    </div>
+
+                    <div class="small text-muted mt-2">
+
+                        R$
+                        {{
+                            number_format(
+                                $indicadores[
+                                    'orcamentos_faturados_valor'
+                                ],
+                                2,
+                                ',',
+                                '.'
+                            )
+                        }}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- ENTREGAS CONCLUÍDAS --}}
+        <div class="col-sm-6 col-xl-3">
+
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="text-muted small mb-1">
+
+                        Entregas concluídas
+
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+
+                        {{
+                            number_format(
+                                $indicadores[
+                                    'entregas_concluidas'
+                                ],
+                                0,
+                                ',',
+                                '.'
+                            )
+                        }}
+
+                    </div>
+
+                    <div class="small text-muted mt-2">
+
+                        Realizadas no período
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- ENTREGAS ABERTAS --}}
+        <div class="col-sm-6 col-xl-3">
+
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="text-muted small mb-1">
+
+                        Entregas em aberto
+
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+
+                        {{
+                            number_format(
+                                $indicadores[
+                                    'entregas_em_aberto'
+                                ],
+                                0,
+                                ',',
+                                '.'
+                            )
+                        }}
+
+                    </div>
+
+                    <div class="small text-muted mt-2">
+
+                        Situação atual
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- MOVIMENTAÇÕES CAIXA --}}
+        <div class="col-sm-6 col-xl-3">
+
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="text-muted small mb-1">
+
+                        Movimentações de caixa
+
+                    </div>
+
+                    <div class="fs-3 fw-bold">
+
+                        {{
+                            number_format(
+                                $indicadores[
+                                    'movimentacoes_caixa'
+                                ],
+                                0,
+                                ',',
+                                '.'
+                            )
+                        }}
+
+                    </div>
+
+                    <div class="small text-muted mt-2">
+
+                        Registros no período
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- SANGRIAS --}}
+        <div class="col-sm-6 col-xl-3">
+
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <div class="text-muted small mb-1">
+
+                        Sangrias
+
+                    </div>
+
+                    <div class="fs-4 fw-bold">
+
+                        R$
+                        {{
+                            number_format(
+                                $indicadores[
+                                    'valor_sangrias'
+                                ],
+                                2,
+                                ',',
+                                '.'
+                            )
+                        }}
+
+                    </div>
+
+                    <div class="small text-muted mt-2">
+
+                        Valor registrado no período
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    {{-- OBSERVAÇÃO --}}
+    <div class="alert alert-secondary mt-4 mb-0">
+
+        <i class="bi bi-info-circle me-2"></i>
+
+        Lucro e margem ainda não fazem parte desta versão.
+        O custo histórico da venda será homologado antes
+        desses indicadores serem disponibilizados.
+
+    </div>
+
+</div>
+
+@endsection

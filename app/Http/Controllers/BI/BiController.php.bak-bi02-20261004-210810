@@ -1,0 +1,14 @@
+<?php
+
+namespace App\Http\Controllers\BI;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Contracts\View\View;
+
+class BiController extends Controller
+{
+    public function index(): View
+    {
+        return view('bi.index');
+    }
+}

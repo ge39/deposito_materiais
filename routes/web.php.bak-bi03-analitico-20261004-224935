@@ -1141,23 +1141,3 @@ Route::get(
     '/bi/produtos/estoque-zero/planilha',
     [\App\Http\Controllers\BI\BiProdutosController::class, 'estoqueZeroPlanilha']
 )->name('bi.produtos.estoque-zero.planilha');
-
-Route::get(
-    '/bi/produtos/ativos',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'ativos']
-)->name('bi.produtos.ativos');
-
-Route::get(
-    '/bi/produtos/abaixo-minimo',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'abaixoMinimo']
-)->name('bi.produtos.abaixo-minimo');
-
-Route::get(
-    '/bi/produtos/valor-estoque',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'valorEstoque']
-)->name('bi.produtos.valor-estoque');
-
-Route::get(
-    '/bi/produtos/estoque-parado',
-    [\App\Http\Controllers\BI\BiProdutosController::class, 'estoqueParado']
-)->name('bi.produtos.estoque-parado');

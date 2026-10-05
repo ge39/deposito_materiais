@@ -1,0 +1,511 @@
+<?php
+
+namespace App\Services\BI;
+
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
+class BiExecutivoService
+{
+    public function obter(
+        CarbonImmutable $inicio,
+        CarbonImmutable $fim
+    ): array {
+        $periodoAtual = $this->obterIndicadoresPeriodo(
+            $inicio,
+            $fim
+        );
+
+        $quantidadeDias =
+            $inicio->diffInDays($fim) + 1;
+
+        $fimAnterior =
+            $inicio
+                ->subDay()
+                ->endOfDay();
+
+        $inicioAnterior =
+            $fimAnterior
+                ->subDays($quantidadeDias - 1)
+                ->startOfDay();
+
+        $periodoAnterior =
+            $this->obterIndicadoresPeriodo(
+                $inicioAnterior,
+                $fimAnterior
+            );
+
+        $periodoAtual['comparacao'] = [
+            'inicio_anterior' =>
+                $inicioAnterior,
+
+            'fim_anterior' =>
+                $fimAnterior,
+
+            'faturamento' =>
+                $this->calcularVariacao(
+                    $periodoAtual['faturamento'],
+                    $periodoAnterior['faturamento']
+                ),
+
+            'vendas_finalizadas' =>
+                $this->calcularVariacao(
+                    $periodoAtual['vendas_finalizadas'],
+                    $periodoAnterior['vendas_finalizadas']
+                ),
+
+            'ticket_medio' =>
+                $this->calcularVariacao(
+                    $periodoAtual['ticket_medio'],
+                    $periodoAnterior['ticket_medio']
+                ),
+
+            'compras_recebidas_valor' =>
+                $this->calcularVariacao(
+                    $periodoAtual['compras_recebidas_valor'],
+                    $periodoAnterior['compras_recebidas_valor']
+                ),
+
+            'entregas_concluidas' =>
+                $this->calcularVariacao(
+                    $periodoAtual['entregas_concluidas'],
+                    $periodoAnterior['entregas_concluidas']
+                ),
+        ];
+
+        $periodoAtual['series'] = [
+            'faturamento_diario' =>
+                $this->faturamentoDiario(
+                    $inicio,
+                    $fim
+                ),
+
+            'vendas_diarias' =>
+                $this->vendasDiarias(
+                    $inicio,
+                    $fim
+                ),
+
+            'entregas_por_status' =>
+                $this->entregasPorStatus(
+                    $inicio,
+                    $fim
+                ),
+        ];
+
+        return $periodoAtual;
+    }
+
+    private function obterIndicadoresPeriodo(
+        CarbonImmutable $inicio,
+        CarbonImmutable $fim
+    ): array {
+        $vendas = DB::table('vendas')
+            ->where('status', 'finalizada')
+            ->whereBetween(
+                'data_venda',
+                [
+                    $inicio->startOfDay(),
+                    $fim->endOfDay(),
+                ]
+            );
+
+        $faturamento =
+            (float) (clone $vendas)
+                ->sum('total');
+
+        $quantidadeVendas =
+            (int) (clone $vendas)
+                ->count();
+
+        $ticketMedio =
+            $quantidadeVendas > 0
+                ? $faturamento / $quantidadeVendas
+                : 0.0;
+
+
+        $compras = DB::table('pedido_compras')
+            ->where('status', 'recebido')
+            ->whereBetween(
+                'data_pedido',
+                [
+                    $inicio->startOfDay(),
+                    $fim->endOfDay(),
+                ]
+            );
+
+        $valorComprasRecebidas =
+            (float) (clone $compras)
+                ->sum('total');
+
+        $quantidadeComprasRecebidas =
+            (int) (clone $compras)
+                ->count();
+
+
+        $valorEstoqueAtual =
+            (float) DB::table('produtos')
+                ->where('ativo', 1)
+                ->selectRaw(
+                    '
+                    COALESCE(
+                        SUM(
+                            COALESCE(quantidade_estoque, 0)
+                            *
+                            COALESCE(custo_real_entrada, 0)
+                        ),
+                        0
+                    ) AS total
+                    '
+                )
+                ->value('total');
+
+
+        $orcamentosFaturados =
+            DB::table('orcamentos')
+                ->where('status', 'Faturado')
+                ->whereDate(
+                    'data_orcamento',
+                    '>=',
+                    $inicio->toDateString()
+                )
+                ->whereDate(
+                    'data_orcamento',
+                    '<=',
+                    $fim->toDateString()
+                );
+
+        $quantidadeOrcamentosFaturados =
+            (int) (clone $orcamentosFaturados)
+                ->count();
+
+        $valorOrcamentosFaturados =
+            (float) (clone $orcamentosFaturados)
+                ->sum('total');
+
+
+        $entregasConcluidas =
+            (int) DB::table('entregas')
+                ->whereIn(
+                    'status',
+                    [
+                        'Entregue',
+                        'Entregue_finalizada_com_ocorrencia',
+                    ]
+                )
+                ->whereNotNull('data_realizada')
+                ->whereDate(
+                    'data_realizada',
+                    '>=',
+                    $inicio->toDateString()
+                )
+                ->whereDate(
+                    'data_realizada',
+                    '<=',
+                    $fim->toDateString()
+                )
+                ->count();
+
+
+        $entregasEmAberto =
+            (int) DB::table('entregas')
+                ->whereNotIn(
+                    'status',
+                    [
+                        'Entregue',
+                        'Entregue_finalizada_com_ocorrencia',
+                        'Devolvida',
+                        'Cancelada',
+                    ]
+                )
+                ->count();
+
+
+        $movimentacoesCaixa =
+            (int) DB::table(
+                'movimentacoes_caixa'
+            )
+                ->whereBetween(
+                    'data_movimentacao',
+                    [
+                        $inicio->startOfDay(),
+                        $fim->endOfDay(),
+                    ]
+                )
+                ->count();
+
+
+        $valorSangrias =
+            (float) DB::table('sangrias')
+                ->whereBetween(
+                    'created_at',
+                    [
+                        $inicio->startOfDay(),
+                        $fim->endOfDay(),
+                    ]
+                )
+                ->sum('valor');
+
+
+        return [
+            'faturamento' =>
+                $faturamento,
+
+            'vendas_finalizadas' =>
+                $quantidadeVendas,
+
+            'ticket_medio' =>
+                $ticketMedio,
+
+            'compras_recebidas_valor' =>
+                $valorComprasRecebidas,
+
+            'compras_recebidas_quantidade' =>
+                $quantidadeComprasRecebidas,
+
+            'valor_estoque_atual' =>
+                $valorEstoqueAtual,
+
+            'orcamentos_faturados_quantidade' =>
+                $quantidadeOrcamentosFaturados,
+
+            'orcamentos_faturados_valor' =>
+                $valorOrcamentosFaturados,
+
+            'entregas_concluidas' =>
+                $entregasConcluidas,
+
+            'entregas_em_aberto' =>
+                $entregasEmAberto,
+
+            'movimentacoes_caixa' =>
+                $movimentacoesCaixa,
+
+            'valor_sangrias' =>
+                $valorSangrias,
+        ];
+    }
+
+    private function calcularVariacao(
+        float|int $atual,
+        float|int $anterior
+    ): array {
+        if ((float) $anterior === 0.0) {
+            return [
+                'percentual' => null,
+                'direcao' =>
+                    (float) $atual > 0
+                        ? 'alta'
+                        : 'neutra',
+            ];
+        }
+
+        $percentual =
+            (
+                (
+                    (float) $atual
+                    -
+                    (float) $anterior
+                )
+                /
+                abs((float) $anterior)
+            )
+            * 100;
+
+        $direcao = 'neutra';
+
+        if ($percentual > 0) {
+            $direcao = 'alta';
+        }
+
+        if ($percentual < 0) {
+            $direcao = 'queda';
+        }
+
+        return [
+            'percentual' =>
+                round($percentual, 2),
+
+            'direcao' =>
+                $direcao,
+        ];
+    }
+
+    private function faturamentoDiario(
+        CarbonImmutable $inicio,
+        CarbonImmutable $fim
+    ): array {
+        $dados = DB::table('vendas')
+            ->selectRaw(
+                '
+                DATE(data_venda) AS data,
+                COALESCE(SUM(total), 0) AS total
+                '
+            )
+            ->where('status', 'finalizada')
+            ->whereBetween(
+                'data_venda',
+                [
+                    $inicio->startOfDay(),
+                    $fim->endOfDay(),
+                ]
+            )
+            ->groupByRaw(
+                'DATE(data_venda)'
+            )
+            ->orderByRaw(
+                'DATE(data_venda)'
+            )
+            ->get()
+            ->keyBy('data');
+
+        return $this->preencherSerieDiaria(
+            $inicio,
+            $fim,
+            $dados,
+            'total',
+            true
+        );
+    }
+
+    private function vendasDiarias(
+        CarbonImmutable $inicio,
+        CarbonImmutable $fim
+    ): array {
+        $dados = DB::table('vendas')
+            ->selectRaw(
+                '
+                DATE(data_venda) AS data,
+                COUNT(*) AS total
+                '
+            )
+            ->where('status', 'finalizada')
+            ->whereBetween(
+                'data_venda',
+                [
+                    $inicio->startOfDay(),
+                    $fim->endOfDay(),
+                ]
+            )
+            ->groupByRaw(
+                'DATE(data_venda)'
+            )
+            ->orderByRaw(
+                'DATE(data_venda)'
+            )
+            ->get()
+            ->keyBy('data');
+
+        return $this->preencherSerieDiaria(
+            $inicio,
+            $fim,
+            $dados,
+            'total',
+            false
+        );
+    }
+
+    private function preencherSerieDiaria(
+        CarbonImmutable $inicio,
+        CarbonImmutable $fim,
+        Collection $dados,
+        string $campo,
+        bool $decimal
+    ): array {
+        $labels = [];
+        $valores = [];
+
+        $data = $inicio->startOfDay();
+
+        while ($data->lessThanOrEqualTo(
+            $fim->startOfDay()
+        )) {
+            $chave =
+                $data->format('Y-m-d');
+
+            $labels[] =
+                $data->format('d/m');
+
+            $valor =
+                $dados->get($chave)?->{$campo}
+                ?? 0;
+
+            $valores[] =
+                $decimal
+                    ? round((float) $valor, 2)
+                    : (int) $valor;
+
+            $data =
+                $data->addDay();
+        }
+
+        return [
+            'labels' => $labels,
+            'valores' => $valores,
+        ];
+    }
+
+    private function entregasPorStatus(
+        CarbonImmutable $inicio,
+        CarbonImmutable $fim
+    ): array {
+        $dados = DB::table('entregas')
+            ->selectRaw(
+                '
+                status,
+                COUNT(*) AS total
+                '
+            )
+            ->where(function ($query) use (
+                $inicio,
+                $fim
+            ) {
+                $query
+                    ->whereBetween(
+                        'data_prevista_entrega',
+                        [
+                            $inicio->toDateString(),
+                            $fim->toDateString(),
+                        ]
+                    )
+                    ->orWhere(function ($query) use (
+                        $inicio,
+                        $fim
+                    ) {
+                        $query
+                            ->whereNull(
+                                'data_prevista_entrega'
+                            )
+                            ->whereBetween(
+                                'data_prevista',
+                                [
+                                    $inicio->toDateString(),
+                                    $fim->toDateString(),
+                                ]
+                            );
+                    });
+            })
+            ->groupBy('status')
+            ->orderBy('status')
+            ->get();
+
+        return [
+            'labels' =>
+                $dados
+                    ->pluck('status')
+                    ->values()
+                    ->all(),
+
+            'valores' =>
+                $dados
+                    ->pluck('total')
+                    ->map(
+                        fn ($valor) =>
+                            (int) $valor
+                    )
+                    ->values()
+                    ->all(),
+        ];
+    }
+}

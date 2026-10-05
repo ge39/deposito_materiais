@@ -1,0 +1,269 @@
+<?php
+
+namespace App\Http\Controllers\BI;
+
+use App\Http\Controllers\Controller;
+use App\Services\BI\BiProdutosService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class BiProdutosController extends Controller
+{
+    public function __construct(
+        private readonly BiProdutosService $service
+    ) {
+    }
+
+    public function index(): View
+    {
+        $this->autorizar();
+
+        return view(
+            'bi.produtos.index',
+            [
+                'resumo' =>
+                    $this->service->resumo(),
+            ]
+        );
+    }
+
+    public function estoqueZero(
+        Request $request
+    ): View {
+        $this->autorizar();
+
+        $filtros =
+            $this->validarFiltros(
+                $request
+            );
+
+        return view(
+            'bi.produtos.estoque-zero',
+            [
+                'produtos' =>
+                    $this->service
+                        ->estoqueZeroPaginado(
+                            $filtros
+                        ),
+
+                'categorias' =>
+                    $this->service
+                        ->categorias(),
+
+                'filtros' =>
+                    $filtros,
+            ]
+        );
+    }
+
+    public function estoqueZeroPdf(
+        Request $request
+    ) {
+        $this->autorizar();
+
+        $filtros =
+            $this->validarFiltros(
+                $request
+            );
+
+        $produtos =
+            $this->service
+                ->estoqueZeroCompleto(
+                    $filtros
+                );
+
+        return Pdf::loadView(
+            'bi.produtos.estoque-zero-pdf',
+            [
+                'produtos' =>
+                    $produtos,
+
+                'filtros' =>
+                    $filtros,
+
+                'geradoEm' =>
+                    now(),
+            ]
+        )
+            ->setPaper(
+                'a4',
+                'landscape'
+            )
+            ->download(
+                'bi-produtos-estoque-zero-'
+                . now()->format('Ymd-His')
+                . '.pdf'
+            );
+    }
+
+    public function estoqueZeroPlanilha(
+        Request $request
+    ): StreamedResponse {
+        $this->autorizar();
+
+        $filtros =
+            $this->validarFiltros(
+                $request
+            );
+
+        $produtos =
+            $this->service
+                ->estoqueZeroCompleto(
+                    $filtros
+                );
+
+        $arquivo =
+            'bi-produtos-estoque-zero-'
+            . now()->format('Ymd-His')
+            . '.csv';
+
+        return response()->streamDownload(
+            function () use ($produtos) {
+
+                $saida = fopen(
+                    'php://output',
+                    'w'
+                );
+
+                /*
+                 * BOM proposital somente no CSV exportado,
+                 * para abertura correta de UTF-8 no Excel.
+                 */
+                fwrite(
+                    $saida,
+                    "\xEF\xBB\xBF"
+                );
+
+                fputcsv(
+                    $saida,
+                    [
+                        'ID',
+                        'Produto',
+                        'Categoria',
+                        'SKU',
+                        'Codigo de barras',
+                        'Estoque atual',
+                        'Estoque minimo',
+                        'Ultima venda',
+                        'Dias sem venda',
+                        'Quantidade vendida historica',
+                        'Em promocao',
+                        'Situacao',
+                    ],
+                    ';'
+                );
+
+                foreach (
+                    $produtos
+                    as $produto
+                ) {
+                    fputcsv(
+                        $saida,
+                        [
+                            $produto->id,
+                            $produto->nome,
+                            $produto->categoria
+                                ?? 'Sem categoria',
+                            $produto->sku
+                                ?? '',
+                            $produto->codigo_barras
+                                ?? '',
+                            number_format(
+                                (float) $produto
+                                    ->quantidade_estoque,
+                                3,
+                                ',',
+                                '.'
+                            ),
+                            number_format(
+                                (float) $produto
+                                    ->estoque_minimo,
+                                3,
+                                ',',
+                                '.'
+                            ),
+                            $produto->ultima_venda
+                                ? date(
+                                    'd/m/Y',
+                                    strtotime(
+                                        $produto
+                                            ->ultima_venda
+                                    )
+                                )
+                                : 'Nunca',
+                            $produto->dias_sem_venda
+                                === null
+                                    ? 'Nunca vendeu'
+                                    : $produto
+                                        ->dias_sem_venda,
+                            number_format(
+                                (float) $produto
+                                    ->quantidade_vendida_historica,
+                                3,
+                                ',',
+                                '.'
+                            ),
+                            (int) $produto
+                                ->em_promocao === 1
+                                    ? 'Sim'
+                                    : 'Nao',
+                            $produto->situacao,
+                        ],
+                        ';'
+                    );
+                }
+
+                fclose($saida);
+            },
+            $arquivo,
+            [
+                'Content-Type' =>
+                    'text/csv; charset=UTF-8',
+            ]
+        );
+    }
+
+    private function validarFiltros(
+        Request $request
+    ): array {
+        return $request->validate(
+            [
+                'q' => [
+                    'nullable',
+                    'string',
+                    'max:150',
+                ],
+
+                'categoria_id' => [
+                    'nullable',
+                    'integer',
+                    'exists:categorias,id',
+                ],
+
+                'ordenacao' => [
+                    'nullable',
+                    'in:nome,ultima_venda,estoque_minimo,vendido',
+                ],
+            ]
+        );
+    }
+
+    private function autorizar(): void
+    {
+        abort_unless(
+            auth()->check()
+            &&
+            in_array(
+                auth()->user()->nivel_acesso,
+                [
+                    'admin',
+                    'gerente',
+                ],
+                true
+            ),
+            403
+        );
+    }
+}
