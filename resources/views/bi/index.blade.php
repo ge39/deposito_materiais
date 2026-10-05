@@ -9,11 +9,11 @@
         <div>
             <h1 class="h3 mb-1">
                 <i class="bi bi-bar-chart-line me-2"></i>
-                BI & Relatórios
+                BI &amp; Relat&oacute;rios
             </h1>
 
             <p class="text-muted mb-0">
-                Central de inteligência gerencial e relatórios do ERP.
+                Central de intelig&ecirc;ncia gerencial e relat&oacute;rios do ERP.
             </p>
         </div>
 
@@ -26,7 +26,7 @@
     <div class="alert alert-info shadow-sm">
         <i class="bi bi-info-circle-fill me-2"></i>
 
-        Esta central será construída sobre os dados e regras já homologados
+        Esta central ser&aacute; constru&iacute;da sobre os dados e regras j&aacute; homologados
         no ERP, sem criar uma segunda fonte de verdade.
     </div>
 
@@ -39,7 +39,7 @@
 
                     <h5 class="card-title">
                         <i class="bi bi-speedometer2 me-2"></i>
-                        Visão Executiva
+                        Vis&atilde;o Executiva
                     </h5>
 
                     <p class="card-text text-muted">
@@ -117,13 +117,26 @@
                     </h5>
 
                     <p class="card-text text-muted">
-                        Compras por fornecedor, produto, custo médio,
-                        variação de preços e histórico.
+                        Compras por fornecedor, produto, custo m&eacute;dio,
+                        varia&ccedil;&atilde;o de pre&ccedil;os e hist&oacute;rico.
                     </p>
 
-                    <span class="badge text-bg-secondary">
-                        BI-03
-                    </span>
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+
+                        <span class="badge text-bg-secondary">
+                            BI-03
+                        </span>
+
+                        <a
+                            href="{{ route('bi.compras.index') }}"
+                            class="btn btn-sm btn-primary">
+
+                            <i class="bi bi-box-arrow-up-right me-1"></i>
+                            Abrir dashboard
+
+                        </a>
+
+                    </div>
 
                 </div>
 
@@ -141,7 +154,7 @@
                     </h5>
 
                     <p class="card-text text-muted">
-                        Faturamento, margem, ticket médio, vendedores,
+                        Faturamento, margem, ticket m&eacute;dio, vendedores,
                         produtos e clientes.
                     </p>
 
@@ -161,11 +174,11 @@
 
                     <h5 class="card-title">
                         <i class="bi bi-clipboard-data me-2"></i>
-                        Orçamentos
+                        Or&ccedil;amentos
                     </h5>
 
                     <p class="card-text text-muted">
-                        Conversão, valores orçados, aprovados,
+                        Convers&atilde;o, valores or&ccedil;ados, aprovados,
                         perdidos e desempenho comercial.
                     </p>
 
@@ -189,7 +202,7 @@
                     </h5>
 
                     <p class="card-text text-muted">
-                        Entradas, saídas, sangrias, diferenças,
+                        Entradas, sa&iacute;das, sangrias, diferen&ccedil;as,
                         fechamentos e auditoria.
                     </p>
 
@@ -209,12 +222,12 @@
 
                     <h5 class="card-title">
                         <i class="bi bi-truck me-2"></i>
-                        Entregas & Logística
+                        Entregas &amp; Log&iacute;stica
                     </h5>
 
                     <p class="card-text text-muted">
                         Entregas realizadas, atrasos, reagendamentos,
-                        devoluções, veículos e motoristas.
+                        devolu&ccedil;&otilde;es, ve&iacute;culos e motoristas.
                     </p>
 
                     <span class="badge text-bg-secondary">
@@ -233,12 +246,12 @@
 
                     <h5 class="card-title">
                         <i class="bi bi-people me-2"></i>
-                        Funcionários & Comissões
+                        Funcion&aacute;rios &amp; Comiss&otilde;es
                     </h5>
 
                     <p class="card-text text-muted">
-                        Produtividade, operações realizadas,
-                        desempenho e comissões.
+                        Produtividade, opera&ccedil;&otilde;es realizadas,
+                        desempenho e comiss&otilde;es.
                     </p>
 
                     <span class="badge text-bg-secondary">
@@ -262,7 +275,7 @@
 
                     <p class="card-text text-muted">
                         Receitas, despesas, contas a receber,
-                        inadimplência e fluxo de caixa.
+                        inadimplÃªncia e fluxo de caixa.
                     </p>
 
                     <span class="badge text-bg-secondary">

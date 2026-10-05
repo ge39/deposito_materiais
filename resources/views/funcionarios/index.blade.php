@@ -3,9 +3,9 @@
 @section('content')
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">Funcionários Ativos</h2>
+        <h2 class="fw-bold">FuncionÃƒÂ¡rios Ativos</h2>
         <a href="{{ route('funcionarios.create') }}" class="btn btn-success">
-            <i class="bi bi-plus-circle"></i> Novo Funcionário
+            <i class="bi bi-plus-circle"></i> Novo FuncionÃƒÂ¡rio
         </a>
     </div>
 
@@ -55,11 +55,12 @@
                                     <i class="bi bi-pencil-square"></i> Editar
                                 </a>
 
+
                                 <form action="{{ route('funcionarios.desativar', $funcionario->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('PUT')
                                     <button type="submit" class="btn btn-sm btn-danger"
-                                        onclick="return confirm('Deseja realmente desativar este funcionário?')">
+                                        onclick="return confirm('Deseja realmente desativar este funcionÃƒÂ¡rio?')">
                                         <i class="bi bi-x-circle"></i> Desativar
                                     </button>
                                 </form>
@@ -70,13 +71,13 @@
             @endforeach
         </div>
 
-        <!-- Paginação -->
+        <!-- PaginaÃƒÂ§ÃƒÂ£o -->
         <div class="d-flex justify-content-center mt-4">
             {{ $funcionarios->links('pagination::bootstrap-5') }}
         </div>
     @else
         <div class="alert alert-info text-center py-4 shadow-sm rounded mt-3">
-            Nenhum funcionário ativo encontrado.
+            Nenhum funcionÃƒÂ¡rio ativo encontrado.
         </div>
     @endif
 </div>

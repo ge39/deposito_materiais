@@ -26,7 +26,7 @@
     @endif
 
     <div class="row g-3">
-         {{-- Paginação --}}
+         {{-- PaginaÃ§Ã£o --}}
         <div class="d-flex justify-content-center mt-4">
             {{ $fornecedores->links('pagination::bootstrap-5') }}
         </div>
@@ -35,15 +35,22 @@
                 <div class="card shadow-sm h-100 border-0">
                     <div class="card-body">
                         <h5 class="card-title fw-bold mb-2">{{ $fornecedor->nome }}</h5>
-                        <p class="mb-1"><strong>CNPJ:</strong> {{ $fornecedor->cnpj ?? '—' }}</p>
-                        <p class="mb-1"><strong>RG:</strong> {{ $fornecedor->rg ?? '—' }}</p>
-                        <p class="mb-1"><strong>Email:</strong> {{ $fornecedor->email ?? '—' }}</p>
-                        <p class="mb-1"><strong>Telefone:</strong> {{ $fornecedor->telefone ?? '—' }}</p>
-                        <p class="mb-1"><strong>Cidade:</strong> {{ $fornecedor->cidade ?? '—' }}</p>
+                        <p class="mb-1"><strong>CNPJ:</strong> {{ $fornecedor->cnpj ?? 'â€”' }}</p>
+                        <p class="mb-1"><strong>RG:</strong> {{ $fornecedor->rg ?? 'â€”' }}</p>
+                        <p class="mb-1"><strong>Email:</strong> {{ $fornecedor->email ?? 'â€”' }}</p>
+                        <p class="mb-1"><strong>Telefone:</strong> {{ $fornecedor->telefone ?? 'â€”' }}</p>
+                        <p class="mb-1"><strong>Cidade:</strong> {{ $fornecedor->cidade ?? 'â€”' }}</p>
                         <p class="mb-3"><strong>Status:</strong> <span class="text-success">Ativo</span></p>
 
                         <div class="d-flex gap-2">
                             <a href="{{ route('fornecedores.edit', $fornecedor->id) }}" class="btn btn-warning btn-sm">Editar</a>
+
+                            <a
+                                href="{{ route('fornecedores.produtos', $fornecedor->id) }}"
+                                class="btn btn-primary btn-sm">
+                                <i class="bi bi-box-seam"></i>
+                                Produtos
+                            </a>
                             <a href="{{ route('fornecedores.inativos') }}" class="btn btn-secondary">Inativos</a>
                                 <a href="{{ route('fornecedores.create') }}" class="btn btn-success">Novo</a>
                             <form action="{{ route('fornecedores.desativar', $fornecedor->id) }}" method="POST" class="d-inline">
@@ -64,7 +71,7 @@
         @endforelse
     </div>
 
-    {{-- Paginação --}}
+    {{-- PaginaÃ§Ã£o --}}
     <div class="d-flex justify-content-center mt-4">
         {{ $fornecedores->links('pagination::bootstrap-5') }}
     </div>
