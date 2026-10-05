@@ -156,9 +156,15 @@
                         produtos e clientes.
                     </p>
 
-                    <span class="badge text-bg-secondary">
-                        BI-04
-                    </span>
+                    <div class="d-flex justify-content-between align-items-center mt-auto">
+    <span class="badge text-bg-secondary">BI-04</span>
+
+    <a href="<?php echo e(route('bi.vendas.index')); ?>"
+       class="btn btn-primary btn-sm">
+        <i class="bi bi-box-arrow-up-right me-1"></i>
+        Abrir dashboard
+    </a>
+</div>
 
                 </div>
 
@@ -180,9 +186,15 @@
                         perdidos e desempenho comercial.
                     </p>
 
-                    <span class="badge text-bg-secondary">
-                        BI-04
-                    </span>
+                    <div class="d-flex justify-content-between align-items-center mt-auto">
+    <span class="badge text-bg-secondary">BI-04</span>
+
+    <a href="<?php echo e(route('bi.orcamentos.index')); ?>"
+       class="btn btn-primary btn-sm">
+        <i class="bi bi-box-arrow-up-right me-1"></i>
+        Abrir dashboard
+    </a>
+</div>
 
                 </div>
 
@@ -204,9 +216,15 @@
                         fechamentos e auditoria.
                     </p>
 
-                    <span class="badge text-bg-secondary">
-                        BI-04
-                    </span>
+                    <div class="d-flex justify-content-between align-items-center mt-auto">
+    <span class="badge text-bg-secondary">BI-04</span>
+
+    <a href="<?php echo e(route('bi.caixa.index')); ?>"
+       class="btn btn-primary btn-sm">
+        <i class="bi bi-box-arrow-up-right me-1"></i>
+        Abrir dashboard
+    </a>
+</div>
 
                 </div>
 
@@ -273,7 +291,7 @@
 
                     <p class="card-text text-muted">
                         Receitas, despesas, contas a receber,
-                        inadimplÃªncia e fluxo de caixa.
+                        inadimpl&ecirc;ncia e fluxo de caixa.
                     </p>
 
                     <span class="badge text-bg-secondary">
