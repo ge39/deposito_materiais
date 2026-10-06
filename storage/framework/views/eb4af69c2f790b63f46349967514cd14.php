@@ -1,6 +1,4 @@
-@extends('layouts.app')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 
 <div class="container-fluid">
 
@@ -54,7 +52,7 @@
                         </span>
 
                         <a
-                            href="{{ route('bi.executivo.index') }}"
+                            href="<?php echo e(route('bi.executivo.index')); ?>"
                             class="btn btn-sm btn-primary">
 
                             <i class="bi bi-box-arrow-up-right me-1"></i>
@@ -91,7 +89,7 @@
                         </span>
 
                         <a
-                            href="{{ route('bi.produtos.index') }}"
+                            href="<?php echo e(route('bi.produtos.index')); ?>"
                             class="btn btn-sm btn-primary">
 
                             <i class="bi bi-box-arrow-up-right me-1"></i>
@@ -128,7 +126,7 @@
                         </span>
 
                         <a
-                            href="{{ route('bi.compras.index') }}"
+                            href="<?php echo e(route('bi.compras.index')); ?>"
                             class="btn btn-sm btn-primary">
 
                             <i class="bi bi-box-arrow-up-right me-1"></i>
@@ -161,7 +159,7 @@
                     <div class="d-flex justify-content-between align-items-center mt-auto">
     <span class="badge text-bg-secondary">BI-04</span>
 
-    <a href="{{ route('bi.vendas.index') }}"
+    <a href="<?php echo e(route('bi.vendas.index')); ?>"
        class="btn btn-primary btn-sm">
         <i class="bi bi-box-arrow-up-right me-1"></i>
         Abrir dashboard
@@ -191,7 +189,7 @@
                     <div class="d-flex justify-content-between align-items-center mt-auto">
     <span class="badge text-bg-secondary">BI-04</span>
 
-    <a href="{{ route('bi.orcamentos.index') }}"
+    <a href="<?php echo e(route('bi.orcamentos.index')); ?>"
        class="btn btn-primary btn-sm">
         <i class="bi bi-box-arrow-up-right me-1"></i>
         Abrir dashboard
@@ -221,7 +219,7 @@
                     <div class="d-flex justify-content-between align-items-center mt-auto">
     <span class="badge text-bg-secondary">BI-04</span>
 
-    <a href="{{ route('bi.caixa.index') }}"
+    <a href="<?php echo e(route('bi.caixa.index')); ?>"
        class="btn btn-primary btn-sm">
         <i class="bi bi-box-arrow-up-right me-1"></i>
         Abrir dashboard
@@ -255,7 +253,7 @@
                         </span>
 
                         <a
-                            href="{{ route('bi.logistica.index') }}"
+                            href="<?php echo e(route('bi.logistica.index')); ?>"
                             class="btn btn-primary btn-sm"
                         >
                             <i class="bi bi-box-arrow-up-right me-1"></i>
@@ -321,4 +319,5 @@
 
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views/bi/index.blade.php ENDPATH**/ ?>
