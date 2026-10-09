@@ -196,6 +196,9 @@ class BiProdutosService
                     ->take(10)
                     ->values(),
 
+            'sem_estoque_completo' =>
+                $ruptura->values(),
+
             'ruptura' =>
                 $ruptura
                     ->sortByDesc(
@@ -855,6 +858,10 @@ class BiProdutosService
         return [
             'produtos_calculados' =>
                 $calculados->count(),
+
+            // BI08_COBERTURA_V5 - colecao completa
+            'todos' =>
+                $calculados->values(),
 
             /*
              * Menor cobertura primeiro:

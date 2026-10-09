@@ -288,6 +288,14 @@
                         BI-06
                     </span>
 
+<a
+    href="{{ route('bi.funcionarios-comissoes.index') }}"
+    class="btn btn-primary btn-sm"
+>
+    <i class="bi bi-box-arrow-up-right me-1"></i>
+    Abrir dashboard
+</a>
+
                 </div>
 
             </div>
@@ -311,6 +319,13 @@
                     <span class="badge text-bg-secondary">
                         BI-07
                     </span>
+                    <div class="mt-3">
+                        <a href="{{ route('bi.financeiro.index') }}"
+                           class="btn btn-primary btn-sm">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>
+                            Abrir dashboard
+                        </a>
+                    </div>
 
                 </div>
 

@@ -1,0 +1,1023 @@
+<?php
+
+namespace App\Services\BI;
+
+use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
+class BiProdutosService
+{
+    public function painel(array $filtros): array
+    {
+        $inicio = CarbonImmutable::parse(
+            $filtros['data_inicio']
+        )->startOfDay();
+
+        $fim = CarbonImmutable::parse(
+            $filtros['data_fim']
+        )->endOfDay();
+
+        $diasPeriodo =
+            $inicio
+                ->startOfDay()
+                ->diffInDays(
+                    $fim->startOfDay()
+                )
+            + 1;
+
+        $base = $this->queryAnalitica(
+            $filtros,
+            $inicio,
+            $fim
+        );
+
+        $produtos = $base->get();
+
+        $produtosAtivos =
+            $produtos->count();
+
+        $ruptura =
+            $produtos
+                ->filter(
+                    fn ($produto) =>
+                        (float) $produto->estoque_disponivel
+                        <= 0
+                );
+
+        $abaixoMinimo =
+            $produtos
+                ->filter(
+                    fn ($produto) =>
+                        (float) $produto->estoque_disponivel > 0
+                        &&
+                        (float) $produto->estoque_disponivel
+                        <=
+                        (float) $produto->estoque_minimo
+                );
+
+        $estoqueParado =
+            $produtos
+                ->filter(
+                    fn ($produto) =>
+                        (float) $produto->estoque_disponivel > 0
+                        &&
+                        (float) $produto->quantidade_vendida <= 0
+                );
+
+        $semGiro =
+            $estoqueParado;
+
+        $valorEstoque =
+            (float) $produtos->sum(
+                fn ($produto) =>
+                    (float) $produto->valor_estoque
+            );
+
+        $maisVendidos =
+            $produtos
+                ->sortByDesc(
+                    'quantidade_vendida'
+                )
+                ->take(10)
+                ->values();
+
+        /*
+         * Menos vendidos inclui produtos sem venda.
+         * Eles são importantes para tomada de decisão.
+         */
+        $menosVendidos =
+            $produtos
+                ->sort(
+                    function ($a, $b) {
+                        $quantidade =
+                            (float) $a->quantidade_vendida
+                            <=>
+                            (float) $b->quantidade_vendida;
+
+                        if ($quantidade !== 0) {
+                            return $quantidade;
+                        }
+
+                        return
+                            (float) $a->faturamento
+                            <=>
+                            (float) $b->faturamento;
+                    }
+                )
+                ->take(10)
+                ->values();
+
+        $maiorFaturamento =
+            $produtos
+                ->sortByDesc(
+                    'faturamento'
+                )
+                ->take(10)
+                ->values();
+
+        /*
+         * Menor faturamento considera somente produtos
+         * que tiveram alguma venda no período.
+         *
+         * Evita duplicar integralmente o ranking
+         * de produtos sem venda.
+         */
+        $menorFaturamento =
+            $produtos
+                ->filter(
+                    fn ($produto) =>
+                        (float) $produto->quantidade_vendida
+                        > 0
+                )
+                ->sortBy(
+                    'faturamento'
+                )
+                ->take(10)
+                ->values();
+
+        $abc =
+            $this->calcularCurvaAbc(
+                $produtos
+            );
+
+        $cobertura =
+            $this->calcularCobertura(
+                $produtos,
+                $diasPeriodo
+            );
+
+        return [
+            'periodo' => [
+                'inicio' => $inicio,
+                'fim' => $fim,
+                'dias' => $diasPeriodo,
+            ],
+
+            'resumo' => [
+                'produtos_ativos' =>
+                    $produtosAtivos,
+
+                'estoque_zero' =>
+                    $ruptura->count(),
+
+                'abaixo_minimo' =>
+                    $abaixoMinimo->count(),
+
+                'estoque_parado' =>
+                    $estoqueParado->count(),
+
+                'sem_giro' =>
+                    $semGiro->count(),
+
+                'valor_estoque' =>
+                    $valorEstoque,
+            ],
+
+            'mais_vendidos' =>
+                $maisVendidos,
+
+            'menos_vendidos' =>
+                $menosVendidos,
+
+            'maior_faturamento' =>
+                $maiorFaturamento,
+
+            'menor_faturamento' =>
+                $menorFaturamento,
+
+            'estoque_parado' =>
+                $estoqueParado
+                    ->sortByDesc(
+                        'valor_estoque'
+                    )
+                    ->take(10)
+                    ->values(),
+
+            'sem_estoque_completo' =>
+                $ruptura->values(),
+
+            'ruptura' =>
+                $ruptura
+                    ->sortByDesc(
+                        'quantidade_vendida'
+                    )
+                    ->take(10)
+                    ->values(),
+
+            'abc' =>
+                $abc,
+
+            'cobertura' =>
+                $cobertura,
+        ];
+    }
+
+    public function categorias(): Collection
+    {
+        return DB::table('categorias')
+            ->orderBy('nome')
+            ->get([
+                'id',
+                'nome',
+            ]);
+    }
+
+    public function fornecedores(): Collection
+    {
+        return DB::table('fornecedores')
+            ->orderBy('nome')
+            ->get([
+                'id',
+                'nome',
+            ]);
+    }
+
+    public function marcas(): Collection
+    {
+        return DB::table('marcas')
+            ->orderBy('nome')
+            ->get([
+                'id',
+                'nome',
+            ]);
+    }
+
+    public function produtosAtivos(
+        array $filtros
+    ): Collection {
+        [$inicio, $fim] =
+            $this->periodo(
+                $filtros
+            );
+
+        return $this
+            ->queryAnalitica(
+                $filtros,
+                $inicio,
+                $fim
+            )
+            ->orderBy(
+                'p.nome'
+            )
+            ->get();
+    }
+
+    public function abaixoMinimo(
+        array $filtros
+    ): Collection {
+        [$inicio, $fim] =
+            $this->periodo(
+                $filtros
+            );
+
+        return $this
+            ->queryAnalitica(
+                $filtros,
+                $inicio,
+                $fim
+            )
+            ->whereRaw(
+                '
+                COALESCE(ep.estoque_disponivel, 0) > 0
+                AND
+                COALESCE(ep.estoque_disponivel, 0)
+                <=
+                COALESCE(p.estoque_minimo, 0)
+                '
+            )
+            ->orderBy(
+                'p.nome'
+            )
+            ->get();
+    }
+
+    public function composicaoEstoque(
+        array $filtros
+    ): Collection {
+        [$inicio, $fim] =
+            $this->periodo(
+                $filtros
+            );
+
+        return $this
+            ->queryAnalitica(
+                $filtros,
+                $inicio,
+                $fim
+            )
+            ->whereRaw(
+                'COALESCE(ep.estoque_disponivel,0) > 0'
+            )
+            ->orderByDesc(
+                'ep.valor_estoque'
+            )
+            ->get();
+    }
+
+    public function estoqueParadoCompleto(
+        array $filtros
+    ): Collection {
+        [$inicio, $fim] =
+            $this->periodo(
+                $filtros
+            );
+
+        return $this
+            ->queryAnalitica(
+                $filtros,
+                $inicio,
+                $fim
+            )
+            ->whereRaw(
+                'COALESCE(ep.estoque_disponivel,0) > 0'
+            )
+            ->whereRaw(
+                'COALESCE(vp.quantidade_vendida,0) <= 0'
+            )
+            ->orderByDesc(
+                'ep.valor_estoque'
+            )
+            ->get();
+    }
+
+    public function estoqueZeroPaginado(
+        array $filtros,
+        int $porPagina = 25
+    ): LengthAwarePaginator {
+        [$inicio, $fim] =
+            $this->periodo(
+                $filtros
+            );
+
+        $query =
+            $this->queryAnalitica(
+                $filtros,
+                $inicio,
+                $fim
+            )
+            ->whereRaw(
+                'COALESCE(ep.estoque_disponivel,0) <= 0'
+            );
+
+        $ordenacao =
+            $filtros['ordenacao']
+            ?? 'nome';
+
+        if ($ordenacao === 'ultima_venda') {
+            $query
+                ->orderByRaw(
+                    'vh.ultima_venda IS NULL DESC'
+                )
+                ->orderBy(
+                    'vh.ultima_venda'
+                )
+                ->orderBy(
+                    'p.nome'
+                );
+        }
+
+        if ($ordenacao === 'estoque_minimo') {
+            $query
+                ->orderByDesc(
+                    'p.estoque_minimo'
+                )
+                ->orderBy(
+                    'p.nome'
+                );
+        }
+
+        if ($ordenacao === 'vendido') {
+            $query
+                ->orderByDesc(
+                    'quantidade_vendida'
+                )
+                ->orderBy(
+                    'p.nome'
+                );
+        }
+
+        if ($ordenacao === 'nome') {
+            $query->orderBy(
+                'p.nome'
+            );
+        }
+
+        $paginador =
+            $query
+                ->paginate(
+                    $porPagina
+                )
+                ->withQueryString();
+
+        $paginador
+            ->getCollection()
+            ->transform(
+                fn ($produto) =>
+                    $this->enriquecerDiasSemVenda(
+                        $produto
+                    )
+            );
+
+        return $paginador;
+    }
+
+    public function estoqueZeroCompleto(
+        array $filtros
+    ): Collection {
+        [$inicio, $fim] =
+            $this->periodo(
+                $filtros
+            );
+
+        return $this
+            ->queryAnalitica(
+                $filtros,
+                $inicio,
+                $fim
+            )
+            ->whereRaw(
+                'COALESCE(ep.estoque_disponivel,0) <= 0'
+            )
+            ->orderBy(
+                'p.nome'
+            )
+            ->get()
+            ->map(
+                fn ($produto) =>
+                    $this->enriquecerDiasSemVenda(
+                        $produto
+                    )
+            );
+    }
+
+    private function queryAnalitica(
+        array $filtros,
+        CarbonImmutable $inicio,
+        CarbonImmutable $fim
+    ): Builder {
+        $estoques =
+            $this->subqueryEstoque();
+
+        $vendasPeriodo =
+            DB::table(
+                'item_vendas as iv'
+            )
+                ->join(
+                    'vendas as v',
+                    'v.id',
+                    '=',
+                    'iv.venda_id'
+                )
+                ->where(
+                    'v.status',
+                    'finalizada'
+                )
+                ->whereBetween(
+                    'v.data_venda',
+                    [
+                        $inicio,
+                        $fim,
+                    ]
+                )
+                ->groupBy(
+                    'iv.produto_id'
+                )
+                ->selectRaw(
+                    '
+                    iv.produto_id,
+
+                    COALESCE(
+                        SUM(iv.quantidade),
+                        0
+                    ) AS quantidade_vendida,
+
+                    COALESCE(
+                        SUM(iv.subtotal),
+                        0
+                    ) AS faturamento,
+
+                    COUNT(
+                        DISTINCT iv.venda_id
+                    ) AS vendas
+                    '
+                );
+
+        /*
+         * Histórico completo somente para última venda.
+         */
+        $vendasHistoricas =
+            DB::table(
+                'item_vendas as iv'
+            )
+                ->join(
+                    'vendas as v',
+                    'v.id',
+                    '=',
+                    'iv.venda_id'
+                )
+                ->where(
+                    'v.status',
+                    'finalizada'
+                )
+                ->groupBy(
+                    'iv.produto_id'
+                )
+                ->selectRaw(
+                    '
+                    iv.produto_id,
+
+                    MAX(
+                        v.data_venda
+                    ) AS ultima_venda
+                    '
+                );
+
+        $query =
+            DB::table(
+                'produtos as p'
+            )
+                ->leftJoinSub(
+                    $estoques,
+                    'ep',
+                    'ep.produto_id',
+                    '=',
+                    'p.id'
+                )
+                ->leftJoinSub(
+                    $vendasPeriodo,
+                    'vp',
+                    'vp.produto_id',
+                    '=',
+                    'p.id'
+                )
+                ->leftJoinSub(
+                    $vendasHistoricas,
+                    'vh',
+                    'vh.produto_id',
+                    '=',
+                    'p.id'
+                )
+                ->leftJoin(
+                    'categorias as c',
+                    'c.id',
+                    '=',
+                    'p.categoria_id'
+                )
+                ->leftJoin(
+                    'fornecedores as f',
+                    'f.id',
+                    '=',
+                    'p.fornecedor_id'
+                )
+                ->leftJoin(
+                    'marcas as m',
+                    'm.id',
+                    '=',
+                    'p.marca_id'
+                )
+                ->where(
+                    'p.ativo',
+                    1
+                )
+                ->selectRaw(
+                    '
+                    p.id,
+                    p.nome,
+                    p.sku,
+                    p.codigo_barras,
+                    p.estoque_minimo,
+                    p.em_promocao,
+                    p.preco_venda,
+
+                    c.nome AS categoria,
+                    f.nome AS fornecedor,
+                    m.nome AS marca,
+
+                    COALESCE(
+                        ep.estoque_total,
+                        0
+                    ) AS estoque_total,
+
+                    COALESCE(
+                        ep.estoque_reservado,
+                        0
+                    ) AS estoque_reservado,
+
+                    COALESCE(
+                        ep.estoque_disponivel,
+                        0
+                    ) AS estoque_disponivel,
+
+                    COALESCE(
+                        ep.valor_estoque,
+                        0
+                    ) AS valor_estoque,
+
+                    COALESCE(
+                        vp.quantidade_vendida,
+                        0
+                    ) AS quantidade_vendida,
+
+                    COALESCE(
+                        vp.faturamento,
+                        0
+                    ) AS faturamento,
+
+                    COALESCE(
+                        vp.vendas,
+                        0
+                    ) AS vendas,
+
+                    vh.ultima_venda
+                    '
+                );
+
+        $this->aplicarFiltros(
+            $query,
+            $filtros
+        );
+
+        return $query;
+    }
+
+    private function subqueryEstoque(): Builder
+    {
+        /*
+         * REGRA HOMOLOGADA PARA BI-03:
+         *
+         * estoque real = soma dos lotes.
+         */
+        return DB::table(
+            'lotes as l'
+        )
+            ->groupBy(
+                'l.produto_id'
+            )
+            ->selectRaw(
+                '
+                l.produto_id,
+
+                COALESCE(
+                    SUM(l.quantidade),
+                    0
+                ) AS estoque_total,
+
+                COALESCE(
+                    SUM(l.quantidade_reservada),
+                    0
+                ) AS estoque_reservado,
+
+                COALESCE(
+                    SUM(l.quantidade_disponivel),
+                    0
+                ) AS estoque_disponivel,
+
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN l.quantidade_disponivel > 0
+                            THEN
+                                l.quantidade_disponivel
+                                *
+                                COALESCE(
+                                    l.preco_compra,
+                                    0
+                                )
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS valor_estoque
+                '
+            );
+    }
+
+    private function calcularCurvaAbc(
+        Collection $produtos
+    ): array {
+        $vendidos =
+            $produtos
+                ->filter(
+                    fn ($produto) =>
+                        (float) $produto->faturamento
+                        > 0
+                )
+                ->sortByDesc(
+                    'faturamento'
+                )
+                ->values();
+
+        $total =
+            (float) $vendidos->sum(
+                'faturamento'
+            );
+
+        $acumulado = 0.0;
+
+        $classificados =
+            $vendidos->map(
+                function ($produto) use (
+                    &$acumulado,
+                    $total
+                ) {
+                    $acumulado +=
+                        (float) $produto->faturamento;
+
+                    $percentualAcumulado =
+                        $total > 0
+                            ? (
+                                $acumulado
+                                /
+                                $total
+                            )
+                            * 100
+                            : 0;
+
+                    /*
+                     * Curva ABC padrão:
+                     *
+                     * A = até 80%
+                     * B = 80% até 95%
+                     * C = restante
+                     */
+                    $classe = 'C';
+
+                    if (
+                        $percentualAcumulado
+                        <= 80
+                    ) {
+                        $classe = 'A';
+                    } elseif (
+                        $percentualAcumulado
+                        <= 95
+                    ) {
+                        $classe = 'B';
+                    }
+
+                    $produto->abc =
+                        $classe;
+
+                    $produto
+                        ->percentual_acumulado =
+                        $percentualAcumulado;
+
+                    return $produto;
+                }
+            );
+
+        return [
+            'total_faturamento' =>
+                $total,
+
+            'classe_a' =>
+                $classificados
+                    ->where(
+                        'abc',
+                        'A'
+                    )
+                    ->count(),
+
+            'classe_b' =>
+                $classificados
+                    ->where(
+                        'abc',
+                        'B'
+                    )
+                    ->count(),
+
+            'classe_c' =>
+                $classificados
+                    ->where(
+                        'abc',
+                        'C'
+                    )
+                    ->count(),
+
+            'ranking' =>
+                $classificados
+                    ->take(15)
+                    ->values(),
+        ];
+    }
+
+    private function calcularCobertura(
+        Collection $produtos,
+        int $diasPeriodo
+    ): array {
+        $calculados =
+            $produtos
+                ->filter(
+                    fn ($produto) =>
+                        (float) $produto
+                            ->estoque_disponivel
+                        > 0
+                        &&
+                        (float) $produto
+                            ->quantidade_vendida
+                        > 0
+                )
+                ->map(
+                    function ($produto) use (
+                        $diasPeriodo
+                    ) {
+                        $mediaDiaria =
+                            (float) $produto
+                                ->quantidade_vendida
+                            /
+                            max(
+                                $diasPeriodo,
+                                1
+                            );
+
+                        $produto
+                            ->media_diaria_venda =
+                            $mediaDiaria;
+
+                        $produto
+                            ->cobertura_dias =
+                            $mediaDiaria > 0
+                                ? (
+                                    (float) $produto
+                                        ->estoque_disponivel
+                                    /
+                                    $mediaDiaria
+                                )
+                                : null;
+
+                        return $produto;
+                    }
+                )
+                ->sortBy(
+                    'cobertura_dias'
+                )
+                ->values();
+
+        return [
+            'produtos_calculados' =>
+                $calculados->count(),
+
+            /*
+             * Menor cobertura primeiro:
+             * produtos potencialmente mais próximos
+             * de nova ruptura.
+             */
+            'criticos' =>
+                $calculados
+                    ->take(10)
+                    ->values(),
+        ];
+    }
+
+    private function aplicarFiltros(
+        Builder $query,
+        array $filtros
+    ): void {
+        $busca = trim(
+            (string) (
+                $filtros['q']
+                ?? ''
+            )
+        );
+
+        if ($busca !== '') {
+            $query->where(
+                function ($subquery) use (
+                    $busca
+                ) {
+                    $subquery
+                        ->where(
+                            'p.nome',
+                            'like',
+                            '%' . $busca . '%'
+                        )
+                        ->orWhere(
+                            'p.sku',
+                            'like',
+                            '%' . $busca . '%'
+                        )
+                        ->orWhere(
+                            'p.codigo_barras',
+                            'like',
+                            '%' . $busca . '%'
+                        );
+                }
+            );
+        }
+
+        if (
+            ! empty(
+                $filtros['categoria_id']
+            )
+        ) {
+            $query->where(
+                'p.categoria_id',
+                (int) $filtros[
+                    'categoria_id'
+                ]
+            );
+        }
+
+        if (
+            ! empty(
+                $filtros['fornecedor_id']
+            )
+        ) {
+            $query->where(
+                'p.fornecedor_id',
+                (int) $filtros[
+                    'fornecedor_id'
+                ]
+            );
+        }
+
+        if (
+            ! empty(
+                $filtros['marca_id']
+            )
+        ) {
+            $query->where(
+                'p.marca_id',
+                (int) $filtros[
+                    'marca_id'
+                ]
+            );
+        }
+
+        if (
+            isset(
+                $filtros['promocao']
+            )
+            &&
+            $filtros['promocao']
+            !== ''
+        ) {
+            $query->where(
+                'p.em_promocao',
+                (int) $filtros[
+                    'promocao'
+                ]
+            );
+        }
+    }
+
+    private function periodo(
+        array $filtros
+    ): array {
+        return [
+            CarbonImmutable::parse(
+                $filtros['data_inicio']
+            )->startOfDay(),
+
+            CarbonImmutable::parse(
+                $filtros['data_fim']
+            )->endOfDay(),
+        ];
+    }
+
+    private function enriquecerDiasSemVenda(
+        object $produto
+    ): object {
+        $produto->dias_sem_venda =
+            null;
+
+        if (
+            $produto->ultima_venda
+        ) {
+            $produto->dias_sem_venda =
+                CarbonImmutable::parse(
+                    $produto->ultima_venda
+                )
+                    ->startOfDay()
+                    ->diffInDays(
+                        CarbonImmutable::now()
+                            ->startOfDay()
+                    );
+        }
+
+        $produto->situacao =
+            'Sem estoque';
+
+        if (
+            ! $produto->ultima_venda
+        ) {
+            $produto->situacao =
+                'Sem estoque / nunca vendeu';
+        }
+
+        if (
+            $produto->dias_sem_venda
+            !== null
+            &&
+            $produto->dias_sem_venda
+            >= 90
+        ) {
+            $produto->situacao =
+                'Sem estoque / sem venda ha 90+ dias';
+        }
+
+        return $produto;
+    }
+}

@@ -1190,3 +1190,96 @@ Route::get(
     '/bi/produtos/estoque-parado',
     [\App\Http\Controllers\BI\BiProdutosController::class, 'estoqueParado']
 )->name('bi.produtos.estoque-parado');
+
+/*
+|--------------------------------------------------------------------------
+| BI-06 - Regras de Comissão
+|--------------------------------------------------------------------------
+| BI-06-COMISSOES-REGRAS
+*/
+
+Route::middleware('auth')
+    ->prefix('comissoes')
+    ->name('comissoes.')
+    ->group(function () {
+
+        Route::get(
+            '/regras',
+            [
+                \App\Http\Controllers\ComissaoRegraController::class,
+                'index'
+            ]
+        )->name('regras.index');
+
+        Route::get(
+            '/regras/nova',
+            [
+                \App\Http\Controllers\ComissaoRegraController::class,
+                'create'
+            ]
+        )->name('regras.create');
+
+        Route::post(
+            '/regras',
+            [
+                \App\Http\Controllers\ComissaoRegraController::class,
+                'store'
+            ]
+        )->name('regras.store');
+
+        Route::get(
+            '/regras/{regra}/editar',
+            [
+                \App\Http\Controllers\ComissaoRegraController::class,
+                'edit'
+            ]
+        )->name('regras.edit');
+
+        Route::put(
+            '/regras/{regra}',
+            [
+                \App\Http\Controllers\ComissaoRegraController::class,
+                'update'
+            ]
+        )->name('regras.update');
+
+        Route::delete(
+            '/regras/{regra}',
+            [
+                \App\Http\Controllers\ComissaoRegraController::class,
+                'destroy'
+            ]
+        )->name('regras.destroy');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| BI-06 - Funcionários & Comissões
+|--------------------------------------------------------------------------
+| BI-06-FUNCIONARIOS-COMISSOES
+*/
+
+Route::middleware('auth')
+    ->prefix('bi')
+    ->name('bi.')
+    ->group(function () {
+
+        Route::get(
+            '/funcionarios-comissoes',
+            [
+                \App\Http\Controllers\BiFuncionariosComissoesController::class,
+                'index'
+            ]
+        )->name('funcionarios-comissoes.index');
+
+    });
+
+/*
+|--------------------------------------------------------------------------
+| BI-07 - FINANCEIRO
+|--------------------------------------------------------------------------
+*/
+Route::get(
+    '/bi/financeiro',
+    [\App\Http\Controllers\BI\BiFinanceiroController::class, 'index']
+)->middleware('auth')->name('bi.financeiro.index');

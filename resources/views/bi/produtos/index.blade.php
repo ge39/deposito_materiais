@@ -2,1020 +2,1212 @@
 
 @section('content')
 
-<div class="container-fluid">
+@include('bi.partials.styles')
 
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+@php
+    $moeda = fn($v) => 'R$ '.number_format((float)$v, 2, ',', '.');
+    $numero = fn($v) => number_format((float)$v, 0, ',', '.');
+    $decimal = fn($v) => number_format((float)$v, 3, ',', '.');
 
+    $resumo = $dados['resumo'];
+
+    $rankings = [
+        'mais_vendidos' => [
+            'titulo' => 'Mais vendidos',
+            'icone' => 'bi-graph-up-arrow',
+            'cor' => 'success',
+            'tipo' => 'quantidade',
+        ],
+        'menos_vendidos' => [
+            'titulo' => 'Menos vendidos',
+            'icone' => 'bi-graph-down-arrow',
+            'cor' => 'warning',
+            'tipo' => 'quantidade',
+        ],
+        'maior_faturamento' => [
+            'titulo' => 'Maior faturamento',
+            'icone' => 'bi-currency-dollar',
+            'cor' => 'primary',
+            'tipo' => 'moeda',
+        ],
+        'menor_faturamento' => [
+            'titulo' => 'Menor faturamento',
+            'icone' => 'bi-graph-down',
+            'cor' => 'secondary',
+            'tipo' => 'moeda',
+        ],
+    ];
+
+    $cards = [
+        [
+            'id' => 'ativos',
+            'titulo' => 'Produtos ativos',
+            'valor' => $numero($resumo['produtos_ativos']),
+            'icone' => 'bi-box-seam',
+            'cor' => 'primary',
+            'rota' => 'bi.produtos.ativos',
+        ],
+        [
+            'id' => 'estoque_zero',
+            'titulo' => 'Produtos sem estoque',
+            'valor' => $numero($resumo['estoque_zero']),
+            'icone' => 'bi-exclamation-triangle',
+            'cor' => 'danger',
+            'rota' => 'bi.produtos.estoque-zero',
+        ],
+        [
+            'id' => 'abaixo_minimo',
+            'titulo' => 'Abaixo do minimo',
+            'valor' => $numero($resumo['abaixo_minimo']),
+            'icone' => 'bi-arrow-down-circle',
+            'cor' => 'warning',
+            'rota' => 'bi.produtos.abaixo-minimo',
+        ],
+        [
+            'id' => 'valor_estoque',
+            'titulo' => 'Valor financeiro do estoque',
+            'valor' => $moeda($resumo['valor_estoque']),
+            'icone' => 'bi-cash-stack',
+            'cor' => 'success',
+            'rota' => 'bi.produtos.valor-estoque',
+        ],
+    ];
+
+    foreach ($rankings as $chave => $config) {
+        $lista = collect($dados[$chave] ?? []);
+
+        $primeiro = $lista->first();
+
+        $valor = $primeiro
+            ? ($config['tipo'] === 'moeda'
+                ? $moeda($primeiro->faturamento ?? 0)
+                : $decimal($primeiro->quantidade_vendida ?? 0))
+            : 'Sem dados';
+
+        $cards[] = [
+            'id' => $chave,
+            'titulo' => $config['titulo'],
+            'valor' => $valor,
+            'icone' => $config['icone'],
+            'cor' => $config['cor'],
+            'rota' => null,
+        ];
+    }
+
+    $cards[] = [
+        'id' => 'estoque_parado',
+        'titulo' => 'Estoque parado',
+        'valor' => $numero($resumo['estoque_parado']),
+        'icone' => 'bi-clock-history',
+        'cor' => 'warning',
+        'rota' => 'bi.produtos.estoque-parado',
+    ];
+
+    $criticos = collect($dados['cobertura']['criticos'] ?? []);
+
+    $cards[] = [
+        'id' => 'cobertura',
+        'titulo' => 'Cobertura de estoque',
+        'valor' => $numero(
+            $dados['cobertura']['produtos_calculados'] ?? 0
+        ),
+        'icone' => 'bi-calendar-range',
+        'cor' => 'info',
+        'rota' => null,
+    ];
+    // DESCRICOES GERENCIAIS DOS CARDS BI-08
+    $descricoesBI08 = [
+        'ativos' =>
+            'Total de produtos ativos cadastrados no ERP.',
+
+        'estoque_zero' =>
+            'Produtos com saldo zerado ou negativo, sujeitos a ruptura de estoque.',
+
+        'abaixo_minimo' =>
+            'Produtos com estoque inferior ao minimo cadastrado.',
+
+        'valor_estoque' =>
+            'Valor financeiro do estoque disponivel conforme calculo do ERP.',
+
+        'mais_vendidos' =>
+            'Quantidade vendida pelo produto lider no periodo.',
+
+        'menos_vendidos' =>
+            'Quantidade vendida pelo produto de menor giro no ranking.',
+
+        'maior_faturamento' =>
+            'Receita do produto com maior faturamento no periodo.',
+
+        'menor_faturamento' =>
+            'Receita do produto com menor faturamento entre os vendidos.',
+
+        'estoque_parado' =>
+            'Produtos com saldo positivo e nenhuma venda no periodo.',
+
+        'cobertura' =>
+            'Produtos com cobertura calculada a partir do saldo disponível e da média diária de vendas.',
+    ];
+
+    foreach ($cards as &$card) {
+        $card['descricao'] = $descricoesBI08[$card['id']] ?? '';
+    }
+    unset($card);
+@endphp
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <h1 class="h3 mb-1">
+            <h2 class="mb-1">
                 <i class="bi bi-boxes me-2"></i>
-                Produtos & Estoque
-            </h1>
-
-            <p class="text-muted mb-0">
+                BI - Produtos & Estoque
+            </h2>
+            <div class="text-muted">
                 Giro, Curva ABC, estoque parado, cobertura e ruptura.
-            </p>
+            </div>
         </div>
 
-        <a
-            href="{{ route('bi.index') }}"
-            class="btn btn-outline-secondary">
-
+        <a href="{{ route('bi.index') }}"
+           class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>
             Central BI
         </a>
-
     </div>
 
-
-    {{-- FILTROS --}}
+    {{-- FILTROS ORIGINAIS PRESERVADOS --}}
 
     <div class="card shadow-sm mb-4">
-
         <div class="card-body">
 
-            <form
-                method="GET"
-                action="{{ route('bi.produtos.index') }}"
-                class="row g-3 align-items-end">
+            <form method="GET"
+                  action="{{ route('bi.produtos.index') }}"
+                  class="row g-3 align-items-end">
 
                 <div class="col-md-2">
-
-                    <label class="form-label">
-                        Data inicial
-                    </label>
-
-                    <input
-                        type="date"
-                        name="data_inicio"
-                        value="{{ $filtros['data_inicio'] }}"
-                        class="form-control">
-
+                    <label class="form-label">Data inicial</label>
+                    <input type="date"
+                           name="data_inicio"
+                           value="{{ $filtros['data_inicio'] }}"
+                           class="form-control">
                 </div>
 
-
                 <div class="col-md-2">
-
-                    <label class="form-label">
-                        Data final
-                    </label>
-
-                    <input
-                        type="date"
-                        name="data_fim"
-                        value="{{ $filtros['data_fim'] }}"
-                        class="form-control">
-
+                    <label class="form-label">Data final</label>
+                    <input type="date"
+                           name="data_fim"
+                           value="{{ $filtros['data_fim'] }}"
+                           class="form-control">
                 </div>
 
-
                 <div class="col-md-2">
-
-                    <label class="form-label">
-                        Produto / SKU
-                    </label>
-
-                    <input
-                        type="text"
-                        name="q"
-                        value="{{ $filtros['q'] ?? '' }}"
-                        class="form-control">
-
+                    <label class="form-label">Produto / SKU</label>
+                    <input type="text"
+                           name="q"
+                           value="{{ $filtros['q'] ?? '' }}"
+                           class="form-control">
                 </div>
 
-
                 <div class="col-md-2">
-
-                    <label class="form-label">
-                        Categoria
-                    </label>
-
-                    <select
-                        name="categoria_id"
-                        class="form-select">
-
-                        <option value="">
-                            Todas
-                        </option>
-
-                        @foreach ($categorias as $categoria)
-
-                            <option
-                                value="{{ $categoria->id }}"
-                                @selected(
-                                    (string) (
-                                        $filtros['categoria_id']
-                                        ?? ''
-                                    )
-                                    ===
-                                    (string) $categoria->id
-                                )>
-
+                    <label class="form-label">Categoria</label>
+                    <select name="categoria_id" class="form-select">
+                        <option value="">Todas</option>
+                        @foreach($categorias as $categoria)
+                            <option value="{{ $categoria->id }}"
+                                @selected((string)($filtros['categoria_id'] ?? '') === (string)$categoria->id)>
                                 {{ $categoria->nome }}
-
                             </option>
-
                         @endforeach
-
                     </select>
-
                 </div>
 
-
                 <div class="col-md-2">
-
-                    <label class="form-label">
-                        Fornecedor
-                    </label>
-
-                    <select
-                        name="fornecedor_id"
-                        class="form-select">
-
-                        <option value="">
-                            Todos
-                        </option>
-
-                        @foreach ($fornecedores as $fornecedor)
-
-                            <option
-                                value="{{ $fornecedor->id }}"
-                                @selected(
-                                    (string) (
-                                        $filtros['fornecedor_id']
-                                        ?? ''
-                                    )
-                                    ===
-                                    (string) $fornecedor->id
-                                )>
-
+                    <label class="form-label">Fornecedor</label>
+                    <select name="fornecedor_id" class="form-select">
+                        <option value="">Todos</option>
+                        @foreach($fornecedores as $fornecedor)
+                            <option value="{{ $fornecedor->id }}"
+                                @selected((string)($filtros['fornecedor_id'] ?? '') === (string)$fornecedor->id)>
                                 {{ $fornecedor->nome }}
-
                             </option>
-
                         @endforeach
-
                     </select>
-
                 </div>
 
-
                 <div class="col-md-2">
-
-                    <label class="form-label">
-                        Marca
-                    </label>
-
-                    <select
-                        name="marca_id"
-                        class="form-select">
-
-                        <option value="">
-                            Todas
-                        </option>
-
-                        @foreach ($marcas as $marca)
-
-                            <option
-                                value="{{ $marca->id }}"
-                                @selected(
-                                    (string) (
-                                        $filtros['marca_id']
-                                        ?? ''
-                                    )
-                                    ===
-                                    (string) $marca->id
-                                )>
-
+                    <label class="form-label">Marca</label>
+                    <select name="marca_id" class="form-select">
+                        <option value="">Todas</option>
+                        @foreach($marcas as $marca)
+                            <option value="{{ $marca->id }}"
+                                @selected((string)($filtros['marca_id'] ?? '') === (string)$marca->id)>
                                 {{ $marca->nome }}
-
                             </option>
-
                         @endforeach
-
                     </select>
-
                 </div>
-
 
                 <div class="col-md-2">
-
-                    <label class="form-label">
-                        Promoção
-                    </label>
-
-                    <select
-                        name="promocao"
-                        class="form-select">
-
-                        <option value="">
-                            Todas
-                        </option>
-
-                        <option
-                            value="1"
-                            @selected(
-                                ($filtros['promocao'] ?? '')
-                                === '1'
-                            )>
-
-                            Sim
-                        </option>
-
-                        <option
-                            value="0"
-                            @selected(
-                                ($filtros['promocao'] ?? '')
-                                === '0'
-                            )>
-
-                            Não
-                        </option>
-
+                    <label class="form-label">Promocao</label>
+                    <select name="promocao" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="1" @selected(($filtros['promocao'] ?? '') === '1')>Sim</option>
+                        <option value="0" @selected(($filtros['promocao'] ?? '') === '0')>Nao</option>
                     </select>
-
                 </div>
 
-
-                <div class="col-md-4">
-
-                    <button
-                        class="btn btn-primary"
-                        type="submit">
-
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
                         <i class="bi bi-funnel me-1"></i>
                         Aplicar filtros
                     </button>
-
-                    <a
-                        href="{{ route('bi.produtos.index') }}"
-                        class="btn btn-outline-secondary ms-1">
-
+                    <a href="{{ route('bi.produtos.index') }}"
+                       class="btn btn-outline-secondary">
                         Limpar
                     </a>
-
                 </div>
 
             </form>
-
         </div>
+    </div>
+
+    {{-- 10 CARDS - 3 POR LINHA --}}
+
+    <div class="row jmf-bi-grid g-4 mb-4">
+
+        @foreach($cards as $card)
+            <div class="col-lg-4 col-md-6">
+                <div class="card jmf-bi-card h-100 border-{{ $card['cor'] }}">
+                    <div class="card-body">
+
+                        <div class="jmf-bi-card-header">
+                            <div class="jmf-bi-card-title">
+                                <i class="bi {{ $card['icone'] }} text-{{ $card['cor'] }}"></i>
+                                {{ $card['titulo'] }}
+                            </div>
+                        </div>
+
+                        <div class="jmf-bi-card-value">
+                            {{ $card['valor'] }}
+                        </div>
+
+                        <div class="jmf-bi-card-footer">
+                            <div class="jmf-bi-card-description mb-2">
+                                {{ $card['descricao'] }}
+                            </div>
+                            <a href="#"
+                               data-bs-toggle="modal"
+                               data-bs-target="#bi08Modal{{ $card['id'] }}"
+                               class="text-{{ $card['cor'] }} text-decoration-none fw-semibold">
+                                Ver detalhes
+                                <i class="bi bi-box-arrow-up-right ms-1"></i>
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        @endforeach
 
     </div>
 
-
-    {{-- RESUMO --}}
-
-    <div class="row g-3 mb-4">
-
-        <div class="col-md-6 col-xl-3">
-
-            <div class="card shadow-sm h-100">
-
-                <div class="card-body">
-
-                    <div class="small text-muted">
-                        Produtos ativos
-                    </div>
-
-                    <div class="fs-2 fw-bold">
-                        {{ $dados['resumo']['produtos_ativos'] }}
-                    </div>
-
-                    <a
-                        href="{{ route(
-                            'bi.produtos.ativos',
-                            $filtros
-                        ) }}"
-                        class="btn btn-sm btn-outline-primary mt-3">
-
-                        Ver produtos
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="col-md-6 col-xl-3">
-
-            <div class="card shadow-sm h-100 border-danger">
-
-                <div class="card-body">
-
-                    <div class="small text-muted">
-                        Ruptura / estoque zero
-                    </div>
-
-                    <div class="fs-2 fw-bold text-danger">
-                        {{ $dados['resumo']['estoque_zero'] }}
-                    </div>
-
-                    <a
-                        href="{{ route(
-                            'bi.produtos.estoque-zero',
-                            $filtros
-                        ) }}"
-                        class="btn btn-sm btn-outline-danger mt-3">
-
-                        Ver produtos
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="col-md-6 col-xl-3">
-
-            <div class="card shadow-sm h-100">
-
-                <div class="card-body">
-
-                    <div class="small text-muted">
-                        Abaixo do mínimo
-                    </div>
-
-                    <div class="fs-2 fw-bold">
-                        {{ $dados['resumo']['abaixo_minimo'] }}
-                    </div>
-
-                    <a
-                        href="{{ route(
-                            'bi.produtos.abaixo-minimo',
-                            $filtros
-                        ) }}"
-                        class="btn btn-sm btn-outline-warning mt-3">
-
-                        Ver produtos
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="col-md-6 col-xl-3">
-
-            <div class="card shadow-sm h-100">
-
-                <div class="card-body">
-
-                    <div class="small text-muted">
-                        Valor financeiro do estoque
-                    </div>
-
-                    <div class="fs-4 fw-bold">
-                        R$
-                        {{
-                            number_format(
-                                $dados['resumo']['valor_estoque'],
-                                2,
-                                ',',
-                                '.'
-                            )
-                        }}
-                    </div>
-
-                    <a
-                        href="{{ route(
-                            'bi.produtos.valor-estoque',
-                            $filtros
-                        ) }}"
-                        class="btn btn-sm btn-outline-success mt-3">
-
-                        Ver composição
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    {{-- GIRO / FATURAMENTO --}}
-
-    <div class="row g-4 mb-4">
-
-        <div class="col-xl-6">
-
-            <div class="card shadow-sm h-100">
-
-                <div class="card-header">
-                    <strong>
-                        Top 10 — Mais vendidos
-                    </strong>
-                </div>
-
-                <div class="table-responsive">
-
-                    <table class="table table-sm table-hover mb-0">
-
-                        <thead>
-                            <tr>
-                                <th>Produto</th>
-                                <th class="text-end">
-                                    Quantidade
-                                </th>
-                                <th class="text-end">
-                                    Faturamento
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            @foreach (
-                                $dados['mais_vendidos']
-                                as $produto
-                            )
-
-                                <tr>
-                                    <td>
-                                        {{ $produto->nome }}
-                                    </td>
-
-                                    <td class="text-end">
-                                        {{
-                                            number_format(
-                                                $produto->quantidade_vendida,
-                                                3,
-                                                ',',
-                                                '.'
-                                            )
-                                        }}
-                                    </td>
-
-                                    <td class="text-end">
-                                        R$
-                                        {{
-                                            number_format(
-                                                $produto->faturamento,
-                                                2,
-                                                ',',
-                                                '.'
-                                            )
-                                        }}
-                                    </td>
-                                </tr>
-
-                            @endforeach
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="col-xl-6">
-
-            <div class="card shadow-sm h-100">
-
-                <div class="card-header">
-                    <strong>
-                        Top 10 — Menos vendidos
-                    </strong>
-                </div>
-
-                <div class="table-responsive">
-
-                    <table class="table table-sm table-hover mb-0">
-
-                        <thead>
-                            <tr>
-                                <th>Produto</th>
-                                <th class="text-end">
-                                    Quantidade
-                                </th>
-                                <th class="text-end">
-                                    Estoque
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            @foreach (
-                                $dados['menos_vendidos']
-                                as $produto
-                            )
-
-                                <tr>
-                                    <td>
-                                        {{ $produto->nome }}
-                                    </td>
-
-                                    <td class="text-end">
-                                        {{
-                                            number_format(
-                                                $produto->quantidade_vendida,
-                                                3,
-                                                ',',
-                                                '.'
-                                            )
-                                        }}
-                                    </td>
-
-                                    <td class="text-end">
-                                        {{
-                                            number_format(
-                                                $produto->estoque_disponivel,
-                                                3,
-                                                ',',
-                                                '.'
-                                            )
-                                        }}
-                                    </td>
-                                </tr>
-
-                            @endforeach
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="col-xl-6">
-
-            <div class="card shadow-sm h-100">
-
-                <div class="card-header">
-                    <strong>
-                        Top 10 — Maior faturamento
-                    </strong>
-                </div>
-
-                <div class="table-responsive">
-
-                    <table class="table table-sm table-hover mb-0">
-
-                        <thead>
-                            <tr>
-                                <th>Produto</th>
-                                <th class="text-end">
-                                    Faturamento
-                                </th>
-                                <th class="text-end">
-                                    Vendas
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            @foreach (
-                                $dados['maior_faturamento']
-                                as $produto
-                            )
-
-                                <tr>
-                                    <td>
-                                        {{ $produto->nome }}
-                                    </td>
-
-                                    <td class="text-end">
-                                        R$
-                                        {{
-                                            number_format(
-                                                $produto->faturamento,
-                                                2,
-                                                ',',
-                                                '.'
-                                            )
-                                        }}
-                                    </td>
-
-                                    <td class="text-end">
-                                        {{ $produto->vendas }}
-                                    </td>
-                                </tr>
-
-                            @endforeach
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="col-xl-6">
-
-            <div class="card shadow-sm h-100">
-
-                <div class="card-header">
-                    <strong>
-                        Menor faturamento com venda
-                    </strong>
-                </div>
-
-                <div class="table-responsive">
-
-                    <table class="table table-sm table-hover mb-0">
-
-                        <thead>
-                            <tr>
-                                <th>Produto</th>
-                                <th class="text-end">
-                                    Faturamento
-                                </th>
-                                <th class="text-end">
-                                    Quantidade
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            @foreach (
-                                $dados['menor_faturamento']
-                                as $produto
-                            )
-
-                                <tr>
-                                    <td>
-                                        {{ $produto->nome }}
-                                    </td>
-
-                                    <td class="text-end">
-                                        R$
-                                        {{
-                                            number_format(
-                                                $produto->faturamento,
-                                                2,
-                                                ',',
-                                                '.'
-                                            )
-                                        }}
-                                    </td>
-
-                                    <td class="text-end">
-                                        {{
-                                            number_format(
-                                                $produto->quantidade_vendida,
-                                                3,
-                                                ',',
-                                                '.'
-                                            )
-                                        }}
-                                    </td>
-                                </tr>
-
-                            @endforeach
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    {{-- CURVA ABC --}}
+    {{-- SINTESE VISUAL CURVA ABC --}}
 
     <div class="card shadow-sm mb-4">
-
         <div class="card-header d-flex justify-content-between align-items-center">
-
             <strong>
+                <i class="bi bi-bar-chart-line me-2"></i>
                 Curva ABC por faturamento
             </strong>
-
-            <span class="small text-muted">
-                A até 80% • B até 95% • C restante
-            </span>
-
+            <a href="#"
+               data-bs-toggle="modal"
+               data-bs-target="#bi08ModalABC"
+               class="text-decoration-none">
+                Ver detalhes
+                <i class="bi bi-box-arrow-up-right ms-1"></i>
+            </a>
         </div>
 
         <div class="card-body">
+            @php
+                $abcA = (int)$dados['abc']['classe_a'];
+                $abcB = (int)$dados['abc']['classe_b'];
+                $abcC = (int)$dados['abc']['classe_c'];
+                $abcTotal = max(1, $abcA + $abcB + $abcC);
+            @endphp
 
-            <div class="row g-3 mb-3">
+            <div class="row g-4">
 
-                <div class="col-md-4">
-                    <div class="border rounded p-3">
-                        <div class="text-muted small">
-                            Classe A
+                @foreach([
+                    ['nome'=>'Classe A','valor'=>$abcA,'cor'=>'success'],
+                    ['nome'=>'Classe B','valor'=>$abcB,'cor'=>'warning'],
+                    ['nome'=>'Classe C','valor'=>$abcC,'cor'=>'secondary']
+                ] as $classe)
+
+                    <div class="col-md-4">
+                        <div class="fw-semibold mb-2">
+                            {{ $classe['nome'] }}
+                            <span class="float-end">
+                                {{ $numero($classe['valor']) }} produtos
+                            </span>
                         </div>
-                        <div class="fs-3 fw-bold text-success">
-                            {{ $dados['abc']['classe_a'] }}
+
+                        <div class="progress" style="height:22px">
+                            <div class="progress-bar bg-{{ $classe['cor'] }}"
+                                 style="width:{{ ($classe['valor'] / $abcTotal) * 100 }}%">
+                            </div>
+                        </div>
+
+                        <div class="text-muted mt-2">
+                            {{ number_format($classe['valor'] / $abcTotal * 100, 2, ',', '.') }}%
+                            dos produtos classificados
                         </div>
                     </div>
-                </div>
 
-                <div class="col-md-4">
-                    <div class="border rounded p-3">
-                        <div class="text-muted small">
-                            Classe B
-                        </div>
-                        <div class="fs-3 fw-bold text-warning">
-                            {{ $dados['abc']['classe_b'] }}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="border rounded p-3">
-                        <div class="text-muted small">
-                            Classe C
-                        </div>
-                        <div class="fs-3 fw-bold">
-                            {{ $dados['abc']['classe_c'] }}
-                        </div>
-                    </div>
-                </div>
+                @endforeach
 
             </div>
 
+            <p class="text-muted mt-3 mb-0">
+                Classificacao por faturamento acumulado:
+                A ate 80%, B ate 95% e C restante.
+                As barras representam a proporcao de produtos de cada classe.
+            </p>
+        </div>
+    </div>
 
-            <div class="table-responsive">
+    {{-- SINTESE DOS RANKINGS --}}
 
-                <table class="table table-sm table-hover">
+    <div class="row g-4 mb-4">
 
-                    <thead>
-                        <tr>
-                            <th>Produto</th>
-                            <th>Classe</th>
-                            <th class="text-end">
-                                Faturamento
-                            </th>
-                            <th class="text-end">
-                                Acumulado
-                            </th>
-                        </tr>
-                    </thead>
+        @foreach($rankings as $chave => $config)
+            @php
+                $lista = collect($dados[$chave] ?? []);
+                $maximo = max(
+                    1,
+                    (float)$lista->max(
+                        $config['tipo'] === 'moeda'
+                            ? 'faturamento'
+                            : 'quantidade_vendida'
+                    )
+                );
+            @endphp
 
-                    <tbody>
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>{{ $config['titulo'] }}</strong>
+                        <a href="#"
+                           data-bs-toggle="modal"
+                           data-bs-target="#bi08Modal{{ $chave }}"
+                           class="text-decoration-none">
+                            Ver detalhes
+                        </a>
+                    </div>
 
-                        @foreach (
-                            $dados['abc']['ranking']
-                            as $produto
-                        )
+                    <div class="card-body">
 
-                            <tr>
+                        @forelse($lista->take(5) as $produto)
+                            @php
+                                $valorGrafico = (float)(
+                                    $config['tipo'] === 'moeda'
+                                        ? $produto->faturamento
+                                        : $produto->quantidade_vendida
+                                );
+                            @endphp
 
-                                <td>
-                                    {{ $produto->nome }}
-                                </td>
-
-                                <td>
-                                    <span class="badge text-bg-secondary">
-                                        {{ $produto->abc }}
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between gap-2 mb-1">
+                                    <span class="text-truncate">
+                                        {{ $produto->nome }}
                                     </span>
-                                </td>
+                                    <strong class="text-nowrap">
+                                        {{ $config['tipo'] === 'moeda'
+                                            ? $moeda($valorGrafico)
+                                            : $decimal($valorGrafico) }}
+                                    </strong>
+                                </div>
+                                <div class="progress" style="height:12px">
+                                    <div class="progress-bar bg-{{ $config['cor'] }}"
+                                         style="width:{{ min(100, max(0, $valorGrafico / $maximo * 100)) }}%">
+                                    </div>
+                                </div>
+                            </div>
 
-                                <td class="text-end">
-                                    R$
-                                    {{
-                                        number_format(
-                                            $produto->faturamento,
-                                            2,
-                                            ',',
-                                            '.'
-                                        )
-                                    }}
-                                </td>
+                        @empty
+                            <div class="text-muted text-center py-4">
+                                Sem dados no periodo.
+                            </div>
+                        @endforelse
 
-                                <td class="text-end">
-                                    {{
-                                        number_format(
-                                            $produto->percentual_acumulado,
-                                            2,
-                                            ',',
-                                            '.'
-                                        )
-                                    }}%
-                                </td>
+                    </div>
+                </div>
+            </div>
+        @endforeach
 
-                            </tr>
+    </div>
+
+    {{-- MARGEM - PERMANECE NAO HOMOLOGADA --}}
+
+    <div class="alert alert-warning">
+        <i class="bi bi-lock me-2"></i>
+        <strong>Margem e valor agregado:</strong>
+        indicador ainda nao publicado.
+        O custo historico das vendas precisa ser homologado
+        antes do calculo de margem e lucro.
+    </div>
+
+    <div class="text-muted small mb-4">
+        Periodo analitico:
+        {{ $dados['periodo']['inicio']->format('d/m/Y') }}
+        ate
+        {{ $dados['periodo']['fim']->format('d/m/Y') }}.
+        Estoque fisico calculado pela posicao atual consolidada dos lotes.
+    </div>
+
+</div>
+
+{{-- MODAIS DOS 10 CARDS --}}
+
+@foreach($cards as $card)
+
+<div class="modal fade jmf-bi-modal"
+     id="bi08Modal{{ $card['id'] }}"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi {{ $card['icone'] }} me-2"></i>
+                    {{ $card['titulo'] }}
+                </h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Fechar"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="card border-{{ $card['cor'] }}">
+                            <div class="card-body text-center">
+                                <div class="text-muted">Indicador</div>
+                                <h3 class="mb-0">{{ $card['valor'] }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <div class="text-muted">Periodo analisado</div>
+                                <h5 class="mb-0">
+                                    {{ $dados['periodo']['inicio']->format('d/m/Y') }}
+                                    a
+                                    {{ $dados['periodo']['fim']->format('d/m/Y') }}
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if($card['id'] === 'estoque_zero')
+
+                    {{-- BI08_ESTOQUE_ZERO_NATIVO_V2 --}}
+
+                    @php
+                        $semEstoque = collect(
+                            $dados['sem_estoque_completo'] ?? []
+                        );
+
+                        $totalZerados = $semEstoque->filter(
+                            fn($p) => (float)$p->estoque_disponivel == 0
+                        )->count();
+
+                        $totalNegativos = $semEstoque->filter(
+                            fn($p) => (float)$p->estoque_disponivel < 0
+                        )->count();
+                    @endphp
+
+                    <div class="row g-3 mb-4">
+
+                        <div class="col-md-4">
+                            <div class="card border-danger h-100">
+                                <div class="card-body text-center">
+                                    <div class="text-muted">
+                                        Total sem estoque
+                                    </div>
+                                    <h3 class="fw-bold text-danger mb-0">
+                                        {{ $numero($semEstoque->count()) }}
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card border-warning h-100">
+                                <div class="card-body text-center">
+                                    <div class="text-muted">
+                                        Disponivel = 0
+                                    </div>
+                                    <h3 class="fw-bold mb-0">
+                                        {{ $numero($totalZerados) }}
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card border-danger h-100">
+                                <div class="card-body text-center">
+                                    <div class="text-muted">
+                                        Disponivel negativo
+                                    </div>
+                                    <h3 class="fw-bold text-danger mb-0">
+                                        {{ $numero($totalNegativos) }}
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-striped table-hover align-middle">
+
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Produto</th>
+                                    <th>SKU</th>
+                                    <th>Categoria</th>
+                                    <th>Fornecedor</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-end">Reservado</th>
+                                    <th class="text-end">Disponivel</th>
+                                    <th>Ultima venda</th>
+                                    <th>Situacao</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @forelse($semEstoque as $produto)
+                                    @php
+                                        $saldo = (float)$produto->estoque_disponivel;
+                                    @endphp
+
+                                    <tr>
+                                        <td>{{ $produto->id }}</td>
+                                        <td class="fw-semibold">
+                                            {{ $produto->nome }}
+                                        </td>
+                                        <td>{{ $produto->sku ?? '-' }}</td>
+                                        <td>{{ $produto->categoria ?? '-' }}</td>
+                                        <td>{{ $produto->fornecedor ?? '-' }}</td>
+
+                                        <td class="text-end">
+                                            {{ $decimal($produto->estoque_total) }}
+                                        </td>
+
+                                        <td class="text-end">
+                                            {{ $decimal($produto->estoque_reservado) }}
+                                        </td>
+
+                                        <td class="text-end fw-bold">
+                                            {{ $decimal($saldo) }}
+                                        </td>
+
+                                        {{-- BI08_ULTIMA_VENDA_V1 --}}
+                                        <td class="text-nowrap">
+                                            {{ $produto->ultima_venda
+                                                ? \Carbon\Carbon::parse($produto->ultima_venda)->format('d/m/Y')
+                                                : 'Nunca vendeu' }}
+                                        </td>
+
+                                        <td>
+                                            @if($saldo < 0)
+                                                <span class="badge bg-danger">
+                                                    Negativo
+                                                </span>
+                                            @else
+                                                <span class="badge bg-warning text-dark">
+                                                    Zerado
+                                                </span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="10"
+                                            class="text-center text-muted py-4">
+                                            Nenhum produto sem estoque encontrado.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+
+                            <tfoot class="table-light fw-bold">
+                                <tr>
+                                    <td colspan="5">
+                                        TOTAL GERAL -
+                                        {{ $numero($semEstoque->count()) }}
+                                        PRODUTOS
+                                    </td>
+
+                                    <td class="text-end">
+                                        {{ $decimal($semEstoque->sum('estoque_total')) }}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {{ $decimal($semEstoque->sum('estoque_reservado')) }}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {{ $decimal($semEstoque->sum('estoque_disponivel')) }}
+                                    </td>
+
+                                    <td>-</td>
+                                    <td>
+                                        {{ $numero($totalZerados) }} Z /
+                                        {{ $numero($totalNegativos) }} N
+                                    </td>
+                                </tr>
+                            </tfoot>
+
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-3 flex-wrap">
+
+                        <a href="{{ route('bi.produtos.estoque-zero', $filtros) }}"
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-list-ul me-1"></i>
+                            Relatorio completo
+                        </a>
+
+                        <a href="{{ route('bi.produtos.estoque-zero.pdf', $filtros) }}"
+                           class="btn btn-outline-danger">
+                            <i class="bi bi-file-earmark-pdf me-1"></i>
+                            Exportar PDF
+                        </a>
+
+                        <a href="{{ route('bi.produtos.estoque-zero.planilha', $filtros) }}"
+                           class="btn btn-outline-success">
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i>
+                            Exportar CSV
+                        </a>
+
+                    </div>
+
+                @elseif(isset($rankings[$card['id']]))
+
+                    @php
+                        $registros = collect($dados[$card['id']] ?? []);
+                        $totalQuantidade = $registros->sum('quantidade_vendida');
+                        $totalFaturamento = $registros->sum('faturamento');
+                    @endphp
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Produto</th>
+                                    <th class="text-end">Quantidade vendida</th>
+                                    <th class="text-end">Faturamento</th>
+                                    <th class="text-end">Estoque</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($registros as $produto)
+                                    <tr>
+                                        <td>{{ $produto->nome }}</td>
+                                        <td class="text-end">
+                                            {{ $decimal($produto->quantidade_vendida ?? 0) }}
+                                        </td>
+                                        <td class="text-end">
+                                            {{ isset($produto->faturamento)
+                                                ? $moeda($produto->faturamento)
+                                                : '-' }}
+                                        </td>
+                                        <td class="text-end">
+                                            {{ isset($produto->estoque_disponivel)
+                                                ? $decimal($produto->estoque_disponivel)
+                                                : '-' }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">
+                                            Nenhum produto encontrado.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                            <tfoot class="table-light fw-bold">
+                                <tr>
+                                    <td>TOTAL GERAL DO RANKING</td>
+                                    <td class="text-end">
+                                        {{ $decimal($totalQuantidade) }}
+                                    </td>
+                                    <td class="text-end">
+                                        {{ $registros->contains(fn($p) => isset($p->faturamento))
+                                            ? $moeda($totalFaturamento)
+                                            : '-' }}
+                                    </td>
+                                    <td class="text-end">-</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <p class="text-muted small mt-2">
+                        Totais referentes exclusivamente aos produtos retornados
+                        neste ranking, nao ao catalogo completo.
+                    </p>
+
+                                @elseif($card['id'] === 'cobertura')
+
+                    {{-- BI08_COBERTURA_V5 --}}
+
+                    @php
+                        $produtosCobertura = collect(
+                            $dados['cobertura']['todos'] ?? []
+                        );
+
+                        // Faixas referenciais provisórias.
+                        // Não representam configuração homologada.
+                        $limitesCobertura = [
+                            'critica' => 7,
+                            'atencao' => 15,
+                            'adequada' => 60,
+                            'elevada' => 180,
+                        ];
+
+                        $classificarCobertura = function($dias)
+                            use ($limitesCobertura) {
+
+                            if ($dias === null) {
+                                return [
+                                    'nome' => 'Sem cálculo',
+                                    'cor' => 'secondary'
+                                ];
+                            }
+
+                            $dias = (float)$dias;
+
+                            if ($dias <= $limitesCobertura['critica']) {
+                                return [
+                                    'nome' => 'Crítica',
+                                    'cor' => 'danger'
+                                ];
+                            }
+
+                            if ($dias <= $limitesCobertura['atencao']) {
+                                return [
+                                    'nome' => 'Atenção',
+                                    'cor' => 'warning'
+                                ];
+                            }
+
+                            if ($dias <= $limitesCobertura['adequada']) {
+                                return [
+                                    'nome' => 'Adequada',
+                                    'cor' => 'success'
+                                ];
+                            }
+
+                            if ($dias <= $limitesCobertura['elevada']) {
+                                return [
+                                    'nome' => 'Elevada',
+                                    'cor' => 'info'
+                                ];
+                            }
+
+                            return [
+                                'nome' => 'Excessiva',
+                                'cor' => 'secondary'
+                            ];
+                        };
+
+                        $gruposCobertura = $produtosCobertura
+                            ->groupBy(function($produto)
+                                use ($classificarCobertura) {
+
+                                return $classificarCobertura(
+                                    $produto->cobertura_dias
+                                )['nome'];
+                            });
+
+                        $totalCobertura = $produtosCobertura->count();
+
+                        $qtdCritica =
+                            $gruposCobertura->get('Crítica', collect())->count();
+
+                        $qtdAtencao =
+                            $gruposCobertura->get('Atenção', collect())->count();
+
+                        $qtdAdequada =
+                            $gruposCobertura->get('Adequada', collect())->count();
+
+                        $qtdElevada =
+                            $gruposCobertura->get('Elevada', collect())->count();
+
+                        $qtdExcessiva =
+                            $gruposCobertura->get('Excessiva', collect())->count();
+
+                        $totalClassificado =
+                            $qtdCritica +
+                            $qtdAtencao +
+                            $qtdAdequada +
+                            $qtdElevada +
+                            $qtdExcessiva;
+                    @endphp
+
+                    <div class="alert alert-info">
+                        <strong>O que significa cobertura?</strong>
+                        É a estimativa de quantos dias o estoque
+                        disponível atenderá à demanda, considerando
+                        a média diária de vendas do período.
+
+                        <div class="mt-2">
+                            <strong>Fórmula:</strong>
+                            Estoque disponível / Média diária vendida.
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong>Classificação provisória:</strong>
+                        até 7 dias: Crítica;
+                        acima de 7 até 15: Atenção;
+                        acima de 15 até 60: Adequada;
+                        acima de 60 até 180: Elevada;
+                        acima de 180: Excessiva.
+
+                        <div class="mt-1">
+                            Esses limites ainda não foram homologados
+                            como regra de negócio da empresa.
+                        </div>
+                    </div>
+
+                    {{-- RESUMO GERENCIAL --}}
+
+                    <div class="row g-3 mb-4">
+
+                        @foreach([
+                            ['titulo'=>'Analisados',
+                             'valor'=>$totalCobertura,
+                             'cor'=>'primary'],
+
+                            ['titulo'=>'Crítica',
+                             'valor'=>$qtdCritica,
+                             'cor'=>'danger'],
+
+                            ['titulo'=>'Atenção',
+                             'valor'=>$qtdAtencao,
+                             'cor'=>'warning'],
+
+                            ['titulo'=>'Adequada',
+                             'valor'=>$qtdAdequada,
+                             'cor'=>'success'],
+
+                            ['titulo'=>'Elevada',
+                             'valor'=>$qtdElevada,
+                             'cor'=>'info'],
+
+                            ['titulo'=>'Excessiva',
+                             'valor'=>$qtdExcessiva,
+                             'cor'=>'secondary']
+                        ] as $indicador)
+
+                            <div class="col-md-4 col-lg-2">
+                                <div class="card border-{{ $indicador['cor'] }} h-100">
+                                    <div class="card-body text-center">
+                                        <div class="small text-muted">
+                                            {{ $indicador['titulo'] }}
+                                        </div>
+
+                                        <h4 class="fw-bold mb-0">
+                                            {{ $numero($indicador['valor']) }}
+                                        </h4>
+                                    </div>
+                                </div>
+                            </div>
 
                         @endforeach
 
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    {{-- ESTOQUE PARADO / COBERTURA / RUPTURA --}}
-
-    <div class="row g-4 mb-4">
-
-        <div class="col-xl-4">
-
-            <div class="card shadow-sm h-100">
-
-                <div class="card-header">
-                    <strong>
-                        Estoque parado
-                    </strong>
-                </div>
-
-                <div class="card-body">
-
-                    <div class="display-6 fw-bold mb-2">
-                        {{ $dados['resumo']['estoque_parado'] }}
                     </div>
 
-                    <p class="text-muted">
-                        Produtos com saldo positivo e nenhuma
-                        venda no período selecionado.
-                    </p>
+                    {{-- RELACAO GERENCIAL --}}
 
-                    <a
-                        href="{{ route(
-                            'bi.produtos.estoque-parado',
-                            $filtros
-                        ) }}"
-                        class="btn btn-sm btn-outline-primary">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered
+                                      table-striped table-hover align-middle">
 
-                        Ver produtos
-                    </a>
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Fornecedor</th>
+                                    <th class="text-end">
+                                        Disponível
+                                    </th>
+                                    <th class="text-end">
+                                        Mínimo
+                                    </th>
+                                    <th class="text-end">
+                                        Vendido
+                                    </th>
+                                    <th class="text-end">
+                                        Média/dia
+                                    </th>
+                                    <th class="text-end">
+                                        Cobertura
+                                    </th>
+                                    <th>Última venda</th>
+                                    <th>Situação</th>
+                                </tr>
+                            </thead>
 
-                </div>
+                            <tbody>
 
-            </div>
+                                @forelse($produtosCobertura as $produto)
 
-        </div>
+                                    @php
+                                        $dias = $produto->cobertura_dias;
+                                        $situacao = $classificarCobertura($dias);
 
+                                        $ultimaVenda = $produto->ultima_venda
+                                            ? \Carbon\Carbon::parse(
+                                                $produto->ultima_venda
+                                            )->format('d/m/Y')
+                                            : 'Nunca vendeu';
+                                    @endphp
 
-        <div class="col-xl-4">
+                                    <tr>
+                                        <td class="fw-semibold">
+                                            {{ $produto->nome }}
+                                        </td>
 
-            <div class="card shadow-sm h-100">
+                                        <td>
+                                            {{ $produto->fornecedor ?? '-' }}
+                                        </td>
 
-                <div class="card-header">
-                    <strong>
-                        Cobertura de estoque
-                    </strong>
-                </div>
+                                        <td class="text-end">
+                                            {{ $decimal($produto->estoque_disponivel) }}
+                                        </td>
 
-                <div class="card-body">
+                                        <td class="text-end">
+                                            {{ $decimal($produto->estoque_minimo) }}
+                                        </td>
 
-                    <p class="text-muted">
-                        Estimativa em dias baseada na média
-                        diária de vendas do período.
-                    </p>
+                                        <td class="text-end">
+                                            {{ $decimal($produto->quantidade_vendida) }}
+                                        </td>
 
-                    @forelse (
-                        $dados['cobertura']['criticos']
-                        as $produto
-                    )
+                                        <td class="text-end">
+                                            {{ number_format(
+                                                (float)$produto->media_diaria_venda,
+                                                4, ',', '.'
+                                            ) }}
+                                        </td>
 
-                        <div class="d-flex justify-content-between border-bottom py-1">
+                                        <td class="text-end fw-bold">
+                                            {{ $dias === null
+                                                ? '-'
+                                                : number_format(
+                                                    (float)$dias, 1, ',', '.'
+                                                ).' dias' }}
+                                        </td>
 
-                            <span>
-                                {{ $produto->nome }}
-                            </span>
+                                        <td class="text-nowrap">
+                                            {{ $ultimaVenda }}
+                                        </td>
 
-                            <strong>
-                                {{
-                                    number_format(
-                                        $produto->cobertura_dias,
-                                        1,
-                                        ',',
-                                        '.'
-                                    )
-                                }}
-                                dias
-                            </strong>
+                                        <td>
+                                            <span class="badge bg-{{ $situacao['cor'] }}
+                                                {{ $situacao['cor'] === 'warning'
+                                                   || $situacao['cor'] === 'info'
+                                                   ? 'text-dark'
+                                                   : '' }}">
+                                                {{ $situacao['nome'] }}
+                                            </span>
+                                        </td>
+                                    </tr>
 
+                                @empty
+                                    <tr>
+                                        <td colspan="9"
+                                            class="text-center text-muted py-4">
+                                            Nenhum produto com cobertura calculável
+                                            encontrado no período.
+                                        </td>
+                                    </tr>
+                                @endforelse
+
+                            </tbody>
+
+                            <tfoot class="table-light fw-bold">
+                                <tr>
+                                    <td colspan="8">
+                                        TOTAL GERAL DE PRODUTOS CLASSIFICADOS
+                                    </td>
+
+                                    <td>
+                                        {{ $numero($totalClassificado) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
+
+                        </table>
+                    </div>
+
+                    <div class="small text-muted mt-3">
+                        São apresentados os produtos com estoque disponível
+                        positivo e vendas positivas no período.
+                        Produtos sem vendas não possuem média diária
+                        suficiente para este cálculo e permanecem
+                        identificados pelo indicador Estoque Parado.
+
+                        <div class="mt-2">
+                            Cobertura não equivale à data garantida
+                            de ruptura. Prazo do fornecedor e estoque
+                            de segurança ainda não participam deste cálculo.
                         </div>
-
-                    @empty
-
-                        <span class="text-muted">
-                            Sem dados suficientes para calcular.
-                        </span>
-
-                    @endforelse
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="col-xl-4">
-
-            <div class="card shadow-sm h-100 border-danger">
-
-                <div class="card-header">
-                    <strong>
-                        Ruptura
-                    </strong>
-                </div>
-
-                <div class="card-body">
-
-                    <div class="display-6 fw-bold text-danger mb-2">
-                        {{ $dados['resumo']['estoque_zero'] }}
                     </div>
 
-                    <p class="text-muted">
-                        Produtos com saldo disponível consolidado
-                        dos lotes igual ou menor que zero.
-                    </p>
+                @else
 
-                    <a
-                        href="{{ route(
-                            'bi.produtos.estoque-zero',
-                            $filtros
-                        ) }}"
-                        class="btn btn-sm btn-outline-danger">
+                    <div class="text-center py-3">
 
-                        Ver produtos
-                    </a>
+                        @if($card['id'] === 'estoque_parado')
+                            <p>
+                                Produtos com saldo positivo e nenhuma venda
+                                no periodo selecionado.
+                            </p>
+                        @elseif($card['id'] === 'estoque_zero')
+                            <p>
+                                Produtos com saldo consolidado dos lotes
+                                igual ou menor que zero.
+                            </p>
+                        @else
+                            <p>
+                                Consulte o relatorio analitico deste indicador,
+                                preservado no ERP.
+                            </p>
+                        @endif
 
+                        @if($card['rota'])
+                            <a href="{{ route($card['rota'], $filtros) }}"
+                               class="btn btn-outline-primary">
+                                <i class="bi bi-list-ul me-1"></i>
+                                Abrir relatorio completo
+                            </a>
+                        @endif
+
+                    </div>
+
+                @endif
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">
+                    Fechar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@endforeach
+
+{{-- MODAL CURVA ABC --}}
+
+<div class="modal fade jmf-bi-modal"
+     id="bi08ModalABC"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Curva ABC por faturamento</h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Fechar"></button>
+            </div>
+
+            <div class="modal-body">
+                @php
+                    $rankingABC = collect($dados['abc']['ranking']);
+                    $totalABC = $rankingABC->sum('faturamento');
+                @endphp
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Produto</th>
+                                <th>Classe</th>
+                                <th class="text-end">Faturamento</th>
+                                <th class="text-end">Acumulado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($rankingABC as $produto)
+                                <tr>
+                                    <td>{{ $produto->nome }}</td>
+                                    <td>
+                                        <span class="badge text-bg-secondary">
+                                            {{ $produto->abc }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        {{ $moeda($produto->faturamento) }}
+                                    </td>
+                                    <td class="text-end">
+                                        {{ number_format((float)$produto->percentual_acumulado,2,',','.') }}%
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        Nenhum dado encontrado.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                        <tfoot class="table-light fw-bold">
+                            <tr>
+                                <td>TOTAL GERAL</td>
+                                <td>{{ $numero($rankingABC->count()) }} produtos</td>
+                                <td class="text-end">{{ $moeda($totalABC) }}</td>
+                                <td class="text-end">
+                                    {{ $totalABC > 0 ? '100,00%' : '0,00%' }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
+            </div>
 
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">
+                    Fechar
+                </button>
             </div>
 
         </div>
-
     </div>
-
-
-    {{-- MARGEM --}}
-
-    <div class="card shadow-sm border-warning mb-4">
-
-        <div class="card-header">
-            <strong>
-                Margem e valor agregado
-            </strong>
-        </div>
-
-        <div class="card-body">
-
-            <div class="alert alert-warning mb-0">
-
-                <i class="bi bi-lock me-1"></i>
-
-                Indicador ainda não publicado.
-                O custo histórico das vendas precisa ser homologado
-                antes de calcular margem, lucro e valor agregado,
-                evitando usar custo atual em vendas antigas.
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <div class="small text-muted">
-
-        Período analítico:
-        {{
-            $dados['periodo']['inicio']
-                ->format('d/m/Y')
-        }}
-        até
-        {{
-            $dados['periodo']['fim']
-                ->format('d/m/Y')
-        }}
-        —
-        {{ $dados['periodo']['dias'] }}
-        dia(s).
-
-        O estoque físico é o saldo atual consolidado dos lotes.
-
-    </div>
-
 </div>
 
 @endsection
