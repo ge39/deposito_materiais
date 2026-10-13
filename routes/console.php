@@ -18,7 +18,27 @@ Schedule::command('credito:verificar-atrasos')
 // =========================
 // BACKUP AUTOMÁTICO
 // =========================
-Schedule::command('backup:automatico')
-    ->dailyAt('22:00')
-    ->withoutOverlapping()
-    ->runInBackground();
+// ============================================================
+// BACKUP AUTOMATICO - HORARIOS CONTROLADOS PELO ERP
+// ============================================================
+
+// Ler os horarios configurados pelo administrador.
+$backupSettings = app(
+    \App\Services\Backup\BackupAutomationSettings::class
+);
+
+$backupConfig = $backupSettings->obter();
+
+if (!empty($backupConfig['ativo'])) {
+    foreach ($backupSettings->horarios() as $horarioBackup) {
+        Schedule::command('backup:automatico')
+            ->dailyAt($horarioBackup)
+            ->withoutOverlapping(10);
+    }
+
+    // Recuperacao de horarios perdidos:
+    // o proprio comando verifica se existe execucao vencida.
+    Schedule::command('backup:automatico')
+        ->everyFifteenMinutes()
+        ->withoutOverlapping(10);
+}

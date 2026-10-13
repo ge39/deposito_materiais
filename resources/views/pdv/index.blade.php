@@ -645,7 +645,7 @@
 
             <div style="flex:1;">
                 <i class="bi bi-pc-display-horizontal text-primary me-1"></i>
-                <strong>Terminal:</strong> {{ str_pad($terminal->id, 2, '0', STR_PAD_LEFT) }}
+                <strong>terminal_id:</strong> {{ str_pad($terminal->id, 2, '0', STR_PAD_LEFT) }}
             </div>
 
             <div style="flex:1.4;">
@@ -892,7 +892,7 @@
             
             <div class="col btn btn-dark w-100 md-1 p-2 fw-bold d-flex flex-column align-items-center justify-content-center">
                 <!-- Label que mostra o total na tela do PDV -->
-                <label id="totalGeral" class="fw-bold text-warning" style="margin-top: -18px; margin-bottom: -15px; font-size: 32px !important;">R$ 0,00</label>
+                <label id="totalGeral" class="fw-bold text-warning" style="margin-top: -18px; margin-bottom: -15px; font-size: 32px !important;">0,00</label>
                 <!-- Input escondido que armazena o valor numérico para JS -->
                 <input type="hidden" id="inputTotalGeral" value="0,00">
             </div>

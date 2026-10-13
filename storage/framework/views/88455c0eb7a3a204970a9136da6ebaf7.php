@@ -1,0 +1,1761 @@
+<?php $__env->startSection('content'); ?>
+
+<div id="bi09-root">
+
+    <!-- CABECALHO -->
+    <header class="bi09-top">
+        <div>
+            <h1>BI-09 — Central Gerencial de Caixas</h1>
+            <p>Monitoramento de caixas em operação na rede</p>
+        </div>
+        <div class="bi09-online">
+            <span id="bi09-led"></span>
+            <span id="bi09-online-label">Atualização automática: 20 s</span>
+        </div>
+    </header>
+
+    <!-- BARRA DE CONTROLE -->
+    <section class="bi09-toolbar">
+
+        <div class="bi09-toolbar-main">
+            <strong>Modo:</strong>
+
+            <button id="bi09-live" type="button"
+                    class="bi09-btn bi09-btn-active">
+                ▣ Caixas abertos
+            </button>
+
+            <button id="bi09-history" type="button"
+                    class="bi09-btn">
+                ▦ Conferência por data de abertura
+            </button>
+
+            <div id="bi09-dates" class="bi09-date-fields">
+                <label>Abertura de
+                    <input type="date" id="bi09-start"
+                           value="<?php echo e(now()->toDateString()); ?>">
+                </label>
+                <label>até
+                    <input type="date" id="bi09-end"
+                           value="<?php echo e(now()->toDateString()); ?>">
+                </label>
+            </div>
+
+            <button id="bi09-apply" type="button"
+                    class="bi09-btn bi09-btn-active">
+                Aplicar
+            </button>
+        </div>
+
+        <div class="bi09-toolbar-info" id="bi09-info">
+            No modo Caixas abertos, são exibidos somente os
+            caixas em operação. Caixas fechados não aparecem.
+        </div>
+
+    </section>
+
+    <div id="bi09-alert" class="bi09-alert" hidden></div>
+
+    <!-- CARDS -->
+    <main class="bi09-grid" id="bi09-cards">
+        <div class="bi09-empty">Carregando caixas...</div>
+    </main>
+
+    <!-- CONSOLIDADO -->
+    <footer class="bi09-summary">
+        <div class="bi09-summary-top">
+            <h2>Consolidado geral dos caixas exibidos</h2>
+            <small>Última sincronização:
+                <strong id="bi09-updated">—</strong>
+            </small>
+        </div>
+        <div id="bi09-summary-content">
+            Carregando totalizadores...
+        </div>
+    </footer>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal fade" id="bi09-modal" tabindex="-1"
+     aria-labelledby="bi09-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bi09-modal-title">
+                    Detalhes do caixa
+                </h5>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="bi09-modal-body">
+                Carregando...
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary"
+                        data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ==========================================================
+   BI-09 V3 - LAYOUT GERENCIAL HOMOLOGADO
+   CSS ISOLADO NO MODULO
+   ========================================================== */
+
+#bi09-root {
+    width: calc(100vw - 48px);
+    max-width: 1700px;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 16px 0 35px;
+    padding: 0;
+    color: #142744;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+#bi09-root * {
+    box-sizing: border-box;
+}
+
+/* HEADER */
+
+#bi09-root .bi09-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+#bi09-root .bi09-top h1 {
+    margin: 0;
+    color: #152942;
+    font-weight: 750;
+    font-size: 23px;
+    line-height: 1.3;
+}
+
+#bi09-root .bi09-top p {
+    margin: 3px 0 0;
+    font-size: 12px;
+    color: #50647e;
+}
+
+#bi09-root .bi09-online {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 12px;
+    border: 1px solid #d2e2f5;
+    background: #edf5ff;
+    border-radius: 7px;
+    font-size: 11px;
+    color: #174d87;
+    white-space: nowrap;
+}
+
+#bi09-root #bi09-led {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #159657;
+    flex-shrink: 0;
+}
+
+/* TOOLBAR */
+
+#bi09-root .bi09-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 11px 12px;
+    background: #fff;
+    border: 1px solid #e2eaf3;
+    border-radius: 9px;
+    box-shadow: 0 2px 8px #152d4610;
+    margin-bottom: 13px;
+}
+
+#bi09-root .bi09-toolbar-main,
+#bi09-root .bi09-date-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+}
+
+#bi09-root .bi09-toolbar-main strong {
+    font-size: 12px;
+}
+
+#bi09-root .bi09-btn {
+    border: 1px solid #d5dfea;
+    background: #f8fafc;
+    color: #26446c;
+    border-radius: 5px;
+    padding: 9px 11px;
+    font-weight: 600;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+#bi09-root .bi09-btn-active {
+    color: #fff;
+    background: #1264ce;
+    border-color: #1264ce;
+}
+
+#bi09-root .bi09-date-fields label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #30465f;
+}
+
+#bi09-root .bi09-date-fields input {
+    border: 1px solid #d3deeb;
+    padding: 7px 6px;
+    border-radius: 5px;
+    width: 136px;
+    color: #243c5d;
+    font-size: 11px;
+}
+
+#bi09-root .bi09-toolbar-info {
+    max-width: 360px;
+    font-size: 11px;
+    color: #28517e;
+    background: #f0f6ff;
+    padding: 8px 11px;
+    border-radius: 6px;
+    border: 1px solid #dce9fa;
+    line-height: 1.5;
+}
+
+#bi09-root .bi09-alert {
+    background: #fff4dc;
+    color: #885a07;
+    border: 1px solid #f3d797;
+    padding: 10px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+}
+
+/* GRID - TRES COLUNAS */
+
+#bi09-root .bi09-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 13px;
+    margin-bottom: 13px;
+}
+
+#bi09-root .bi09-empty {
+    grid-column: 1 / -1;
+    background: #fff;
+    padding: 45px;
+    text-align: center;
+    border-radius: 9px;
+    border: 1px solid #e4eaf0;
+    color: #64748b;
+}
+
+/* CARD */
+
+#bi09-root .bi09-card {
+    background: #fff;
+    border: 1px solid #dfe7ef;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px #1c395612;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+#bi09-root .bi09-card-head {
+    padding: 12px 12px 10px;
+    flex-shrink: 0;
+}
+
+#bi09-root .bi09-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 7px;
+}
+
+#bi09-root .bi09-title-row h3 {
+    font-size: 16px;
+    line-height: 1.25;
+    font-weight: 800;
+    margin: 0;
+    color: #142644;
+}
+
+#bi09-root .bi09-terminal {
+    margin-top: 3px;
+    font-size: 11px;
+    color: #61748b;
+}
+
+#bi09-root .bi09-status {
+    color: #08713c;
+    background: #e8f8ee;
+    border: 1px solid #cbebd6;
+    padding: 5px 9px;
+    border-radius: 16px;
+    font-weight: 750;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+#bi09-root .bi09-status.closed {
+    color: #64748b;
+    background: #eef1f5;
+    border-color: #e0e5ec;
+}
+
+#bi09-root .bi09-operator {
+    margin-top: 9px;
+    padding-bottom: 10px;
+    font-size: 11px;
+    border-bottom: 1px solid #e2e9f0;
+}
+
+#bi09-root .bi09-operator b {
+    color: #19304e;
+}
+
+#bi09-root .bi09-meta-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr .9fr;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+#bi09-root .bi09-meta-grid > div {
+    min-width: 0;
+}
+
+#bi09-root .bi09-meta-grid > div + div {
+    border-left: 1px solid #ebeff4;
+    padding-left: 7px;
+}
+
+#bi09-root .bi09-label {
+    font-size: 10px;
+    color: #78889b;
+    line-height: 1.4;
+}
+
+#bi09-root .bi09-data {
+    font-size: 11px;
+    font-weight: 750;
+    color: #172b48;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+/* BODY - DOIS PAINEIS INTERNOS */
+
+#bi09-root .bi09-card-body {
+    display: grid;
+    grid-template-columns: minmax(0,1.08fr) minmax(0,1fr);
+    gap: 7px;
+    padding: 0 9px 9px;
+    flex: 1;
+    min-width: 0;
+}
+
+#bi09-root .bi09-panel {
+    border: 1px solid #e6edf5;
+    border-radius: 7px;
+    overflow: hidden;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#bi09-root .bi09-panel-head {
+    padding: 9px 8px;
+    background: #eff5fc;
+    color: #173d75;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.3;
+    min-height: 35px;
+}
+
+#bi09-root .bi09-panel-content {
+    padding: 4px 7px;
+}
+
+/* PAGAMENTOS */
+
+#bi09-root .bi09-payment {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    min-height: 37px;
+    padding: 5px 0;
+    border-bottom: 1px solid #edf0f4;
+    font-size: 11px;
+}
+
+#bi09-root .bi09-payment:last-child {
+    border-bottom: 0;
+}
+
+#bi09-root .bi09-payment-name {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    color: #304560;
+    overflow-wrap: anywhere;
+}
+
+#bi09-root .bi09-payment-value {
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 750;
+    color: #142946;
+    font-variant-numeric: tabular-nums;
+}
+
+#bi09-root .bi09-symbol {
+    color: #078657;
+    font-size: 13px;
+    font-weight: 800;
+    width: 15px;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+#bi09-root .bi09-symbol.pix { color: #11a5a5; }
+#bi09-root .bi09-symbol.debito { color: #286fe0; }
+#bi09-root .bi09-symbol.credito { color: #8246c4; }
+#bi09-root .bi09-symbol.carteira { color: #cc7c17; }
+
+/* SANGRIAS */
+
+#bi09-root .bi09-sangria-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 7px;
+}
+
+#bi09-root .bi09-kpi {
+    padding: 9px 8px;
+    border-radius: 7px;
+    background: #e9f3ff;
+    min-height: 58px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#bi09-root .bi09-kpi-title {
+    font-size: 10px;
+    color: #58718f;
+    line-height: 1.3;
+}
+
+#bi09-root .bi09-kpi-number {
+    font-size: 13px;
+    font-weight: 800;
+    color: #15375c;
+    font-variant-numeric: tabular-nums;
+    margin-top: 3px;
+    overflow-wrap: anywhere;
+}
+
+#bi09-root .bi09-kpi-small {
+    font-size: 10px;
+    color: #60768e;
+    margin-top: 2px;
+}
+
+#bi09-root .bi09-kpi.orange {
+    background: #fff1d7;
+}
+#bi09-root .bi09-kpi.orange .bi09-kpi-number {
+    color: #b76a00;
+}
+
+#bi09-root .bi09-kpi.gray {
+    background: #eff2f6;
+}
+
+#bi09-root .bi09-kpi.green {
+    background: #e1f6e9;
+}
+#bi09-root .bi09-kpi.green .bi09-kpi-number {
+    color: #087443;
+}
+
+/* FOOTER CARD */
+
+#bi09-root .bi09-card-footer {
+    margin-top: auto;
+    padding: 0 9px 9px;
+}
+
+#bi09-root .bi09-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: #e3f7eb;
+    color: #00683a;
+    border-radius: 6px;
+    padding: 11px 9px;
+}
+
+#bi09-root .bi09-total-row span {
+    font-size: 11px;
+    font-weight: 800;
+}
+
+#bi09-root .bi09-total-row strong {
+    font-size: 18px;
+    font-weight: 850;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+#bi09-root .bi09-detail {
+    margin-top: 6px;
+    width: 100%;
+    border: 1px solid #d8e4f0;
+    border-radius: 5px;
+    background: #f3f7fc;
+    padding: 9px;
+    color: #1462bf;
+    font-size: 11px;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+#bi09-root .bi09-detail:hover {
+    background: #e5f0ff;
+}
+
+/* CONSOLIDADO */
+
+#bi09-root .bi09-summary {
+    border: 1px solid #e0e8f1;
+    border-radius: 10px;
+    padding: 14px;
+    background: #fff;
+    box-shadow: 0 3px 12px #1c395610;
+}
+
+#bi09-root .bi09-summary-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+#bi09-root .bi09-summary h2 {
+    font-size: 17px;
+    font-weight: 800;
+    color: #17345c;
+    margin: 0;
+}
+
+#bi09-root .bi09-summary-top small {
+    font-size: 10px;
+    color: #718096;
+}
+
+#bi09-root .bi09-summary-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 13px;
+}
+
+#bi09-root .bi09-metric {
+    border-radius: 7px;
+    background: #edf5ff;
+    padding: 11px;
+}
+
+#bi09-root .bi09-metric.green {
+    background: #eaf8ee;
+}
+#bi09-root .bi09-metric.purple {
+    background: #f3edff;
+}
+#bi09-root .bi09-metric.orange {
+    background: #fff4e1;
+}
+
+#bi09-root .bi09-metric-label {
+    font-size: 11px;
+    color: #63758f;
+}
+
+#bi09-root .bi09-metric-value {
+    font-size: 18px;
+    font-weight: 850;
+    color: #16375f;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+}
+
+#bi09-root .bi09-summary-bottom {
+    display: grid;
+    grid-template-columns: minmax(0,1.6fr) minmax(0,1fr);
+    gap: 15px;
+}
+
+#bi09-root .bi09-summary-payments h3 {
+    font-size: 12px;
+    font-weight: 800;
+    color: #1a3659;
+    margin: 0 0 8px;
+}
+
+#bi09-root .bi09-summary-payment-grid {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 0 18px;
+}
+
+#bi09-root .bi09-summary-payment {
+    display: flex;
+    justify-content: space-between;
+    gap: 7px;
+    border-bottom: 1px solid #e8edf3;
+    padding: 7px 0;
+    font-size: 11px;
+}
+
+#bi09-root .bi09-summary-payment strong {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+#bi09-root .bi09-grand-total {
+    background: #e3f7eb;
+    border-radius: 9px;
+    padding: 22px;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    min-height: 150px;
+    color: #075e39;
+}
+
+#bi09-root .bi09-grand-total-label {
+    font-size: 12px;
+    font-weight: 800;
+}
+
+#bi09-root .bi09-grand-total-value {
+    font-size: clamp(22px, 2.8vw, 38px);
+    font-weight: 850;
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* RESPONSIVIDADE */
+
+@media (max-width: 1050px) {
+    #bi09-root .bi09-grid {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    #bi09-root {
+        width: calc(100vw - 22px);
+    }
+    #bi09-root .bi09-grid {
+        grid-template-columns: 1fr;
+    }
+    #bi09-root .bi09-summary-metrics {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+    #bi09-root .bi09-summary-bottom {
+        grid-template-columns: 1fr;
+    }
+    #bi09-root .bi09-toolbar-info {
+        max-width: 100%;
+    }
+    #bi09-root .bi09-top {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 350px) {
+    #bi09-root .bi09-card-body {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================
+   BI-09 V4 - IDENTIDADE VISUAL HOMOLOGADA
+   ========================================================== */
+
+#bi09-root {
+    font-family: Inter, "Segoe UI", Arial, sans-serif !important;
+    font-size: 12px;
+    color: #142746;
+    letter-spacing: -0.08px;
+}
+
+#bi09-root .bi09-top h1 {
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -.45px;
+    color: #172c4c;
+}
+
+#bi09-root .bi09-top p {
+    font-size: 11.5px;
+    color: #65758e;
+}
+
+#bi09-root .bi09-toolbar {
+    padding: 9px 12px;
+    border-color: #e3eaf3;
+}
+
+#bi09-root .bi09-btn {
+    font-family: inherit;
+    font-weight: 650;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 33px;
+}
+
+#bi09-root .bi09-btn-active {
+    background: #1268d8;
+    border-color: #1268d8;
+    color: #fff;
+}
+
+#bi09-root .bi09-grid {
+    gap: 12px;
+}
+
+#bi09-root .bi09-card {
+    border: 1px solid #e0e8f2;
+    box-shadow: 0 3px 12px rgba(25, 50, 83, .055);
+}
+
+#bi09-root .bi09-card-head {
+    padding: 11px 11px 9px;
+}
+
+#bi09-root .bi09-title-row h3 {
+    font-size: 15px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+#bi09-root .bi09-terminal {
+    font-size: 10.5px;
+    margin-top: 3px;
+}
+
+#bi09-root .bi09-operator {
+    font-size: 10.5px;
+    margin-top: 7px;
+    padding-bottom: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px;
+}
+
+#bi09-root .bi09-meta-grid {
+    margin-top: 8px;
+    gap: 5px;
+}
+
+#bi09-root .bi09-label {
+    font-size: 9.5px;
+    color: #6f82a0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#bi09-root .bi09-data {
+    font-size: 10.5px;
+    font-weight: 750;
+    margin-top: 2px;
+}
+
+#bi09-root .bi09-card-body {
+    padding: 0 8px 7px;
+    gap: 7px;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+}
+
+#bi09-root .bi09-panel {
+    border-color: #e8edf6;
+}
+
+#bi09-root .bi09-panel-head {
+    background: #eef4fc;
+    color: #133d78;
+    min-height: 34px;
+    padding: 8px 7px;
+    font-size: 10.5px;
+    display: block;
+    font-weight: 800;
+}
+
+#bi09-root .bi09-panel-head .bi09-svg {
+    vertical-align: -3px;
+    margin-right: 4px;
+}
+
+#bi09-root .bi09-panel-content {
+    padding: 3px 7px;
+}
+
+#bi09-root .bi09-payment {
+    min-height: 31px;
+    padding: 4px 0;
+    font-size: 10.5px;
+}
+
+#bi09-root .bi09-payment-name {
+    gap: 6px;
+    font-size: 10.5px;
+}
+
+#bi09-root .bi09-payment-value {
+    font-size: 10.5px;
+    font-weight: 750;
+}
+
+#bi09-root .bi09-symbol {
+    width: 15px;
+    height: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#bi09-root .bi09-symbol.money { color: #078c4f; }
+#bi09-root .bi09-symbol.pix { color: #0aa5a6; }
+#bi09-root .bi09-symbol.debito { color: #236de0; }
+#bi09-root .bi09-symbol.credito { color: #8650d0; }
+#bi09-root .bi09-symbol.carteira { color: #d57a13; }
+
+#bi09-root .bi09-sangria-list {
+    gap: 6px;
+    padding: 6px;
+}
+
+#bi09-root .bi09-kpi {
+    min-height: 55px;
+    padding: 8px;
+}
+
+#bi09-root .bi09-kpi-title {
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#bi09-root .bi09-kpi-number {
+    font-size: 12.5px;
+    margin-top: 2px;
+}
+
+#bi09-root .bi09-kpi-small {
+    font-size: 9.5px;
+}
+
+#bi09-root .bi09-kpi:not(.orange):not(.gray):not(.green) {
+    background: #e7f2ff;
+}
+
+#bi09-root .bi09-kpi.orange {
+    background: #fff2dd;
+}
+
+#bi09-root .bi09-kpi.gray {
+    background: #eef2f8;
+}
+
+#bi09-root .bi09-kpi.green {
+    background: #e1f7ea;
+}
+
+#bi09-root .bi09-card-footer {
+    padding: 0 8px 8px;
+}
+
+#bi09-root .bi09-total-row {
+    background: #e2f7eb;
+    color: #056d3c;
+    padding: 9px;
+}
+
+#bi09-root .bi09-total-row span {
+    font-size: 10.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#bi09-root .bi09-total-row strong {
+    font-size: 17px;
+    font-weight: 850;
+}
+
+#bi09-root .bi09-detail {
+    padding: 8px;
+    background: #f3f7fc;
+    color: #1467d4;
+    font-size: 10.5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+}
+
+#bi09-root .bi09-summary {
+    padding: 12px;
+}
+
+#bi09-root .bi09-summary h2 {
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+#bi09-root .bi09-summary-metrics {
+    gap: 9px;
+}
+
+#bi09-root .bi09-metric {
+    padding: 9px 10px;
+}
+
+#bi09-root .bi09-metric-label {
+    font-size: 10.5px;
+}
+
+#bi09-root .bi09-metric-value {
+    font-size: 16px;
+}
+
+#bi09-root .bi09-summary-payment {
+    padding: 5px 0;
+    font-size: 10.5px;
+}
+
+#bi09-root .bi09-grand-total {
+    background: #e1f7e9;
+    color: #075f39;
+    min-height: 125px;
+    padding: 18px;
+}
+
+#bi09-root .bi09-grand-total-value {
+    font-weight: 850;
+}
+
+#bi09-root .bi09-svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+#bi09-root .bi09-svg-lg {
+    width: 20px;
+    height: 20px;
+}
+
+#bi09-root .bi09-svg-money { color: #078c4f; }
+#bi09-root .bi09-svg-blue { color: #1666ca; }
+#bi09-root .bi09-svg-orange { color: #d98a05; }
+#bi09-root .bi09-svg-purple { color: #8348c7; }
+#bi09-root .bi09-svg-gray { color: #637994; }
+
+@media (min-width: 1051px) {
+    #bi09-root .bi09-grid {
+        grid-template-columns: repeat(3, minmax(0,1fr));
+    }
+}
+
+@media (max-width: 1050px) {
+    #bi09-root .bi09-grid {
+        grid-template-columns: repeat(2, minmax(0,1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    #bi09-root .bi09-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 360px) {
+    #bi09-root .bi09-card-body {
+        grid-template-columns: 1fr;
+    }
+}
+/* BI09_V5_TIPOGRAFIA */
+
+/* ==========================================================
+   BI-09 V5 - TIPOGRAFIA GERENCIAL
+   ========================================================== */
+
+#bi09-root {
+    font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: normal;
+    -webkit-font-smoothing: antialiased;
+}
+
+#bi09-root .bi09-summary h2 {
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+#bi09-root .bi09-summary-payments h3 {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#bi09-root .bi09-metric-label {
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: normal;
+}
+
+#bi09-root .bi09-metric-value {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+#bi09-root .bi09-summary-payment {
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: normal;
+}
+
+#bi09-root .bi09-summary-payment strong {
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+#bi09-root .bi09-grand-total-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+#bi09-root .bi09-grand-total-value {
+    font-size: 34px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.8px;
+    font-variant-numeric: tabular-nums;
+}
+
+#bi09-root .bi09-title-row h3 {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+#bi09-root .bi09-panel-head {
+    font-size: 11px;
+    font-weight: 700;
+}
+
+#bi09-root .bi09-payment-name {
+    font-size: 11px;
+    font-weight: 400;
+}
+
+#bi09-root .bi09-payment-value {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+#bi09-root .bi09-kpi-number {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#bi09-root .bi09-total-row strong {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+
+/* BI09_V8_FUNDO_CONTRASTE */
+
+body {
+    background: #eef3f8 !important;
+}
+
+.content-wrapper,
+.content,
+.main-content,
+.container-fluid {
+    background: transparent !important;
+}
+
+#bi09-root {
+    background: #eef3f8 !important;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+#bi09-root .bi09-toolbar,
+#bi09-root .bi09-summary {
+    background: #f8fbfe !important;
+    border-color: #d8e2ee !important;
+    box-shadow: 0 3px 10px rgba(22, 39, 70, .05) !important;
+}
+
+#bi09-root .bi09-card {
+    background: #ffffff !important;
+    border-color: #d8e3ee !important;
+    box-shadow: 0 4px 14px rgba(17, 35, 61, .08) !important;
+}
+
+#bi09-root .bi09-card-head {
+    background: #ffffff !important;
+}
+
+#bi09-root .bi09-panel {
+    background: #ffffff !important;
+    border-color: #dfe7f1 !important;
+}
+
+#bi09-root .bi09-panel-head {
+    background: #edf3fa !important;
+}
+
+#bi09-root .bi09-total-row {
+    background: #dcf4e7 !important;
+}
+
+#bi09-root .bi09-detail {
+    background: #edf3f9 !important;
+    border-color: #d4deea !important;
+}
+
+#bi09-root .bi09-metric {
+    box-shadow: inset 0 0 0 1px rgba(180, 196, 214, .35);
+}
+
+#bi09-root .bi09-grand-total {
+    background: #ddf4e6 !important;
+}
+
+#bi09-root .bi09-empty {
+    background: #f8fbfe !important;
+    border-color: #dbe4ee !important;
+}
+
+
+/* BI09_V81_CONTRASTE */
+
+/* Fundo geral: cinza-azulado mais definido */
+body {
+    background-color: #dfe6ee !important;
+}
+
+/* Area BI-09 */
+#bi09-root {
+    background-color: #dfe6ee !important;
+}
+
+/* Cards individuais destacados */
+#bi09-root .bi09-card {
+    background-color: #ffffff !important;
+    border: 1px solid #c8d5e3 !important;
+    box-shadow:
+        0 4px 12px rgba(28, 49, 79, 0.11) !important;
+}
+
+/* Header branco */
+#bi09-root .bi09-card-head {
+    background-color: #ffffff !important;
+}
+
+/* Paineis financeiros brancos */
+#bi09-root .bi09-panel {
+    background-color: #ffffff !important;
+    border: 1px solid #d2ddeb !important;
+}
+
+/* Titulos dos paineis */
+#bi09-root .bi09-panel-head {
+    background-color: #eaf1fa !important;
+    color: #173e78 !important;
+}
+
+/* Barra de filtros */
+#bi09-root .bi09-toolbar {
+    background-color: #ffffff !important;
+    border: 1px solid #c8d5e3 !important;
+}
+
+/* Consolidado geral */
+#bi09-root .bi09-summary {
+    background-color: #ffffff !important;
+    border: 1px solid #c8d5e3 !important;
+    box-shadow:
+        0 4px 12px rgba(28, 49, 79, 0.10) !important;
+}
+
+/* Preservar cores dos indicadores */
+#bi09-root .bi09-kpi {
+    background-color: #e7f2ff;
+}
+
+#bi09-root .bi09-kpi.orange {
+    background-color: #fff2dd !important;
+}
+
+#bi09-root .bi09-kpi.gray {
+    background-color: #eef2f8 !important;
+}
+
+#bi09-root .bi09-kpi.green {
+    background-color: #e1f7ea !important;
+}
+
+/* Total individual */
+#bi09-root .bi09-total-row {
+    background-color: #dcf4e7 !important;
+}
+
+/* Total consolidado */
+#bi09-root .bi09-grand-total {
+    background-color: #ddf4e6 !important;
+}
+
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    'use strict';
+
+    const API = <?php echo json_encode(route('bi.caixas-gerencial.dados'), 15, 512) ?>;
+    const DETALHES = <?php echo json_encode(route('bi.caixas-gerencial.detalhes', ['caixa' => 999999]), 512) ?>;
+
+    const INTERVALO = 20000;
+    function icon(nome, classe = '') {
+
+        const caminhos = {
+            caixa: '<rect x="3" y="7" width="18" height="14" rx="2"/><path d="M5 7V4h14v3M8 11h8M8 15h2m4 0h2"/>',
+            usuario: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
+            calendario: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/>',
+            relogio: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+            venda: '<path d="M20 13l-7 7-10-10V4h6z"/><circle cx="7.5" cy="7.5" r="1"/>',
+            pagamentos: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
+            dinheiro: '<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M6 12h1m10 0h1"/>',
+            pix: '<path d="M12 2l5 5-5 5-5-5zM12 12l5 5-5 5-5-5zM2 12l5-5 5 5-5 5zM12 12l5-5 5 5-5 5z"/>',
+            cartao: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h5"/>',
+            carteira: '<path d="M4 6V4a2 2 0 0 1 2-2h12v4M3 6h16a2 2 0 0 1 2 2v12H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M15 12h7v5h-7a2 2 0 0 1 0-5z"/>',
+            sangria: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 2 16 2 16 0V5M4 11v6c0 2 16 2 16 0v-6"/>',
+            alerta: '<path d="M12 3L2 21h20z"/><path d="M12 9v5m0 4h.01"/>',
+            atualizar: '<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5 9a8 8 0 0 1 14-2l1 5M4 12l1 5a8 8 0 0 0 14-2"/>',
+            detalhes: '<path d="M4 5h2m3 0h11M4 12h2m3 0h11M4 19h2m3 0h11"/>',
+            calculadora: '<rect x="4" y="2" width="16" height="20" rx="2"/><rect x="7" y="5" width="10" height="4"/><path d="M8 13h1m3 0h1m3 0h1M8 17h1m3 0h1m3 0h1"/>',
+            grafico: '<rect x="3" y="13" width="4" height="8"/><rect x="10" y="8" width="4" height="13"/><rect x="17" y="3" width="4" height="18"/>',
+            carrinho: '<circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M2 3h3l3 12h12l2-9H6"/>'
+        };
+
+        const p = caminhos[nome] || caminhos.pagamentos;
+
+        return '<svg class="bi09-svg ' + classe +
+            '" viewBox="0 0 24 24" fill="none" ' +
+            'stroke="currentColor" stroke-width="1.8" ' +
+            'stroke-linecap="round" stroke-linejoin="round" ' +
+            'aria-hidden="true">' + p + '</svg>';
+    }
+
+    const FORMAS = [
+        ['dinheiro','Dinheiro','dinheiro','money'],
+        ['pix','PIX','pix','pix'],
+        ['cartao_debito','Cartão de Débito','cartao','debito'],
+        ['cartao_credito','Cartão de Crédito','cartao','credito'],
+        ['carteira','Carteira','carteira','carteira']
+    ];
+
+    const cards = document.getElementById('bi09-cards');
+    const summary = document.getElementById('bi09-summary-content');
+    const liveBtn = document.getElementById('bi09-live');
+    const historyBtn = document.getElementById('bi09-history');
+    const dates = document.getElementById('bi09-dates');
+    const alertBox = document.getElementById('bi09-alert');
+
+    let modo = 'abertos';
+    let consultando = false;
+    let versao = 0;
+    let atualizarPendente = false;
+
+    const money = n => Number(n || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+
+    const esc = v => String(v ?? '')
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#39;');
+
+    function parseDate(v) {
+        if (!v) return null;
+        const d = new Date(String(v).replace(' ', 'T'));
+        return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function datetime(v) {
+        const d = parseDate(v);
+        return d ? d.toLocaleString('pt-BR') : '—';
+    }
+
+    function time(v) {
+        const d = parseDate(v);
+        return d ? d.toLocaleTimeString('pt-BR', {
+            hour:'2-digit',
+            minute:'2-digit'
+        }) : '—';
+    }
+
+    function duration(v) {
+        const d = parseDate(v);
+        if (!d) return '—';
+
+        const sec = Math.max(
+            0,Math.floor((Date.now()-d.getTime())/1000)
+        );
+        const h = Math.floor(sec/3600);
+        const m = Math.floor(sec%3600/60);
+        const s = sec%60;
+
+        return `${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+    }
+
+    function paymentRow(p,c) {
+        return `
+        <div class="bi09-payment">
+            <span class="bi09-payment-name">
+                <span class="bi09-symbol ${p[3]}">${icon(p[2])}</span>
+                ${esc(p[1])}
+            </span>
+            <span class="bi09-payment-value">
+                ${money(c.formas?.[p[0]] || 0)}
+            </span>
+        </div>`;
+    }
+
+    function kpi(t,v,cls,sub='') {
+        return `
+        <div class="bi09-kpi ${cls}">
+            <div class="bi09-kpi-title">${icon(t==="Sangrias realizadas"?"sangria":t==="Sangria a realizar"?"alerta":t==="Última sangria"?"relogio":"dinheiro",cls==="orange"?"bi09-svg-orange":cls==="green"?"bi09-svg-money":"bi09-svg-blue")} ${esc(t)}</div>
+            <div class="bi09-kpi-number">${esc(v)}</div>
+            ${sub ? `<div class="bi09-kpi-small">${esc(sub)}</div>` : ''}
+        </div>`;
+    }
+
+    function card(c) {
+
+        const aberto = c.status === 'aberto';
+        const pagamentos = FORMAS.map(p=>paymentRow(p,c)).join('');
+
+        const recomendacao = c.sangria_sugerida === null
+            ? 'Não configurada'
+            : money(c.sangria_sugerida);
+
+        const saldo = c.saldo_dinheiro === null
+            ? 'Indisponível'
+            : money(c.saldo_dinheiro);
+
+        return `
+        <article class="bi09-card">
+
+            <div class="bi09-card-head">
+
+                <div class="bi09-title-row">
+                    <div>
+                        <h3>${icon("caixa","bi09-svg-money bi09-svg-lg")} Caixa ${esc(c.id)}</h3>
+                        <div class="bi09-terminal">${esc(c.terminal || 'Terminal não identificado')}</div>
+                    </div>
+                    <span class="bi09-status ${aberto?'':'closed'}">
+                        ● ${aberto?'Aberto':esc(c.status)}
+                    </span>
+                </div>
+
+                <div class="bi09-operator">
+                    ${icon("usuario","bi09-svg-gray")} <b>Operador:</b> ${esc(c.operador)}
+                    <span class="text-muted">(USR-${esc(c.user_id)})</span>
+                </div>
+
+                <div class="bi09-meta-grid">
+                    <div>
+                        <div class="bi09-label">${icon("calendario","bi09-svg-blue")} Abertura</div>
+                        <div class="bi09-data">${datetime(c.abertura)}</div>
+                    </div>
+                    <div>
+                        <div class="bi09-label">${icon("relogio","bi09-svg-blue")} Tempo em aberto</div>
+                        <div class="bi09-data bi09-clock"
+                             data-start="${esc(c.abertura)}"
+                             data-open="${aberto?1:0}">
+                             ${aberto?duration(c.abertura):'Encerrado'}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="bi09-label">${icon("venda","bi09-svg-blue")} Última venda</div>
+                        <div class="bi09-data">${time(c.ultima_venda)}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bi09-card-body">
+
+                <section class="bi09-panel">
+                    <div class="bi09-panel-head">
+                        ${icon("pagamentos","bi09-svg-blue")} Formas de pagamento
+                        <div style="font-weight:400;font-size:10px;margin-top:3px">
+                            ${esc(c.quantidade_vendas)} venda(s)
+                        </div>
+                    </div>
+                    <div class="bi09-panel-content">
+                        ${pagamentos}
+                    </div>
+                </section>
+
+                <section class="bi09-panel">
+                    <div class="bi09-panel-head">
+                        ${icon("sangria","bi09-svg-blue")} Controle de sangrias
+                    </div>
+
+                    <div class="bi09-sangria-list">
+                        ${kpi(
+                            'Sangrias realizadas',
+                            money(c.sangrias_total),
+                            '',
+                            c.sangrias_quantidade+' operação(ões)'
+                        )}
+                        ${kpi(
+                            'Sangria a realizar',
+                            recomendacao,
+                            'orange'
+                        )}
+                        ${kpi(
+                            'Última sangria',
+                            time(c.ultima_sangria),
+                            'gray'
+                        )}
+                        ${kpi(
+                            'Dinheiro estimado em caixa',
+                            saldo,
+                            'green'
+                        )}
+                    </div>
+                </section>
+
+            </div>
+
+            <div class="bi09-card-footer">
+                <div class="bi09-total-row">
+                    <span>${icon("calculadora","bi09-svg-money")} TOTAL DO CAIXA</span>
+                    <strong>${money(c.total)}</strong>
+                </div>
+                <button type="button" class="bi09-detail"
+                        data-caixa="${esc(c.id)}">
+                    ${icon("detalhes","bi09-svg-blue")} Ver detalhes
+                </button>
+            </div>
+
+        </article>`;
+    }
+
+    function metric(t,v,cls='') {
+        return `
+        <div class="bi09-metric ${cls}">
+            <div class="bi09-metric-label">${esc(t)}</div>
+            <div class="bi09-metric-value">${esc(v)}</div>
+        </div>`;
+    }
+
+    function renderSummary(d) {
+
+        const formas = FORMAS.map(p=>`
+            <div class="bi09-summary-payment">
+                <span style="display:flex;align-items:center;gap:6px">${icon(p[2],p[3]==="money"?"bi09-svg-money":p[3]==="pix"?"bi09-svg-blue":p[3]==="carteira"?"bi09-svg-orange":"bi09-svg-blue")} ${esc(p[1])}</span>
+                <strong>${money(d.formas?.[p[0]] || 0)}</strong>
+            </div>
+        `).join('');
+
+        summary.innerHTML = `
+            <div class="bi09-summary-metrics">
+                ${metric('Caixas em operação / exibidos',d.caixas,'green')}
+                ${metric('Vendas realizadas',d.vendas_quantidade)}
+                ${metric(
+                    'Sangrias realizadas',
+                    money(d.sangrias_total)+' — '+d.sangrias_quantidade+' op.',
+                    'purple'
+                )}
+                ${metric(
+                    'Sangrias a realizar',
+                    money(d.sangrias_sugeridas),
+                    'orange'
+                )}
+            </div>
+
+            <div class="bi09-summary-bottom">
+                <div class="bi09-summary-payments">
+                    <h3>Totais por forma de pagamento</h3>
+                    <div class="bi09-summary-payment-grid">
+                        ${formas}
+                    </div>
+                </div>
+
+                <div class="bi09-grand-total">
+                    <div class="bi09-grand-total-label">
+                        TOTAL GERAL DOS CAIXAS EXIBIDOS
+                    </div>
+                    <div class="bi09-grand-total-value">
+                        ${money(d.total)}
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    async function atualizar() {
+
+        if (consultando) {
+            atualizarPendente = true;
+            return;
+        }
+
+        consultando = true;
+        const minhaVersao = versao;
+        const meuModo = modo;
+
+        try {
+            const params = new URLSearchParams({
+                modo: meuModo
+            });
+
+            if (meuModo === 'historico') {
+                params.set('data_inicio',
+                    document.getElementById('bi09-start').value);
+                params.set('data_fim',
+                    document.getElementById('bi09-end').value);
+            }
+
+            const response = await fetch(
+                API+'?'+params.toString(),
+                {
+                    cache:'no-store',
+                    credentials:'same-origin',
+                    headers:{'Accept':'application/json'}
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('HTTP '+response.status);
+            }
+
+            const dados = await response.json();
+
+            if (minhaVersao !== versao || meuModo !== modo) {
+                return;
+            }
+
+            cards.innerHTML = dados.caixas.length
+                ? dados.caixas.map(card).join('')
+                : '<div class="bi09-empty">Nenhum caixa encontrado.</div>';
+
+            renderSummary(dados.consolidado);
+
+            document.getElementById('bi09-updated')
+                .textContent = new Date().toLocaleTimeString('pt-BR');
+
+            document.getElementById('bi09-online-label')
+                .textContent = meuModo === 'abertos'
+                    ? 'Atualização automática: 20 s'
+                    : 'Conferência histórica';
+
+            document.getElementById('bi09-led')
+                .style.background = '#159657';
+
+            if (dados.avisos?.length) {
+                alertBox.hidden = false;
+                alertBox.textContent = dados.avisos.join(' | ');
+            } else {
+                alertBox.hidden = true;
+                alertBox.textContent = '';
+            }
+
+        } catch (erro) {
+            console.error('BI-09',erro);
+            document.getElementById('bi09-online-label')
+                .textContent = 'Falha de sincronização';
+            document.getElementById('bi09-led')
+                .style.background = '#dc3545';
+        } finally {
+            consultando = false;
+            if (atualizarPendente) {
+                atualizarPendente = false;
+                atualizar();
+            }
+        }
+    }
+
+    function selecionar(novo) {
+        modo = novo;
+        versao++;
+
+        liveBtn.classList.toggle('bi09-btn-active',modo==='abertos');
+        historyBtn.classList.toggle('bi09-btn-active',modo==='historico');
+
+        dates.style.display = modo==='historico' ? 'flex' : 'none';
+
+        atualizar();
+    }
+
+    async function detalhes(id) {
+        const body = document.getElementById('bi09-modal-body');
+        document.getElementById('bi09-modal-title')
+            .textContent = 'Caixa '+id+' — Movimentações';
+
+        body.textContent = 'Carregando...';
+
+        const modal = bootstrap.Modal.getOrCreateInstance(
+            document.getElementById('bi09-modal')
+        );
+        modal.show();
+
+        try {
+            const url = DETALHES.replace(
+                '999999',encodeURIComponent(id)
+            );
+
+            const r = await fetch(url, {
+                credentials:'same-origin',
+                cache:'no-store',
+                headers:{'Accept':'application/json'}
+            });
+
+            if (!r.ok) throw new Error('HTTP '+r.status);
+
+            const d = await r.json();
+
+            const linhas = d.movimentacoes.map(m=>`
+                <tr>
+                    <td>${datetime(m.data_movimentacao)}</td>
+                    <td>${esc(m.tipo)}</td>
+                    <td>${esc(m.forma_pagamento||'—')}</td>
+                    <td>${esc(m.operador||'—')}</td>
+                    <td class="text-end">${money(m.valor)}</td>
+                </tr>
+            `).join('');
+
+            body.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>Data / hora</th>
+                                <th>Movimentação</th>
+                                <th>Forma</th>
+                                <th>Operador</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhas || '<tr><td colspan="5">Sem movimentações</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+                <small>Até 150 movimentações recentes.</small>
+            `;
+        } catch (e) {
+            body.textContent = 'Erro ao consultar as movimentações.';
+        }
+    }
+
+    document.addEventListener('click',e=>{
+        const b = e.target.closest('[data-caixa]');
+        if (b) detalhes(b.dataset.caixa);
+    });
+
+    liveBtn.addEventListener('click',()=>selecionar('abertos'));
+    historyBtn.addEventListener('click',()=>selecionar('historico'));
+
+    document.getElementById('bi09-apply')
+        .addEventListener('click',()=> {
+            versao++;
+            atualizar();
+        });
+
+    // Cronometro de cada caixa: 1 segundo.
+    setInterval(()=>{
+        document.querySelectorAll('.bi09-clock').forEach(el=>{
+            if (el.dataset.open==='1') {
+                el.textContent = duration(el.dataset.start);
+            }
+        });
+    },1000);
+
+    // Atualizacao automatica: 20 segundos.
+    setInterval(()=>{
+        if (modo==='abertos') atualizar();
+    },INTERVALO);
+
+    // No modo ao vivo, datas nao restringem os caixas.
+    dates.style.display='none';
+
+    atualizar();
+});
+</script>
+
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views\bi\caixas-gerencial\index.blade.php ENDPATH**/ ?>

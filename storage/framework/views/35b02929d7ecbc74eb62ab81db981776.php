@@ -780,8 +780,8 @@
 
                                 <li>
                                     <a
-                                        class="dropdown-item disabled"
-                                        href="#">
+                                        class="dropdown-item "
+                                        href="<?php echo e(route('backups.automatico')); ?>">
 
                                         <i class="bi bi-clock-history me-2"></i>
                                         Backup Automático
@@ -790,8 +790,8 @@
 
                                 <li>
                                     <a
-                                        class="dropdown-item disabled"
-                                        href="#">
+                                        class="dropdown-item "
+                                        href="<?php echo e(route('backups.configuracao')); ?>">
 
                                         <i class="bi bi-gear me-2"></i>
                                         Configuração do Backup
@@ -800,8 +800,8 @@
 
                                 <li>
                                     <a
-                                        class="dropdown-item disabled"
-                                        href="#">
+                                        class="dropdown-item "
+                                        href="<?php echo e(route('backups.historico')); ?>">
 
                                         <i class="bi bi-folder-check me-2"></i>
                                         Histórico de Backups

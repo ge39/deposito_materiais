@@ -1,0 +1,291 @@
+<?php
+
+namespace App\Http\Controllers\BI;
+
+use App\Http\Controllers\Controller;
+use App\Models\Caixa;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
+
+class BiCaixasGerencialController extends Controller
+{
+    private const FORMAS = [
+        'dinheiro' => 'Dinheiro',
+        'pix' => 'PIX',
+        'cartao_debito' => 'Cartão de Débito',
+        'cartao_credito' => 'Cartão de Crédito',
+        'carteira' => 'Carteira',
+    ];
+
+    private function autorizar(): void
+    {
+        abort_unless(
+            auth()->check() &&
+            in_array(auth()->user()->nivel_acesso, [
+                'admin', 'gerente', 'supervisor'
+            ], true),
+            403
+        );
+    }
+
+    public function index()
+    {
+        $this->autorizar();
+
+        return view('bi.caixas-gerencial.index');
+    }
+
+    public function dados(Request $request)
+    {
+        $this->autorizar();
+
+        $filtro = $request->validate([
+            'modo' => ['nullable', 'in:abertos,historico'],
+            'data_inicio' => ['nullable', 'date_format:Y-m-d'],
+            'data_fim' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        $modo = $filtro['modo'] ?? 'abertos';
+
+        $query = DB::table('caixas as c')
+            ->leftJoin('users as u', 'u.id', '=', 'c.user_id')
+            ->leftJoin('terminais as t', 't.id', '=', 'c.terminal_id')
+            ->select(
+                'c.id',
+                'c.empresa_id',
+                'c.user_id',
+                'c.terminal_id',
+                'c.terminal',
+                'c.data_abertura',
+                'c.data_fechamento',
+                'c.valor_abertura',
+                'c.fundo_troco',
+                'c.status',
+                'u.name as operador',
+                't.descricao as terminal_descricao'
+            );
+
+        if ($modo === 'abertos') {
+            $query->where('c.status', 'aberto');
+        } else {
+            $inicio = $filtro['data_inicio'] ?? now()->toDateString();
+            $fim = $filtro['data_fim'] ?? $inicio;
+
+            if ($inicio > $fim) {
+                return response()->json([
+                    'message' => 'Data inicial maior que a final.'
+                ], 422);
+            }
+
+            $query->whereBetween('c.data_abertura', [
+                $inicio . ' 00:00:00',
+                $fim . ' 23:59:59',
+            ]);
+
+            $query->whereIn('c.status', [
+                'fechado',
+                'fechado_sem_movimento',
+                'aguardando_auditoria',
+                'inconsistente',
+            ]);
+        }
+
+        $registros = $query
+            ->orderByDesc('c.data_abertura')
+            ->get();
+
+        $ids = $registros->pluck('id')->all();
+
+        $pagamentos = collect();
+        $vendas = collect();
+        $sangrias = collect();
+        $outrasFormas = collect();
+
+        if (count($ids) > 0) {
+
+            $pagamentos = DB::table('pagamentos_venda as p')
+                ->join('vendas as v', 'v.id', '=', 'p.venda_id')
+                ->whereIn('v.caixa_id', $ids)
+                ->where('v.status', 'finalizada')
+                ->where('p.status', 'Confirmado')
+                ->select(
+                    'v.caixa_id',
+                    'p.forma_pagamento'
+                )
+                ->selectRaw('SUM(p.valor) as total')
+                ->groupBy('v.caixa_id', 'p.forma_pagamento')
+                ->get()
+                ->groupBy('caixa_id');
+
+            $vendas = DB::table('vendas')
+                ->whereIn('caixa_id', $ids)
+                ->where('status', 'finalizada')
+                ->select('caixa_id')
+                ->selectRaw('COUNT(*) as quantidade')
+                ->selectRaw('SUM(total) as total_vendas')
+                ->selectRaw('MAX(data_venda) as ultima_venda')
+                ->groupBy('caixa_id')
+                ->get()
+                ->keyBy('caixa_id');
+
+            $sangrias = DB::table('sangrias')
+                ->whereIn('caixa_id', $ids)
+                ->select('caixa_id')
+                ->selectRaw('COUNT(*) as quantidade')
+                ->selectRaw('SUM(valor) as total')
+                ->selectRaw('MAX(created_at) as ultima_sangria')
+                ->groupBy('caixa_id')
+                ->get()
+                ->keyBy('caixa_id');
+        }
+
+        $caixas = [];
+        $consolidado = array_fill_keys(
+            array_keys(self::FORMAS), 0
+        );
+
+        $totalVendas = 0;
+        $qtdVendas = 0;
+        $totalSangrias = 0;
+        $qtdSangrias = 0;
+        $totalSugerido = 0;
+        $avisos = [];
+
+        foreach ($registros as $registro) {
+
+            $formas = array_fill_keys(
+                array_keys(self::FORMAS), 0
+            );
+
+            foreach ($pagamentos->get($registro->id, collect()) as $p) {
+                $chave = strtolower(trim($p->forma_pagamento));
+
+                if (!array_key_exists($chave, $formas)) {
+                    $avisos[] = "Caixa {$registro->id}: forma de pagamento não mapeada ({$chave}).";
+                    continue;
+                }
+
+                $formas[$chave] += (float) $p->total;
+            }
+
+            $totalCaixa = array_sum($formas);
+
+            foreach ($formas as $chave => $valor) {
+                $consolidado[$chave] += $valor;
+            }
+
+            $dadosVenda = $vendas->get($registro->id);
+            $dadosSangria = $sangrias->get($registro->id);
+
+            $quantidade = (int) ($dadosVenda->quantidade ?? 0);
+            $sangriaQuantidade = (int) ($dadosSangria->quantidade ?? 0);
+            $sangriaTotal = (float) ($dadosSangria->total ?? 0);
+
+            $saldoDinheiro = null;
+            $sangriaSugerida = null;
+
+            if ($registro->status === 'aberto') {
+                $model = Caixa::find($registro->id);
+
+                if ($model) {
+                    $saldoDinheiro = (float) $model->saldoDinheiroAtual();
+
+                    // Nao utilizar configuracao de outra empresa.
+                    $config = DB::table('sangria_configs')
+                        ->where('empresa_id', $registro->empresa_id)
+                        ->first();
+
+                    if ($config) {
+                        $limite = (float) ($config->valor_limite ?? 0);
+
+                        if ($limite > 0) {
+                            $sangriaSugerida = max(
+                                0,
+                                $saldoDinheiro - $limite
+                            );
+                        }
+                    }
+                }
+            }
+
+            $caixas[] = [
+                'id' => $registro->id,
+                'empresa_id' => $registro->empresa_id,
+                'terminal_id' => $registro->terminal_id,
+                'terminal' => $registro->terminal_descricao
+                    ?: $registro->terminal,
+                'operador' => $registro->operador ?: 'Não identificado',
+                'user_id' => $registro->user_id,
+                'status' => $registro->status,
+                'abertura' => $registro->data_abertura,
+                'fechamento' => $registro->data_fechamento,
+                'ultima_venda' => $dadosVenda->ultima_venda ?? null,
+                'valor_abertura' => (float) $registro->valor_abertura,
+                'quantidade_vendas' => $quantidade,
+                'formas' => $formas,
+                'total' => round($totalCaixa, 2),
+                'total_vendas_registrado' => (float) ($dadosVenda->total_vendas ?? 0),
+                'sangrias_quantidade' => $sangriaQuantidade,
+                'sangrias_total' => $sangriaTotal,
+                'ultima_sangria' => $dadosSangria->ultima_sangria ?? null,
+                'sangria_sugerida' => $sangriaSugerida,
+                'saldo_dinheiro' => $saldoDinheiro,
+            ];
+
+            $totalVendas += $totalCaixa;
+            $qtdVendas += $quantidade;
+            $totalSangrias += $sangriaTotal;
+            $qtdSangrias += $sangriaQuantidade;
+            $totalSugerido += $sangriaSugerida ?? 0;
+        }
+
+        return response()->json([
+            'atualizado_em' => now()->toIso8601String(),
+            'modo' => $modo,
+            'formas_labels' => self::FORMAS,
+            'caixas' => $caixas,
+            'avisos' => array_values(array_unique($avisos)),
+            'consolidado' => [
+                'caixas' => count($caixas),
+                'vendas_quantidade' => $qtdVendas,
+                'sangrias_quantidade' => $qtdSangrias,
+                'sangrias_total' => round($totalSangrias, 2),
+                'sangrias_sugeridas' => round($totalSugerido, 2),
+                'formas' => $consolidado,
+                'total' => round($totalVendas, 2),
+            ],
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    public function detalhes(int $caixa)
+    {
+        $this->autorizar();
+
+        $registro = DB::table('caixas')
+            ->where('id', $caixa)
+            ->first();
+
+        abort_unless($registro, 404);
+
+        $movimentacoes = DB::table('movimentacoes_caixa as m')
+            ->leftJoin('users as u', 'u.id', '=', 'm.user_id')
+            ->where('m.caixa_id', $caixa)
+            ->orderByDesc('m.data_movimentacao')
+            ->orderByDesc('m.id')
+            ->limit(150)
+            ->get([
+                'm.id',
+                'm.tipo',
+                'm.forma_pagamento',
+                'm.valor',
+                'm.data_movimentacao',
+                'u.name as operador'
+            ]);
+
+        return response()->json([
+            'caixa' => $registro,
+            'movimentacoes' => $movimentacoes,
+        ])->header('Cache-Control', 'no-store, private');
+    }
+}

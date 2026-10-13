@@ -1,4 +1,5 @@
 <?php
+require __DIR__.'/bi09_caixas_gerencial.php';
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BI\BiExecutivoController;
@@ -551,6 +552,30 @@ Route::middleware(['auth'])
     ->name('backups.')
     ->group(function () {
 
+                // NAVEGADOR DE DIRETORIOS - BACKUP ADMINISTRATIVO
+        Route::get('/diretorios',
+            [\App\Http\Controllers\BackupAdministracaoController::class, 'explorarDiretorios']
+        )->name('diretorios');
+        // BACKUP ADMINISTRATIVO - NOVOS MODULOS
+        Route::get('/automatico',
+            [\App\Http\Controllers\BackupAdministracaoController::class, 'automatico']
+        )->name('automatico');
+
+        Route::post('/automatico',
+            [\App\Http\Controllers\BackupAdministracaoController::class, 'salvarAutomatico']
+        )->name('automatico.salvar');
+
+        Route::get('/configuracao',
+            [\App\Http\Controllers\BackupAdministracaoController::class, 'configuracao']
+        )->name('configuracao');
+
+        Route::post('/configuracao',
+            [\App\Http\Controllers\BackupAdministracaoController::class, 'salvarConfiguracao']
+        )->name('configuracao.salvar');
+
+        Route::get('/historico',
+            [\App\Http\Controllers\BackupAdministracaoController::class, 'historico']
+        )->name('historico');
         Route::get('/', [BackupController::class, 'index'])
             ->name('index');
 

@@ -1,0 +1,1145 @@
+@extends('layouts.app')
+
+@section('content')
+
+<div class="container-fluid bi09-page py-3" id="bi09-app">
+
+    <!-- ================================================== -->
+    <!-- HEADER GERAL -->
+    <!-- ================================================== -->
+
+    <div class="bi09-page-title d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h4 class="fw-bold mb-1">
+                BI-09 — Central Gerencial de Caixas
+            </h4>
+            <div class="text-muted small">
+                Monitoramento de caixas em operação na rede
+            </div>
+        </div>
+        <span class="bi09-refresh-indicator">
+            <span id="bi09-status-dot" class="bi09-dot"></span>
+            <span id="bi09-status">Atualização automática: 20 s</span>
+        </span>
+    </div>
+
+    <!-- FILTROS -->
+
+    <div class="bi09-toolbar mb-3">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+
+            <span class="fw-semibold small">Modo:</span>
+
+            <button type="button" class="btn btn-primary btn-sm bi09-mode active"
+                    id="bi09-ao-vivo">
+                Caixas abertos
+            </button>
+
+            <button type="button" class="btn btn-outline-secondary btn-sm bi09-mode"
+                    id="bi09-historico">
+                Conferência por data de abertura
+            </button>
+
+            <div class="bi09-datas d-none" id="bi09-area-datas">
+                <label class="small mb-0">Abertura de</label>
+                <input type="date" id="bi09-data-inicio"
+                       class="form-control form-control-sm"
+                       value="{{ now()->toDateString() }}">
+
+                <label class="small mb-0">até</label>
+                <input type="date" id="bi09-data-fim"
+                       class="form-control form-control-sm"
+                       value="{{ now()->toDateString() }}">
+            </div>
+
+            <button type="button" class="btn btn-primary btn-sm"
+                    id="bi09-aplicar">
+                Aplicar
+            </button>
+
+            <div class="ms-auto bi09-sync small text-muted">
+                Sincronizado: <strong id="bi09-sincronizado">—</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-warning d-none py-2 small"
+         id="bi09-avisos"></div>
+
+    <!-- ================================================== -->
+    <!-- BODY - CAIXAS -->
+    <!-- ================================================== -->
+
+    <div class="row g-3 align-items-stretch" id="bi09-cards">
+        <div class="col-12 text-center text-muted py-5">
+            Consultando caixas abertos...
+        </div>
+    </div>
+
+    <!-- ================================================== -->
+    <!-- FOOTER - CONSOLIDADO GERAL -->
+    <!-- ================================================== -->
+
+    <div class="bi09-consolidado mt-3">
+        <div class="bi09-consolidado-head">
+            <h5 class="fw-bold mb-0">
+                Consolidado geral dos caixas exibidos
+            </h5>
+        </div>
+        <div id="bi09-consolidado-body">
+            <div class="text-center text-muted py-4">
+                Carregando indicadores...
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ====================================================== -->
+<!-- MODAL GERENCIAL -->
+<!-- ====================================================== -->
+
+<div class="modal fade" id="bi09-modal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="bi09-modal-title">
+                    Detalhes do caixa
+                </h5>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body" id="bi09-modal-body">
+                Carregando...
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary"
+                        data-bs-dismiss="modal">Fechar</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+
+/* ==========================================================
+   BI-09 - IDENTIDADE VISUAL
+   ========================================================== */
+
+.bi09-page {
+    max-width: 100%;
+    color: #16233b;
+}
+
+.bi09-page-title h4 {
+    color: #142742;
+    font-size: 1.35rem;
+}
+
+.bi09-refresh-indicator {
+    background: #eef5ff;
+    border: 1px solid #d5e5fa;
+    color: #24558e;
+    padding: 8px 12px;
+    border-radius: 7px;
+    font-size: .78rem;
+    font-weight: 600;
+}
+
+.bi09-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 5px;
+    border-radius: 50%;
+    background: #198754;
+}
+
+.bi09-toolbar,
+.bi09-consolidado {
+    background: #fff;
+    border: 1px solid #e3e9f1;
+    border-radius: 10px;
+    box-shadow: 0 2px 9px rgba(20,45,70,.04);
+}
+
+.bi09-toolbar {
+    padding: 13px 15px;
+}
+
+.bi09-datas {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.bi09-datas input {
+    width: 145px;
+}
+
+.bi09-page .btn-primary {
+    background: #1265ce;
+    border-color: #1265ce;
+}
+
+/* ==========================================================
+   CARD PRINCIPAL
+   ========================================================== */
+
+.bi09-caixa {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #e0e7f0;
+    border-radius: 11px;
+    box-shadow: 0 3px 12px rgba(24,44,67,.055);
+    overflow: hidden;
+}
+
+.bi09-card-header {
+    padding: 15px 15px 12px;
+    border-bottom: 1px solid #e7ebf1;
+    background: #fff;
+}
+
+.bi09-caixa-nome {
+    font-size: 1.05rem;
+    font-weight: 750;
+    color: #15253e;
+    line-height: 1.2;
+}
+
+.bi09-operador {
+    font-size: .77rem;
+    color: #34445b;
+    margin-top: 6px;
+}
+
+.bi09-status-aberto,
+.bi09-status-fechado {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-size: .72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.bi09-status-aberto {
+    color: #126a35;
+    background: #e5f6ea;
+    border: 1px solid #caebd2;
+}
+
+.bi09-status-fechado {
+    color: #616b76;
+    background: #edf0f3;
+    border: 1px solid #dde2e7;
+}
+
+.bi09-metadata {
+    display: grid;
+    grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr);
+    gap: 7px;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid #e7ebf1;
+}
+
+.bi09-meta {
+    min-width: 0;
+}
+
+.bi09-meta-label {
+    color: #72839c;
+    font-size: .66rem;
+    line-height: 1.3;
+}
+
+.bi09-meta-value {
+    color: #172944;
+    font-weight: 700;
+    font-size: .73rem;
+    overflow-wrap: anywhere;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================
+   CARD BODY - 2 PAINEIS LADO A LADO
+   ========================================================== */
+
+.bi09-card-body {
+    flex: 1;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: minmax(0,1.12fr) minmax(0,1fr);
+    gap: 8px;
+}
+
+.bi09-painel {
+    min-width: 0;
+    border: 1px solid #e8eef5;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.bi09-painel-head {
+    padding: 10px 9px;
+    background: #eef4fc;
+    color: #143d78;
+    font-weight: 700;
+    font-size: .75rem;
+    line-height: 1.35;
+    min-height: 43px;
+}
+
+.bi09-painel-content {
+    padding: 5px 8px;
+}
+
+.bi09-pagamento {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    border-bottom: 1px solid #edf0f4;
+    padding: 10px 0;
+    font-size: .72rem;
+}
+
+.bi09-pagamento:last-child {
+    border-bottom: 0;
+}
+
+.bi09-pagamento-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: #334155;
+}
+
+.bi09-pagamento-valor {
+    white-space: nowrap;
+    font-weight: 750;
+    color: #142742;
+    font-size: .72rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================
+   SANGRIAS
+   ========================================================== */
+
+.bi09-sangrias-content {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bi09-kpi {
+    padding: 11px 9px;
+    border-radius: 8px;
+    min-height: 67px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.bi09-kpi-label {
+    font-size: .66rem;
+    color: #576c85;
+    line-height: 1.3;
+}
+
+.bi09-kpi-value {
+    font-size: .92rem;
+    font-weight: 800;
+    color: #153258;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.bi09-kpi-blue {
+    background: #e8f3ff;
+}
+
+.bi09-kpi-warning {
+    background: #fff2d9;
+}
+
+.bi09-kpi-warning .bi09-kpi-value {
+    color: #b96700;
+}
+
+.bi09-kpi-neutral {
+    background: #edf1f7;
+}
+
+.bi09-kpi-green {
+    background: #e4f7ec;
+}
+
+.bi09-kpi-green .bi09-kpi-value {
+    color: #087442;
+}
+
+.bi09-kpi-sub {
+    font-size: .66rem;
+    margin-top: 3px;
+    color: #66788e;
+}
+
+/* ==========================================================
+   CARD FOOTER
+   ========================================================== */
+
+.bi09-card-footer {
+    padding: 10px;
+    margin-top: auto;
+    background: #fff;
+}
+
+.bi09-total-caixa {
+    background: #e5f7ec;
+    color: #086c3c;
+    border-radius: 7px;
+    padding: 12px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.bi09-total-label {
+    font-size: .74rem;
+    font-weight: 800;
+}
+
+.bi09-total-valor {
+    font-size: 1.03rem;
+    font-weight: 850;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.bi09-detalhes-btn {
+    display: block;
+    width: 100%;
+    padding: 9px;
+    margin-top: 8px;
+    background: #f5f8fc;
+    border: 1px solid #d8e3f0;
+    color: #1265ce;
+    border-radius: 6px;
+    font-size: .77rem;
+    font-weight: 700;
+}
+
+.bi09-detalhes-btn:hover {
+    background: #e8f1ff;
+}
+
+/* ==========================================================
+   CONSOLIDADO
+   ========================================================== */
+
+.bi09-consolidado {
+    padding: 15px;
+}
+
+.bi09-consolidado-head {
+    margin-bottom: 12px;
+}
+
+.bi09-consolidado-head h5 {
+    font-size: 1rem;
+    color: #162f55;
+}
+
+.bi09-resumo {
+    border-radius: 8px;
+    padding: 12px;
+    height: 100%;
+    background: #eef5ff;
+}
+
+.bi09-resumo-green {
+    background: #eaf8ef;
+}
+
+.bi09-resumo-purple {
+    background: #f3eeff;
+}
+
+.bi09-resumo-orange {
+    background: #fff5e4;
+}
+
+.bi09-resumo-label {
+    font-size: .72rem;
+    color: #60738c;
+}
+
+.bi09-resumo-valor {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #17345b;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.bi09-consolidado-forma {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #e9eef5;
+    font-size: .78rem;
+}
+
+.bi09-consolidado-forma strong {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.bi09-total-geral {
+    height: 100%;
+    min-height: 170px;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    border-radius: 9px;
+    background: #e3f7eb;
+    padding: 23px;
+    color: #075e38;
+}
+
+.bi09-total-geral-label {
+    font-size: .8rem;
+    font-weight: 800;
+}
+
+.bi09-total-geral-valor {
+    font-size: clamp(1.4rem,2.6vw,2.4rem);
+    font-weight: 850;
+    margin-top: 7px;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+/* RESPONSIVIDADE */
+
+@media (max-width: 1250px) {
+    .bi09-card-body {
+        grid-template-columns: minmax(0,1fr) minmax(0,.95fr);
+        gap: 6px;
+        padding: 7px;
+    }
+
+    .bi09-pagamento {
+        font-size: .66rem;
+    }
+
+    .bi09-pagamento-valor {
+        font-size: .66rem;
+    }
+
+    .bi09-card-header {
+        padding: 12px 10px;
+    }
+}
+
+@media (max-width: 767px) {
+    .bi09-card-body {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 420px) {
+    .bi09-card-body {
+        grid-template-columns: 1fr;
+    }
+}
+
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    'use strict';
+
+    const DADOS_URL = @json(route('bi.caixas-gerencial.dados'));
+    const DETALHES_BASE = @json(route('bi.caixas-gerencial.detalhes', ['caixa' => 999999]));
+
+    const INTERVALO = 20000;
+
+    const FORMAS = [
+        ['dinheiro', 'Dinheiro'],
+        ['pix', 'PIX'],
+        ['cartao_debito', 'Cartão de Débito'],
+        ['cartao_credito', 'Cartão de Crédito'],
+        ['carteira', 'Carteira']
+    ];
+
+    const raiz = document.getElementById('bi09-app');
+    const cards = document.getElementById('bi09-cards');
+    const resumo = document.getElementById('bi09-consolidado-body');
+
+    const btnVivo = document.getElementById('bi09-ao-vivo');
+    const btnHistorico = document.getElementById('bi09-historico');
+    const areaDatas = document.getElementById('bi09-area-datas');
+
+    let modo = 'abertos';
+    let carregando = false;
+    let requisicao = 0;
+    let tokenConsulta = 0;
+
+    function moeda(n) {
+        return Number(n || 0).toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+    }
+
+    function esc(v) {
+        return String(v ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    function data(v) {
+        if (!v) return '—';
+        const d = new Date(String(v).replace(' ', 'T'));
+        return isNaN(d.getTime())
+            ? esc(v)
+            : d.toLocaleString('pt-BR');
+    }
+
+    function hora(v) {
+        if (!v) return '—';
+        const d = new Date(String(v).replace(' ', 'T'));
+        return isNaN(d.getTime())
+            ? esc(v)
+            : d.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+    }
+
+    function tempo(v) {
+        if (!v) return '—';
+
+        const d = new Date(String(v).replace(' ', 'T'));
+        if (isNaN(d.getTime())) return '—';
+
+        const seg = Math.max(0, Math.floor(
+            (Date.now() - d.getTime()) / 1000
+        ));
+
+        const h = Math.floor(seg / 3600);
+        const m = Math.floor((seg % 3600) / 60);
+        const s = seg % 60;
+
+        return `${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+    }
+
+    function pagamento(nome, valor) {
+        return `
+            <div class="bi09-pagamento">
+                <span class="bi09-pagamento-label">${esc(nome)}</span>
+                <span class="bi09-pagamento-valor">${moeda(valor)}</span>
+            </div>`;
+    }
+
+    function kpi(nome, valor, classe, complemento = '') {
+        return `
+            <div class="bi09-kpi ${classe}">
+                <div class="bi09-kpi-label">${esc(nome)}</div>
+                <div class="bi09-kpi-value">${esc(valor)}</div>
+                ${complemento ? `<div class="bi09-kpi-sub">${esc(complemento)}</div>` : ''}
+            </div>`;
+    }
+
+    function caixaHtml(c) {
+
+        const aberto = c.status === 'aberto';
+
+        const statusClasse = aberto
+            ? 'bi09-status-aberto'
+            : 'bi09-status-fechado';
+
+        const pagamentos = FORMAS.map(([chave, nome]) =>
+            pagamento(nome, c.formas?.[chave] || 0)
+        ).join('');
+
+        const sugerida = c.sangria_sugerida === null
+            ? 'Não configurada'
+            : moeda(c.sangria_sugerida);
+
+        const saldo = c.saldo_dinheiro === null
+            ? 'Não disponível'
+            : moeda(c.saldo_dinheiro);
+
+        return `
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="bi09-caixa">
+
+                <!-- HEADER -->
+                <div class="bi09-card-header">
+
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            <div class="bi09-caixa-nome">
+                                Caixa ${esc(c.id)}
+                            </div>
+                            <div class="text-muted small mt-1">
+                                ${esc(c.terminal || 'Terminal não identificado')}
+                            </div>
+                        </div>
+
+                        <span class="${statusClasse}">
+                            ${aberto ? '● Aberto' : esc(c.status)}
+                        </span>
+                    </div>
+
+                    <div class="bi09-operador">
+                        <strong>Operador:</strong>
+                        ${esc(c.operador)}
+                        <span class="text-muted">
+                            (USR-${esc(c.user_id)})
+                        </span>
+                    </div>
+
+                    <div class="bi09-metadata">
+
+                        <div class="bi09-meta">
+                            <div class="bi09-meta-label">Abertura</div>
+                            <div class="bi09-meta-value">
+                                ${data(c.abertura)}
+                            </div>
+                        </div>
+
+                        <div class="bi09-meta">
+                            <div class="bi09-meta-label">Tempo em aberto</div>
+                            <div class="bi09-meta-value bi09-tempo"
+                                 data-abertura="${esc(c.abertura)}"
+                                 data-aberto="${aberto ? 1 : 0}">
+                                ${aberto ? tempo(c.abertura) : 'Encerrado'}
+                            </div>
+                        </div>
+
+                        <div class="bi09-meta">
+                            <div class="bi09-meta-label">Última venda</div>
+                            <div class="bi09-meta-value">
+                                ${hora(c.ultima_venda)}
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- BODY: DUAS COLUNAS INTERNAS -->
+                <div class="bi09-card-body">
+
+                    <div class="bi09-painel">
+
+                        <div class="bi09-painel-head">
+                            Formas de pagamento
+                            <div class="fw-normal mt-1">
+                                ${esc(c.quantidade_vendas)} venda(s)
+                            </div>
+                        </div>
+
+                        <div class="bi09-painel-content">
+                            ${pagamentos}
+                        </div>
+
+                    </div>
+
+                    <div class="bi09-painel">
+
+                        <div class="bi09-painel-head">
+                            Controle de sangrias
+                        </div>
+
+                        <div class="bi09-sangrias-content">
+
+                            ${kpi(
+                                'Sangrias realizadas',
+                                moeda(c.sangrias_total),
+                                'bi09-kpi-blue',
+                                c.sangrias_quantidade + ' operação(ões)'
+                            )}
+
+                            ${kpi(
+                                'Sangria a realizar',
+                                sugerida,
+                                'bi09-kpi-warning'
+                            )}
+
+                            ${kpi(
+                                'Última sangria',
+                                hora(c.ultima_sangria),
+                                'bi09-kpi-neutral'
+                            )}
+
+                            ${kpi(
+                                'Dinheiro estimado em caixa',
+                                saldo,
+                                'bi09-kpi-green'
+                            )}
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- FOOTER -->
+                <div class="bi09-card-footer">
+
+                    <div class="bi09-total-caixa">
+                        <span class="bi09-total-label">
+                            TOTAL DO CAIXA
+                        </span>
+                        <strong class="bi09-total-valor">
+                            ${moeda(c.total)}
+                        </strong>
+                    </div>
+
+                    <button type="button"
+                            class="bi09-detalhes-btn"
+                            data-caixa-id="${esc(c.id)}">
+                        Ver detalhes
+                    </button>
+
+                </div>
+
+            </div>
+        </div>`;
+    }
+
+    function resumoCard(titulo, valor, classe) {
+        return `
+        <div class="col-6 col-xl-3">
+            <div class="bi09-resumo ${classe}">
+                <div class="bi09-resumo-label">${esc(titulo)}</div>
+                <div class="bi09-resumo-valor">${esc(valor)}</div>
+            </div>
+        </div>`;
+    }
+
+    function consolidadoHtml(d) {
+
+        const formas = FORMAS.map(([chave, nome]) => `
+            <div class="bi09-consolidado-forma">
+                <span>${esc(nome)}</span>
+                <strong>${moeda(d.formas?.[chave] || 0)}</strong>
+            </div>
+        `).join('');
+
+        return `
+            <div class="row g-2 mb-3">
+
+                ${resumoCard(
+                    'Caixas em operação / exibidos',
+                    String(d.caixas),
+                    'bi09-resumo-green'
+                )}
+
+                ${resumoCard(
+                    'Vendas realizadas',
+                    String(d.vendas_quantidade),
+                    ''
+                )}
+
+                ${resumoCard(
+                    'Sangrias realizadas',
+                    moeda(d.sangrias_total),
+                    'bi09-resumo-purple'
+                )}
+
+                ${resumoCard(
+                    'Sangrias a realizar',
+                    moeda(d.sangrias_sugeridas),
+                    'bi09-resumo-orange'
+                )}
+
+            </div>
+
+            <div class="row g-3 align-items-stretch">
+
+                <div class="col-12 col-lg-7">
+                    <div class="fw-semibold small mb-2">
+                        Totais por forma de pagamento
+                    </div>
+                    <div class="row gx-4">
+                        <div class="col-md-6">
+                            ${FORMAS.slice(0,3).map(([chave,nome]) => `
+                                <div class="bi09-consolidado-forma">
+                                    <span>${esc(nome)}</span>
+                                    <strong>${moeda(d.formas?.[chave] || 0)}</strong>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="col-md-6">
+                            ${FORMAS.slice(3).map(([chave,nome]) => `
+                                <div class="bi09-consolidado-forma">
+                                    <span>${esc(nome)}</span>
+                                    <strong>${moeda(d.formas?.[chave] || 0)}</strong>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-5">
+                    <div class="bi09-total-geral">
+                        <div class="bi09-total-geral-label">
+                            TOTAL GERAL DOS CAIXAS EXIBIDOS
+                        </div>
+                        <div class="bi09-total-geral-valor">
+                            ${moeda(d.total)}
+                        </div>
+                    </div>
+                </div>
+
+            </div>`;
+    }
+
+    async function atualizar() {
+
+        if (carregando) return;
+
+        carregando = true;
+
+        const token = tokenConsulta;
+        const modoConsulta = modo;
+
+        try {
+
+            const params = new URLSearchParams({
+                modo: modoConsulta
+            });
+
+            if (modoConsulta === 'historico') {
+                params.set(
+                    'data_inicio',
+                    document.getElementById('bi09-data-inicio').value
+                );
+                params.set(
+                    'data_fim',
+                    document.getElementById('bi09-data-fim').value
+                );
+            }
+
+            const resposta = await fetch(
+                DADOS_URL + '?' + params.toString(),
+                {
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                }
+            );
+
+            if (!resposta.ok) {
+                throw new Error('HTTP ' + resposta.status);
+            }
+
+            const dados = await resposta.json();
+
+            if (token !== tokenConsulta || modoConsulta !== modo) return;
+
+            cards.innerHTML = dados.caixas.length
+                ? dados.caixas.map(caixaHtml).join('')
+                : `<div class="col-12">
+                    <div class="bi09-toolbar text-center py-5 text-muted">
+                        Nenhum caixa encontrado.
+                    </div>
+                   </div>`;
+
+            resumo.innerHTML = consolidadoHtml(dados.consolidado);
+
+            document.getElementById('bi09-sincronizado')
+                .textContent = new Date().toLocaleTimeString('pt-BR');
+
+            const status = document.getElementById('bi09-status');
+            status.textContent = 'Atualização automática: 20 s';
+
+            document.getElementById('bi09-status-dot')
+                .style.background = '#198754';
+
+            const avisos = document.getElementById('bi09-avisos');
+
+            if (dados.avisos && dados.avisos.length) {
+                avisos.textContent = dados.avisos.join(' | ');
+                avisos.classList.remove('d-none');
+            } else {
+                avisos.textContent = '';
+                avisos.classList.add('d-none');
+            }
+
+        } catch (erro) {
+
+            console.error('BI-09:', erro);
+
+            document.getElementById('bi09-status').textContent =
+                'Falha de sincronização';
+
+            document.getElementById('bi09-status-dot')
+                .style.background = '#dc3545';
+
+        } finally {
+            carregando = false;
+        }
+    }
+
+    async function detalhes(id) {
+
+        const corpo = document.getElementById('bi09-modal-body');
+        const titulo = document.getElementById('bi09-modal-title');
+
+        titulo.textContent = 'Caixa ' + id + ' — Movimentações';
+        corpo.textContent = 'Carregando...';
+
+        const modal = bootstrap.Modal.getOrCreateInstance(
+            document.getElementById('bi09-modal')
+        );
+
+        modal.show();
+
+        try {
+
+            const url = DETALHES_BASE.replace(
+                '999999',
+                encodeURIComponent(id)
+            );
+
+            const resposta = await fetch(url, {
+                cache: 'no-store',
+                credentials: 'same-origin',
+                headers: {'Accept':'application/json'}
+            });
+
+            if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+
+            const dados = await resposta.json();
+
+            const linhas = dados.movimentacoes.map(m => `
+                <tr>
+                    <td>${data(m.data_movimentacao)}</td>
+                    <td>${esc(m.tipo)}</td>
+                    <td>${esc(m.forma_pagamento || '—')}</td>
+                    <td>${esc(m.operador || '—')}</td>
+                    <td class="text-end">${moeda(m.valor)}</td>
+                </tr>
+            `).join('');
+
+            corpo.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Data / hora</th>
+                                <th>Movimentação</th>
+                                <th>Forma</th>
+                                <th>Operador</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhas || '<tr><td colspan="5">Sem movimentações</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="small text-muted">
+                    Até 150 movimentações recentes.
+                </div>`;
+
+        } catch (e) {
+            corpo.textContent = 'Erro ao consultar movimentações.';
+        }
+    }
+
+    document.addEventListener('click', evento => {
+
+        const botao = evento.target.closest('[data-caixa-id]');
+
+        if (botao) {
+            detalhes(botao.dataset.caixaId);
+        }
+    });
+
+    function selecionarModo(novoModo) {
+
+        modo = novoModo;
+        tokenConsulta++;
+
+        btnVivo.className = novoModo === 'abertos'
+            ? 'btn btn-primary btn-sm bi09-mode active'
+            : 'btn btn-outline-secondary btn-sm bi09-mode';
+
+        btnHistorico.className = novoModo === 'historico'
+            ? 'btn btn-primary btn-sm bi09-mode active'
+            : 'btn btn-outline-secondary btn-sm bi09-mode';
+
+        areaDatas.classList.toggle('d-none', novoModo !== 'historico');
+
+        atualizarQuandoLivre();
+    }
+
+    function atualizarQuandoLivre() {
+        if (carregando) {
+            const aguardando = setInterval(() => {
+                if (!carregando) {
+                    clearInterval(aguardando);
+                    atualizar();
+                }
+            }, 100);
+        } else {
+            atualizar();
+        }
+    }
+
+    btnVivo.addEventListener('click', () => selecionarModo('abertos'));
+    btnHistorico.addEventListener('click', () => selecionarModo('historico'));
+
+    document.getElementById('bi09-aplicar')
+        .addEventListener('click', atualizarQuandoLivre);
+
+    // Cronometro atualizado a cada segundo.
+    setInterval(() => {
+        document.querySelectorAll('.bi09-tempo').forEach(el => {
+            if (el.dataset.aberto === '1') {
+                el.textContent = tempo(el.dataset.abertura);
+            }
+        });
+    }, 1000);
+
+    // Consulta automatica ao servidor a cada 20 segundos.
+    setInterval(() => {
+        if (modo === 'abertos') atualizar();
+    }, INTERVALO);
+
+    atualizar();
+
+});
+</script>
+
+@endsection

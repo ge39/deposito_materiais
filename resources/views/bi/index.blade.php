@@ -336,4 +336,47 @@
 
 </div>
 
+
+{{-- BI09_CARD_INDEPENDENTE --}}
+<div class="container-fluid mt-3 mb-4">
+    <div class="row g-3">
+
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        <i class="bi bi-cash-stack me-2"></i>
+                        Central Gerencial de Caixas
+                    </h5>
+
+                    <p class="card-text text-muted">
+                        Monitoramento em tempo real dos caixas
+                        abertos, operadores, formas de pagamento,
+                        sangrias e totalizadores financeiros.
+                        Atualizacao automatica a cada 20 segundos.
+                    </p>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+
+                        <span class="badge bg-secondary">
+                            BI-09
+                        </span>
+
+                        <a href="{{ route('bi.caixas-gerencial.index') }}"
+                           class="btn btn-primary btn-sm">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>
+                            Abrir dashboard
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
 @endsection
