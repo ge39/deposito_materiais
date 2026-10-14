@@ -29,6 +29,28 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+
+        // LOGIN419_HANDLER_V1
+        // Falha de CSRF no login: retornar ao formulario.
+        // Nao desabilita a verificacao CSRF.
+        $exceptions->render(function (HttpException $e, Request $request) {
+            if (
+                $e->getStatusCode() === 419 &&
+                $request->is('login') &&
+                $request->isMethod('POST') &&
+                ! $request->expectsJson()
+            ) {
+                return redirect()
+                    ->route('login')
+                    ->with(
+                        'login_session_error',
+                        'A sessao foi renovada. Informe suas credenciais novamente.'
+                    );
+            }
+
+            return null;
+        });
+
         $exceptions->render(function (HttpException $e, Request $request) {
             if ($e->getStatusCode() !== 423) {
                 return null;

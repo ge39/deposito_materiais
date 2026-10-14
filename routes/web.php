@@ -1308,3 +1308,12 @@ Route::get(
     '/bi/financeiro',
     [\App\Http\Controllers\BI\BiFinanceiroController::class, 'index']
 )->middleware('auth')->name('bi.financeiro.index');
+
+
+// REC01_ROUTE_V3 - CENTRAL DE DIAGNOSTICO
+\Illuminate\Support\Facades\Route::get(
+    '/admin/recuperacao/diagnostico',
+    [\App\Http\Controllers\RecuperacaoDiagnosticoController::class, 'index']
+)
+->middleware('auth')
+->name('admin.recuperacao.diagnostico');

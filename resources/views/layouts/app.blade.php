@@ -2195,6 +2195,18 @@
             {{ config('app.name', 'Depósito de Materiais') }}
             — JMFSoftware2017
         </small>
+        {{-- REC01_STATUSBAR_LINK_V1 --}}
+        @auth
+            @if((bool) auth()->user()->ativo && auth()->user()->nivel_acesso === 'admin')
+                <span class="mx-2 text-muted" aria-hidden="true">|</span>
+                <a href="{{ route('admin.recuperacao.diagnostico') }}"
+                   class="text-decoration-none"
+                   style="color: inherit; font-size: 0.875rem;"
+                   title="Abrir Central de Recuperação de Dados">
+                    &#128737; Recuperação de Dados
+                </a>
+            @endif
+        @endauth
 
     </footer>
 

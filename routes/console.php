@@ -42,3 +42,9 @@ if (!empty($backupConfig['ativo'])) {
         ->everyFifteenMinutes()
         ->withoutOverlapping(10);
 }
+
+
+// REC01_BOOT_FIX_V1 - Expiracao de orcamentos independente do boot
+\Illuminate\Support\Facades\Schedule::command('orcamentos:expirar')
+    ->dailyAt('00:10')
+    ->withoutOverlapping();

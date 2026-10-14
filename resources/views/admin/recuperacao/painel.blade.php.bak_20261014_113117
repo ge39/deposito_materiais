@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>REC-01 | Central de Recuperação</title>
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+    <style>
+        body {
+            background: #f4f6f9;
+            color: #263445;
+        }
+
+        .rec-container {
+            max-width: 1100px;
+        }
+
+        .rec-card {
+            border: 1px solid #dde3ea;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,.04);
+            overflow: hidden;
+        }
+
+        .rec-card .card-header {
+            background: white;
+            font-weight: 600;
+            padding: 16px 20px;
+        }
+
+        .rec-card .card-body {
+            padding: 22px;
+        }
+
+        .rec-label {
+            color: #68778a;
+            font-size: 13px;
+        }
+
+        .rec-value {
+            font-weight: 600;
+        }
+
+        .rec-badge {
+            font-size: 13px;
+        }
+
+        .rec-footer {
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        code {
+            overflow-wrap: anywhere;
+        }
+    </style>
+</head>
+
+<body>
+
+<main class="container rec-container py-5">
+
+    <header class="bg-white rounded-3 shadow-sm p-4 mb-4">
+        <div class="d-flex flex-wrap align-items-center
+                    justify-content-between gap-3">
+
+            <div>
+                <div class="text-muted small">
+                    Administração / REC-01
+                </div>
+
+                <h3 class="mb-1">
+                    Central de Recuperação de Dados
+                </h3>
+
+                <p class="mb-0 text-muted">
+                    Diagnóstico automático de integridade
+                </p>
+            </div>
+
+            @if(!$diagnosticoConcluido)
+                <span class="badge bg-secondary rec-badge">
+                    Diagnóstico inconclusivo
+                </span>
+            @elseif(!$presente)
+                <span class="badge bg-danger rec-badge">
+                    Falha identificada
+                </span>
+            @else
+                <span class="badge bg-success rec-badge">
+                    Tabela localizada
+                </span>
+            @endif
+        </div>
+    </header>
+
+    @if($erro)
+        <div class="alert alert-warning">
+            <h5>Não foi possível concluir o diagnóstico</h5>
+            <p class="mb-0">{{ $erro }}</p>
+        </div>
+    @elseif(!$presente)
+        <div class="alert alert-danger p-4">
+            <h4>Atenção: problema identificado nos dados</h4>
+
+            <p>
+                O banco de dados não apresenta a tabela
+                <strong>{{ $tabela }}</strong>,
+                necessária para o funcionamento do módulo
+                de Orçamentos.
+            </p>
+
+            <p class="mb-0">
+                Algumas operações podem estar indisponíveis.
+                Isso não comprova que os registros foram perdidos.
+            </p>
+        </div>
+    @else
+        <div class="alert alert-success p-4">
+            <h5>Tabela localizada</h5>
+            <p class="mb-0">
+                A tabela esperada foi encontrada no banco.
+                Isso não substitui uma verificação completa
+                da integridade de seus registros.
+            </p>
+        </div>
+    @endif
+
+    <section class="card rec-card mb-4">
+        <div class="card-header">
+            1. Diagnóstico do banco de dados
+        </div>
+
+        <div class="card-body">
+            <div class="row g-4">
+
+                <div class="col-md-6">
+                    <div class="rec-label">Banco</div>
+                    <div class="rec-value">
+                        {{ $banco ?? 'Não identificado' }}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="rec-label">Módulo</div>
+                    <div class="rec-value">Orçamentos</div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="rec-label">Tabela esperada</div>
+                    <div><code>{{ $tabela }}</code></div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="rec-label">Situação</div>
+
+                    @if(!$diagnosticoConcluido)
+                        <span class="badge bg-secondary">
+                            Não confirmado
+                        </span>
+                    @elseif($presente)
+                        <span class="badge bg-success">
+                            Presente
+                        </span>
+                    @else
+                        <span class="badge bg-danger">
+                            Ausente
+                        </span>
+                    @endif
+                </div>
+
+                <div class="col-md-6">
+                    <div class="rec-label">
+                        Tabela alternativa identificada
+                    </div>
+                    <div class="rec-value">
+                        {{ $tabelaAlternativa ? 'orcamento' : 'Não identificada' }}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="rec-label">
+                        Relacionamentos localizados
+                    </div>
+                    <div class="rec-value">
+                        {{ count($dependencias) }}
+                    </div>
+                </div>
+
+            </div>
+
+            <hr>
+
+            <p class="text-muted mb-0">
+                Esta análise consulta apenas os metadados
+                do banco de dados. Nenhuma operação de
+                correção ou restauração foi executada.
+            </p>
+        </div>
+    </section>
+
+    <section class="card rec-card mb-4">
+        <div class="card-header">
+            2. Relacionamentos identificados
+        </div>
+
+        <div class="card-body">
+            @if(count($dependencias) > 0)
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>Tabela relacionada</th>
+                                <th>Coluna</th>
+                                <th>Referência</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach($dependencias as $dep)
+                                <tr>
+                                    <td>{{ $dep->TABLE_NAME }}</td>
+                                    <td>
+                                        <code>{{ $dep->COLUMN_NAME }}</code>
+                                    </td>
+                                    <td>
+                                        <code>
+                                            {{ $dep->REFERENCED_TABLE_NAME }}.{{ $dep->REFERENCED_COLUMN_NAME }}
+                                        </code>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <p class="text-muted mb-0">
+                    Nenhum relacionamento foi identificado
+                    pela consulta atual ou o diagnóstico
+                    não pôde ser concluído.
+                </p>
+            @endif
+        </div>
+    </section>
+
+    <section class="card rec-card mb-4">
+        <div class="card-header">
+            3. Backups automáticos disponíveis
+        </div>
+
+        <div class="card-body">
+            @if(count($backups) > 0)
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>Arquivo</th>
+                                <th>Modificado em</th>
+                                <th>Tamanho</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach($backups as $backup)
+                                <tr>
+                                    <td>
+                                        <code>{{ $backup['nome'] }}</code>
+                                    </td>
+                                    <td>
+                                        {{ date('d/m/Y H:i:s', $backup['modificado']) }}
+                                    </td>
+                                    <td>
+                                        {{ number_format($backup['tamanho'] / 1048576, 2, ',', '.') }} MB
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="alert alert-info mb-0">
+                    Os arquivos foram localizados.
+                    Ainda não foi realizada a validação
+                    de conteúdo necessária à recuperação
+                    seletiva.
+                </div>
+            @else
+                <div class="alert alert-warning mb-0">
+                    Nenhum backup ZIP foi identificado
+                    no diretório principal configurado
+                    para esta etapa.
+                </div>
+            @endif
+        </div>
+    </section>
+
+    <section class="card rec-card mb-4">
+        <div class="card-header">
+            4. Orientações para recuperação
+        </div>
+
+        <div class="card-body">
+            <p>
+                Uma recuperação inadequada pode comprometer
+                informações e relacionamentos do banco.
+            </p>
+
+            <div class="alert alert-warning">
+                Não tente renomear tabelas, apagar registros
+                ou importar arquivos SQL sem analisar
+                os impactos da operação.
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="button"
+                        class="btn btn-primary"
+                        disabled>
+                    Simular recuperação (próxima etapa)
+                </button>
+
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="copiarDiagnostico()">
+                    Copiar diagnóstico para o desenvolvedor
+                </button>
+            </div>
+
+            <div id="rec01-msg"
+                 role="status"
+                 aria-live="polite"
+                 class="mt-3 small"></div>
+        </div>
+    </section>
+
+    <section class="card rec-card mb-4">
+        <div class="card-body">
+            <h5>Não se sente seguro para continuar?</h5>
+
+            <p class="mb-0">
+                Interrompa o procedimento e entre em contato
+                com o desenvolvedor do sistema ou responsável
+                técnico. Envie o relatório de diagnóstico
+                para facilitar o atendimento.
+            </p>
+        </div>
+    </section>
+
+    <footer class="text-center rec-footer py-3">
+        REC-01 V3 — Diagnóstico somente leitura.
+        Nenhuma restauração habilitada.
+    </footer>
+
+</main>
+
+<script>
+const rec01Data = @json([
+    'banco' => $banco,
+    'tabela' => $tabela,
+    'presente' => $presente,
+    'tabelaAlternativa' => $tabelaAlternativa,
+    'diagnosticoConcluido' => $diagnosticoConcluido,
+    'relacionamentos' => count($dependencias),
+    'backups' => array_column($backups, 'nome')
+]);
+
+async function copiarDiagnostico() {
+    const linhas = [
+        'REC-01 - Diagnóstico técnico',
+        'Banco: ' + (rec01Data.banco || 'Não identificado'),
+        'Tabela esperada: ' + rec01Data.tabela,
+        'Diagnóstico concluído: ' +
+            (rec01Data.diagnosticoConcluido ? 'Sim' : 'Não'),
+        'Tabela presente: ' +
+            (rec01Data.diagnosticoConcluido
+                ? (rec01Data.presente ? 'Sim' : 'Não')
+                : 'Não confirmado'),
+        'Tabela alternativa: ' +
+            (rec01Data.tabelaAlternativa ? 'orcamento' : 'Não'),
+        'Relacionamentos: ' + rec01Data.relacionamentos,
+        'Backups localizados: ' +
+            rec01Data.backups.join(', '),
+        'Restauração executada: Não'
+    ];
+
+    const msg = document.getElementById('rec01-msg');
+
+    try {
+        await navigator.clipboard.writeText(linhas.join('\n'));
+        msg.className = 'mt-3 small text-success';
+        msg.textContent = 'Diagnóstico copiado com sucesso.';
+    } catch (error) {
+        msg.className = 'mt-3 small text-danger';
+        msg.textContent = 'Não foi possível copiar o relatório.';
+    }
+}
+</script>
+
+</body>
+</html>

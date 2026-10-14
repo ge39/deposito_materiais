@@ -47,15 +47,6 @@ class AppServiceProvider extends ServiceProvider
 
         // 3. 📉 MELHORIA DE ARQUITETURA (Otimização contra gargalos no XAMPP):
         // Executa a query de expiração apenas se a requisição atual não for uma chamada AJAX/API rápida.
-        if (!request()->ajax() && !request()->wantsJson()) {
-            $hoje = now()->format('Y-m-d');
-            
-            Orcamento::where('status', 'Aguardando aprovacao')
-                ->whereDate('validade', '<', $hoje)
-                ->update([
-                    'status' => 'Expirado',
-                    'observacoes' => DB::raw("CONCAT(IFNULL(observacoes,''), ' | Orçamento expirado em $hoje')")
-                ]);
-        }
+        // REC01_BOOT_FIX_V1: expiracao transferida para o Scheduler.
     }
 }

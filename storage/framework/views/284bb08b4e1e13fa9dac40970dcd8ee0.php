@@ -18,6 +18,13 @@
         </div>
     <?php endif; ?>
 
+        
+    <?php if(session('login_session_error')): ?>
+        <div class="alert alert-warning" role="alert">
+            <?php echo e(session('login_session_error')); ?>
+
+        </div>
+    <?php endif; ?>
     <form method="POST" action="<?php echo e(route('login.post')); ?>">
         <?php echo csrf_field(); ?>
         <div class="mb-3">
@@ -34,6 +41,112 @@
     </form>
 </div>
 
+<!-- LOGIN419_V1 - Renovacao preventiva do CSRF -->
+<script>
+(function () {
+    'use strict';
+
+    const form = document.querySelector('form[method="POST"]');
+
+    if (!form) {
+        return;
+    }
+
+    const csrfInput = form.querySelector('input[name="_token"]');
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    if (!csrfInput || !submitButton) {
+        return;
+    }
+
+    let processing = false;
+
+    function showError(message) {
+        let alert = document.getElementById('login419-alert');
+
+        if (!alert) {
+            alert = document.createElement('div');
+            alert.id = 'login419-alert';
+            alert.className = 'alert alert-danger';
+            alert.setAttribute('role', 'alert');
+            form.parentNode.insertBefore(alert, form);
+        }
+
+        alert.textContent = message;
+    }
+
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        if (processing) {
+            return;
+        }
+
+        processing = true;
+        submitButton.disabled = true;
+
+        const originalText = submitButton.textContent;
+        submitButton.textContent = 'Autenticando...';
+
+        try {
+            const loginUrl = new URL(form.action);
+
+            const response = await fetch(loginUrl.href, {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                redirect: 'follow',
+                headers: {
+                    'Accept': 'text/html'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Falha ao renovar a sessao.');
+            }
+
+            const finalUrl = new URL(response.url);
+
+            if (finalUrl.origin !== loginUrl.origin ||
+                finalUrl.pathname !== loginUrl.pathname) {
+                throw new Error('Resposta inesperada da autenticacao.');
+            }
+
+            const html = await response.text();
+
+            const documentResult = new DOMParser().parseFromString(
+                html,
+                'text/html'
+            );
+
+            const newToken = documentResult.querySelector(
+                'form input[name="_token"]'
+            );
+
+            if (!newToken || !newToken.value) {
+                throw new Error('Token CSRF nao encontrado.');
+            }
+
+            csrfInput.value = newToken.value;
+
+            // Submete somente depois da renovacao CSRF.
+            HTMLFormElement.prototype.submit.call(form);
+
+        } catch (error) {
+            console.error('LOGIN419_V1:', error.message);
+
+            showError(
+                'Nao foi possivel atualizar a sessao de login. ' +
+                'Verifique a conexao e tente novamente.'
+            );
+
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+            processing = false;
+        }
+    });
+})();
+</script>
 </body>
 </html>
 <?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views\auth\login.blade.php ENDPATH**/ ?>
