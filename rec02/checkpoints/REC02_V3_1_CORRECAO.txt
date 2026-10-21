@@ -1,0 +1,19 @@
+﻿REC-02 V3.1 - CORRECAO
+Data: 16/10/2026 15:27:36
+
+Backup: G:\Meu Drive\backup\deposito_materiais\deposito_materiais_backups\backup_2026-10-14_12-00-03.zip
+SHA256 ZIP: 2EDA413FBBD7C59338DBF032169E56DD159ED29A9F4CD6E30B1CDBC5CE827A7F
+
+SQL: C:\xampp\htdocs\deposito_materiais\storage\app\rec02_laboratorio\sql\backup_2026-10-14_12-00-03.sql
+Tamanho: 6566268
+SHA256 SQL: 7F3C290C5E48EA6834F1BD5FF3144FA61CD75E2FA9387E26B4C51FA82E3E7C8D
+
+Estado:
+- SQL extraido e validado por tamanho
+- SHA256 SQL calculado
+- Manifesto corrigido
+- Banco de laboratorio nao inicializado
+- Nenhum SQL importado
+- Banco original nao modificado pelo procedimento
+
+Status: AGUARDANDO VALIDACAO V3.1

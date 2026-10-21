@@ -1,17 +1,10 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1">
+{{-- REC01_LAYOUT_ERP_V2 --}}
+@extends('layouts.app')
 
-    <title>REC-01 | Diagnóstico Geral</title>
+@section('content')
 
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-
-    <style>
-        body {
+<style>
+.rec01-page {
             background: #f3f5f8;
             color: #253247;
         }
@@ -63,12 +56,13 @@
             font-size: 13px;
             color: #64748b;
         }
-    </style>
-</head>
+    
+</style>
 
-<body>
+<div class="rec01-page">
 
-<main class="container rec-container py-5">
+
+<div class="container rec-container py-5">
 
     <header class="bg-white p-4 rounded-3 shadow-sm mb-4">
         <div class="d-flex justify-content-between
@@ -383,7 +377,7 @@
         somente leitura. Nenhuma restauração habilitada.
     </footer>
 
-</main>
+</div>
 
 @php
     $rec01Relatorio = [
@@ -444,5 +438,7 @@ async function copiarDiagnostico() {
 }
 </script>
 
-</body>
-</html>
+
+</div>
+
+@endsection

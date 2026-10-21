@@ -1,0 +1,34 @@
+﻿REC-02 V3 - CHECKPOINT ETAPA 1
+Projeto: deposito_materiais
+
+Objetivo:
+Preparar laboratorio independente de recuperacao.
+
+Backup:
+C:\xampp\htdocs\deposito_materiais\storage\app\backups\temp_zip\backup_2026-10-14_12-00-03.zip
+
+SHA256 ZIP:
+2EDA413FBBD7C59338DBF032169E56DD159ED29A9F4CD6E30B1CDBC5CE827A7F
+
+SQL:
+C:\xampp\htdocs\deposito_materiais\storage\app\rec02_laboratorio\sql\backup_2026-10-14_12-00-03.sql
+
+SHA256 SQL:
+
+
+Laboratorio:
+C:\xampp\htdocs\deposito_materiais\storage\app\rec02_laboratorio
+
+Porta planejada:
+3310
+
+Estado:
+- Dump SQL extraido
+- Integridade de tamanho verificada
+- Ferramentas MariaDB inventariadas
+- Banco isolado ainda nao inicializado
+- Nenhum SQL importado
+- Banco original nao alterado
+
+STATUS:
+AGUARDANDO VALIDACAO TECNICA DA ETAPA 2

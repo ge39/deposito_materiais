@@ -807,6 +807,19 @@
                                         Histórico de Backups
                                     </a>
                                 </li>
+                                
+                                <?php if(auth()->guard()->check()): ?>
+                                    <?php if((bool) auth()->user()->ativo && auth()->user()->nivel_acesso === 'admin'): ?>
+                                        <li>
+                                            <a
+                                                class="dropdown-item"
+                                                href="<?php echo e(route('admin.recuperacao.diagnostico')); ?>">
+                                                <i class="bi bi-shield-exclamation me-2"></i>
+                                                Recuperação de Dados
+                                            </a>
+                                        </li>
+                                    <?php endif; ?>
+                                <?php endif; ?>
 
                                 <li>
                                     <hr class="dropdown-divider">
@@ -2140,18 +2153,6 @@
 
             — JMFSoftware2017
         </small>
-        
-        <?php if(auth()->guard()->check()): ?>
-            <?php if((bool) auth()->user()->ativo && auth()->user()->nivel_acesso === 'admin'): ?>
-                <span class="mx-2 text-muted" aria-hidden="true">|</span>
-                <a href="<?php echo e(route('admin.recuperacao.diagnostico')); ?>"
-                   class="text-decoration-none"
-                   style="color: inherit; font-size: 0.875rem;"
-                   title="Abrir Central de Recuperação de Dados">
-                    &#128737; Recuperação de Dados
-                </a>
-            <?php endif; ?>
-        <?php endif; ?>
 
     </footer>
 

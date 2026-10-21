@@ -1,0 +1,23 @@
+REC-02 V2 - CHECKPOINT
+Projeto: deposito_materiais
+Data: 16/10/2026
+
+Modulo: Auditoria independente de backups
+
+Funcoes:
+- Localizacao de ZIPs
+- SHA-256
+- Verificacao CRC
+- Identificacao SQL
+- Identificacao de CREATE TABLE
+- Identificacao de INSERT/REPLACE
+- Comparacao entre copias
+- Diagnostico sem MariaDB
+
+Restricoes:
+- Sem restauracao automatica
+- Sem alteracao de banco
+- Sem substituicao de ibdata1
+- Sem reparo de roles_mapping
+
+Status: INSTALADO - AGUARDANDO HOMOLOGACAO

@@ -1,0 +1,716 @@
+<?php
+declare(strict_types=1);
+
+/*
+ * REC-02 V4.0
+ * Central Web de Recuperacao
+ * Independente do Laravel.
+ */
+
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: no-referrer');
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header(
+    "Content-Security-Policy: default-src 'none'; " .
+    "style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'"
+);
+
+$ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+if (!in_array($ip, ['127.0.0.1', '::1'], true)) {
+    http_response_code(403);
+    exit('Acesso permitido somente pelo computador local.');
+}
+
+session_name('REC02_WEB_V40');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => !empty($_SERVER['HTTPS']) &&
+        $_SERVER['HTTPS'] !== 'off',
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
+
+session_start();
+
+$projeto = dirname(__DIR__);
+
+$lab = $projeto .
+    '/storage/app/rec02_laboratorio';
+
+$authFile = $lab . '/config/rec02_web_admin_v40.json';
+
+function h(mixed $valor): string
+{
+    return htmlspecialchars(
+        (string) $valor,
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+    );
+}
+
+function normalizar(string $valor): string
+{
+    return strtolower(
+        rtrim(str_replace('\\', '/', $valor), '/')
+    );
+}
+
+function lerJson(string $arquivo): array
+{
+    if (!is_file($arquivo)) {
+        throw new RuntimeException('Configuracao nao encontrada.');
+    }
+
+    $dados = json_decode(
+        (string) file_get_contents($arquivo),
+        true
+    );
+
+    if (!is_array($dados)) {
+        throw new RuntimeException('Configuracao invalida.');
+    }
+
+    return $dados;
+}
+
+function conectarLab(string $lab): PDO
+{
+    $senhaFile = $lab .
+        '/config/REC02_LAB_ROOT_SECRET.txt';
+
+    if (!is_file($senhaFile)) {
+        throw new RuntimeException(
+            'Credencial do laboratorio nao encontrada.'
+        );
+    }
+
+    $senha = trim((string) file_get_contents($senhaFile));
+
+    $pdo = new PDO(
+        'mysql:host=127.0.0.1;port=3310;charset=utf8mb4',
+        'root',
+        $senha,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_TIMEOUT => 4,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ]
+    );
+
+    $porta = (int) $pdo
+        ->query('SELECT @@port')
+        ->fetchColumn();
+
+    $datadir = (string) $pdo
+        ->query('SELECT @@datadir')
+        ->fetchColumn();
+
+    if (
+        $porta !== 3310 ||
+        normalizar($datadir) !== normalizar($lab . '/data')
+    ) {
+        throw new RuntimeException(
+            'Conexao recusada: destino nao e o laboratorio REC-02.'
+        );
+    }
+
+    return $pdo;
+}
+
+function carregarEnv(string $arquivo): array
+{
+    if (!is_file($arquivo)) {
+        return [];
+    }
+
+    $vars = [];
+
+    foreach (file($arquivo, FILE_IGNORE_NEW_LINES) as $linha) {
+        $linha = trim($linha);
+
+        if (
+            $linha === '' ||
+            str_starts_with($linha, '#') ||
+            !str_contains($linha, '=')
+        ) {
+            continue;
+        }
+
+        [$chave, $valor] = explode('=', $linha, 2);
+
+        $valor = trim($valor);
+
+        if (
+            strlen($valor) >= 2 &&
+            (
+                ($valor[0] === '"' && substr($valor, -1) === '"') ||
+                ($valor[0] === "'" && substr($valor, -1) === "'")
+            )
+        ) {
+            $valor = substr($valor, 1, -1);
+        }
+
+        $vars[trim($chave)] = $valor;
+    }
+
+    return $vars;
+}
+
+function verificarCsrf(): void
+{
+    $recebido = $_POST['csrf'] ?? '';
+
+    if (
+        !is_string($recebido) ||
+        !hash_equals($_SESSION['csrf'] ?? '', $recebido)
+    ) {
+        $_SESSION['csrf'] = bin2hex(random_bytes(32));
+        header('Location: painel_v4.php?csrf=renovado', true, 303);
+        exit;
+    }
+}
+
+if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
+}
+
+$mensagem = '';
+$erro = '';
+
+if (($_GET['csrf'] ?? '') === 'renovado') {
+    $erro = 'Sessao renovada. Atualize a pagina e tente novamente.';
+}
+$dadosPainel = null;
+$detalhes = [];
+$acao = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verificarCsrf();
+
+    $acao = (string) ($_POST['acao'] ?? '');
+
+    if ($acao === 'login') {
+        $config = lerJson($authFile);
+
+        $usuario = (string) ($_POST['usuario'] ?? '');
+        $senha = (string) ($_POST['senha'] ?? '');
+
+        $tentativas = (int) ($_SESSION['tentativas'] ?? 0);
+        $bloqueadoAte = (int) ($_SESSION['bloqueado_ate'] ?? 0);
+
+        if (time() < $bloqueadoAte) {
+            $erro = 'Acesso temporariamente bloqueado.';
+        } else {
+            $hash = hash(
+                'sha256',
+                $config['salt'] . $senha
+            );
+
+            if (
+                hash_equals($config['usuario'], $usuario) &&
+                hash_equals($config['hash'], $hash)
+            ) {
+                session_regenerate_id(true);
+
+                $_SESSION['autenticado'] = true;
+                $_SESSION['tentativas'] = 0;
+                $_SESSION['bloqueado_ate'] = 0;
+
+                $mensagem = 'Autenticacao realizada.';
+            } else {
+                $tentativas++;
+                $_SESSION['tentativas'] = $tentativas;
+
+                if ($tentativas >= 5) {
+                    $_SESSION['bloqueado_ate'] = time() + 300;
+                    $_SESSION['tentativas'] = 0;
+                }
+
+                $erro = 'Usuario ou senha incorretos.';
+            }
+        }
+
+        $senha = '';
+    }
+
+    if ($acao === 'sair') {
+        $_SESSION = [];
+        session_destroy();
+
+        header('Location: painel_v4.php');
+        exit;
+    }
+}
+
+$autenticado = !empty($_SESSION['autenticado']);
+
+if ($autenticado) {
+
+    // As consultas ao laboratorio sao somente leitura.
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        try {
+            if (in_array($acao, [
+                'status',
+                'tabelas',
+                'essenciais',
+                'backup',
+                'laravel',
+                'logs'
+            ], true)) {
+
+                if ($acao === 'status') {
+                    $pdo = conectarLab($lab);
+
+                    $dadosPainel = [
+                        'MariaDB' => 'ONLINE',
+                        'Servidor' => '127.0.0.1',
+                        'Porta' => (string) $pdo
+                            ->query('SELECT @@port')
+                            ->fetchColumn(),
+                        'Diretorio de dados' => (string) $pdo
+                            ->query('SELECT @@datadir')
+                            ->fetchColumn(),
+                        'Versao' => (string) $pdo
+                            ->query('SELECT VERSION()')
+                            ->fetchColumn()
+                    ];
+
+                    $mensagem = 'Laboratorio operacional.';
+                }
+
+                if ($acao === 'tabelas' || $acao === 'essenciais') {
+                    $pdo = conectarLab($lab);
+
+                    $stmt = $pdo->query(
+                        "SELECT table_name
+                         FROM information_schema.tables
+                         WHERE table_schema = 'deposito_materiais'
+                         AND table_type = 'BASE TABLE'
+                         ORDER BY table_name"
+                    );
+
+                    $todas = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                    $dadosPainel = [
+                        'Total de tabelas' => count($todas),
+                        'Banco' => 'deposito_materiais',
+                        'Porta' => 3310
+                    ];
+
+                    if ($acao === 'tabelas') {
+                        $detalhes = $todas;
+                    } else {
+                        $essenciais = [
+                            'users',
+                            'clientes',
+                            'produtos',
+                            'orcamentos',
+                            'movimentacoes_caixa'
+                        ];
+
+                        foreach ($essenciais as $tabela) {
+                            if (!in_array($tabela, $todas, true)) {
+                                $detalhes[] = $tabela . ': AUSENTE';
+                                continue;
+                            }
+
+                            $total = (int) $pdo
+                                ->query("SELECT COUNT(*) FROM `$tabela`")
+                                ->fetchColumn();
+
+                            $detalhes[] = $tabela .
+                                ': ' . number_format($total, 0, ',', '.') .
+                                ' registros';
+                        }
+                    }
+
+                    $mensagem = 'Consulta concluida.';
+                }
+
+                if ($acao === 'backup') {
+                    $arquivo = $lab .
+                        '/sql/backup_2026-10-14_12-00-03.sql';
+
+                    if (!is_file($arquivo)) {
+                        throw new RuntimeException(
+                            'Backup SQL nao encontrado.'
+                        );
+                    }
+
+                    $hash = strtoupper(
+                        hash_file('sha256', $arquivo)
+                    );
+
+                    $esperado =
+                        '7F3C290C5E48EA6834F1BD5FF3144FA61CD75E2FA9387E26B4C51FA82E3E7C8D';
+
+                    $dadosPainel = [
+                        'Arquivo' => basename($arquivo),
+                        'Tamanho (bytes)' => filesize($arquivo),
+                        'SHA-256' => $hash,
+                        'Integridade' => hash_equals($esperado, $hash)
+                            ? 'CONFIRMADA'
+                            : 'DIVERGENTE'
+                    ];
+
+                    $mensagem = 'Verificacao do backup concluida.';
+                }
+
+                if ($acao === 'laravel') {
+                    $env = carregarEnv($projeto . '/.env');
+
+                    $dadosPainel = [
+                        'DB_CONNECTION' => $env['DB_CONNECTION'] ?? '(ausente)',
+                        'DB_HOST' => $env['DB_HOST'] ?? '(ausente)',
+                        'DB_PORT' => $env['DB_PORT'] ?? '(ausente)',
+                        'DB_DATABASE' => $env['DB_DATABASE'] ?? '(ausente)',
+                        'DB_USERNAME' => $env['DB_USERNAME'] ?? '(ausente)',
+                        'DB_PASSWORD' => '********',
+                        'Arquivo .env' => 'Somente leitura'
+                    ];
+
+                    $mensagem =
+                        'Configuracao declarada no .env. ' .
+                        'O Laravel pode utilizar configuracoes em cache.';
+                }
+
+                if ($acao === 'logs') {
+                    $arquivos = [
+                        $lab . '/logs/mariadb_lab.err',
+                        $lab . '/logs/mariadb_lab_v38.err',
+                        $lab . '/relatorios/REC02_V391_STDERR.txt',
+                        $lab . '/relatorios/REC02_V393_IMPORTACAO_STDOUT.txt',
+                        $lab . '/relatorios/REC02_V393_IMPORTACAO_STDERR.txt'
+                    ];
+
+                    foreach ($arquivos as $arquivo) {
+                        if (!is_file($arquivo)) {
+                            continue;
+                        }
+
+                        $linhas = file(
+                            $arquivo,
+                            FILE_IGNORE_NEW_LINES
+                        );
+
+                        $detalhes[] = 'ARQUIVO: ' . basename($arquivo);
+
+                        foreach (array_slice($linhas, -15) as $linha) {
+                            $detalhes[] = $linha;
+                        }
+                    }
+
+                    $mensagem = 'Ultimos registros dos logs.';
+                }
+            }
+        } catch (Throwable $e) {
+            $erro = $e->getMessage();
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>REC-02 V4.0 - Central de Recuperacao</title>
+
+<style>
+:root{
+    color-scheme:dark;
+}
+*{
+    box-sizing:border-box;
+}
+body{
+    margin:0;
+    background:#101827;
+    color:#e8edf5;
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:15px;
+}
+header{
+    background:#172438;
+    padding:23px 30px;
+    border-bottom:1px solid #30415a;
+}
+h1{
+    margin:0 0 7px;
+    font-size:25px;
+}
+h2{
+    margin:0 0 14px;
+    font-size:18px;
+}
+header p{
+    color:#b7c6da;
+    margin:0;
+}
+main{
+    max-width:1250px;
+    margin:25px auto;
+    padding:0 18px 40px;
+}
+.grade{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:17px;
+}
+.card{
+    background:#1b293c;
+    border:1px solid #30435d;
+    border-radius:12px;
+    padding:20px;
+    min-width:0;
+}
+.card p{
+    color:#b8c6d8;
+    line-height:1.55;
+    min-height:49px;
+}
+button{
+    background:#2879cb;
+    color:white;
+    border:0;
+    border-radius:7px;
+    padding:12px 17px;
+    cursor:pointer;
+    font-weight:bold;
+}
+button:hover{
+    background:#398ee6;
+}
+input{
+    background:#101827;
+    border:1px solid #475b78;
+    border-radius:7px;
+    color:white;
+    padding:12px;
+    width:100%;
+    margin:7px 0 14px;
+}
+label{
+    display:block;
+    font-weight:bold;
+}
+.box{
+    background:#1b293c;
+    border:1px solid #30435d;
+    padding:20px;
+    border-radius:12px;
+    margin-top:20px;
+    overflow:auto;
+}
+.ok{
+    border-left:4px solid #3ac18d;
+}
+.erro{
+    border-left:4px solid #ee7878;
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+td{
+    border-bottom:1px solid #34465e;
+    padding:11px;
+    overflow-wrap:anywhere;
+}
+td:first-child{
+    width:210px;
+    color:#b9cbdf;
+}
+pre{
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    color:#dbe7f6;
+    line-height:1.5;
+}
+.login{
+    max-width:430px;
+    margin:70px auto;
+}
+.topo{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    flex-wrap:wrap;
+}
+.tag{
+    color:#6be0a5;
+    font-weight:bold;
+}
+.aviso{
+    color:#e9c67d;
+    font-size:13px;
+}
+@media(max-width:800px){
+    .grade{
+        grid-template-columns:1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="topo">
+        <div>
+            <h1>REC-02 V4.0</h1>
+            <p>Central de Diagnostico e Recuperacao de Dados</p>
+        </div>
+        <?php if ($autenticado): ?>
+        <form method="post">
+            <input type="hidden" name="csrf"
+                   value="<?= h($_SESSION['csrf']) ?>">
+            <button type="submit" name="acao" value="sair">
+                Sair
+            </button>
+        </form>
+        <?php endif; ?>
+    </div>
+</header>
+
+<main>
+
+<?php if ($mensagem !== ''): ?>
+<div class="box ok">
+    <?= h($mensagem) ?>
+</div>
+<?php endif; ?>
+
+<?php if ($erro !== ''): ?>
+<div class="box erro">
+    <?= h($erro) ?>
+</div>
+<?php endif; ?>
+
+<?php if (!$autenticado): ?>
+
+<div class="card login">
+    <h2>Autenticacao administrativa</h2>
+
+    <form method="post" autocomplete="off">
+        <input type="hidden" name="csrf"
+               value="<?= h($_SESSION['csrf']) ?>">
+
+        <label>Usuario</label>
+        <input name="usuario" required>
+
+        <label>Senha</label>
+        <input name="senha" type="password" required>
+
+        <button type="submit" name="acao" value="login">
+            Entrar na Central
+        </button>
+    </form>
+</div>
+
+<?php else: ?>
+
+<p class="tag">CENTRAL LOCAL - AMBIENTE ISOLADO</p>
+
+<div class="grade">
+
+<?php
+$cards = [
+    [
+        'status',
+        'MariaDB do Laboratorio',
+        'Verifica conexao, versao, porta e diretorio real dos dados.'
+    ],
+    [
+        'tabelas',
+        'Tabelas Restauradas',
+        'Lista todas as tabelas existentes no banco recuperado.'
+    ],
+    [
+        'essenciais',
+        'Registros Essenciais',
+        'Consulta usuarios, clientes, produtos, orcamentos e caixas.'
+    ],
+    [
+        'backup',
+        'Integridade do Backup',
+        'Confere tamanho e SHA-256 do backup SQL de 14/10.'
+    ],
+    [
+        'laravel',
+        'Conexao do ERP',
+        'Exibe a configuracao declarada no .env sem mostrar a senha.'
+    ],
+    [
+        'logs',
+        'Logs e Auditoria',
+        'Consulta os ultimos registros das operacoes de recuperacao.'
+    ]
+];
+
+foreach ($cards as [$id, $titulo, $descricao]):
+?>
+<div class="card">
+    <h2><?= h($titulo) ?></h2>
+    <p><?= h($descricao) ?></p>
+
+    <form method="post">
+        <input type="hidden" name="csrf"
+               value="<?= h($_SESSION['csrf']) ?>">
+
+        <button type="submit" name="acao" value="<?= h($id) ?>">
+            Consultar
+        </button>
+    </form>
+</div>
+<?php endforeach; ?>
+
+</div>
+
+<?php if ($dadosPainel !== null): ?>
+<div class="box">
+    <h2>Resultado da consulta</h2>
+    <table>
+        <?php foreach ($dadosPainel as $campo => $valor): ?>
+        <tr>
+            <td><?= h($campo) ?></td>
+            <td><?= h($valor) ?></td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($detalhes)): ?>
+<div class="box">
+    <h2>Detalhamento</h2>
+    <pre><?= h(implode("\n", $detalhes)) ?></pre>
+</div>
+<?php endif; ?>
+
+<div class="box">
+    <h2>Estado da recuperacao</h2>
+    <p>
+        Backup de 14/10/2026 importado no laboratorio.
+        A ultima execucao informou 85 tabelas e
+        925 comandos SQL concluidos.
+    </p>
+    <p class="aviso">
+        Esta tela nao altera o banco principal nem a conexao
+        operacional do ERP. A reconexao sera liberada somente
+        apos validacao e implementacao do controle de reversao.
+    </p>
+</div>
+
+<?php endif; ?>
+
+</main>
+</body>
+</html>

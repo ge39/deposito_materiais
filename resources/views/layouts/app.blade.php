@@ -847,6 +847,19 @@
                                         Histórico de Backups
                                     </a>
                                 </li>
+                                {{-- REC01_MENU_ADMIN_V1 --}}
+                                @auth
+                                    @if((bool) auth()->user()->ativo && auth()->user()->nivel_acesso === 'admin')
+                                        <li>
+                                            <a
+                                                class="dropdown-item"
+                                                href="{{ route('admin.recuperacao.diagnostico') }}">
+                                                <i class="bi bi-shield-exclamation me-2"></i>
+                                                Recuperação de Dados
+                                            </a>
+                                        </li>
+                                    @endif
+                                @endauth
 
                                 <li>
                                     <hr class="dropdown-divider">
@@ -2195,18 +2208,6 @@
             {{ config('app.name', 'Depósito de Materiais') }}
             — JMFSoftware2017
         </small>
-        {{-- REC01_STATUSBAR_LINK_V1 --}}
-        @auth
-            @if((bool) auth()->user()->ativo && auth()->user()->nivel_acesso === 'admin')
-                <span class="mx-2 text-muted" aria-hidden="true">|</span>
-                <a href="{{ route('admin.recuperacao.diagnostico') }}"
-                   class="text-decoration-none"
-                   style="color: inherit; font-size: 0.875rem;"
-                   title="Abrir Central de Recuperação de Dados">
-                    &#128737; Recuperação de Dados
-                </a>
-            @endif
-        @endauth
 
     </footer>
 

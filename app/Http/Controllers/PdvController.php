@@ -411,7 +411,11 @@ class PdvController extends Controller
                 'lotes' => function ($q) {
                     $q->where('status', 1)
                     ->where('quantidade_disponivel', '>', 0)
-                    ->whereDate('validade_lote', '>=', now());
+                    ->where(function ($filtroValidade) {
+                        $filtroValidade->whereHas('produto', function ($produto) {
+                            $produto->where('controla_validade', 0);
+                        })->orWhereDate('validade_lote', '>=', now());
+                    });
                 }
             ])
             ->where('ativo', 1)
@@ -564,7 +568,11 @@ class PdvController extends Controller
             'lotes' => function ($q) {
                 $q->where('status', 1)
                 ->where('quantidade_disponivel', '>', 0)
-                ->whereDate('validade_lote', '>=', now());
+                ->where(function ($filtroValidade) {
+                    $filtroValidade->whereHas('produto', function ($produto) {
+                        $produto->where('controla_validade', 0);
+                    })->orWhereDate('validade_lote', '>=', now());
+                });
             }
         ])
         ->where('ativo', 1)
