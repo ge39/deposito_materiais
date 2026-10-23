@@ -40,6 +40,7 @@ class EntregaService
 
         'Aguardando_faturamento',
 
+        'Aguardando_estoque',
         'Aguardando_separacao',
 
         'Em_preparacao',
@@ -1415,7 +1416,8 @@ class EntregaService
 
                             'Aguardando_faturamento',
 
-                        ],
+                        'Aguardando_estoque',
+        ],
 
                         true
 
