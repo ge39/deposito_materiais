@@ -440,7 +440,11 @@ class EntregaInteligenteService
                                     $fim->toDateString(),
                                 ]
                             );
-                    });
+                    })
+                    ->orWhereIn(
+                        'status',
+                        ['Em_rota', 'No_destino']
+                    );
             })
             ->orderByRaw(
                 'COALESCE(data_prevista_entrega, data_prevista) ASC'

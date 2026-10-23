@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('content'); ?>
 
 <?php
@@ -1596,16 +1594,53 @@
                                                                 $quantidadePrevista =
                                                                     $resolverQuantidadePrevista($item);
 
+                                                                if (
+                                                                    ! $item->entrega_item_origem_id
+                                                                    && $item->itemOrcamento
+                                                                ) {
+                                                                    $quantidadePrevista = (float)
+                                                                        $item->itemOrcamento->quantidade_solicitada;
+                                                                }
+
                                                                 $quantidadeRomaneio = (float) old(
                                                                     "itens.{$item->id}.quantidade",
                                                                     $itemRomaneio?->quantidade_prevista
                                                                         ?? $quantidadePrevista
                                                                 );
 
+                                                                $outrasSeparadas = 0.0;
+
+                                                                if ($item->itemOrcamento) {
+                                                                    $outrasSeparadas = (float)
+                                                                        \Illuminate\Support\Facades\DB::table('romaneio_itens as ri')
+                                                                            ->join('entrega_itens as ei', 'ei.id', '=', 'ri.entrega_item_id')
+                                                                            ->join('romaneios as r', 'r.id', '=', 'ri.romaneio_id')
+                                                                            ->where('ei.item_orcamento_id', $item->item_orcamento_id)
+                                                                            ->where('ri.id', '<>', (int) ($itemRomaneio?->id ?? 0))
+                                                                            ->where('r.status', '<>', 'Cancelado')
+                                                                            ->sum('ri.quantidade_separada');
+                                                                }
+
+                                                                $limiteSeparacao = $item->itemOrcamento
+                                                                    ? max(
+                                                                        0,
+                                                                        min(
+                                                                            $quantidadeRomaneio,
+                                                                            (float) $item->itemOrcamento->quantidade_atendida
+                                                                                - $outrasSeparadas
+                                                                        )
+                                                                    )
+                                                                    : $quantidadeRomaneio;
+
+                                                                $quantidadeRegistrada = (float) (
+                                                                    $itemRomaneio?->quantidade_separada ?? 0
+                                                                );
+
                                                                 $quantidadeSeparada = (float) old(
                                                                     "itens.{$item->id}.quantidade_separada",
-                                                                    $itemRomaneio?->quantidade_separada
-                                                                        ?? 0
+                                                                    $quantidadeRegistrada > 0
+                                                                        ? $quantidadeRegistrada
+                                                                        : $limiteSeparacao
                                                                 );
 
                                                                 $quantidadeConferidaSeparacao = (float) old(
@@ -1715,7 +1750,7 @@
                                                                                name="itens[<?php echo e($item->id); ?>][quantidade_separada]"
                                                                                value="<?php echo e(number_format($quantidadeSeparada, 2, '.', '')); ?>"
                                                                                min="0"
-                                                                               max="<?php echo e(number_format($quantidadeRomaneio, 2, '.', '')); ?>"
+                                                                               max="<?php echo e(number_format($limiteSeparacao, 2, '.', '')); ?>"
                                                                                step="1"
                                                                                class="form-control form-control-sm quantity-input"
                                                                                data-active-quantity>

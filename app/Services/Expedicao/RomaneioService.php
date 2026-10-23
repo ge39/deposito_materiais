@@ -4271,6 +4271,39 @@ class RomaneioService
 
                 $atualizacao = [];
 
+                if (
+                    $romaneio->status === self::STATUS_EM_SEPARACAO
+                    && array_key_exists('quantidade_separada', $dadosItem)
+                ) {
+                    $itemOrcamento =
+                        $romaneioItem->entregaItem?->itemOrcamento;
+
+                    if ($itemOrcamento) {
+                        $outrasSeparadas = DB::table('romaneio_itens as ri')
+                            ->join('entrega_itens as ei', 'ei.id', '=', 'ri.entrega_item_id')
+                            ->join('romaneios as r', 'r.id', '=', 'ri.romaneio_id')
+                            ->where('ei.item_orcamento_id', $itemOrcamento->id)
+                            ->where('ri.id', '<>', $romaneioItem->id)
+                            ->where('r.status', '<>', 'Cancelado')
+                            ->sum('ri.quantidade_separada');
+
+                        $limite = max(
+                            0,
+                            min(
+                                (float) $romaneioItem->quantidade_prevista,
+                                (float) $itemOrcamento->quantidade_atendida
+                                    - (float) $outrasSeparadas
+                            )
+                        );
+
+                        if ((float) $dadosItem['quantidade_separada'] > $limite + 0.001) {
+                            throw ValidationException::withMessages([
+                                'itens' => "Item #{$romaneioItem->id}: máximo separável de {$limite} unidades.",
+                            ]);
+                        }
+                    }
+                }
+
                 $this->preencherQuantidade(
                     $atualizacao,
                     $dadosItem,
@@ -6647,6 +6680,33 @@ class RomaneioService
                         - (float) $entregaItem->quantidade_entregue,
                         2
                     );
+
+                    if (
+                        (int) $entregaItem->item_orcamento_id > 0
+                        && ! $entregaItem->entrega_item_origem_id
+                    ) {
+                        $jaExisteRomaneio = DB::table('romaneio_itens as ri')
+                            ->join('entrega_itens as ei', 'ei.id', '=', 'ri.entrega_item_id')
+                            ->join('romaneios as r', 'r.id', '=', 'ri.romaneio_id')
+                            ->where('ei.item_orcamento_id', $entregaItem->item_orcamento_id)
+                            ->where('r.status', '<>', 'Cancelado')
+                            ->exists();
+
+                        if (! $jaExisteRomaneio) {
+                            $solicitada = (float) (
+                                $entregaItem->itemOrcamento?->quantidade_solicitada
+                                ?? $quantidadeDisponivel
+                            );
+
+                            $quantidadeDisponivel = round(
+                                max(
+                                    $quantidadeDisponivel,
+                                    $solicitada - (float) $entregaItem->quantidade_entregue
+                                ),
+                                2
+                            );
+                        }
+                    }
 
                     if ($quantidadeDisponivel <= 0) {
                         return null;
