@@ -151,20 +151,72 @@
                             <p class="card-text mb-1"><strong>Unidade:</strong> {{ $produto->unidadeMedida->nome ?? '-' }}</p>
 
                             <!-- 🔥 ESTOQUE CORRIGIDO (BASE LOTE) -->
-                            <p class="card-text mb-1">
-                                <strong>Estoque Total:</strong> 
-                                {{ $produto->estoque_total ?? 0 }}
-                            </p>
+                            {{-- EST02_V20_INDICADORES --}}
+    @php
+        $est02Total = (float) ($produto->estoque_total ?? 0);
 
-                            <p class="card-text mb-1">
-                                <strong>Utilizado:</strong> 
-                                {{ $produto->quantidade_reservada ?? 0 }}
-                            </p>
+        $est02Disponivel = (float) ($produto->estoque ?? 0);
 
-                            <p class="card-text mb-1">
-                                <strong>Disponível:</strong> 
-                                <span style="font-size:20px; color:grafite; font-weight:bold">{{ $produto->estoque ?? 0 }}</span>
-                            </p>
+        $est02ReservadoPdv = (float) (
+            $reservasPdv[$produto->id] ?? 0
+        );
+
+        // Residuo calculado, NAO historico confirmado de baixas.
+        $est02SaldoResidual = round(
+            $est02Total - $est02ReservadoPdv - $est02Disponivel,
+            3
+        );
+
+        // Campo legado para auditoria da composicao dos lotes.
+        $est02ReservadoLotes = (float) (
+            $produto->quantidade_reservada ?? 0
+        );
+
+        $est02Diferenca = round(
+            $est02Total - $est02ReservadoLotes - $est02Disponivel,
+            3
+        );
+    @endphp
+
+<p class="card-text mb-1">
+    <strong>Estoque Total:</strong>
+    {{ number_format($est02Total, 3, '.', '') }}
+</p>
+
+<p class="card-text mb-1">
+    <strong>Utilizado / a conciliar:</strong>
+    {{ number_format($est02SaldoResidual, 3, '.', '') }}
+</p>
+
+<p class="card-text mb-1">
+    <strong>Reservado para entrega:</strong>
+    <span class="text-primary fw-bold">
+        {{ number_format($est02ReservadoPdv, 3, '.', '') }}
+    </span>
+</p>
+
+<p class="card-text mb-1">
+    <strong>Disponível:</strong>
+    <span style="font-size:20px; font-weight:bold">
+        {{ number_format($est02Disponivel, 3, '.', '') }}
+    </span>
+</p>
+
+<!-- <small class="text-muted d-block mb-1">
+    Utilizado / a conciliar representa o saldo residual
+    (Total - Reservado para entrega - Disponível).
+    Não é uma baixa histórica confirmada.
+</small>
+
+@if(abs($est02Diferenca) > 0.0001)
+    <small class="text-success d-block mb-1">
+        <strong>Auditoria dos lotes:</strong>
+        reserva acumulada
+        {{ number_format($est02ReservadoLotes, 3, '.', '') }};
+        diferença de conciliação
+        {{ number_format($est02Diferenca, 3, '.', '') }}.
+    </small>
+@endif -->
 
                             <p class="card-text mb-1"><strong>Mínimo:</strong> {{ $produto->estoque_minimo }}</p>
 

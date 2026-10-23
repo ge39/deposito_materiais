@@ -156,22 +156,76 @@
                             <p class="card-text mb-1"><strong>Unidade:</strong> <?php echo e($produto->unidadeMedida->nome ?? '-'); ?></p>
 
                             <!-- 🔥 ESTOQUE CORRIGIDO (BASE LOTE) -->
-                            <p class="card-text mb-1">
-                                <strong>Estoque Total:</strong> 
-                                <?php echo e($produto->estoque_total ?? 0); ?>
+                            
+    <?php
+        $est02Total = (float) ($produto->estoque_total ?? 0);
 
-                            </p>
+        $est02Disponivel = (float) ($produto->estoque ?? 0);
 
-                            <p class="card-text mb-1">
-                                <strong>Utilizado:</strong> 
-                                <?php echo e($produto->quantidade_reservada ?? 0); ?>
+        $est02ReservadoPdv = (float) (
+            $reservasPdv[$produto->id] ?? 0
+        );
 
-                            </p>
+        // Residuo calculado, NAO historico confirmado de baixas.
+        $est02SaldoResidual = round(
+            $est02Total - $est02ReservadoPdv - $est02Disponivel,
+            3
+        );
 
-                            <p class="card-text mb-1">
-                                <strong>Disponível:</strong> 
-                                <span style="font-size:20px; color:grafite; font-weight:bold"><?php echo e($produto->estoque ?? 0); ?></span>
-                            </p>
+        // Campo legado para auditoria da composicao dos lotes.
+        $est02ReservadoLotes = (float) (
+            $produto->quantidade_reservada ?? 0
+        );
+
+        $est02Diferenca = round(
+            $est02Total - $est02ReservadoLotes - $est02Disponivel,
+            3
+        );
+    ?>
+
+<p class="card-text mb-1">
+    <strong>Estoque Total:</strong>
+    <?php echo e(number_format($est02Total, 3, '.', '')); ?>
+
+</p>
+
+<p class="card-text mb-1">
+    <strong>Utilizado / a conciliar:</strong>
+    <?php echo e(number_format($est02SaldoResidual, 3, '.', '')); ?>
+
+</p>
+
+<p class="card-text mb-1">
+    <strong>Reservado para entrega:</strong>
+    <span class="text-primary fw-bold">
+        <?php echo e(number_format($est02ReservadoPdv, 3, '.', '')); ?>
+
+    </span>
+</p>
+
+<p class="card-text mb-1">
+    <strong>Disponível:</strong>
+    <span style="font-size:20px; font-weight:bold">
+        <?php echo e(number_format($est02Disponivel, 3, '.', '')); ?>
+
+    </span>
+</p>
+
+<!-- <small class="text-muted d-block mb-1">
+    Utilizado / a conciliar representa o saldo residual
+    (Total - Reservado para entrega - Disponível).
+    Não é uma baixa histórica confirmada.
+</small>
+
+<?php if(abs($est02Diferenca) > 0.0001): ?>
+    <small class="text-success d-block mb-1">
+        <strong>Auditoria dos lotes:</strong>
+        reserva acumulada
+        <?php echo e(number_format($est02ReservadoLotes, 3, '.', '')); ?>;
+        diferença de conciliação
+        <?php echo e(number_format($est02Diferenca, 3, '.', '')); ?>.
+    </small>
+<?php endif; ?> -->
 
                             <p class="card-text mb-1"><strong>Mínimo:</strong> <?php echo e($produto->estoque_minimo); ?></p>
 

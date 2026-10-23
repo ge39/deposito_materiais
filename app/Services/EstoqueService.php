@@ -206,16 +206,16 @@ class EstoqueService
      * RESERVA LOTE
      */
     
-    private function reservarLote(Lote $lote, float $qtd): void
-    {
-        if ($qtd > $this->disponivel($lote)) {
-            throw new \Exception("Estoque insuficiente no lote {$lote->id}");
-        }
+    // private function reservarLote(Lote $lote, float $qtd): void
+    // {
+    //     if ($qtd > $this->disponivel($lote)) {
+    //         throw new \Exception("Estoque insuficiente no lote {$lote->id}");
+    //     }
 
-        DB::table('lotes')
-            ->where('id', $lote->id)
-            ->increment('quantidade_reservada', $qtd);
-    }
+    //     DB::table('lotes')
+    //         ->where('id', $lote->id)
+    //         ->increment('quantidade_reservada', $qtd);
+    // }
     
     public function cancelarReserva(ItemOrcamento $item): void
     {

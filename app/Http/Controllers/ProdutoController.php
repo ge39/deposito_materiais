@@ -26,8 +26,97 @@ class ProdutoController extends Controller
         });
     }
 
+    // public function index()
+    // {
+    //     $produtos = Produto::with([
+    //         'categoria',
+    //         'fornecedor',
+    //         'marca',
+    //         'unidadeMedida',
+    //         'localizacaoEstoque',
+    //         'lotes'
+    //     ])
+    //     ->where('ativo', 1)
+    //     ->paginate(15);
+
+    //             // EST02_V20_RESERVAS_PDV
+    //     // Consulta apenas reservas ativas da promessa de entrega.
+    //     // Nao movimenta estoque e nao altera reservas.
+
+    //     // $reservasPdv = collect();
+
+    //     // if (\Illuminate\Support\Facades\Schema::hasTable('estoque_divergencia_reservas')) {
+
+    //     //     $idsProdutos = $produtos->getCollection()
+    //     //         ->pluck('id')
+    //     //         ->all();
+
+    //     //     if (!empty($idsProdutos)) {
+
+    //     //         $reservasPdv = \Illuminate\Support\Facades\DB::table(
+    //     //             'estoque_divergencia_reservas'
+    //     //         )
+    //     //             ->whereIn('produto_id', $idsProdutos)
+    //     //             ->whereIn('status', ['reservada', 'parcial'])
+    //     //             ->selectRaw(
+    //     //                 'produto_id,
+    //     //                  COALESCE(
+    //     //                      SUM(
+    //     //                          GREATEST(
+    //     //                              quantidade_reservada - quantidade_entregue,
+    //     //                              0
+    //     //                          )
+    //     //                      ),
+    //     //                      0
+    //     //                  ) AS saldo'
+    //     //             )
+    //     //             ->groupBy('produto_id')
+    //     //             ->pluck('saldo', 'produto_id');
+    //     //     }
+    //     // }
+
+    //     // return view('produtos.index', compact('produtos', 'reservasPdv'));
+
+        
+    //     $reservasPdv = collect();
+
+    //     $idsProdutos = $produtos->getCollection()
+    //         ->pluck('id')
+    //         ->all();
+
+    //     if (!empty($idsProdutos)) {
+
+    //         $reservasPdv = \Illuminate\Support\Facades\DB::table('lotes')
+    //             ->whereIn('produto_id', $idsProdutos)
+    //             ->where('status', 1)
+    //             ->selectRaw('
+    //                 produto_id,
+    //                 GREATEST(
+    //                     COALESCE(
+    //                         SUM(
+    //                             COALESCE(quantidade_reservada, 0)
+    //                             - COALESCE(quantidade, 0)
+    //                         ),
+    //                         0
+    //                     ),
+    //                     0
+    //                 ) AS saldo
+    //             ')
+    //             ->groupBy('produto_id')
+    //             ->pluck('saldo', 'produto_id');
+    //     }
+
+    //     return view('produtos.index', compact('produtos', 'reservasPdv'));
+
+    // }
+
+        
     public function index()
     {
+        // ============================================================
+        // 1. LISTAGEM DOS PRODUTOS
+        // ============================================================
+
         $produtos = Produto::with([
             'categoria',
             'fornecedor',
@@ -36,11 +125,93 @@ class ProdutoController extends Controller
             'localizacaoEstoque',
             'lotes'
         ])
-        ->where('ativo', 1)
-        ->paginate(15);
+            ->where('ativo', 1)
+            ->paginate(15);
 
-        return view('produtos.index', compact('produtos'));
+        // ============================================================
+        // 2. PRODUTOS DA PAGINA ATUAL
+        // ============================================================
+
+        $idsProdutos = $produtos->getCollection()
+            ->pluck('id')
+            ->all();
+
+        $reservasPdv = collect();
+
+        // ============================================================
+        // 3. RESERVADO PARA ENTREGA
+        //
+        // Fonte: item_orcamentos
+        // Status permitidos: Aprovado e Faturado
+        //
+        // Regra:
+        // Quantidade pendente =
+        // Quantidade solicitada - Quantidade atendida
+        //
+        // Nao altera lotes, vendas ou orcamentos.
+        // ============================================================
+
+        if (
+            !empty($idsProdutos) &&
+            \Illuminate\Support\Facades\Schema::hasTable('item_orcamentos') &&
+            \Illuminate\Support\Facades\Schema::hasTable('orcamentos')
+        ) {
+
+            $reservasPdv = \Illuminate\Support\Facades\DB::table(
+                'item_orcamentos as io'
+            )
+                ->join(
+                    'orcamentos as o',
+                    'o.id',
+                    '=',
+                    'io.orcamento_id'
+                )
+                ->whereIn(
+                    'io.produto_id',
+                    $idsProdutos
+                )
+                ->whereIn(
+                    'o.status',
+                    [
+                        'Aprovado',
+                        'Faturado'
+                    ]
+                )
+                ->selectRaw('
+                    io.produto_id,
+
+                    COALESCE(
+                        SUM(
+                            GREATEST(
+                                COALESCE(io.quantidade_solicitada, 0)
+                                -
+                                COALESCE(io.quantidade_atendida, 0),
+                                0
+                            )
+                        ),
+                        0
+                    ) AS saldo
+                ')
+                ->groupBy('io.produto_id')
+                ->pluck(
+                    'saldo',
+                    'io.produto_id'
+                );
+        }
+
+        // ============================================================
+        // 4. RETORNO DA VIEW
+        // ============================================================
+
+        return view(
+            'produtos.index',
+            compact(
+                'produtos',
+                'reservasPdv'
+            )
+        );
     }
+
 
     public function create()
     {
@@ -317,7 +488,43 @@ class ProdutoController extends Controller
             ])
             ->paginate(20);
 
-        return view('produtos.index', compact('produtos'));
+                // EST02_V20_RESERVAS_PDV
+        // Consulta apenas reservas ativas da promessa de entrega.
+        // Nao movimenta estoque e nao altera reservas.
+
+        $reservasPdv = collect();
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('estoque_divergencia_reservas')) {
+
+            $idsProdutos = $produtos->getCollection()
+                ->pluck('id')
+                ->all();
+
+            if (!empty($idsProdutos)) {
+
+                $reservasPdv = \Illuminate\Support\Facades\DB::table(
+                    'estoque_divergencia_reservas'
+                )
+                    ->whereIn('produto_id', $idsProdutos)
+                    ->whereIn('status', ['reservada', 'parcial'])
+                    ->selectRaw(
+                        'produto_id,
+                         COALESCE(
+                             SUM(
+                                 GREATEST(
+                                     quantidade_reservada - quantidade_entregue,
+                                     0
+                                 )
+                             ),
+                             0
+                         ) AS saldo'
+                    )
+                    ->groupBy('produto_id')
+                    ->pluck('saldo', 'produto_id');
+            }
+        }
+
+        return view('produtos.index', compact('produtos', 'reservasPdv'));
     }
 
     public function search_grid(Request $request)
@@ -375,7 +582,43 @@ class ProdutoController extends Controller
             ])
             ->paginate(20);
 
-        return view('produtos.index', compact('produtos'));
+                // EST02_V20_RESERVAS_PDV
+        // Consulta apenas reservas ativas da promessa de entrega.
+        // Nao movimenta estoque e nao altera reservas.
+
+        $reservasPdv = collect();
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('estoque_divergencia_reservas')) {
+
+            $idsProdutos = $produtos->getCollection()
+                ->pluck('id')
+                ->all();
+
+            if (!empty($idsProdutos)) {
+
+                $reservasPdv = \Illuminate\Support\Facades\DB::table(
+                    'estoque_divergencia_reservas'
+                )
+                    ->whereIn('produto_id', $idsProdutos)
+                    ->whereIn('status', ['reservada', 'parcial'])
+                    ->selectRaw(
+                        'produto_id,
+                         COALESCE(
+                             SUM(
+                                 GREATEST(
+                                     quantidade_reservada - quantidade_entregue,
+                                     0
+                                 )
+                             ),
+                             0
+                         ) AS saldo'
+                    )
+                    ->groupBy('produto_id')
+                    ->pluck('saldo', 'produto_id');
+            }
+        }
+
+        return view('produtos.index', compact('produtos', 'reservasPdv'));
     }
 
     public function inativos()
