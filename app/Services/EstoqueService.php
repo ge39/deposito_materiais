@@ -59,6 +59,10 @@ class EstoqueService
         }
 
         $this->atualizarStatusOrcamento(array_keys($orcamentosAfetados));
+
+        // ESTOQUE X ENTREGAS - ETAPA 9
+        app(\App\Services\Entregas\EntregaService::class)
+            ->reavaliarPendenciasEstoquePorProduto($produtoId);
     }
 
     /**

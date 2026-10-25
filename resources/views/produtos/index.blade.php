@@ -155,7 +155,7 @@
     @php
         $est02Total = (float) ($produto->estoque_total ?? 0);
 
-        $est02Disponivel = (float) ($produto->estoque ?? 0);
+        $est02Disponivel = max(0, (float) ($produto->disponivel ?? 0));
 
         $est02ReservadoPdv = (float) (
             $reservasPdv[$produto->id] ?? 0

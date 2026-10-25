@@ -2259,4 +2259,96 @@ class EntregaService
 
     }
 
+
+    /**
+     * ESTOQUE X ENTREGAS - ETAPA 9
+     * Reavalia entregas pendentes para um produto.
+     * Nao altera reservas, orcamentos ou vendas.
+     */
+    public function reavaliarPendenciasEstoquePorProduto(int $produtoId): int
+    {
+        $atualizadas = 0;
+
+        $entregas = \App\Models\Entrega::query()
+            ->where('status', 'Aguardando_estoque')
+            ->whereHas('itens.itemOrcamento', function ($query) use ($produtoId) {
+                $query->where('produto_id', $produtoId);
+            })
+            ->orderBy('id')
+            ->get();
+
+        foreach ($entregas as $candidata) {
+
+            \Illuminate\Support\Facades\DB::transaction(function () use (
+                $candidata,
+                &$atualizadas
+            ) {
+
+                $entrega = \App\Models\Entrega::query()
+                    ->whereKey($candidata->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$entrega ||
+                    $entrega->status !== 'Aguardando_estoque') {
+                    return;
+                }
+
+                $itens = $entrega->itens()
+                    ->with('itemOrcamento')
+                    ->get();
+
+                if ($itens->isEmpty()) {
+                    return;
+                }
+
+                foreach ($itens as $item) {
+
+                    $orcItem = $item->itemOrcamento;
+
+                    // Sem vinculo confiavel, nao liberar.
+                    if (!$orcItem) {
+                        return;
+                    }
+
+                    $necessario = (float) $item->quantidade_prevista;
+
+                    if ($necessario <= 0) {
+                        return;
+                    }
+
+                    // Quantidade ja comprometida com entregas
+                    // anteriores do mesmo item de orcamento.
+                    $anterior = (float)
+                        \Illuminate\Support\Facades\DB::table('entrega_itens')
+                        ->where('item_orcamento_id', $item->item_orcamento_id)
+                        ->where('entrega_id', '<', $entrega->id)
+                        ->sum('quantidade_prevista');
+
+                    $atendido = (float) $orcItem->quantidade_atendida;
+
+                    $saldoParaEntrega = max(
+                        0,
+                        $atendido - $anterior
+                    );
+
+                    // Tolerancia para quantidades decimais.
+                    if (($saldoParaEntrega + 0.0005) < $necessario) {
+                        return;
+                    }
+                }
+
+                // Todos os itens estao integralmente atendidos.
+                // Reutilizar validacoes existentes do service.
+                $this->alterarStatus(
+                    $entrega,
+                    'Aguardando_separacao'
+                );
+
+                $atualizadas++;
+            });
+        }
+
+        return $atualizadas;
+    }
 }
