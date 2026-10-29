@@ -3,6 +3,31 @@
 <?php $__env->startSection('content'); ?>
 
 <style>
+    /* EST-04 - Promessa aguardando estoque */
+    .table-entregas tbody tr.est04-estoque > td,
+    .table-entregas tbody tr.est04-estoque:hover > td {
+        --bs-table-bg: #fff0d4;
+        background-color: #fff0d4 !important;
+    }
+
+    .table-entregas tbody tr.est04-estoque > td:first-child {
+        border-left: 6px solid #b45309 !important;
+    }
+
+    .est04-carimbo {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 8px;
+        border: 2px solid #b45309;
+        border-radius: 4px;
+        background: #fff8e9;
+        color: #92400e;
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .02rem;
+    }
+
     .page-shell {
         width: 100%;
     }
@@ -879,6 +904,7 @@
 
                 $statusClasses = [
                     'pendente_pagamento' => 'bg-secondary',
+                    'aguardando_estoque' => 'bg-warning text-dark border border-dark',
                     'aguardando_separacao' => 'bg-secondary',
                     'material_separado' => 'bg-primary',
                     'separacao_conferida' => 'bg-info text-dark',
@@ -910,6 +936,7 @@
 
                 $statusLabels = [
                     'pendente_pagamento' => 'Pendente pagamento',
+                    'aguardando_estoque' => 'Aguardando estoque',
                     'aguardando_separacao' => 'Aguardando separação',
                     'material_separado' => 'Material separado',
                     'separacao_conferida' => 'Separação conferida',
@@ -1307,11 +1334,15 @@
 
             <tr class="<?php echo e(trim(
                     $linhaClasse
+                    . ($statusEntrega === 'aguardando_estoque'
+                        ? ' est04-estoque'
+                        : '')
                     . ($ocultarEntregaConcluida
                         ? ' d-none'
                         : '')
                 )); ?>"
                 data-entrega-id="<?php echo e($entrega->id); ?>"
+                data-status-entrega="<?php echo e($entrega->status); ?>"
                 data-bloqueio-ativo="<?php echo e($entrega->bloqueioEdicaoAtivo
                         ? '1'
                         : '0'); ?>"
@@ -1331,6 +1362,16 @@
                         ID interno: #<?php echo e($entrega->id); ?>
 
                     </div>
+
+                    <?php if($statusEntrega === 'aguardando_estoque'): ?>
+                        <div class="mt-2">
+                            <span class="est04-carimbo"
+                                  title="Promessa aguardando cobertura de estoque">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                AGUARDANDO ESTOQUE
+                            </span>
+                        </div>
+                    <?php endif; ?>
 
                     <div class="mt-1">
                         <span class="badge <?php echo e($prioridadeClasse); ?>">
@@ -1504,6 +1545,33 @@
                         )); ?>
 
                 </span>
+                
+                <?php if($statusEntrega === 'em_rota'): ?>
+                    <?php
+                        $motoristaRota = $entrega->romaneio?->motorista
+                            ?? $entrega->motorista;
+
+                        $veiculoRota = $entrega->romaneio?->veiculo
+                            ?? $entrega->veiculo;
+                    ?>
+
+                    <div class="linha-secundaria text-start mt-1"
+                         style="line-height: 1.35;">
+                        <div class="text-break">
+                            <i class="bi bi-person me-1"></i>
+                            <strong>Motorista:</strong>
+                            <?php echo e($motoristaRota?->nome ?: 'Não informado'); ?>
+
+                        </div>
+
+                        <div class="text-break mt-1">
+                            <i class="bi bi-truck me-1"></i>
+                            <strong>Placa:</strong>
+                            <?php echo e($veiculoRota?->placa ?: 'Não informada'); ?>
+
+                        </div>
+                    </div>
+                <?php endif; ?>
             </td>
 
             <td class="text-center">
@@ -2133,10 +2201,80 @@
                     }
                 }
 
-                window.setInterval(
-                    sincronizarBloqueios,
-                    3000
-                );
+                                let ciclosCobertura = 0;
+                let consultaCoberturaEmAndamento = false;
+
+                function assinaturaStatusEntregas(pagina) {
+                    const linhas = Array.from(
+                        pagina.querySelectorAll(
+                            '#tabela-entregas tbody tr[data-entrega-id]'
+                        )
+                    ).map(function (linha) {
+                        return linha.dataset.entregaId + ':' +
+                            (linha.dataset.statusEntrega || '');
+                    }).join('|');
+
+                    const cards = Array.from(
+                        pagina.querySelectorAll('.kpi-card h3')
+                    ).map(function (card) {
+                        return card.textContent.trim();
+                    }).join('|');
+
+                    return linhas + '#' + cards;
+                }
+
+                async function sincronizarStatusCoberturaEntregas() {
+                    if (
+                        consultaCoberturaEmAndamento ||
+                        document.visibilityState === 'hidden'
+                    ) {
+                        return;
+                    }
+
+                    consultaCoberturaEmAndamento = true;
+
+                    try {
+                        const resposta = await fetch(
+                            window.location.href,
+                            {
+                                headers: { 'Accept': 'text/html' },
+                                credentials: 'same-origin',
+                                cache: 'no-store'
+                            }
+                        );
+
+                        if (!resposta.ok) return;
+
+                        const html = await resposta.text();
+                        const pagina = new DOMParser()
+                            .parseFromString(html, 'text/html');
+
+                        if (!pagina.querySelector('#tabela-entregas')) {
+                            return;
+                        }
+
+                        if (
+                            assinaturaStatusEntregas(document) !==
+                            assinaturaStatusEntregas(pagina)
+                        ) {
+                            window.location.reload();
+                        }
+                    } catch (erro) {
+                        // Nova tentativa no proximo ciclo.
+                    } finally {
+                        consultaCoberturaEmAndamento = false;
+                    }
+                }
+
+                window.setInterval(function () {
+                    sincronizarBloqueios();
+
+                    ciclosCobertura++;
+
+                    if (ciclosCobertura % 5 === 0) {
+                        sincronizarStatusCoberturaEntregas();
+                    }
+                }, 3000);
 
                 document.addEventListener(
                     'visibilitychange',

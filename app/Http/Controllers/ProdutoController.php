@@ -479,10 +479,7 @@ class ProdutoController extends Controller
             ])
             ->addSelect([
                 'disponivel' => DB::table('lotes')
-                    ->selectRaw('
-                        COALESCE(SUM(quantidade),0)
-                        - COALESCE(SUM(quantidade_reservada),0)
-                    ')
+                    ->selectRaw('COALESCE(SUM(GREATEST(0, COALESCE(quantidade_disponivel, 0) - COALESCE(quantidade_reservada, 0))), 0)')
                     ->whereColumn('produto_id', 'produtos.id')
                     ->where('status', 1)
             ])
@@ -573,10 +570,7 @@ class ProdutoController extends Controller
             ])
             ->addSelect([
                 'disponivel' => DB::table('lotes')
-                    ->selectRaw('
-                        COALESCE(SUM(quantidade),0)
-                        - COALESCE(SUM(quantidade_reservada),0)
-                    ')
+                    ->selectRaw('COALESCE(SUM(GREATEST(0, COALESCE(quantidade_disponivel, 0) - COALESCE(quantidade_reservada, 0))), 0)')
                     ->whereColumn('produto_id', 'produtos.id')
                     ->where('status', 1)
             ])

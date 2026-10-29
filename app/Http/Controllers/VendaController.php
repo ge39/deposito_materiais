@@ -268,30 +268,30 @@ class VendaController extends Controller
             // =======================================================================
             // 3. Baixa de estoque por lote com FIFO
             // =======================================================================
-            $lotes = [];
+            $lotesQuery = DB::table('lotes')
+                ->where('produto_id', $prodId)
+                ->where('status', 1)
+                ->where('quantidade_disponivel', '>', 0);
 
-            if ($loteIdInformado) {
-                $loteEspecifico = DB::table('lotes')
-                    ->where('id', $loteIdInformado)
-                    ->where('produto_id', $prodId)
-                    ->where('quantidade_disponivel', '>', 0)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($loteEspecifico) {
-                    $lotes[] = $loteEspecifico;
-                }
+            // O lote informado pelo PDV tem preferencia,
+            // mas nao impede a consulta aos demais lotes.
+            if (
+                !empty($loteIdInformado) &&
+                is_numeric($loteIdInformado)
+            ) {
+                $lotesQuery->orderByRaw(
+                    'CASE WHEN id = ? THEN 0 ELSE 1 END',
+                    [(int) $loteIdInformado]
+                );
             }
 
-            if (empty($lotes)) {
-                $lotes = DB::table('lotes')
-                    ->where('produto_id', $prodId)
-                    ->where('quantidade_disponivel', '>', 0)
-                    ->orderBy('created_at', 'asc')
-                    ->lockForUpdate()
-                    ->get();
-            }
-
+            // O restante segue FIFO.
+            // Todos os lotes elegiveis participam da baixa.
+            $lotes = $lotesQuery
+                ->orderBy('created_at', 'asc')
+                ->orderBy('id', 'asc')
+                ->lockForUpdate()
+                ->get();
             $qtdRestante = $qtd;
             $qtdAtendida = 0;
 

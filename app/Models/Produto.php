@@ -171,9 +171,22 @@ class Produto extends Model
     // -------------------------------
     // ESTOQUE (total disponível)
     // -------------------------------
-    public function getEstoqueAttribute()
+    public function getEstoqueAttribute(): float
     {
-        return $this->lotes->sum('quantidade_disponivel');
+        return round(
+            $this->lotes
+                ->filter(
+                    fn ($lote) => (int) $lote->status === 1
+                )
+                ->sum(
+                    fn ($lote) => max(
+                        0,
+                        (float) $lote->quantidade_disponivel
+                        - (float) $lote->quantidade_reservada
+                    )
+                ),
+            3
+        );
     }
 
     public function localizacaoEstoque()
@@ -287,9 +300,24 @@ class Produto extends Model
     // =========================
     // DISPONÍVEL (ESTOQUE REAL)
     // =========================
-    public function getDisponivelAttribute()
+    public function getDisponivelAttribute(): float
     {
-        return $this->lotes()->sum(DB::raw('quantidade - quantidade_reservada'));
+        // EST-05B - Disponibilidade comercial por lote ativo.
+        // As vendas PDV atualizam quantidade_disponivel.
+        // As reservas continuam preservadas no banco.
+
+        $saldo = $this->lotes()
+            ->where('status', 1)
+            ->selectRaw(
+                'COALESCE(SUM(GREATEST(
+                    0,
+                    COALESCE(quantidade_disponivel, 0)
+                    - COALESCE(quantidade_reservada, 0)
+                )), 0) AS saldo'
+            )
+            ->first();
+
+        return round((float) ($saldo->saldo ?? 0), 3);
     }
     /**
      * Busca o preço de compra do lote mais recente

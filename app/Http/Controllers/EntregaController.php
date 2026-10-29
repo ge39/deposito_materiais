@@ -717,6 +717,8 @@ class EntregaController extends Controller
 
     public function index(Request $request)
     {
+        $this->reavaliarStatusPorCoberturaFisica();
+
         $dadosValidados = $request->validate(
             [
                 'codigo_entrega' => [
@@ -1180,6 +1182,8 @@ class EntregaController extends Controller
         */
         $query = Entrega::query()
             ->with([
+                'motorista',
+                'veiculo',
                 'venda',
                 'orcamento',
                 'itens',
@@ -1320,6 +1324,38 @@ class EntregaController extends Controller
         $entregas = $query
             ->paginate(20)
             ->withQueryString();
+        
+        // ENT-ROTA-MOTORISTA-PLACA-V1
+        // Consulta somente os romaneios das entregas Em_rota
+        // presentes na página atual.
+        $idsEmRota = $entregas->getCollection()
+            ->filter(
+                fn (Entrega $entrega) =>
+                    $entrega->status === 'Em_rota'
+            )
+            ->pluck('id');
+
+        $romaneiosPorEntrega = collect();
+
+        if ($idsEmRota->isNotEmpty()) {
+            $romaneiosPorEntrega = Romaneio::query()
+                ->with(['motorista', 'veiculo'])
+                ->whereIn('entrega_id', $idsEmRota)
+                ->where('status', '<>', 'Cancelado')
+                ->orderByDesc('id')
+                ->get()
+                ->unique('entrega_id')
+                ->keyBy('entrega_id');
+        }
+
+        foreach ($entregas->getCollection() as $entrega) {
+            if ($entrega->status === 'Em_rota') {
+                $entrega->setRelation(
+                    'romaneio',
+                    $romaneiosPorEntrega->get($entrega->id)
+                );
+            }
+        }
 
         /*
         * ============================================================
@@ -3935,4 +3971,204 @@ class EntregaController extends Controller
         }
     }
 
+
+    /**
+     * Reavalia exclusivamente entregas.status.
+     * Considera reservas cobertas e estoque fisico livre
+     * de lotes ativos do mesmo produto.
+     */
+    private function reavaliarStatusPorCoberturaFisica(): void
+    {
+        $db = \Illuminate\Support\Facades\DB::class;
+
+        $entregas = $db::table('entregas')
+            ->whereIn('status', [
+                'Aguardando_estoque',
+                'Aguardando_separacao'
+            ])
+            ->orderBy('id')
+            ->get(['id', 'status']);
+
+        if ($entregas->isEmpty()) {
+            return;
+        }
+
+        // Somente lotes ativos: status = 1.
+        // Nao compensar deficits de lotes antigos
+        // com saldos positivos de novos lotes.
+        $livre = $db::table('lotes')
+            ->where('status', 1)
+            ->select('produto_id')
+            ->selectRaw(
+                'SUM(GREATEST(0, quantidade_disponivel - quantidade_reservada)) AS saldo'
+            )
+            ->groupBy('produto_id')
+            ->pluck('saldo', 'produto_id')
+            ->all();
+
+        $alteracoes = [];
+
+        foreach ($entregas as $entrega) {
+            $itens = $db::table('entrega_itens as ei')
+                ->leftJoin(
+                    'item_orcamentos as io',
+                    'io.id',
+                    '=',
+                    'ei.item_orcamento_id'
+                )
+                ->where('ei.entrega_id', $entrega->id)
+                ->get([
+                    'ei.item_orcamento_id',
+                    'ei.quantidade_prevista',
+                    'ei.quantidade_entregue',
+                    'io.produto_id'
+                ]);
+
+            if ($itens->isEmpty()) {
+                continue;
+            }
+
+            $faltaPorProduto = [];
+            $avaliavel = true;
+
+            foreach ($itens as $item) {
+                if (
+                    !$item->produto_id ||
+                    !$item->item_orcamento_id
+                ) {
+                    $avaliavel = false;
+                    break;
+                }
+
+                $pendente = max(
+                    0,
+                    (float) $item->quantidade_prevista
+                    - (float) $item->quantidade_entregue
+                );
+
+                if ($pendente <= 0) {
+                    continue;
+                }
+
+                // Reservas destinadas a entregas anteriores
+                // do mesmo item nao pertencem a esta entrega.
+                $anterior = (float) $db::table('entrega_itens')
+                    ->where(
+                        'item_orcamento_id',
+                        $item->item_orcamento_id
+                    )
+                    ->where('entrega_id', '<', $entrega->id)
+                    ->sum('quantidade_prevista');
+
+                $alocacoes = $db::table(
+                    'item_orcamento_lotes as iol'
+                )
+                    ->join(
+                        'lotes as l',
+                        'l.id',
+                        '=',
+                        'iol.lote_id'
+                    )
+                    ->where(
+                        'iol.item_orcamento_id',
+                        $item->item_orcamento_id
+                    )
+                    ->where('l.status', 1)
+                    ->orderBy('iol.created_at')
+                    ->orderBy('iol.id')
+                    ->get([
+                        'iol.quantidade_reservada as parcela',
+                        'l.quantidade_disponivel as fisico',
+                        'l.quantidade_reservada as reservado'
+                    ]);
+
+                $reservadoCoberto = 0.0;
+
+                foreach ($alocacoes as $alocacao) {
+                    $parcela = max(
+                        0,
+                        (float) $alocacao->parcela
+                    );
+
+                    $abatido = min($anterior, $parcela);
+
+                    $anterior -= $abatido;
+                    $parcela -= $abatido;
+
+                    if ($parcela <= 0) {
+                        continue;
+                    }
+
+                    // So considerar como coberta a reserva
+                    // cujo lote ativo possui cobertura fisica.
+                    if (
+                        (float) $alocacao->fisico + 0.0005
+                        >= (float) $alocacao->reservado
+                    ) {
+                        $reservadoCoberto += $parcela;
+                    }
+                }
+
+                // A parte nao coberta pelas reservas pode
+                // utilizar saldo livre de outros lotes ativos.
+                $faltante = max(
+                    0,
+                    $pendente - $reservadoCoberto
+                );
+
+                $produtoId = (int) $item->produto_id;
+
+                $faltaPorProduto[$produtoId] =
+                    ($faltaPorProduto[$produtoId] ?? 0)
+                    + $faltante;
+            }
+
+            // Nao alterar entrega com vinculo incompleto.
+            if (!$avaliavel) {
+                continue;
+            }
+
+            $coberta = true;
+
+            foreach ($faltaPorProduto as $produtoId => $quantidade) {
+                $saldo = (float) ($livre[$produtoId] ?? 0);
+
+                $alocavel = min(
+                    $saldo,
+                    $quantidade
+                );
+
+                // Reserva virtual somente nesta verificacao.
+                // Nunca altera lotes ou reservas no banco.
+                // Evita contar o mesmo saldo duas vezes.
+                $livre[$produtoId] = $saldo - $alocavel;
+
+                if ($alocavel + 0.0005 < $quantidade) {
+                    $coberta = false;
+                }
+            }
+
+            $novoStatus = $coberta
+                ? 'Aguardando_separacao'
+                : 'Aguardando_estoque';
+
+            if ($entrega->status !== $novoStatus) {
+                $alteracoes[] = [
+                    $entrega->id,
+                    $entrega->status,
+                    $novoStatus
+                ];
+            }
+        }
+
+        // Unica escrita permitida: entregas.status.
+        foreach ($alteracoes as [$id, $anterior, $novoStatus]) {
+            $db::table('entregas')
+                ->where('id', $id)
+                ->where('status', $anterior)
+                ->update([
+                    'status' => $novoStatus
+                ]);
+        }
+    }
 }

@@ -1,1 +1,0 @@
-<?php /**PATH C:\xampp\htdocs\deposito_materiais\resources\views\auditoria_caixa\partials\lancamentos_manuais.blade.php ENDPATH**/ ?>
