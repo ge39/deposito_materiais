@@ -878,7 +878,7 @@ class OrcamentoService
                         continue;
                     }
 
-                    $disponivel = $lote->quantidade - $lote->quantidade_reservada;
+                    $disponivel = $lote->quantidade_disponivel - $lote->quantidade_reservada;
 
                     if ($disponivel <= 0) {
                         continue;

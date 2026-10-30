@@ -717,7 +717,7 @@ class EntregaController extends Controller
 
     public function index(Request $request)
     {
-        $this->reavaliarStatusPorCoberturaFisica();
+        // $this->reavaliarStatusPorCoberturaFisica();
 
         $dadosValidados = $request->validate(
             [

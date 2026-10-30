@@ -86,6 +86,7 @@ class RomaneioController extends Controller
 
 
     private const STATUS_ENTREGAS_OPERACIONAIS = [
+        'Aguardando_estoque',
         'Aguardando_separacao',
 
 

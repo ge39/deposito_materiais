@@ -11,12 +11,7 @@ class EstoqueDivergenciaController extends Controller
 {
     public function index(Request $request)
     {
-        $query = EstoqueDivergencia::with([
-            'produto',
-            'venda',
-            'caixa',
-            'usuario'
-        ]);
+        $query = EstoqueDivergencia::query();
 
         if ($request->filled('produto')) {
             $query->whereHas('produto', function ($q) use ($request) {
@@ -28,18 +23,64 @@ class EstoqueDivergenciaController extends Controller
             $query->where('tipo', $request->tipo);
         }
 
-        if ($request->filled('data_inicio')) {
-            $query->whereDate('created_at', '>=', $request->data_inicio);
+        if ($request->filled('data_inicial')) {
+            $query->whereDate('created_at', '>=', $request->data_inicial);
         }
 
-        if ($request->filled('data_fim')) {
-            $query->whereDate('created_at', '<=', $request->data_fim);
+        if ($request->filled('data_final')) {
+            $query->whereDate('created_at', '<=', $request->data_final);
         }
 
-        $divergencias = $query
-            ->orderByDesc('id')
+        // ESTDIV01_HISTORICO
+        // Paginar produtos depois de aplicar os filtros.
+        $divergencias = (clone $query)
+            ->select('produto_id')
+            ->selectRaw('MAX(id) AS ultima_ocorrencia_id')
+            ->groupBy('produto_id')
+            ->orderByDesc('ultima_ocorrencia_id')
             ->paginate(20)
             ->withQueryString();
+
+        // Buscar todas as ocorrencias filtradas dos produtos
+        // da pagina, evitando totais parciais.
+        $produtosNaPagina = $divergencias
+            ->getCollection()
+            ->pluck('produto_id');
+
+        $registrosPorProduto = (clone $query)
+            ->with([
+                'produto',
+                'venda',
+                'caixa',
+                'usuario',
+            ])
+            ->where(function ($filtro) use ($produtosNaPagina) {
+                $filtro->whereIn(
+                    'produto_id',
+                    $produtosNaPagina
+                        ->filter(fn ($id) => $id !== null)
+                        ->values()
+                        ->all()
+                );
+
+                if ($produtosNaPagina->contains(null)) {
+                    $filtro->orWhereNull('produto_id');
+                }
+            })
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('produto_id');
+
+        // Cada elemento da paginacao passa a representar
+        // um produto e todas as suas ocorrencias filtradas.
+        $divergencias->setCollection(
+            $divergencias->getCollection()->map(
+                fn ($produto) => $registrosPorProduto->get(
+                    $produto->produto_id,
+                    collect()
+                )
+            )
+        );
 
         return view('estoque_divergencias.index', compact('divergencias'));
     }
@@ -100,12 +141,12 @@ class EstoqueDivergenciaController extends Controller
             $query->where('tipo', $request->tipo);
         }
 
-        if ($request->filled('data_inicio')) {
-            $query->whereDate('created_at', '>=', $request->data_inicio);
+        if ($request->filled('data_inicial')) {
+            $query->whereDate('created_at', '>=', $request->data_inicial);
         }
 
-        if ($request->filled('data_fim')) {
-            $query->whereDate('created_at', '<=', $request->data_fim);
+        if ($request->filled('data_final')) {
+            $query->whereDate('created_at', '<=', $request->data_final);
         }
 
         $divergencias = $query

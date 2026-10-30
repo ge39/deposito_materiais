@@ -188,12 +188,26 @@ class EstoqueService
     /**
      * LOTES DISPONÍVEIS (FIFO)
      */
+    // private function buscarLotesDisponiveis(int $produtoId)
+    // {
+    //     return Lote::where('produto_id', $produtoId)
+    //         ->where('status', 1)
+    //         ->whereRaw('(quantidade - quantidade_reservada) > 0')
+    //         ->orderBy('created_at') // FIFO
+    //         ->lockForUpdate()
+    //         ->get();
+    // }
+
     private function buscarLotesDisponiveis(int $produtoId)
     {
         return Lote::where('produto_id', $produtoId)
             ->where('status', 1)
-            ->whereRaw('(quantidade - quantidade_reservada) > 0')
-            ->orderBy('created_at') // FIFO
+            ->whereRaw(
+                '(COALESCE(quantidade_disponivel, 0) -
+                COALESCE(quantidade_reservada, 0)) > 0'
+            )
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->lockForUpdate()
             ->get();
     }
@@ -203,7 +217,7 @@ class EstoqueService
      */
     private function disponivel(Lote $lote): float
     {
-        return $lote->quantidade - $lote->quantidade_reservada;
+        return $lote->quantidade_disponivel - $lote->quantidade_reservada;
     }
 
     /**

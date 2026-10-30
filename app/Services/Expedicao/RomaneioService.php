@@ -5067,6 +5067,19 @@ class RomaneioService
 
             $novoRomaneio->refresh();
 
+            // PROMESSA_ESTOQUE_STATUS_V1
+            // Exclusivo da decisao Promessa_sem_estoque.
+            // Fracionamento logistico permanece inalterado.
+            if (
+                $aguardandoEstoque
+                && $entregaFilha->status === 'Aguardando_separacao'
+            ) {
+                $this->atualizarStatusEntregas(
+                    $novoRomaneio,
+                    'Aguardando_estoque'
+                );
+            }
+
             $this->eventoService->registrarCriacao(
                 $novoRomaneio
             );
