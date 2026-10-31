@@ -822,6 +822,14 @@
             flex-direction: column;
         }
     }
+
+    /* ROM_MODAL_CARD_FULL_WIDTH_V91 */
+    /* Cards de tratamento ocupam toda a largura do modal. */
+    #modalDecisaoSaldo .modal-body .row.g-2 > .col-md-6 {
+        flex: 0 0 100%;
+        width: 100%;
+        max-width: 100%;
+    }
 </style>
 
 <div class="container-fluid romaneio-page py-3">
@@ -2873,6 +2881,135 @@
                 })
                 .join('');
         };
+
+
+        // ROM_MODAL_EXCLUSIVO_VISUAL_V9
+        // Somente apresentacao. Nao altera dados ou services.
+
+        // ROM_MODAL_FLUXO_FIXO_V10
+        // Preserva a quantidade separada original da tela.
+        // Edicoes posteriores nao alteram o tipo de fluxo.
+
+        const saldoInicialModalV10 = rows.reduce(
+            (total, row) => {
+
+                const romaneio = parseNumber(
+                    row.dataset.prevista
+                );
+
+                const campoSeparada = row.querySelector(
+                    'input[name*="[quantidade_separada]"]'
+                );
+
+                const separadaInicial = campoSeparada
+                    ? parseNumber(campoSeparada.defaultValue)
+                    : romaneio;
+
+                return total + Math.max(
+                    romaneio - separadaInicial,
+                    0
+                );
+            },
+            0
+        );
+
+        const aplicarModalVisualV9 = () => {
+
+            if (!modalDecisaoSaldoElemento) {
+                return;
+            }
+
+            // Reutiliza os valores ROMANEIO e SEPARADA
+            // que ja existem nas linhas da tabela.
+            const tipoPermitido = saldoInicialModalV10 < 0.001
+                ? 'Entrega_fracionada'
+                : 'Promessa_sem_estoque';
+
+            const radios = Array.from(
+                modalDecisaoSaldoElemento.querySelectorAll(
+                    'input[name="tipo_saldo"]'
+                )
+            );
+
+            if (radios.length !== 2) {
+                return;
+            }
+
+            radios.forEach(radio => {
+
+                const permitido =
+                    radio.value === tipoPermitido;
+
+                // Nao selecionar automaticamente.
+                // Apenas impedir a opcao contraria.
+                if (!permitido) {
+                    radio.checked = false;
+                }
+
+                radio.disabled = !permitido;
+
+                const coluna = radio.closest('.col-md-6');
+
+                if (coluna) {
+                    coluna.classList.toggle(
+                        'd-none',
+                        !permitido
+                    );
+                }
+            });
+
+            const selecionado =
+                modalDecisaoSaldoElemento.querySelector(
+                    'input[name="tipo_saldo"]:checked'
+                );
+
+            const exigirData = selecionado?.value
+                === 'Promessa_sem_estoque';
+
+            grupoDataPrevistaSaldo?.classList.toggle(
+                'd-none',
+                !exigirData
+            );
+
+            if (dataPrevistaSaldo) {
+                dataPrevistaSaldo.required = exigirData;
+            }
+        };
+
+        // Reavaliar quando SEPARADA mudar.
+        rows.forEach(row => {
+            const campo = row.querySelector(
+                'input[name*="[quantidade_separada]"]'
+            );
+
+            campo?.addEventListener(
+                'input',
+                aplicarModalVisualV9
+            );
+        });
+
+        // Reavaliar antes de exibir o modal.
+        modalDecisaoSaldoElemento?.addEventListener(
+            'show.bs.modal',
+            aplicarModalVisualV9
+        );
+
+        // Evitar validacao de data oculta ao fechar.
+        modalDecisaoSaldoElemento?.addEventListener(
+            'hidden.bs.modal',
+            () => {
+                if (dataPrevistaSaldo) {
+                    dataPrevistaSaldo.required = false;
+                }
+
+                grupoDataPrevistaSaldo?.classList.add(
+                    'd-none'
+                );
+            }
+        );
+
+        // Aplicar no primeiro carregamento.
+        aplicarModalVisualV9();
 
         document
             .querySelectorAll('input[name="tipo_saldo"]')

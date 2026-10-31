@@ -210,22 +210,11 @@ class BackupHistoricoConsultaService
                 return 'Divergente';
             }
 
-            try {
-                $hash1 = hash_file('sha256', $arquivo['path']);
-                $hash2 = hash_file('sha256', $destino);
-
-                if (
-                    is_string($hash1) &&
-                    is_string($hash2) &&
-                    hash_equals($hash1, $hash2)
-                ) {
-                    return 'Validada';
-                }
-
-                return 'Divergente';
-            } catch (Throwable $e) {
-                return 'Falha na verificação';
-            }
+            /* BACKUP_HIST_CONSULTA_SEM_HASH_V2
+ * Arquivo secundario presente e tamanho compativel.
+ * SHA-256 nao verificado nesta consulta HTTP.
+ */
+return 'Presente (SHA-256 nao verificado)';
         }
 
         return 'Não encontrada';
